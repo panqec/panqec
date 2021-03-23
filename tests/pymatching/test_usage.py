@@ -2,7 +2,8 @@
 Following the tutorial.
 """
 import pytest
-from pymatching import Matching
+from pymatching import Matching, set_seed
+import networkx as nx
 import numpy as np
 import scipy
 
@@ -149,3 +150,43 @@ def test_spacetime_matching_graph(five_qubit_Hz):
     # Check cumulative total noise is all good.
     total_noise = (noise_total + correction) % 2
     assert np.all(total_noise == 0)
+
+
+def test_loading_networkx_graphs():
+    p = 0.2
+    g = nx.Graph()
+
+    g.add_edge(0, 1, qubit_id=0, weight=np.log((1 - p)/p), error_probability=p)
+    g.add_edge(1, 2, qubit_id=1, weight=np.log((1 - p)/p), error_probability=p)
+    g.add_edge(2, 3, qubit_id=2, weight=np.log((1 - p)/p), error_probability=p)
+    g.add_edge(3, 4, qubit_id=3, weight=np.log((1 - p)/p), error_probability=p)
+    g.add_edge(4, 5, qubit_id=4, weight=np.log((1 - p)/p), error_probability=p)
+
+    # Single hook error on qubits 2 and 3
+    p2 = 0.12
+    g.add_edge(
+        2, 4, qubit_id={2, 3}, weight=np.log((1 - p2)/p2), error_probability=p2
+    )
+
+    # Set optional attribute.
+    g.nodes[0]['is_boundary'] = True
+    g.nodes[5]['is_boundary'] = True
+    
+    # Connect boundary boundary with edge of weight 0.
+    g.add_edge(0, 5, weight=0.0, qubit_id=-1, error_probability=0.0)
+
+    m = Matching(g)
+    assert isinstance(m, Matching)
+    
+    set_seed(1)
+    noise, syndrome = m.add_noise()
+
+    assert np.all(noise == [0, 1, 0, 0, 0])
+    assert np.all(syndrome == [0, 1, 1, 0, 0, 0])
+
+    # Decode.
+    correction = m.decode(syndrome)
+
+    # Test decoding worked.
+    total_error = (correction + noise) % 2
+    assert np.all(total_error == 0)
