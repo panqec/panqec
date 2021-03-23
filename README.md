@@ -28,3 +28,8 @@ Activate the virtual environment
 ```
 source venv/bin/activate
 ```
+
+Install the dependencies for development mode.
+```
+pip install -r requirements/dev.txt
+```
