@@ -2,3 +2,4 @@
 jupyter==1.0.0
 pytest==6.2.2
 flake8==3.9.0
+matplotlib==3.3.4
