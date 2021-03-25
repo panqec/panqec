@@ -171,13 +171,13 @@ def test_loading_networkx_graphs():
     # Set optional attribute.
     g.nodes[0]['is_boundary'] = True
     g.nodes[5]['is_boundary'] = True
-    
+
     # Connect boundary boundary with edge of weight 0.
     g.add_edge(0, 5, weight=0.0, qubit_id=-1, error_probability=0.0)
 
     m = Matching(g)
     assert isinstance(m, Matching)
-    
+
     set_seed(1)
     noise, syndrome = m.add_noise()
 
