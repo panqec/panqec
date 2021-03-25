@@ -43,3 +43,11 @@ you can run the tests to make sure everything has been correctly installed.
 pytest
 ```
 If all the tests pass everything should be working as expected.
+
+# Code Style
+Just follow PEP 8, but to actually test that the code is compliant, run the
+linter using
+```
+make lint
+```
+It will run `flake8` and print out a list of non-compliances.
