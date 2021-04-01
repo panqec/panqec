@@ -3,14 +3,15 @@ Test PyMatching is working correctly for Toric Code as shown in their Tutorial.
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.sparse import hstack, kron, eye, csr_matrix, block_diag
 from pymatching import Matching
 
 
 def repetition_code(n):
     """Parity check matrix of a repetition code with length n. """
-    row_ind, col_ind = zip(*((i, j) for i in range(n) for j in (i, (i+1)%n)))
+    row_ind, col_ind = zip(
+        *((i, j) for i in range(n) for j in (i, (i + 1) % n))
+    )
     data = np.ones(2*n, dtype=np.uint8)
     return csr_matrix((data, (row_ind, col_ind)))
 
@@ -61,7 +62,7 @@ def toric_code_x_logicals(L):
     operator of a toric code with lattice size L. Constructed from the homology
     groups of the repetition codes using the Kunneth theorem.
     """
-    H1 = csr_matrix(([1], ([0],[0])), shape=(1,L), dtype=np.uint8)
+    H1 = csr_matrix(([1], ([0], [0])), shape=(1, L), dtype=np.uint8)
     H0 = csr_matrix(np.ones((1, L), dtype=np.uint8))
     x_logicals = block_diag([kron(H1, H0), kron(H0, H1)])
     x_logicals.data = x_logicals.data % 2
