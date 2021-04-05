@@ -1,2 +1,2 @@
 lint:
-	flake8 tests
+	flake8 bn3d tests
