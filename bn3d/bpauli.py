@@ -109,3 +109,32 @@ def bvector_to_pauli_string(bvector: np.ndarray) -> str:
             (0, 1): 'Z'
         }[(bvector[i], bvector[i + n])]
     return pauli_string
+
+
+def get_effective_error(
+    logicals: np.ndarray,
+    total_error: np.ndarray
+) -> np.ndarray:
+    """Effective Pauli error on logical qubits after decoding."""
+
+    if len(logicals.shape) == 1:
+        raise ValueError('Must have at least two logicals.')
+
+    n_logical = int(len(logicals)/2)
+    n_physical = int(logicals.shape[1]/2)
+    assert n_physical > n_logical
+
+    num_total_errors = 1
+    if len(total_error.shape) > 1:
+        num_total_errors = total_error.shape[0]
+
+    # First half are X logicals, second half are Z logicals.
+    X_logicals = np.array(logicals)[:n_logical]
+    Z_logicals = np.array(logicals)[n_logical:]
+
+    effective_Z = bcommute(X_logicals, total_error)
+    effective_X = bcommute(Z_logicals, total_error)
+    effective = np.concatenate([effective_X.T, effective_Z.T], axis=1)
+    if num_total_errors == 1:
+        effective = effective.reshape(2*n_logical)
+    return effective

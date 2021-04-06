@@ -1,5 +1,6 @@
 import numpy as np
-from bn3d.bpauli import bcommute
+from bn3d.bpauli import bcommute, get_effective_error
+from pymatching import Matching
 from bn3d.tc3d import (
     get_vertex_Z_stabilisers, get_face_X_stabilisers, get_all_stabilisers,
     get_Z_logicals, get_X_logicals, get_all_logicals,
@@ -104,3 +105,43 @@ class TestCommutationRelations:
         Z_logicals = get_Z_logicals(L)
         commutation = bcommute(X_logicals, Z_logicals)
         assert np.all(commutation == np.identity(L))
+
+
+def test_correcting_X_noise_produces_X_logical_errors_only():
+    L = 3
+    p = 0.5
+    np.random.seed(0)
+    Z_stabilisers = get_vertex_Z_stabilisers(L)
+    H_Z = Z_stabilisers[:, 3*L**3:]
+    X_logicals = get_X_logicals(L)
+    Z_logicals = get_Z_logicals(L)
+    logicals = get_all_logicals(L)
+
+    matching = Matching(H_Z)
+    noise_X = np.random.binomial(1, p, H_Z.shape[1])
+
+    # Make sure the noise is non-trivial.
+    assert noise_X.sum() > 0
+    syndrome_Z = H_Z.dot(noise_X) % 2
+    correction_X = matching.decode(syndrome_Z, num_neighbours=None)
+    total_error_X = (noise_X + correction_X) % 2
+    total_error = np.zeros(2*3*L**3, dtype=np.uint)
+    total_error[:3*L**3] = total_error_X
+
+    # Compute the effective error on the logical qubits.
+    effective_error = get_effective_error(logicals, total_error)
+
+    # Make sure the total error is non-trivial.
+    assert total_error.sum() > 0
+
+    # Assert that the logical error is non-trivial.
+    assert np.any(effective_error != 0)
+
+    # Therefore it should anticommute with some Z logicals.
+    assert np.any(bcommute(Z_logicals, total_error) == 1)
+
+    # Total error is in code space.
+    assert np.all(bcommute(Z_stabilisers, total_error) == 0)
+
+    # Total commutes with all X logicals.
+    assert np.all(bcommute(X_logicals, total_error) == 0)
