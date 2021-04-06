@@ -1,6 +1,9 @@
 import numpy as np
 import datetime
+import os
+import json
 from .bpauli import bvectors_to_ints
+from .utils import sizeof_fmt
 
 
 def serialize_results(
@@ -11,7 +14,7 @@ def serialize_results(
     p_est: np.ndarray, p_se: np.ndarray,
     n_fail: np.ndarray, n_try: np.ndarray,
     effective_errors: list
-):
+) -> dict:
     """Convert results to dict."""
     return {
         'parameters': {
@@ -44,3 +47,14 @@ def serialize_results(
             ],
         },
     }
+
+
+def dump_results(export_json: str, results_dict: dict, verbose: bool = True):
+    """Save results dict to json file."""
+    with open(export_json, 'w') as f:
+        json.dump(results_dict, f)
+    if verbose:
+        print(
+            f'Results written to {export_json} '
+            f'({sizeof_fmt(os.path.getsize(export_json))})'
+        )
