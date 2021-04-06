@@ -145,9 +145,24 @@ def bvector_to_int(bvector: np.ndarray) -> int:
     return int(''.join(map(str, bvector)), 2)
 
 
+def int_to_bvector(int_rep: int, n: int) -> np.ndarray:
+    """Convert integer representation to n-qubit Pauli bvector."""
+    binary_string = ('{:0%db}' % (2*n)).format(int_rep)
+    bvector = np.array(tuple(binary_string), dtype=np.uint)
+    return bvector
+
+
 def bvectors_to_ints(bvector_list: list) -> list:
     """List of bvectors to integers for efficient storage."""
     return list(map(
         bvector_to_int,
         bvector_list
     ))
+
+
+def ints_to_bvectors(int_list: list, n: int) -> list:
+    """Convert list of integers back to bvectors."""
+    bvectors = []
+    for int_rep in int_list:
+        bvectors.append(int_to_bvector(int_rep, n))
+    return bvectors

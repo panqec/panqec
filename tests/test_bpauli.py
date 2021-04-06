@@ -2,7 +2,7 @@ import numpy as np
 from bn3d.bpauli import (
     pauli_string_to_bvector, bvector_to_pauli_string, bvector_to_barray,
     barray_to_bvector, bcommute, get_effective_error, bvector_to_int,
-    bvectors_to_ints
+    bvectors_to_ints, ints_to_bvectors
 )
 
 
@@ -98,3 +98,12 @@ def test_bvectors_to_ints():
         pauli_string_to_bvector,
         ['III', 'XYZ', 'IIZ']
     ))) == [0, 51, 1]
+
+
+def test_ints_to_bvectors():
+    assert np.all(
+        np.array(ints_to_bvectors([0, 1, 2], 3))
+        == np.array(list(map(
+            pauli_string_to_bvector, ['III', 'IIZ', 'IZI']
+        )))
+    )
