@@ -1,6 +1,8 @@
 import numpy as np
+from bn3d.bpauli import bcommute
 from bn3d.tc3d import (
-    get_vertex_Z_stabilisers, get_face_X_stabilisers, get_all_stabilisers
+    get_vertex_Z_stabilisers, get_face_X_stabilisers, get_all_stabilisers,
+    get_Z_logicals, get_X_logicals, get_all_logicals,
 )
 
 
@@ -57,3 +59,48 @@ def test_get_all_stabilisers():
 
     # X block of Z stabilisers should be all 0.
     assert np.all(stabilisers[3*L**3:, :L**3] == 0)
+
+
+def test_get_Z_logicals():
+    L = 3
+    logicals = get_Z_logicals(L)
+    assert logicals.shape[0] == 3
+    assert logicals.shape[1] == 2*3*L**3
+
+
+def test_get_X_logicals():
+    L = 3
+    logicals = get_X_logicals(L)
+    assert logicals.shape[0] == 3
+    assert logicals.shape[1] == 2*3*L**3
+
+
+class TestCommutationRelations:
+
+    def test_stabilisers_commute_with_each_other(self):
+        L = 3
+        stabilisers = get_all_stabilisers(L)
+        assert np.all(bcommute(stabilisers, stabilisers) == 0)
+
+    def test_Z_logicals_commute_with_each_other(self):
+        L = 3
+        logicals = get_Z_logicals(L)
+        assert np.all(bcommute(logicals, logicals) == 0)
+
+    def test_X_logicals_commute_with_each_other(self):
+        L = 3
+        logicals = get_X_logicals(L)
+        assert np.all(bcommute(logicals, logicals) == 0)
+
+    def test_stabilisers_commute_with_logicals(self):
+        L = 3
+        stabilisers = get_all_stabilisers(L)
+        logicals = get_all_logicals(L)
+        assert np.all(bcommute(logicals, stabilisers) == 0)
+
+    def test_X_and_Z_logicals_commutation(self):
+        L = 3
+        X_logicals = get_X_logicals(L)
+        Z_logicals = get_Z_logicals(L)
+        commutation = bcommute(X_logicals, Z_logicals)
+        assert np.all(commutation == np.identity(L))

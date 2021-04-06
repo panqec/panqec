@@ -67,3 +67,63 @@ def get_all_stabilisers(L):
     stabilisers = np.concatenate([face_stabilisers, vertex_stabilisers])
 
     return np.array(stabilisers)
+
+
+def get_X_logicals(L):
+    """Get the 3 logical X operators."""
+    logicals = []
+
+    # X operators along x edges in x direction.
+    logical = new_barray(L)
+    for x in range(L):
+        logical[0, x, 0, 0, 0] = 1
+    logicals.append(barray_to_bvector(logical, L))
+
+    # X operators along y edges in y direction.
+    logical = new_barray(L)
+    for y in range(L):
+        logical[1, 0, y, 0, 0] = 1
+    logicals.append(barray_to_bvector(logical, L))
+
+    # X operators along z edges in z direction
+    logical = new_barray(L)
+    for z in range(L):
+        logical[2, 0, 0, z, 0] = 1
+    logicals.append(barray_to_bvector(logical, L))
+
+    return np.array(logicals)
+
+
+def get_Z_logicals(L):
+    """Get the 3 logical Z operators."""
+    logicals = []
+
+    # Z operators on x edges forming surface normal to x (yz plane).
+    logical = new_barray(L)
+    for y in range(L):
+        for z in range(L):
+            logical[0, 0, y, z, 1] = 1
+    logicals.append(barray_to_bvector(logical, L))
+
+    # Z operators on y edges forming surface normal to y (zx plane).
+    logical = new_barray(L)
+    for z in range(L):
+        for x in range(L):
+            logical[1, x, 0, z, 1] = 1
+    logicals.append(barray_to_bvector(logical, L))
+
+    # Z operators on z edges forming surface normal to z (xy plane).
+    logical = new_barray(L)
+    for x in range(L):
+        for y in range(L):
+            logical[2, x, y, 0, 1] = 1
+    logicals.append(barray_to_bvector(logical, L))
+
+    return np.array(logicals)
+
+
+def get_all_logicals(L):
+    X_logicals = get_X_logicals(L)
+    Z_logicals = get_Z_logicals(L)
+    logicals = np.concatenate([X_logicals, Z_logicals])
+    return logicals
