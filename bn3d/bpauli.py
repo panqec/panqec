@@ -138,3 +138,16 @@ def get_effective_error(
     if num_total_errors == 1:
         effective = effective.reshape(2*n_logical)
     return effective
+
+
+def bvector_to_int(bvector: np.ndarray) -> int:
+    """Convert bvector to integer for effecient storage."""
+    return int(''.join(map(str, bvector)), 2)
+
+
+def bvectors_to_ints(bvector_list: list) -> list:
+    """List of bvectors to integers for efficient storage."""
+    return list(map(
+        bvector_to_int,
+        bvector_list
+    ))

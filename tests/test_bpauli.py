@@ -1,7 +1,8 @@
 import numpy as np
 from bn3d.bpauli import (
     pauli_string_to_bvector, bvector_to_pauli_string, bvector_to_barray,
-    barray_to_bvector, bcommute, get_effective_error
+    barray_to_bvector, bcommute, get_effective_error, bvector_to_int,
+    bvectors_to_ints
 )
 
 
@@ -82,3 +83,18 @@ def test_get_effective_errror_many():
         pauli_string_to_bvector('I'),
         pauli_string_to_bvector('X')
     ]))
+
+
+def test_bvector_to_int():
+    assert bvector_to_int(pauli_string_to_bvector('IIIII')) == 0
+    assert bvector_to_int(pauli_string_to_bvector('I')) == 0
+    assert bvector_to_int(pauli_string_to_bvector('X')) == 2
+    assert bvector_to_int(pauli_string_to_bvector('Y')) == 3
+    assert bvector_to_int(pauli_string_to_bvector('Z')) == 1
+
+
+def test_bvectors_to_ints():
+    assert bvectors_to_ints(list(map(
+        pauli_string_to_bvector,
+        ['III', 'XYZ', 'IIZ']
+    ))) == [0, 51, 1]
