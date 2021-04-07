@@ -1,3 +1,4 @@
--e .
 PyMatching==0.2.4
 tqdm==4.59.0
+python-dotenv==0.17.0
+-e .

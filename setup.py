@@ -1,8 +1,9 @@
 from setuptools import setup
 
 requirements = [
-    'PyMatching==0.2.4',
-    'tqdm>=4.59.0',
+    'PyMatching',
+    'tqdm',
+    'python-dotenv'
 ]
 
 setup(
