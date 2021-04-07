@@ -54,6 +54,18 @@ pytest
 ```
 If all the tests pass everything should be working as expected.
 
+# Run the Demos
+If everything is working, you can run the demo notebooks in the `demo`
+directory which contains Jupyter notebooks demonstrating key milestones.
+You can start Jupyter notebook using
+```
+jupyter notebook
+```
+
+In your browser, Jupyter will open and you can navigate to the `demo` folder
+and open some notebooks.
+Run the notebook you want to run and see the results computed interactively.
+
 # Code Style
 Just follow PEP 8, but to actually test that the code is compliant, run the
 linter using
