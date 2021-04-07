@@ -73,3 +73,4 @@ linter using
 make lint
 ```
 It will run `flake8` and print out a list of non-compliances.
+It will also run `mypy` to do type checking.
