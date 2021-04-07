@@ -35,6 +35,16 @@ Install the dependencies for development mode.
 pip install -r requirements/dev.txt
 ```
 
+Copy the `env_template.txt` file and rename it to `.env`.
+```
+cp env_template.txt .env
+```
+
+Then edit the .env file to change the `BN3D_DIR` path to a directory on
+your storage device where you want the output files to be written.
+If you don't do this, as a fallback, the data files will be written to the
+`temp` directory in this repository.
+
 # Run the tests
 After you've activated your virtual environment and installed the dependences,
 you can run the tests to make sure everything has been correctly installed.
