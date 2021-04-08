@@ -1,6 +1,9 @@
 import numpy as np
+import itertools
 import pytest
-from bn3d.noise import generate_pauli_noise, deform_operator
+from bn3d.noise import (
+    generate_pauli_noise, deform_operator, get_deformed_weights
+)
 from bn3d.bpauli import get_bvector_index
 
 
@@ -100,3 +103,61 @@ class TestDeformOperator:
         for location in differing_locations:
             edge = location[0]
             assert edge == 0
+
+
+class TestGetDeformedWeights:
+
+    def test_equal_rates_then_equal_weights(self):
+        L = 10
+        p_X, p_Y, p_Z = 0.1, 0.1, 0.1
+        weights = get_deformed_weights(p_X, p_Y, p_Z, L)
+        assert np.all(weights == weights[0])
+
+    def test_zero_error_rate_no_nan(self):
+        L = 10
+        p_X, p_Y, p_Z = 0, 0, 0
+        weights = get_deformed_weights(p_X, p_Y, p_Z, L)
+        assert np.all(weights != 0)
+        assert np.all(~np.isnan(weights))
+
+    def test_one_error_rate_no_nan(self):
+        L = 10
+        p_X, p_Y, p_Z = 1, 0, 0
+        weights = get_deformed_weights(p_X, p_Y, p_Z, L)
+        assert np.all(weights != 0)
+        assert np.all(~np.isnan(weights))
+
+    def test_biased_Z_noise_different_weights(self):
+        L = 10
+        p_X, p_Y, p_Z = 0.5, 0, 0
+        weights = get_deformed_weights(p_X, p_Y, p_Z, L)
+        assert np.any(weights != weights[0])
+
+    def test_only_x_edges_different_weights(self):
+        L = 10
+        p_X, p_Y, p_Z = 0.5, 0.1, 0
+        weights = get_deformed_weights(p_X, p_Y, p_Z, L)
+        assert np.any(weights != weights[0])
+        x_edge_indices = [
+            get_bvector_index(0, x, y, z, 0, L)
+            for x, y, z in itertools.product(range(L), repeat=3)
+        ]
+        y_edge_indices = [
+            get_bvector_index(1, x, y, z, 0, L)
+            for x, y, z in itertools.product(range(L), repeat=3)
+        ]
+        z_edge_indices = [
+            get_bvector_index(2, x, y, z, 0, L)
+            for x, y, z in itertools.product(range(L), repeat=3)
+        ]
+
+        # Weights for the same wedge type should be equal.
+        assert np.all(weights[x_edge_indices] == weights[x_edge_indices[0]])
+        assert np.all(weights[y_edge_indices] == weights[y_edge_indices[0]])
+        assert np.all(weights[z_edge_indices] == weights[z_edge_indices[0]])
+
+        # Weights for y-edges and z-edges should be equal.
+        assert np.all(weights[y_edge_indices] == weights[z_edge_indices])
+
+        # Weights for x-edges and z-edges should not be equal.
+        assert np.any(weights[x_edge_indices] != weights[z_edge_indices])

@@ -3,7 +3,7 @@ Noise models for 3D Toric Code.
 """
 
 import numpy as np
-from .bpauli import barray_to_bvector, bvector_to_barray
+from .bpauli import barray_to_bvector, bvector_to_barray, get_bvector_index
 from .utils import nested_map
 
 
@@ -42,3 +42,29 @@ def deform_operator(bvector: np.ndarray, L: int, edge: int = 0) -> np.ndarray:
 
     deformed_bvector = barray_to_bvector(deformed_op, L)
     return deformed_bvector
+
+
+def get_deformed_weights(
+    p_X: float, p_Y: float, p_Z: float, L: int, epsilon: float = 1e-15
+) -> np.ndarray:
+    """Get MWPM weights for deformed Pauli noise."""
+
+    # The x-edges are deformed.
+    deformed_edge = 0
+    p_regular = p_X + p_Y
+    p_deformed = p_Z + p_Y
+
+    regular_weight = -np.log(p_regular + epsilon/(1 - p_regular + epsilon))
+    deformed_weight = -np.log(p_deformed + epsilon/(1 - p_deformed + epsilon))
+
+    # All weights are regular weights to start off.
+    weights = np.ones(3*L**3, dtype=float)*regular_weight
+
+    # Modify the weights on the special edge.
+    for x in range(L):
+        for y in range(L):
+            for z in range(L):
+                index = get_bvector_index(deformed_edge, x, y, z, 0, L)
+                weights[index] = deformed_weight
+
+    return weights
