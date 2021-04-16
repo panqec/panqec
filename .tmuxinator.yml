@@ -30,7 +30,7 @@ root: .
 
 windows:
   - nb:
-      - source venv/bin/activate; jupyter notebook
+      - source venv/bin/activate; jupyter lab
   - test:
       - source venv/bin/activate; pytest
   - edit:
