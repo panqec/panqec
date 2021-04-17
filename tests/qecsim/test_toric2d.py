@@ -42,3 +42,22 @@ def test_stabilizers_commute_with_logicals(toric_code):
         for logical_x in code.logical_xs
     ])
     assert np.all(logical_x_stabilizer_commutations == 0)
+
+    logical_z_stabilizer_commutations = np.array([
+        bsp(stabilizer, logical_z)
+        for stabilizer in code.stabilizers
+        for logical_z in code.logical_zs
+    ])
+    assert np.all(logical_z_stabilizer_commutations == 0)
+
+
+def test_logicals_anticommute_correctly(toric_code):
+    code = toric_code
+    commutations = np.array([
+        [
+            bsp(logical_x, logical_z)
+            for logical_z in code.logical_zs
+        ]
+        for logical_x in code.logical_xs
+    ])
+    assert np.all(commutations == np.identity(2))
