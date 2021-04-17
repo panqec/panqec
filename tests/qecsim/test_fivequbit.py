@@ -8,7 +8,7 @@ from bn3d.models import PauliErrorModel
 import qecsim.paulitools as pt
 from qecsim.models.basic import FiveQubitCode
 from qecsim.models.generic import NaiveDecoder
-from qecsim.paulitools import pauli_to_bsf
+from qecsim.paulitools import pauli_to_bsf, bsf_to_pauli
 
 
 @pytest.fixture
@@ -68,6 +68,11 @@ def test_decoder(five_qubit_code, pauli_noise_model):
     # Generate a non-trivial error.
     probability = 0.3
     error = error_model.generate(code, probability, rng=np.random)
+    assert np.all(error == [
+        0, 1, 0, 0, 0,
+        0, 0, 0, 0, 0,
+    ])
+    assert bsf_to_pauli(error) == 'IXIII'
     assert np.any(error == 1)
     assert error.shape == (10, )
 
@@ -77,6 +82,7 @@ def test_decoder(five_qubit_code, pauli_noise_model):
     assert syndrome.shape == (code.stabilizers.shape[0], )
 
     correction = decoder.decode(code, syndrome)
+    assert bsf_to_pauli(correction) == 'IXIII'
 
     assert correction.shape == (10, )
 
