@@ -89,3 +89,4 @@ def test_decoder(five_qubit_code, pauli_noise_model):
     # The correction should have worked.
     total_error = (correction + error) % 2
     assert np.all(total_error == 0)
+    assert bsf_to_pauli(total_error) == 'IIIII'
