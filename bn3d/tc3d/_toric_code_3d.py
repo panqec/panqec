@@ -11,6 +11,7 @@ class ToricCode3D(StabilizerCode):
     X_AXIS: int = 0
     Y_AXIS: int = 1
     Z_AXIS: int = 2
+    _stabilizers = np.array([])
 
     def __init__(
         self, L_x: int,
@@ -35,7 +36,16 @@ class ToricCode3D(StabilizerCode):
 
     @property
     def stabilizers(self) -> np.ndarray:
-        return np.array([], dtype=np.uint)
+        if len(self._stabilizers) > 0:
+            return self._stabilizers
+        else:
+            face_stabilizers = self.get_face_X_stabilizers()
+            vertex_stabilizers = self.get_vertex_Z_stabilizers()
+            self._stabilizers = np.concatenate([
+                face_stabilizers,
+                vertex_stabilizers,
+            ])
+            return self._stabilizers
 
     @property
     def logical_xs(self) -> np.ndarray:

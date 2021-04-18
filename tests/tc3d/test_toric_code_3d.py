@@ -76,3 +76,16 @@ class TestToricCode3D:
 
         # Each qubit should be in the support of exactly 4 stabilisers.
         assert np.all(stabilisers.sum(axis=0)[:n] == 4)
+
+    def test_get_all_stabilisers(self, code):
+        n = code.n_k_d[0]
+        stabilizers = code.stabilizers
+
+        # Total number of stabilizers.
+        assert stabilizers.shape[0] == 4*np.product(code.size)
+
+        # Z block of X stabilizers should be all 0.
+        assert np.all(stabilizers[:n, n:] == 0)
+
+        # X block of Z stabilisers should be all 0.
+        assert np.all(stabilizers[n:, :np.product(code.size)] == 0)
