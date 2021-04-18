@@ -5,7 +5,7 @@ Test 2D toric code.
 import pytest
 import numpy as np
 from qecsim.models.toric import ToricCode, ToricPauli
-from qecsim.paulitools import bsf_to_pauli, bsp
+from qecsim.paulitools import bsp
 
 
 @pytest.fixture
@@ -84,7 +84,7 @@ def test_ascii_art(code):
     )
 
 
-def test_syndromes(code):
+def test_syndrome_calculation(code):
 
     # Construct a single-qubit X error somewhere.
     error = ToricPauli(code)
