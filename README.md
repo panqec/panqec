@@ -39,11 +39,16 @@ Copy the `env_template.txt` file and rename it to `.env`.
 ```
 cp env_template.txt .env
 ```
+Your `.env` file contains environmental varaibles that can be read in for to
+customize.
 
-Then edit the .env file to change the `BN3D_DIR` path to a directory on
+Edit the .env file to change the `BN3D_DIR` path to a directory on
 your storage device where you want the output files to be written.
 If you don't do this, as a fallback, the data files will be written to the
 `temp` directory in this repository.
+
+Optionally, if you use dark theme in Jupyter Lab, setting
+`BN3D_DARK_THEME=True` in the `.env` file will make the plots show up nicer.
 
 # Run the tests
 After you've activated your virtual environment and installed the dependences,
