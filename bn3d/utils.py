@@ -1,3 +1,11 @@
+"""
+Micellaneous useful utilities.
+
+Many of these are copied from the internet.
+
+:Author:
+    Eric Huang
+"""
 from typing import Callable
 
 

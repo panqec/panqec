@@ -1,5 +1,10 @@
 """
 Following the tutorial.
+
+These tests are largely copied from the tutorial provided by Pymatching.
+
+:Author:
+    Eric Huang
 """
 import pytest
 from pymatching import Matching, set_seed

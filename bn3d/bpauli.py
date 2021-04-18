@@ -1,5 +1,11 @@
 """
-Bit array or vector representations of Paulis.
+Bit array or vector representations of Paulis for 3Di codes.
+
+Although qecsim already has such an implementation, some of these extra
+routines are useful specifically for dealing with the 3D code.
+
+:Author:
+    Eric Huang
 """
 import numpy as np
 

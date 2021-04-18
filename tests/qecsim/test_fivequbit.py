@@ -1,5 +1,8 @@
 """
-Test five qubit code very simple run.
+Test five qubit code using qecsim classes.
+
+:Author:
+    Eric Huang
 """
 
 import json

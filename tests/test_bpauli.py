@@ -1,3 +1,9 @@
+"""
+Tests for custom implementation of pauli bit strings.
+
+:Author:
+    Eric Huang
+"""
 import numpy as np
 from bn3d.bpauli import (
     pauli_string_to_bvector, bvector_to_pauli_string, bvector_to_barray,

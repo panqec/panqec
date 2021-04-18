@@ -1,3 +1,9 @@
+"""
+Models of codes and noise that extend qecsim classes.
+
+:Author:
+    Eric Huang
+"""
 import functools
 from typing import Tuple
 from qecsim.models.generic import SimpleErrorModel

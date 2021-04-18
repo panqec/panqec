@@ -59,7 +59,7 @@ If everything is working, you can run the demo notebooks in the `demo`
 directory which contains Jupyter notebooks demonstrating key milestones.
 You can start Jupyter notebook using
 ```
-jupyter notebook
+jupyter lab
 ```
 
 In your browser, Jupyter will open and you can navigate to the `demo` folder

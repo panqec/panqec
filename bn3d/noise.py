@@ -1,5 +1,8 @@
 """
-Noise models for 3D Toric Code.
+Noise models for 3D Toric Code including deformed noise.
+
+:Author:
+    Eric Huang
 """
 
 import numpy as np

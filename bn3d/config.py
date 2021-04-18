@@ -1,3 +1,9 @@
+"""
+Settings from environmental variables and config files.
+
+:Author:
+    Eric Huang
+"""
 from dotenv import load_dotenv
 import os
 

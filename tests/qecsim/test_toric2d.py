@@ -1,5 +1,8 @@
 """
-Test 2D toric code.
+Test 2D toric code using qecsim.
+
+:Author:
+    Eric Huang
 """
 
 import pytest

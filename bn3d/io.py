@@ -1,3 +1,12 @@
+"""
+Routines for input and output.
+
+This includes routines to produce, merge and analyse data produced by
+simulations.
+
+:Author:
+    Eric Huang
+"""
 import numpy as np
 import datetime
 import os

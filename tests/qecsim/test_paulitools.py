@@ -1,5 +1,8 @@
 """
-Tests to make sure qecsim is working as expected.
+Tests to make sure qecsim pauli bit strings are working as expected.
+
+:Author:
+    Eric Huang
 """
 import numpy as np
 import qecsim

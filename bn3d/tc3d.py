@@ -1,3 +1,9 @@
+"""
+Toric code in 3D.
+
+:Author:
+    Eric Huang
+"""
 import numpy as np
 from .bpauli import barray_to_bvector, new_barray
 
