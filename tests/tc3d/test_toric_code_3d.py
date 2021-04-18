@@ -89,3 +89,15 @@ class TestToricCode3D:
 
         # X block of Z stabilisers should be all 0.
         assert np.all(stabilizers[n:, :np.product(code.size)] == 0)
+
+    def test_get_Z_logicals(self, code):
+        n = code.n_k_d[0]
+        logicals = code.logical_zs
+        assert logicals.shape[0] == 3
+        assert logicals.shape[1] == 2*n
+
+    def test_get_X_logicals(self, code):
+        n = code.n_k_d[0]
+        logicals = code.logical_xs
+        assert logicals.shape[0] == 3
+        assert logicals.shape[1] == 2*n

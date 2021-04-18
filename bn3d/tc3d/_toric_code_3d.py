@@ -12,6 +12,8 @@ class ToricCode3D(StabilizerCode):
     Y_AXIS: int = 1
     Z_AXIS: int = 2
     _stabilizers = np.array([])
+    _logical_xs = np.array([])
+    _logical_zs = np.array([])
 
     def __init__(
         self, L_x: int,
@@ -36,24 +38,76 @@ class ToricCode3D(StabilizerCode):
 
     @property
     def stabilizers(self) -> np.ndarray:
-        if len(self._stabilizers) > 0:
-            return self._stabilizers
-        else:
+        if self._stabilizers.size == 0:
             face_stabilizers = self.get_face_X_stabilizers()
             vertex_stabilizers = self.get_vertex_Z_stabilizers()
             self._stabilizers = np.concatenate([
                 face_stabilizers,
                 vertex_stabilizers,
             ])
-            return self._stabilizers
+        return self._stabilizers
 
     @property
     def logical_xs(self) -> np.ndarray:
-        return np.array([], dtype=np.uint)
+        """The 3 logical X operators."""
+
+        if self._logical_xs.size == 0:
+            L_x, L_y, L_z = self.size
+            logicals = []
+
+            # X operators along x edges in x direction.
+            logical = Toric3DPauli(self)
+            for x in range(L_x):
+                logical.site('X', (0, x, 0, 0))
+            logicals.append(logical.to_bsf())
+
+            # X operators along y edges in y direction.
+            logical = Toric3DPauli(self)
+            for y in range(L_y):
+                logical.site('X', (1, 0, y, 0))
+            logicals.append(logical.to_bsf())
+
+            # X operators along z edges in z direction
+            logical = Toric3DPauli(self)
+            for z in range(L_z):
+                logical.site('X', (2, 0, 0, z))
+            logicals.append(logical.to_bsf())
+
+            self._logical_xs = np.array(logicals, dtype=np.uint)
+
+        return self._logical_xs
 
     @property
     def logical_zs(self) -> np.ndarray:
-        return np.array([], dtype=np.uint)
+        """Get the 3 logical Z operators."""
+        if self._logical_zs.size == 0:
+            L_x, L_y, L_z = self.size
+            logicals = []
+
+            # Z operators on x edges forming surface normal to x (yz plane).
+            logical = Toric3DPauli(self)
+            for y in range(L_y):
+                for z in range(L_z):
+                    logical.site('Z', (0, 0, y, z))
+            logicals.append(logical.to_bsf())
+
+            # Z operators on y edges forming surface normal to y (zx plane).
+            logical = Toric3DPauli(self)
+            for z in range(L_z):
+                for x in range(L_x):
+                    logical.site('Z', (1, x, 0, z))
+            logicals.append(logical.to_bsf())
+
+            # Z operators on z edges forming surface normal to z (xy plane).
+            logical = Toric3DPauli(self)
+            for x in range(L_x):
+                for y in range(L_y):
+                    logical.site('Z', (2, x, y, 0))
+            logicals.append(logical.to_bsf())
+
+            self._logical_zs = np.array(logicals, dtype=np.uint)
+
+        return self._logical_zs
 
     @property
     def size(self) -> Tuple[int, int, int]:
