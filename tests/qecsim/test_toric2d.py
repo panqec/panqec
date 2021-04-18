@@ -183,3 +183,11 @@ def test_mwpm_decoder(code, decoder):
     ])
 
     # Test that no logical error has occured either.
+    assert all([
+        bsp(total_error, logical_x) == 0
+        for logical_x in code.logical_xs
+    ])
+    assert all([
+        bsp(total_error, logical_z) == 0
+        for logical_z in code.logical_zs
+    ])
