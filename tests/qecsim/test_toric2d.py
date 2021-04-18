@@ -17,14 +17,12 @@ def lattice_size():
 
 
 @pytest.fixture
-def toric_code(lattice_size):
+def code(lattice_size):
     L_x, L_y, _ = lattice_size
-    code = ToricCode(L_x, L_y)
-    return code
+    return ToricCode(L_x, L_y)
 
 
-def test_general_properties(toric_code, lattice_size):
-    code = toric_code
+def test_general_properties(code, lattice_size):
     L_x, L_y, n_qubits = lattice_size
     assert code.label == 'Toric 4x5'
     assert code.shape == (2, L_x, L_y)
@@ -34,8 +32,7 @@ def test_general_properties(toric_code, lattice_size):
     assert len(code.logical_zs) == 2
 
 
-def test_stabilizers_commute(toric_code, lattice_size):
-    code = toric_code
+def test_stabilizers_commute(code, lattice_size):
     L_x, L_y, n_qubits = lattice_size
     assert code.stabilizers.shape == (n_qubits, 2*n_qubits)
     commutations = np.array([
@@ -46,8 +43,7 @@ def test_stabilizers_commute(toric_code, lattice_size):
     assert np.all(commutations == 0)
 
 
-def test_stabilizers_commute_with_logicals(toric_code):
-    code = toric_code
+def test_stabilizers_commute_with_logicals(code):
     logical_x_stabilizer_commutations = np.array([
         bsp(stabilizer, logical_x)
         for stabilizer in code.stabilizers
@@ -63,8 +59,7 @@ def test_stabilizers_commute_with_logicals(toric_code):
     assert np.all(logical_z_stabilizer_commutations == 0)
 
 
-def test_logicals_anticommute_correctly(toric_code):
-    code = toric_code
+def test_logicals_anticommute_correctly(code):
     commutations = np.array([
         [
             bsp(logical_x, logical_z)
@@ -75,8 +70,7 @@ def test_logicals_anticommute_correctly(toric_code):
     assert np.all(commutations == np.identity(2))
 
 
-def test_ascii_art(toric_code):
-    code = toric_code
+def test_ascii_art(code):
     operator = ToricPauli(code, code.logical_xs[0])
     assert code.ascii_art(pauli=operator) == (
         '┼─·─┼─·─┼─X─┼─·─┼─·\n'
@@ -87,4 +81,34 @@ def test_ascii_art(toric_code):
         '·   ·   ·   ·   ·  \n'
         '┼─·─┼─·─┼─X─┼─·─┼─·\n'
         '·   ·   ·   ·   ·  '
+    )
+
+
+def test_syndromes(code):
+
+    # Construct a single-qubit X error somewhere.
+    error = ToricPauli(code)
+    error.site('X', (1, 2, 3))
+    assert code.ascii_art(pauli=error) == (
+        '┼─·─┼─·─┼─·─┼─·─┼─·\n'
+        '·   ·   ·   ·   ·  \n'
+        '┼─·─┼─·─┼─·─┼─·─┼─·\n'
+        '·   ·   ·   ·   ·  \n'
+        '┼─·─┼─·─┼─·─┼─·─┼─·\n'
+        '·   ·   ·   X   ·  \n'
+        '┼─·─┼─·─┼─·─┼─·─┼─·\n'
+        '·   ·   ·   ·   ·  '
+    )
+
+    # Calculate the syndrome.
+    syndrome = bsp(error.to_bsf(), code.stabilizers.T)
+    assert code.ascii_art(syndrome=syndrome) == (
+        '┼───┼───┼───┼───┼──\n'
+        '│   │   │   │   │  \n'
+        '┼───┼───┼───┼───┼──\n'
+        '│   │   │   │   │  \n'
+        '┼───┼───┼───┼───┼──\n'
+        '│   │   │ Z │ Z │  \n'
+        '┼───┼───┼───┼───┼──\n'
+        '│   │   │   │   │  '
     )
