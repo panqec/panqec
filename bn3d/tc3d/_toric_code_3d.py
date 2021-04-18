@@ -27,7 +27,7 @@ class ToricCode3D(StabilizerCode):
 
     @property
     def n_k_d(self) -> Tuple[int, int, int]:
-        return (0, 0, 0)
+        return (np.product(self.shape), 3, min(self.size))
 
     @property
     def label(self) -> str:
