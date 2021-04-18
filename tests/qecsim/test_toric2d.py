@@ -4,7 +4,7 @@ Test 2D toric code.
 
 import pytest
 import numpy as np
-from qecsim.models.toric import ToricCode, ToricPauli
+from qecsim.models.toric import ToricCode, ToricPauli, ToricMWPMDecoder
 from qecsim.paulitools import bsp
 
 
@@ -20,6 +20,11 @@ def lattice_size():
 def code(lattice_size):
     L_x, L_y, _ = lattice_size
     return ToricCode(L_x, L_y)
+
+
+@pytest.fixture
+def decoder():
+    return ToricMWPMDecoder()
 
 
 def test_general_properties(code, lattice_size):
@@ -112,3 +117,69 @@ def test_syndrome_calculation(code):
         '┼───┼───┼───┼───┼──\n'
         '│   │   │   │   │  '
     )
+
+
+def test_mwpm_decoder(code, decoder):
+    error = ToricPauli(code)
+    error.site('X', (1, 2, 3))
+    error.site('X', (1, 2, 2))
+    error.site('X', (0, 2, 1))
+    error.site('X', (0, 1, 1))
+    error.site('X', (1, 0, 2))
+    error.site('X', (1, 0, 3))
+    error.site('X', (0, 1, 3))
+    assert code.ascii_art(pauli=error) == (
+        '┼─·─┼─·─┼─·─┼─·─┼─·\n'
+        '·   ·   X   X   ·  \n'
+        '┼─·─┼─X─┼─·─┼─X─┼─·\n'
+        '·   ·   ·   ·   ·  \n'
+        '┼─·─┼─X─┼─·─┼─·─┼─·\n'
+        '·   ·   X   X   ·  \n'
+        '┼─·─┼─·─┼─·─┼─·─┼─·\n'
+        '·   ·   ·   ·   ·  '
+    )
+
+    syndrome = bsp(error.to_bsf(), code.stabilizers.T)
+    assert code.ascii_art(syndrome=syndrome) == (
+        '┼───┼───┼───┼───┼──\n'
+        '│   │   │   │   │  \n'
+        '┼───┼───┼───┼───┼──\n'
+        '│   │   │   │ Z │  \n'
+        '┼───┼───┼───┼───┼──\n'
+        '│   │   │   │ Z │  \n'
+        '┼───┼───┼───┼───┼──\n'
+        '│   │   │   │   │  '
+    )
+
+    correction = decoder.decode(code, syndrome)
+    assert code.ascii_art(pauli=code.new_pauli(bsf=correction)) == (
+        '┼─·─┼─·─┼─·─┼─·─┼─·\n'
+        '·   ·   ·   ·   ·  \n'
+        '┼─·─┼─·─┼─·─┼─·─┼─·\n'
+        '·   ·   ·   ·   ·  \n'
+        '┼─·─┼─·─┼─·─┼─X─┼─·\n'
+        '·   ·   ·   ·   ·  \n'
+        '┼─·─┼─·─┼─·─┼─·─┼─·\n'
+        '·   ·   ·   ·   ·  '
+    )
+
+    total_error = (error.to_bsf() + correction) % 2
+    assert code.ascii_art(pauli=code.new_pauli(bsf=total_error)) == (
+        '┼─·─┼─·─┼─·─┼─·─┼─·\n'
+        '·   ·   X   X   ·  \n'
+        '┼─·─┼─X─┼─·─┼─X─┼─·\n'
+        '·   ·   ·   ·   ·  \n'
+        '┼─·─┼─X─┼─·─┼─X─┼─·\n'
+        '·   ·   X   X   ·  \n'
+        '┼─·─┼─·─┼─·─┼─·─┼─·\n'
+        '·   ·   ·   ·   ·  '
+    )
+
+    # Test the total error commutes with the stabilizer so we are back
+    # in the code space.
+    assert all([
+        bsp(total_error, stabilizer) == 0
+        for stabilizer in code.stabilizers
+    ])
+
+    # Test that no logical error has occured either.
