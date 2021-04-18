@@ -6,6 +6,9 @@ from qecsim.model import StabilizerCode
 class ToricCode3D(StabilizerCode):
 
     _shape: Tuple[int, int, int, int]
+    X_AXIS: int = 0
+    Y_AXIS: int = 1
+    Z_AXIS: int = 2
 
     def __init__(
         self, L_x: int,

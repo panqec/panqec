@@ -6,7 +6,7 @@ from bn3d.tc3d import ToricCode3D, Toric3DPauli
 
 @pytest.fixture
 def code():
-    return ToricCode3D(3, 4, 5)
+    return ToricCode3D(9, 10, 11)
 
 
 class TestToric3DPauli:
@@ -78,3 +78,69 @@ class TestToric3DPauli:
         far_vertex .vertex('Z', (L_x, L_y, L_z))
 
         assert origin_vertex == far_vertex
+
+    def test_apply_face_operators_on_x_normal_face(self, code):
+        face_operator = Toric3DPauli(code)
+        face_operator.face('X', code.X_AXIS, (2, 3, 4))
+
+        # Each face has 4 edges.
+        assert bsf_wt(face_operator.to_bsf()) == 4
+
+    def test_apply_face_operators_on_y_normal_face(self, code):
+        face_operator = Toric3DPauli(code)
+        face_operator.face('X', code.Y_AXIS, (2, 3, 4))
+
+        # Each face has 4 edges.
+        assert bsf_wt(face_operator.to_bsf()) == 4
+
+    def test_apply_face_operators_on_z_normal_face(self, code):
+        face_operator = Toric3DPauli(code)
+        face_operator.face('X', code.Z_AXIS, (2, 3, 4))
+
+        # Each face has 4 edges.
+        assert bsf_wt(face_operator.to_bsf()) == 4
+
+    def test_make_a_2x2_loop(self, code):
+        loop = Toric3DPauli(code)
+        loop.face('X', code.X_AXIS, (2, 3, 4))
+        loop.face('X', code.X_AXIS, (2, 4, 4))
+        loop.face('X', code.X_AXIS, (2, 3, 5))
+        loop.face('X', code.X_AXIS, (2, 4, 5))
+        assert bsf_wt(loop.to_bsf()) == 8
+
+    def test_make_a_tetris_T_loop(self, code):
+        """Product of faces like this should have weight 10.
+
+        +-Z-+-Z-+-Z-+
+        Z   |   |   Z
+        +-Z-+---+-Z-+
+            Z   Z
+            +-Z-+
+
+        """
+        loop = Toric3DPauli(code)
+        loop.face('Z', code.Y_AXIS, (2, 3, 4))
+        loop.face('Z', code.Y_AXIS, (3, 3, 4))
+        loop.face('Z', code.Y_AXIS, (1, 3, 4))
+        loop.face('Z', code.Y_AXIS, (2, 3, 5))
+        assert bsf_wt(loop.to_bsf()) == 10
+
+    def test_faces_sharing_same_vertex(self, code):
+        r"""This thing should have weight six.
+
+             .---Y---.            Coordinate axes:
+            /       / \                      y
+           Y       /   Y                    /
+          /       /     \                  /
+         .-------o       .         z <----o
+          \       \     /                  \
+           Y       \   Y                    \
+            \       \ /                      x
+             .---Y---.
+
+        """
+        loop = Toric3DPauli(code)
+        loop.face('Y', code.X_AXIS, (0, 0, 0))
+        loop.face('Y', code.Y_AXIS, (0, 0, 0))
+        loop.face('Y', code.Z_AXIS, (0, 0, 0))
+        assert bsf_wt(loop.to_bsf()) == 6
