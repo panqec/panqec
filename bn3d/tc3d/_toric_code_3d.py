@@ -1,6 +1,8 @@
+import itertools
 from typing import Tuple, Optional
 import numpy as np
 from qecsim.model import StabilizerCode
+from ._toric_3d_pauli import Toric3DPauli
 
 
 class ToricCode3D(StabilizerCode):
@@ -54,3 +56,11 @@ class ToricCode3D(StabilizerCode):
         return self._shape
 
     # TODO: ToricCode3D specific methods.
+    def get_vertex_Z_stabilizers(self):
+        vertex_stabilizers = []
+        ranges = [range(length) for length in self.size]
+        for position in itertools.product(*ranges):
+            operator = Toric3DPauli(self)
+            operator.vertex('Z', position)
+            vertex_stabilizers.append(operator.to_bsf())
+        return np.array(vertex_stabilizers, dtype=np.uint)

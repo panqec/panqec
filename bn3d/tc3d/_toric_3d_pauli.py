@@ -1,7 +1,7 @@
 from typing import Tuple
 import numpy as np
 from qecsim.models.toric import ToricPauli
-from ._toric_code_3d import ToricCode3D
+from qecsim.model import StabilizerCode
 
 
 class Toric3DPauli(ToricPauli):
@@ -14,7 +14,7 @@ class Toric3DPauli(ToricPauli):
     Y_AXIS = 1
     Z_AXIS = 2
 
-    def __init__(self, code: ToricCode3D, bsf: np.ndarray = None):
+    def __init__(self, code: StabilizerCode, bsf: np.ndarray = None):
         super().__init__(code, bsf)
 
     def vertex(self, operator: str, location: Tuple[int, int, int]):
