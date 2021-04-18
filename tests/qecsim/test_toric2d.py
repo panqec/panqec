@@ -78,8 +78,6 @@ def test_logicals_anticommute_correctly(toric_code):
 def test_ascii_art(toric_code):
     code = toric_code
     operator = ToricPauli(code, code.logical_xs[0])
-    print(code.ascii_art(pauli=operator))
-    print(repr(code.ascii_art(pauli=operator)))
     assert code.ascii_art(pauli=operator) == (
         '┼─·─┼─·─┼─X─┼─·─┼─·\n'
         '·   ·   ·   ·   ·  \n'
