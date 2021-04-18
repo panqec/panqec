@@ -8,12 +8,12 @@ Test five qubit code using qecsim classes.
 import json
 import pytest
 import numpy as np
-from bn3d.models import PauliErrorModel
 import qecsim.paulitools as pt
 from qecsim.models.basic import FiveQubitCode
 from qecsim.models.generic import NaiveDecoder
 from qecsim.paulitools import pauli_to_bsf, bsf_to_pauli
 from qecsim.app import run
+from bn3d.noise import PauliErrorModel
 
 
 @pytest.fixture
