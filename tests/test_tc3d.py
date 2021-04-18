@@ -1,10 +1,31 @@
+import pytest
 import numpy as np
+from qecsim.paulitools import bsf_wt
 from bn3d.bpauli import bcommute, get_effective_error
 from pymatching import Matching
 from bn3d.tc3d import (
     get_vertex_Z_stabilisers, get_face_X_stabilisers, get_all_stabilisers,
     get_Z_logicals, get_X_logicals, get_all_logicals,
 )
+from bn3d.tc3d import ToricCode3D
+
+
+class TestToricCode3D:
+
+    @pytest.fixture()
+    def code(self):
+        return ToricCode3D(5)
+
+    @pytest.mark.xfail
+    def test_vertex_Z_stabilizers(self, code):
+        stabilizers = code.stabilizers
+
+        # All stabilizers.
+        assert stabilizers.dtype == np.uint
+        assert len(stabilizers) > 0
+
+        # All X stabilizers should be weight 6.
+        assert all(bsf_wt(stabilizer) == 6 for stabilizer in stabilizers)
 
 
 def test_get_vertex_Z_stabilisers():
