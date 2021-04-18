@@ -56,11 +56,24 @@ class ToricCode3D(StabilizerCode):
         return self._shape
 
     # TODO: ToricCode3D specific methods.
-    def get_vertex_Z_stabilizers(self):
+    def get_vertex_Z_stabilizers(self) -> np.ndarray:
         vertex_stabilizers = []
         ranges = [range(length) for length in self.size]
-        for position in itertools.product(*ranges):
+
+        # Z operators for each vertex for each position.
+        for L_x, L_y, L_z in itertools.product(*ranges):
             operator = Toric3DPauli(self)
-            operator.vertex('Z', position)
+            operator.vertex('Z', (L_x, L_y, L_z))
             vertex_stabilizers.append(operator.to_bsf())
         return np.array(vertex_stabilizers, dtype=np.uint)
+
+    def get_face_X_stabilizers(self) -> np.ndarray:
+        face_stabilizers = []
+        ranges = [range(length) for length in self.shape]
+
+        # X operators for each normal direction and for each face position.
+        for normal, L_x, L_y, L_z in itertools.product(*ranges):
+            operator = Toric3DPauli(self)
+            operator.face('X', normal, (L_x, L_y, L_z))
+            face_stabilizers.append(operator.to_bsf())
+        return np.array(face_stabilizers, dtype=np.uint)

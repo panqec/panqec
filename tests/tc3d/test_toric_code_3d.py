@@ -56,3 +56,23 @@ class TestToricCode3D:
         assert n == np.product(code.shape)
         assert k == 3
         assert d == min(code.size)
+
+    def test_get_face_X_stabilizers(self, code):
+        n = code.n_k_d[0]
+        stabilisers = code.get_face_X_stabilizers()
+
+        # Weight of every stabiliser should be 6.
+        assert np.all(stabilisers.sum(axis=1) == 4)
+        assert stabilisers.dtype == np.uint
+
+        # Number of stabiliser generators should be number of edges.
+        assert stabilisers.shape[0] == 3*np.product(code.size)
+
+        # The number of qubits should be the number of edges 3L^3.
+        assert stabilisers.shape[1] == 2*n
+
+        # There should be no Z or Y operators.
+        assert np.all(stabilisers[:, n:] == 0)
+
+        # Each qubit should be in the support of exactly 4 stabilisers.
+        assert np.all(stabilisers.sum(axis=0)[:n] == 4)
