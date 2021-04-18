@@ -65,3 +65,9 @@ class TestToric3DPauli:
 
         assert np.all(vertex_operator.to_bsf() == operator.to_bsf())
         assert vertex_operator == operator
+
+    def test_apply_operators_on_vertex_boundary_case(self, code):
+        operator = Toric3DPauli(code)
+        operator.vertex('Z', (0, 0, 0))
+
+        assert bsf_wt(operator.to_bsf()) == 6
