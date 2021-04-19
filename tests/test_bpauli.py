@@ -4,6 +4,7 @@ Tests for custom implementation of pauli bit strings.
 :Author:
     Eric Huang
 """
+import pytest
 import numpy as np
 from bn3d.bpauli import (
     pauli_string_to_bvector, bvector_to_pauli_string, bvector_to_barray,
@@ -49,6 +50,20 @@ class TestBcommute:
         assert bcommute(IXY, ZZI) == 1
         assert np.all(bcommute(XYZ, [IXY, ZZI]) == [[0, 0]])
         assert np.all(bcommute([XYZ, IXY], [ZZI, IXY]) == [[0, 0], [1, 0]])
+
+    def test_raise_error_if_not_even_length(self):
+        with pytest.raises(ValueError):
+            bcommute([0, 0, 1, 0, 1], [0, 1, 0, 1, 0])
+
+        with pytest.raises(ValueError):
+            bcommute([0, 0, 0], [0, 1])
+
+        with pytest.raises(ValueError):
+            bcommute([0, 0, 0, 0], [0, 1, 0])
+
+    def test_raise_error_if_unequal_shapes(self):
+        with pytest.raises(ValueError):
+            bcommute([0, 0, 0, 1], [1, 0, 1, 1, 0, 1])
 
 
 def test_bvector_to_barray():
