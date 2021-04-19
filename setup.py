@@ -3,7 +3,8 @@ from setuptools import setup
 requirements = [
     'PyMatching',
     'tqdm',
-    'python-dotenv'
+    'python-dotenv',
+    'qecsim',
 ]
 
 setup(
