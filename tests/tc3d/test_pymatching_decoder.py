@@ -36,7 +36,7 @@ class TestToric3DPymatchingDecoder:
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = error.to_bsf() + correction
+        total_error = (error.to_bsf() + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
     def test_decode_many_X_errors(self, decoder, code):
@@ -50,7 +50,7 @@ class TestToric3DPymatchingDecoder:
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = error.to_bsf() + correction
+        total_error = (error.to_bsf() + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
     def test_unable_to_decode_Z_error(self, decoder, code):
@@ -64,7 +64,7 @@ class TestToric3DPymatchingDecoder:
         correction = decoder.decode(code, syndrome)
         assert np.all(correction == 0)
 
-        total_error = error.to_bsf() + correction
+        total_error = (error.to_bsf() + correction) % 2
         assert np.all(error.to_bsf() == total_error)
 
         assert np.any(bcommute(code.stabilizers, total_error) != 0)
@@ -88,5 +88,5 @@ class TestToric3DPymatchingDecoder:
             error.site('X', site)
             syndrome = code.measure_syndrome(error)
             correction = decoder.decode(code, syndrome)
-            total_error = error.to_bsf() + correction
+            total_error = (error.to_bsf() + correction) % 2
             assert np.all(bcommute(code.stabilizers, total_error) == 0)
