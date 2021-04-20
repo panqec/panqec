@@ -1,5 +1,6 @@
-import numpy as np
+import itertools
 import pytest
+import numpy as np
 from qecsim.paulitools import bsf_wt
 from bn3d.bpauli import bcommute
 from bn3d.tc3d import Toric3DPymatchingDecoder, ToricCode3D, Toric3DPauli
@@ -67,3 +68,25 @@ class TestToric3DPymatchingDecoder:
         assert np.all(error.to_bsf() == total_error)
 
         assert np.any(bcommute(code.stabilizers, total_error) != 0)
+
+    def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
+
+        codes = [
+            ToricCode3D(3, 4, 5),
+            ToricCode3D(3, 3, 3),
+            ToricCode3D(5, 4, 3),
+        ]
+
+        sites = [
+            (1, 2, 2, 2),
+            (0, 1, 0, 2),
+            (2, 1, 1, 1)
+        ]
+
+        for code, site in itertools.product(codes, sites):
+            error = Toric3DPauli(code)
+            error.site('X', site)
+            syndrome = code.measure_syndrome(error)
+            correction = decoder.decode(code, syndrome)
+            total_error = error.to_bsf() + correction
+            assert np.all(bcommute(code.stabilizers, total_error) == 0)

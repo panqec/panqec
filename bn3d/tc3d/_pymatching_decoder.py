@@ -19,7 +19,10 @@ class Toric3DPymatchingDecoder(Decoder):
     _n_faces: Dict[str, int] = {}
 
     def get_matcher(self, code) -> Matching:
-        """Get the matcher given the code."""
+        """Get the matcher given the code.
+
+        Matching objects are only instantiated once for the same code.
+        """
 
         # Only instantiate a new Matching object if the code hasn't been seen
         # before.
@@ -41,13 +44,16 @@ class Toric3DPymatchingDecoder(Decoder):
     def get_vertex_syndromes(
         self, code: ToricCode3D, full_syndrome: np.ndarray
     ) -> np.ndarray:
-        """Get only the syndromes for the vertex Z stabilizers."""
+        """Get only the syndromes for the vertex Z stabilizers.
+
+        X face stabiziliers syndromes are discarded for this decoder.
+        """
         n_faces = self._n_faces[code.label]
         vertex_syndromes = full_syndrome[n_faces:]
         return vertex_syndromes
 
     def decode(self, code: ToricCode3D, syndrome: np.ndarray) -> np.ndarray:
-        """Decode a syndrome given the code."""
+        """Get X corrections given code and measured syndrome."""
 
         # Initialize correction as full bsf.
         correction = np.zeros(2*code.n_k_d[0], dtype=np.uint)
