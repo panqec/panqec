@@ -35,7 +35,7 @@ class ToricCode3D(StabilizerCode):
 
     @property
     def label(self) -> str:
-        return ''
+        return 'Toric {}x{}x{}'.format(*self.size)
 
     @property
     def stabilizers(self) -> np.ndarray:
