@@ -3,6 +3,7 @@ from typing import Tuple, Optional
 import numpy as np
 from qecsim.model import StabilizerCode
 from ._toric_3d_pauli import Toric3DPauli
+from ..bpauli import bcommute
 
 
 class ToricCode3D(StabilizerCode):
@@ -141,3 +142,7 @@ class ToricCode3D(StabilizerCode):
             operator.face('X', normal, (L_x, L_y, L_z))
             face_stabilizers.append(operator.to_bsf())
         return np.array(face_stabilizers, dtype=np.uint)
+
+    def measure_syndrome(self, error: Toric3DPauli) -> np.ndarray:
+        """Perfectly measure syndromes given Pauli error."""
+        return bcommute(self.stabilizers, error.to_bsf())
