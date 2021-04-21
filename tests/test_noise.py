@@ -1,7 +1,7 @@
 import numpy as np
 import itertools
 import pytest
-from qecsim.paulitools import bsf_to_pauli
+from qecsim.paulitools import bsf_to_pauli, bsf_wt
 from bn3d.noise import (
     generate_pauli_noise, deform_operator, get_deformed_weights
 )
@@ -31,8 +31,19 @@ class TestPauliNoise:
         probability = 0.1
         error = error_model.generate(code, probability, rng=np.random)
         assert np.any(error != 0)
-
         assert error.shape == (2*code.n_k_d[0], )
+
+    def test_probability_zero(self, code, error_model):
+        probability = 0
+        error = error_model.generate(code, probability, rng=np.random)
+        assert np.all(error == 0)
+
+    def test_probability_one(self, code, error_model):
+        probability = 1
+        error = error_model.generate(code, probability, rng=np.random)
+
+        # Error everywhere so weight is number of qubits.
+        assert bsf_wt(error) == code.n_k_d[0]
 
     def test_generate_all_X_errors(self, code):
         probability = 1
