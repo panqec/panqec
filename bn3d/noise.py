@@ -14,6 +14,7 @@ from .utils import nested_map
 
 
 class PauliErrorModel(SimpleErrorModel):
+    """Pauli channel IID noise model."""
 
     direction: Tuple[float, float, float]
 

@@ -1,6 +1,7 @@
 import numpy as np
 import itertools
 import pytest
+from qecsim.paulitools import bsf_to_pauli
 from bn3d.noise import (
     generate_pauli_noise, deform_operator, get_deformed_weights
 )
@@ -26,13 +27,33 @@ class TestPauliNoise:
     def test_label(self, error_model):
         assert error_model.label == 'Pauli (direction=(0.2, 0.3, 0.5))'
 
-    def test_generate(self, code):
-        error_model = PauliErrorModel(direction=(0.2, 0.3, 0.5))
+    def test_generate(self, code, error_model):
         probability = 0.1
         error = error_model.generate(code, probability, rng=np.random)
         assert np.any(error != 0)
 
         assert error.shape == (2*code.n_k_d[0], )
+
+    def test_generate_all_X_errors(self, code):
+        probability = 1
+        direction = (1, 0, 0)
+        error_model = PauliErrorModel(direction=direction)
+        error = error_model.generate(code, probability, rng=np.random)
+        assert bsf_to_pauli(error) == 'X'*code.n_k_d[0]
+
+    def test_generate_all_Y_errors(self, code):
+        probability = 1
+        direction = (0, 1, 0)
+        error_model = PauliErrorModel(direction=direction)
+        error = error_model.generate(code, probability, rng=np.random)
+        assert bsf_to_pauli(error) == 'Y'*code.n_k_d[0]
+
+    def test_generate_all_Z_errors(self, code):
+        probability = 1
+        direction = (0, 0, 1)
+        error_model = PauliErrorModel(direction=direction)
+        error = error_model.generate(code, probability, rng=np.random)
+        assert bsf_to_pauli(error) == 'Z'*code.n_k_d[0]
 
 
 class TestGeneratePauliNoise:
