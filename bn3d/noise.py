@@ -19,6 +19,8 @@ class PauliErrorModel(SimpleErrorModel):
     direction: Tuple[float, float, float]
 
     def __init__(self, direction: Tuple[float, float, float]):
+        if not np.isclose(sum(direction), 1):
+            raise ValueError(f'Direction {direction} does not sum to 1.0')
         self.direction = direction
 
     @property

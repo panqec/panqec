@@ -66,6 +66,10 @@ class TestPauliNoise:
         error = error_model.generate(code, probability, rng=np.random)
         assert bsf_to_pauli(error) == 'Z'*code.n_k_d[0]
 
+    def test_raise_error_if_direction_does_not_sum_to_1(self):
+        with pytest.raises(ValueError):
+            PauliErrorModel(direction=(0, 0, 0))
+
 
 class TestGeneratePauliNoise:
 
