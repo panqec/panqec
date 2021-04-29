@@ -92,9 +92,9 @@ An example of what to put in `myinputs.json` would be the following.
 ```
 {
   "comments": "Some comments about this run.",
-  "outdir": "/path/to/output/directory",
   "runs": [
     {
+      "label": "myrun",
       "code": {
         "model": "ToricCode3D",
         "parameters": [3, 3, 3]
@@ -112,12 +112,43 @@ An example of what to put in `myinputs.json` would be the following.
   ]
 }
 ```
+You can have more runs with different parameters as you see fit.
+
+You may also have the option of running many different parameters.
+```
+{
+  "comments": "Some comments about this run.",
+  "ranges": {
+    "label": "myrun",
+    "code": {
+      "model": "ToricCode3D",
+      "parameters": [
+        [3, 3, 3],
+        [4, 4, 4],
+        [5, 5, 5]
+      ]
+    },
+    "noise": {
+      "model": "PauliErrorModel",
+      "parameters": [
+        [1, 0, 0],
+        [0.5, 0, 0.5],
+        [0, 0, 1]
+      ]
+    },
+    "decoder": {
+      "model": "PyMatchingSweepDecoder3D"
+    },
+    "probability": [0.1, 0.2, 0.3],
+    "trials": 10
+  }
+}
+```
 
 # Code Style
 Just follow PEP 8, but to actually test that the code is compliant, run the
 linter using
 ```
-make lint
-```
+make lint ```
 It will run `flake8` and print out a list of non-compliances.
 It will also run `mypy` to do type checking.
