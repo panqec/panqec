@@ -22,10 +22,10 @@ class TestPauliNoise:
 
     @pytest.fixture
     def error_model(self):
-        return PauliErrorModel(direction=(0.2, 0.3, 0.5))
+        return PauliErrorModel(0.2, 0.3, 0.5)
 
     def test_label(self, error_model):
-        assert error_model.label == 'Pauli (direction=(0.2, 0.3, 0.5))'
+        assert error_model.label == 'Pauli (0.2, 0.3, 0.5)'
 
     def test_generate(self, code, error_model):
         probability = 0.1
@@ -48,27 +48,27 @@ class TestPauliNoise:
     def test_generate_all_X_errors(self, code):
         probability = 1
         direction = (1, 0, 0)
-        error_model = PauliErrorModel(direction=direction)
+        error_model = PauliErrorModel(*direction)
         error = error_model.generate(code, probability, rng=np.random)
         assert bsf_to_pauli(error) == 'X'*code.n_k_d[0]
 
     def test_generate_all_Y_errors(self, code):
         probability = 1
         direction = (0, 1, 0)
-        error_model = PauliErrorModel(direction=direction)
+        error_model = PauliErrorModel(*direction)
         error = error_model.generate(code, probability, rng=np.random)
         assert bsf_to_pauli(error) == 'Y'*code.n_k_d[0]
 
     def test_generate_all_Z_errors(self, code):
         probability = 1
         direction = (0, 0, 1)
-        error_model = PauliErrorModel(direction=direction)
+        error_model = PauliErrorModel(*direction)
         error = error_model.generate(code, probability, rng=np.random)
         assert bsf_to_pauli(error) == 'Z'*code.n_k_d[0]
 
     def test_raise_error_if_direction_does_not_sum_to_1(self):
         with pytest.raises(ValueError):
-            PauliErrorModel(direction=(0, 0, 0))
+            PauliErrorModel(0, 0, 0)
 
 
 class TestGeneratePauliNoise:

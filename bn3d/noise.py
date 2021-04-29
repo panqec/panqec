@@ -18,14 +18,16 @@ class PauliErrorModel(SimpleErrorModel):
 
     direction: Tuple[float, float, float]
 
-    def __init__(self, direction: Tuple[float, float, float]):
-        if not np.isclose(sum(direction), 1):
-            raise ValueError(f'Direction {direction} does not sum to 1.0')
-        self.direction = direction
+    def __init__(self, r_x, r_y, r_z):
+        if not np.isclose(r_x + r_y + r_z, 1):
+            raise ValueError(
+                f'Noise direction ({r_x}, {r_y}, {r_z}) does not sum to 1.0'
+            )
+        self.direction = r_x, r_y, r_z
 
     @property
     def label(self):
-        return 'Pauli (direction={!r})'.format(self.direction)
+        return 'Pauli {!r}'.format(self.direction)
 
     @functools.lru_cache()
     def probability_distribution(self, probability: float) -> Tuple:

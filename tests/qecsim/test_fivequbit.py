@@ -24,7 +24,7 @@ def five_qubit_code():
 
 @pytest.fixture
 def pauli_noise_model():
-    error_model = PauliErrorModel((0.5, 0.1, 0.4))
+    error_model = PauliErrorModel(0.5, 0.1, 0.4)
     return error_model
 
 
