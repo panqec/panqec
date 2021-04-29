@@ -10,22 +10,15 @@ class SweepMatchDecoder(Decoder):
     _sweeper: SweepDecoder3D
     _matcher: Toric3DPymatchingDecoder
 
+    def __init__(self):
+        self._sweeper = SweepDecoder3D()
+        self._matcher = Toric3DPymatchingDecoder()
+
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
-        """Get X corrections given code and measured syndrome."""
+        """Get X and Z corrections given code and measured syndrome."""
 
-        # Initialize correction as full bsf.
-        correction = np.zeros(2*code.n_k_d[0], dtype=np.uint)
+        z_correction = self._sweeper.decode(code, syndrome)
+        x_correction = self._matcher.decode(code, syndrome)
 
-        # Get the Pymatching Matching object.
-        matcher = self.get_matcher(code)
-
-        # Keep only the vertex Z measurement syndrome, discard the rest.
-        vertex_syndromes = self.get_vertex_syndromes(code, syndrome)
-
-        # PyMatching gives only the X correction.
-        x_correction = matcher.decode(vertex_syndromes, num_neighbours=None)
-
-        # Load it into the X block of the full bsf.
-        correction[:code.n_k_d[0]] = x_correction
-
+        correction = (z_correction + x_correction) % 2
         return correction
