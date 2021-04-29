@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Optional
 import numpy as np
 from qecsim.models.toric import ToricPauli
 from qecsim.model import StabilizerCode
@@ -14,8 +14,8 @@ class Toric3DPauli(ToricPauli):
     Y_AXIS = 1
     Z_AXIS = 2
 
-    def __init__(self, code: StabilizerCode, bsf: np.ndarray = None):
-        super().__init__(code, bsf)
+    def __init__(self, code: StabilizerCode, bsf: Optional[np.ndarray] = None):
+        super().__init__(code, bsf=bsf)
 
     def vertex(self, operator: str, location: Tuple[int, int, int]):
         r"""Apply operator on sites neighbouring vertex.
