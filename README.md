@@ -71,6 +71,49 @@ In your browser, Jupyter will open and you can navigate to the `demo` folder
 and open some notebooks.
 Run the notebook you want to run and see the results computed interactively.
 
+# Running a simulation via the command line
+After installing the package, to run a single simulation on the command
+line, use
+```
+python3 -m bn3d run
+        --code 'ToricCode3D(3, 3, 3)' \
+        --noise 'PauliErrorModel(1, 0, 0)' \
+        --decoder 'PyMatchingSweepDecoder3D()'
+        --probability 0.1
+        --trials 10
+```
+
+Alternatively, if you find that too verbose, you can specify the job you
+want to run in a `.json` file and run the following.
+```
+python3 -m bn3d run -f myinputs.json
+```
+
+An example of what to put in `myinputs.json` would be the following.
+```
+{
+  "comments": "Some comments about this run.",
+  "outdir": "/path/to/output/directory",
+  "runs": [
+    {
+      "code": {
+        "model": "ToricCode3D",
+        "parameters": [3, 3, 3]
+      },
+      "noise": {
+        "model": "PauliErrorModel",
+        "parameters": [1, 0, 0]
+      },
+      "decoder": {
+        "model": "PyMatchingSweepDecoder3D"
+      },
+      "probability": 0.1,
+      "trials": 10
+    }
+  ]
+}
+```
+
 # Code Style
 Just follow PEP 8, but to actually test that the code is compliant, run the
 linter using
