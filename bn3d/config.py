@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 import os
 from qecsim.models.basic import FiveQubitCode
 from qecsim.models.generic import NaiveDecoder
-from .tc3d import ToricCode3D, Toric3DPymatchingDecoder
+from .tc3d import ToricCode3D, Toric3DPymatchingDecoder, SweepMatchDecoder
 from .deform import DeformedPauliErrorModel
 from .noise import PauliErrorModel
 
@@ -45,5 +45,6 @@ error_models = {
 }
 decoders = {
     'Toric3DPymatchingDecoder': Toric3DPymatchingDecoder,
+    'SweepMatchDecoder': SweepMatchDecoder,
     'NaiveDecoder': NaiveDecoder,
 }
