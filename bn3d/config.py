@@ -6,6 +6,8 @@ Settings from environmental variables and config files.
 """
 from dotenv import load_dotenv
 import os
+from qecsim.models.basic import FiveQubitCode
+from qecsim.models.generic import NaiveDecoder
 from .tc3d import ToricCode3D, Toric3DPymatchingDecoder
 from .noise import PauliErrorModel
 
@@ -31,12 +33,15 @@ if os.getenv('BN3D_DIR') is not None:
             'Check .env configuration.'
         )
 
+# Register your models here.
 codes = {
     'ToricCode3D': ToricCode3D,
+    'FiveQubitCode': FiveQubitCode,
 }
 error_models = {
     'PauliErrorModel': PauliErrorModel,
 }
 decoders = {
     'Toric3DPymatchingDecoder': Toric3DPymatchingDecoder,
+    'NaiveDecoder': NaiveDecoder,
 }
