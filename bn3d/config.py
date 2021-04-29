@@ -6,6 +6,8 @@ Settings from environmental variables and config files.
 """
 from dotenv import load_dotenv
 import os
+from .tc3d import ToricCode3D, Toric3DPymatchingDecoder
+from .noise import PauliErrorModel
 
 # Load the .env file into environmental variables.
 load_dotenv()
@@ -28,3 +30,13 @@ if os.getenv('BN3D_DIR') is not None:
             f'BN3D_DIR={BN3D_DIR} is not a valid directory. '
             'Check .env configuration.'
         )
+
+codes = {
+    'ToricCode3D': ToricCode3D,
+}
+error_models = {
+    'PauliErrorModel': PauliErrorModel,
+}
+decoders = {
+    'Toric3DPymatchingDecoder': Toric3DPymatchingDecoder,
+}
