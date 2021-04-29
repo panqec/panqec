@@ -75,8 +75,7 @@ Run the notebook you want to run and see the results computed interactively.
 After installing the package, to run a single simulation on the command
 line, use
 ```
-python3 -m bn3d run
-        --code 'ToricCode3D(3, 3, 3)' \
+bn3d run --code 'ToricCode3D(3, 3, 3)' \
         --noise 'PauliErrorModel(1, 0, 0)' \
         --decoder 'PyMatchingSweepDecoder3D()'
         --probability 0.1
@@ -86,7 +85,7 @@ python3 -m bn3d run
 Alternatively, if you find that too verbose, you can specify the job you
 want to run in a `.json` file and run the following.
 ```
-python3 -m bn3d run -f myinputs.json
+bn3d run -f myinputs.json
 ```
 
 An example of what to put in `myinputs.json` would be the following.

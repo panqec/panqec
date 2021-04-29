@@ -15,5 +15,6 @@ setup(
     email='ehuang1@perimeterinstitute.ca',
     packages=['bn3d'],
     zip_safe=False,
-    requirements=requirements
+    requirements=requirements,
+    scripts=['bin/bn3d'],
 )
