@@ -1,5 +1,5 @@
 import itertools
-from typing import Dict, Tuple
+from typing import Tuple
 import numpy as np
 from qecsim.model import Decoder
 from ._toric_code_3d import ToricCode3D
@@ -8,8 +8,7 @@ from ._toric_3d_pauli import Toric3DPauli
 
 class SweepDecoder3D(Decoder):
 
-    label = 'Sweep Decoder 3D'
-    _n_faces: Dict[str, int] = {}
+    label = 'Toric 3D Sweep Decoder'
     DEFAULT_EDGE = 0
 
     def get_face_syndromes(
