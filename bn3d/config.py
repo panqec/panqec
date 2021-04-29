@@ -9,6 +9,7 @@ import os
 from qecsim.models.basic import FiveQubitCode
 from qecsim.models.generic import NaiveDecoder
 from .tc3d import ToricCode3D, Toric3DPymatchingDecoder
+from .deform import DeformedPauliErrorModel
 from .noise import PauliErrorModel
 
 # Load the .env file into environmental variables.
@@ -40,6 +41,7 @@ codes = {
 }
 error_models = {
     'PauliErrorModel': PauliErrorModel,
+    'DeformedPauliErrorModel': DeformedPauliErrorModel,
 }
 decoders = {
     'Toric3DPymatchingDecoder': Toric3DPymatchingDecoder,
