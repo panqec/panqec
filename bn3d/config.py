@@ -48,3 +48,5 @@ decoders = {
     'SweepMatchDecoder': SweepMatchDecoder,
     'NaiveDecoder': NaiveDecoder,
 }
+
+noise_dependent_decoders = []
