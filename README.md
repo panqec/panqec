@@ -104,7 +104,7 @@ An example of what to put in `myinputs.json` would be the following.
         "parameters": [1, 0, 0]
       },
       "decoder": {
-        "model": "PyMatchingSweepDecoder3D"
+        "model": "SweepMatchDecoder"
       },
       "probability": 0.1,
       "trials": 10
@@ -137,7 +137,7 @@ You may also have the option of running many different parameters.
       ]
     },
     "decoder": {
-      "model": "PyMatchingSweepDecoder3D"
+      "model": "SweepMatchDecoder"
     },
     "probability": [0.1, 0.2, 0.3],
     "trials": 10
@@ -149,6 +149,7 @@ You may also have the option of running many different parameters.
 Just follow PEP 8, but to actually test that the code is compliant, run the
 linter using
 ```
-make lint ```
+make lint
+```
 It will run `flake8` and print out a list of non-compliances.
 It will also run `mypy` to do type checking.
