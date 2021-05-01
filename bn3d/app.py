@@ -7,10 +7,18 @@ from typing import List, Dict
 import datetime
 import numpy as np
 from qecsim.model import StabilizerCode, ErrorModel, Decoder
+from .bpauli import bcommute, get_effective_error
 from .config import codes, error_models, decoders, noise_dependent_decoders
 
 
-def run_once(code, error_model, decoder, error_probability, rng=None):
+def run_once(
+    code: StabilizerCode,
+    error_model: ErrorModel,
+    decoder: Decoder,
+    error_probability: float,
+    rng=None
+) -> dict:
+    """Run a simulation once and return the results as a dictionary."""
 
     if not (0 <= error_probability <= 1):
         raise ValueError('Error probability must be in [0, 1].')
@@ -18,26 +26,53 @@ def run_once(code, error_model, decoder, error_probability, rng=None):
     if rng is None:
         rng = np.random.default_rng()
 
+    error = error_model.generate(code, probability=error_probability)
+    syndrome = bcommute(code.stabilizers, error)
+    correction = decoder.decode(code, syndrome)
+    total_error = (correction + error) % 2
+    effective_error = get_effective_error(
+        total_error, code.logical_xs, code.logical_zs
+    )
+    success = np.all(effective_error == 0)
+
+    results = {
+        'error': error,
+        'syndrome': syndrome,
+        'correction': correction,
+        'effective_error': effective_error,
+        'success': success,
+    }
+
+    return results
+
 
 class Simulation:
+    """Quantum Error Correction Simulation."""
 
     start_time: datetime.datetime
     code: StabilizerCode
     error_model: ErrorModel
     decoder: Decoder
     error_probability: float
-    results: list = []
+    _results: list = []
+    rng = None
 
-    def __init__(self, code, error_model, decoder, probability):
+    def __init__(self, code, error_model, decoder, probability, rng=None):
         self.code = code
         self.error_model = error_model
         self.decoder = decoder
+        self.rng = rng
 
     def run(self, repeats: int):
-        run_once(
-            self.code, self.error_model, self.decoder,
-            error_probability=self.error_probability
-        )
+        """Run assuming perfect measurement."""
+        for i_trial in range(repeats):
+            self._results.append(
+                run_once(
+                    self.code, self.error_model, self.decoder,
+                    error_probability=self.error_probability,
+                    rng=self.rng
+                )
+            )
 
 
 class BatchSimulation():
@@ -103,7 +138,7 @@ def expand_inputs_ranges(data: dict) -> List[Dict]:
 
 
 def parse_run(run: dict) -> Simulation:
-    """Parse a single run dict."""
+    """Parse a single dict describing the run."""
     code_name = run['code']['model']
     if 'parameters' in run['code']:
         code_params = run['code']['parameters']
