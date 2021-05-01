@@ -61,6 +61,7 @@ class Simulation:
         self.code = code
         self.error_model = error_model
         self.decoder = decoder
+        self.error_probability = probability
         self.rng = rng
 
     def run(self, repeats: int):
