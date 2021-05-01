@@ -42,6 +42,20 @@ class TestBcommute:
         assert bcommute(III, XXX) == 0
         assert bcommute(III, XXX) == 0
 
+    def test_bcommute_many_to_one(self):
+        stabilizers = np.array([
+            pauli_string_to_bvector('XXI'),
+            pauli_string_to_bvector('IXX'),
+        ])
+        error = pauli_string_to_bvector('IZI')
+        syndrome = bcommute(stabilizers, error)
+        assert syndrome.shape == (2,)
+        assert np.all(syndrome == [1, 1])
+
+        syndrome = bcommute(error, stabilizers)
+        assert syndrome.shape == (2,)
+        assert np.all(syndrome == [1, 1])
+
     def test_bcommute_one_to_many(self):
         XYZ = pauli_string_to_bvector('XYZ')
         IXY = pauli_string_to_bvector('IXY')
@@ -86,7 +100,7 @@ def test_get_effective_errror_single():
     assert bvector_to_pauli_string(effective_error) == 'Y'
 
 
-def test_get_effective_errror_many():
+def test_get_effective_error_many():
     X_logicals = pauli_string_to_bvector('XXXXX')
     Z_logicals = pauli_string_to_bvector('ZZZZZ')
     total_error = np.array([
