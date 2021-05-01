@@ -48,6 +48,14 @@ def bcommute(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     a = np.array(a)
     b = np.array(b)
 
+    # Determine the output shape.
+    # In particular, flatten array where needed.
+    output_shape = None
+    if len(a.shape) == 2 and len(b.shape) == 1:
+        output_shape = a.shape[0]
+    elif len(a.shape) == 1 and len(b.shape) == 2:
+        output_shape = b.shape[0]
+
     # If only singles, then convert to 2D array.
     if len(a.shape) == 1:
         a = np.reshape(a, (1, a.shape[0]))
@@ -81,6 +89,10 @@ def bcommute(a: np.ndarray, b: np.ndarray) -> np.ndarray:
             b_X = b[i_b, :n]
             b_Z = b[i_b, n:]
             commutes[i_a, i_b] = np.sum(a_X*b_Z + a_Z*b_X) % 2
+
+    if output_shape is not None:
+        commutes = commutes.reshape(output_shape)
+
     return commutes
 
 
@@ -139,7 +151,10 @@ def get_effective_error(
 
     effective_Z = bcommute(logical_xs, total_error)
     effective_X = bcommute(logical_zs, total_error)
-    effective = np.concatenate([effective_X.T, effective_Z.T], axis=1)
+    if len(effective_Z.shape) == 1:
+        effective = np.array([effective_X, effective_Z]).T
+    else:
+        effective = np.concatenate([effective_X.T, effective_Z.T], axis=1)
 
     # Flatten the array if only one total error is given.
     if num_total_errors == 1:
