@@ -18,6 +18,17 @@ class Toric3DPymatchingDecoder(Decoder):
     _matchers: Dict[str, Matching] = {}
     _n_faces: Dict[str, int] = {}
 
+    def new_matcher(self, code):
+        """Return a new Matching object."""
+        # Get the number of X stabilizers (faces).
+        n_faces = int(np.product(code.shape))
+        self._n_faces[code.label] = n_faces
+        n_qubits = code.n_k_d[0]
+
+        # Only keep the Z vertex stabilizers.
+        H_z = code.stabilizers[n_faces:, n_qubits:]
+        return Matching(H_z)
+
     def get_matcher(self, code) -> Matching:
         """Get the matcher given the code.
 
@@ -27,19 +38,8 @@ class Toric3DPymatchingDecoder(Decoder):
         # Only instantiate a new Matching object if the code hasn't been seen
         # before.
         if code.label not in self._matchers:
-
-            # Get the number of X stabilizers (faces).
-            n_faces = int(np.product(code.shape))
-            self._n_faces[code.label] = n_faces
-            n_qubits = code.n_k_d[0]
-
-            # Only keep the Z vertex stabilizers.
-            H_z = code.stabilizers[n_faces:, n_qubits:]
-            self._matchers[code.label] = Matching(H_z)
-            return self._matchers[code.label]
-
-        else:
-            return self._matchers[code.label]
+            self._matchers[code.label] = self.new_matcher(code)
+        return self._matchers[code.label]
 
     def get_vertex_syndromes(
         self, code: ToricCode3D, full_syndrome: np.ndarray
