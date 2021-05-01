@@ -57,7 +57,10 @@ class Simulation:
     _results: list = []
     rng = None
 
-    def __init__(self, code, error_model, decoder, probability, rng=None):
+    def __init__(
+        self, code: StabilizerCode, error_model: ErrorModel, decoder: Decoder,
+        probability: float, rng=None
+    ):
         self.code = code
         self.error_model = error_model
         self.decoder = decoder
@@ -66,6 +69,7 @@ class Simulation:
 
     def run(self, repeats: int):
         """Run assuming perfect measurement."""
+        self.start_time = datetime.datetime.now()
         for i_trial in range(repeats):
             self._results.append(
                 run_once(
@@ -83,9 +87,13 @@ class BatchSimulation():
 
     def __init__(self):
         self._simulations = []
+        self.n_trials = 0
 
     def append(self, simulation: Simulation):
         self._simulations.append(simulation)
+
+    def run(self):
+        pass
 
 
 def _parse_parameters_range(parameters):
@@ -206,9 +214,9 @@ def read_input_dict(data: dict) -> BatchSimulation:
         runs += expand_inputs_ranges(data['ranges'])
 
     batch_sim = BatchSimulation()
+    assert len(batch_sim._simulations) == 0
 
-    for run in runs:
-        simulation = parse_run(run)
-        batch_sim.append(simulation)
+    for single_run in runs:
+        batch_sim.append(parse_run(single_run))
 
     return batch_sim
