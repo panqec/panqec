@@ -1,10 +1,13 @@
 import os
+import json
 import pytest
 import numpy as np
 from qecsim.models.basic import FiveQubitCode
 from qecsim.models.generic import NaiveDecoder
 from bn3d.noise import PauliErrorModel
-from bn3d.app import read_input_json, run_once, Simulation
+from bn3d.app import (
+    read_input_json, run_once, Simulation, expand_inputs_ranges
+)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 
@@ -24,10 +27,22 @@ def required_fields():
     ]
 )
 def test_read_json_input(file_name, expected_runs):
-    single_input_json = os.path.join(DATA_DIR, file_name)
-    batch_simulation = read_input_json(single_input_json)
+    input_json = os.path.join(DATA_DIR, file_name)
+    batch_simulation = read_input_json(input_json)
     assert batch_simulation is not None
     assert len(batch_simulation._simulations) == expected_runs
+    parameters = [
+        {
+            'code': s.code.size,
+            'noise': s.error_model.direction,
+            'probability': s.error_probability
+        }
+        for s in batch_simulation._simulations
+    ]
+    for i in range(len(parameters)):
+        for j in range(len(parameters)):
+            if i != j:
+                assert parameters[i] != parameters[j]
 
 
 def test_run_once(required_fields):
@@ -66,3 +81,17 @@ class TestSimulationFiveQubitCode():
             set(results.keys()).issubset(required_fields)
             for results in simulation._results
         )
+
+
+@pytest.fixture
+def example_ranges():
+    input_json = os.path.join(DATA_DIR, 'range_input.json')
+    with open(input_json) as f:
+        data = json.load(f)
+    return data['ranges']
+
+
+def test_expand_inputs_ranges(example_ranges):
+    ranges = example_ranges
+    expanded_inputs = expand_inputs_ranges(ranges)
+    assert len(expanded_inputs) == 27
