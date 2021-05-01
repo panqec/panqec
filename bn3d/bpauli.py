@@ -118,29 +118,30 @@ def bvector_to_pauli_string(bvector: np.ndarray) -> str:
 
 
 def get_effective_error(
-    logicals: np.ndarray,
-    total_error: np.ndarray
+    total_error: np.ndarray,
+    logical_xs: np.ndarray,
+    logical_zs: np.ndarray,
 ) -> np.ndarray:
     """Effective Pauli error on logical qubits after decoding."""
 
-    if len(logicals.shape) == 1:
-        raise ValueError('Must have at least two logicals.')
+    if logical_xs.shape != logical_zs.shape:
+        raise ValueError('Logical Xs and Zs must be of same shape.')
 
-    n_logical = int(len(logicals)/2)
-    n_physical = int(logicals.shape[1]/2)
-    assert n_physical > n_logical
+    if len(logical_xs.shape) == 1:
+        n_logical = 1
+    else:
+        n_logical = int(len(logical_xs))
 
+    # Get the number of total errors given.
     num_total_errors = 1
     if len(total_error.shape) > 1:
         num_total_errors = total_error.shape[0]
 
-    # First half are X logicals, second half are Z logicals.
-    X_logicals = np.array(logicals)[:n_logical]
-    Z_logicals = np.array(logicals)[n_logical:]
-
-    effective_Z = bcommute(X_logicals, total_error)
-    effective_X = bcommute(Z_logicals, total_error)
+    effective_Z = bcommute(logical_xs, total_error)
+    effective_X = bcommute(logical_zs, total_error)
     effective = np.concatenate([effective_X.T, effective_Z.T], axis=1)
+
+    # Flatten the array if only one total error is given.
     if num_total_errors == 1:
         effective = effective.reshape(2*n_logical)
     return effective
