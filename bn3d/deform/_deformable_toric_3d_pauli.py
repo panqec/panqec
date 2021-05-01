@@ -9,6 +9,7 @@ from ..tc3d import Toric3DPauli
 class DeformableToric3DPauli(Toric3DPauli):
     """Pauli Operator in 3D Toric Code lattice, but deformable."""
 
+    # Mapping from undeformed Pauli operator to deformed Pauli operator.
     _deform_map: Dict[str, str] = {
         'I': 'I',
         'X': 'Z',
@@ -17,8 +18,11 @@ class DeformableToric3DPauli(Toric3DPauli):
     }
 
     def __init__(self, code: StabilizerCode, bsf: Optional[np.ndarray] = None):
+
+        # Copy needs to be made because numpy arrays are mutable.
         if bsf is not None:
             bsf = bsf.copy()
+
         super(DeformableToric3DPauli, self).__init__(code, bsf=bsf)
 
     def deform(self):
