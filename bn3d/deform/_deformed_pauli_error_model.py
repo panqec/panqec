@@ -29,3 +29,7 @@ class DeformedPauliErrorModel(ErrorModel):
         pauli = DeformableToric3DPauli(code, bsf=error)
         pauli.deform()
         return pauli.to_bsf()
+
+    @property
+    def direction(self):
+        return self._undeformed_model.direction
