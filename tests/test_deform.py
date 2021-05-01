@@ -1,8 +1,9 @@
 import itertools
 import pytest
 import numpy as np
+from bn3d.bpauli import bcommute
 from bn3d.tc3d import ToricCode3D, Toric3DPauli
-from bn3d.deform import DeformedPauliErrorModel
+from bn3d.deform import DeformedPauliErrorModel, DeformedSweepMatchDecoder
 from bn3d.bpauli import bvector_to_pauli_string
 
 
@@ -37,6 +38,39 @@ class TestDeformedPauliErrorModel:
                 assert pauli.operator((edge, x, y, z)) == deformed
             else:
                 assert pauli.operator((edge, x, y, z)) == original
+
+    def test_original_all_X_becomes_Z_on_deformed_axis(self, code):
+        error_model = DeformedPauliErrorModel(1, 0, 0)
+        error = error_model.generate(code, probability=1)
+        pauli = Toric3DPauli(code, bsf=error)
+
+        ranges = [range(length) for length in code.shape]
+        for axis, x, y, z in itertools.product(*ranges):
+            if axis == 0:
+                assert pauli.operator((axis, x, y, z)) == 'Z'
+            else:
+                assert pauli.operator((axis, x, y, z)) == 'X'
+
+    def test_original_all_Z_becomes_X_on_deformed_axis(self, code):
+        error_model = DeformedPauliErrorModel(0, 0, 1)
+        error = error_model.generate(code, probability=1)
+        pauli = Toric3DPauli(code, bsf=error)
+
+        ranges = [range(length) for length in code.shape]
+        for axis, x, y, z in itertools.product(*ranges):
+            if axis == 0:
+                assert pauli.operator((axis, x, y, z)) == 'X'
+            else:
+                assert pauli.operator((axis, x, y, z)) == 'Z'
+
+    def test_all_Y_deformed_is_still_all_Y(self, code):
+        error_model = DeformedPauliErrorModel(0, 1, 0)
+        error = error_model.generate(code, probability=1)
+        pauli = Toric3DPauli(code, bsf=error)
+
+        ranges = [range(length) for length in code.shape]
+        for axis, x, y, z in itertools.product(*ranges):
+            assert pauli.operator((axis, x, y, z)) == 'Y'
 
 
 class TestDeformOperator:
@@ -90,3 +124,31 @@ class TestDeformOperator:
 
         differing_edges = [location[0] for location in differing_locations]
         assert all([edge == 0 for edge in differing_edges])
+
+
+class TestDeformedDecoder:
+
+    def test_decode_trivial(self, code):
+        syndrome = np.zeros(len(code.stabilizers), dtype=np.uint)
+        decoder = DeformedSweepMatchDecoder()
+        correction = decoder.decode(code, syndrome)
+        assert np.all(correction == 0)
+
+    def test_decode_single_X_on_undeformed_axis(self, code):
+
+        decoder = DeformedSweepMatchDecoder()
+
+        # Single-qubit X error on undeformed edge.
+        error_pauli = Toric3DPauli(code)
+        error_pauli.site('X', (code.Y_AXIS, 0, 0, 0))
+        error = error_pauli.to_bsf()
+        assert np.any(error != 0)
+
+        # Calculate the syndrome and make sure it's nontrivial.
+        syndrome = bcommute(code.stabilizers, error)
+        assert np.any(syndrome != 0)
+
+        # Total error should be in code space.
+        correction = decoder.decode(code, syndrome)
+        total_error = (error + correction) % 2
+        assert np.all(bcommute(code.stabilizers, total_error) == 0)
