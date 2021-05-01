@@ -78,27 +78,23 @@ def test_bvector_to_barray():
 
 
 def test_get_effective_errror_single():
-    logicals = np.array([
-        pauli_string_to_bvector('XXXXX'),
-        pauli_string_to_bvector('ZZZZZ')
-    ])
+    X_logicals = pauli_string_to_bvector('XXXXX')
+    Z_logicals = pauli_string_to_bvector('ZZZZZ')
     total_error = pauli_string_to_bvector('YYYYY')
-    effective_error = get_effective_error(logicals, total_error)
+    effective_error = get_effective_error(total_error, X_logicals, Z_logicals)
     assert np.all(effective_error.shape == (2, ))
     assert bvector_to_pauli_string(effective_error) == 'Y'
 
 
 def test_get_effective_errror_many():
-    logicals = np.array([
-        pauli_string_to_bvector('XXXXX'),
-        pauli_string_to_bvector('ZZZZZ')
-    ])
+    X_logicals = pauli_string_to_bvector('XXXXX')
+    Z_logicals = pauli_string_to_bvector('ZZZZZ')
     total_error = np.array([
         pauli_string_to_bvector('YYYYY'),
         pauli_string_to_bvector('IIIII'),
         pauli_string_to_bvector('XXXZZ'),
     ])
-    effective_error = get_effective_error(logicals, total_error)
+    effective_error = get_effective_error(total_error, X_logicals, Z_logicals)
     assert np.all(effective_error.shape == (3, 2))
     assert np.all(effective_error == np.array([
         pauli_string_to_bvector('Y'),
