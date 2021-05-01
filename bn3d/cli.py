@@ -30,6 +30,7 @@ def run(
     probability: float = 0.5,
     trials: int = 10
 ):
+    """Run a single job or run many jobs from input file."""
     if file_ is not None:
         raise NotImplementedError('Run file not working yet')
     else:
