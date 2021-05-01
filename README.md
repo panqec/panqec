@@ -2,14 +2,6 @@
 
 Biased noise for 3D quantum error-correcting codes
 
-# TODO
-- Add biased-weight decoder to CLI
-- Add biased sweep decoder to CLI
-- Fix CLI to deal with noise-dependent decoders
-- Get demo notebook working with new API
-- Get tests of CLI run command working
-- Get simulations running on slurm
-
 # Setup for development
 
 Clone the repo and enter the repo

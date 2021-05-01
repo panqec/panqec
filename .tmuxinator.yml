@@ -34,4 +34,4 @@ windows:
   - test:
       - source venv/bin/activate; pytest
   - edit:
-      - source venv/bin/activate; git status
+      - source venv/bin/activate; git status; cat TODO.md
