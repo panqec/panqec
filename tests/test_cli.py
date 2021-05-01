@@ -18,7 +18,7 @@ def runner():
     ['--help'],
     ['--version'],
 ])
-def test_cli(arguments, runner):
+def test_cli_basic(arguments, runner):
     result = runner.invoke(cli, arguments)
     assert result.exit_code == 0
 

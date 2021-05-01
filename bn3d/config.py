@@ -4,8 +4,9 @@ Settings from environmental variables and config files.
 :Author:
     Eric Huang
 """
-from dotenv import load_dotenv
 import os
+from typing import List
+from dotenv import load_dotenv
 from qecsim.models.basic import FiveQubitCode
 from qecsim.models.generic import NaiveDecoder
 from .tc3d import ToricCode3D, Toric3DPymatchingDecoder, SweepMatchDecoder
@@ -49,4 +50,4 @@ decoders = {
     'NaiveDecoder': NaiveDecoder,
 }
 
-noise_dependent_decoders = []
+noise_dependent_decoders: List[str] = []

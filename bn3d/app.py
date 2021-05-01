@@ -3,7 +3,7 @@ API for running simulations.
 """
 import json
 import itertools
-from typing import List, Optional, Dict
+from typing import List, Dict
 import datetime
 import numpy as np
 from qecsim.model import StabilizerCode, ErrorModel, Decoder
