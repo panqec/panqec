@@ -72,6 +72,10 @@ class TestDeformedPauliErrorModel:
         for axis, x, y, z in itertools.product(*ranges):
             assert pauli.operator((axis, x, y, z)) == 'Y'
 
+    def test_label(self, code):
+        error_model = DeformedPauliErrorModel(1, 0, 0)
+        assert error_model.label == 'Deformed Pauli (1, 0, 0)'
+
 
 class TestDeformOperator:
 
