@@ -3,7 +3,7 @@ Decoder for 3D Toric Code using Pymatching.
 """
 from typing import Dict
 import numpy as np
-from qecsim.model import Decoder
+from qecsim.model import Decoder, StabilizerCode
 from pymatching import Matching
 from ._toric_code_3d import ToricCode3D
 
@@ -18,7 +18,11 @@ class Toric3DPymatchingDecoder(Decoder):
     _matchers: Dict[str, Matching] = {}
     _n_faces: Dict[str, int] = {}
 
-    def new_matcher(self, code):
+    def __init__(self):
+        self._matchers = {}
+        self._n_faces = {}
+
+    def new_matcher(self, code: StabilizerCode):
         """Return a new Matching object."""
         # Get the number of X stabilizers (faces).
         n_faces = int(np.product(code.shape))
@@ -29,7 +33,7 @@ class Toric3DPymatchingDecoder(Decoder):
         H_z = code.stabilizers[n_faces:, n_qubits:]
         return Matching(H_z)
 
-    def get_matcher(self, code) -> Matching:
+    def get_matcher(self, code: StabilizerCode) -> Matching:
         """Get the matcher given the code.
 
         Matching objects are only instantiated once for the same code.
