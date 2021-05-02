@@ -30,3 +30,7 @@ def nested_map(function: Callable):
             return function(item)
 
     return mapper
+
+
+def identity(x):
+    return x
