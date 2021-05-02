@@ -1,14 +1,18 @@
 """
 API for running simulations.
 """
+import os
 import json
 import itertools
-from typing import List, Dict
+from typing import List, Dict, Callable
 import datetime
 import numpy as np
 from qecsim.model import StabilizerCode, ErrorModel, Decoder
 from .bpauli import bcommute, get_effective_error
-from .config import codes, error_models, decoders, noise_dependent_decoders
+from .config import (
+    codes, error_models, decoders, noise_dependent_decoders, BN3D_DIR
+)
+from .utils import identity, NumpyEncoder
 
 
 def run_once(
@@ -54,6 +58,7 @@ class Simulation:
     error_model: ErrorModel
     decoder: Decoder
     error_probability: float
+    label: str
     _results: list = []
     rng = None
 
@@ -66,6 +71,9 @@ class Simulation:
         self.decoder = decoder
         self.error_probability = probability
         self.rng = rng
+        self.label = '_'.join([
+            code.label, error_model.label, decoder.label, f'{probability}'
+        ])
 
     def run(self, repeats: int):
         """Run assuming perfect measurement."""
@@ -79,21 +87,96 @@ class Simulation:
                 )
             )
 
+    @property
+    def file_name(self) -> str:
+        file_name = self.label + '.json'
+        return file_name
+
+    def get_file_path(self, output_dir: str) -> str:
+        file_path = os.path.join(output_dir, self.file_name)
+        return file_path
+
+    def load_results(self, output_dir: str):
+        """Load results from directory."""
+        file_path = self.get_file_path(output_dir)
+        if os.path.exists(file_path):
+            with open(file_path) as f:
+                data = json.load(f)
+            self._results = data['results']
+
+    def save_results(self, output_dir: str):
+        """Save results to directory."""
+        with open(self.get_file_path(output_dir), 'w') as f:
+            json.dump({
+                'results': self._results,
+                'inputs': {
+                    'code': self.code.label,
+                    'error_model': self.error_model.label,
+                    'decoder': self.decoder.label,
+                    'error_probability': self.error_probability,
+                }
+            }, f, cls=NumpyEncoder)
+
 
 class BatchSimulation():
 
     _simulations: List[Simulation]
-    n_trials: int
+    update_frequency: int
+    save_frequency: int
+    _output_dir: str
 
-    def __init__(self):
+    def __init__(
+        self,
+        label='unlabelled',
+        on_update: Callable = identity,
+        update_frequency: int = 10,
+        save_frequency: int = 10,
+    ):
         self._simulations = []
-        self.n_trials = 0
+        self.update_frequency = update_frequency
+        self.save_frequency = save_frequency
+        self.label = label
+        self._output_dir = os.path.join(BN3D_DIR, self.label)
+        os.makedirs(self._output_dir, exist_ok=True)
 
     def append(self, simulation: Simulation):
         self._simulations.append(simulation)
 
-    def run(self):
+    def load_results(self):
+        for simulation in self._simulations:
+            simulation.load_results(self._output_dir)
+
+    def on_update(self):
         pass
+
+    def run(self, n_trials, progress: Callable = identity):
+        self.load_results()
+        max_remaining_trials = max([
+            max(0, n_trials - len(simulation._results))
+            for simulation in self._simulations
+        ])
+        for i_trial in progress(list(range(max_remaining_trials))):
+            for simulation in self._simulations:
+                if len(simulation._results) < n_trials:
+                    simulation.run(1)
+            if i_trial > 0:
+                if i_trial % self.update_frequency:
+                    self.on_update()
+                if i_trial % self.save_frequency:
+                    self.save_results()
+            if i_trial == n_trials - 1:
+                self.on_update()
+                self.save_results()
+
+    def save_results(self):
+        for simulation in self._simulations:
+            simulation.save_results(self._output_dir)
+
+    def get_results(self):
+        results = []
+        for simulation in self._simulations:
+            results.append(simulation.results)
+        return results
 
 
 def _parse_parameters_range(parameters):
@@ -208,12 +291,15 @@ def read_input_json(file_path: str) -> BatchSimulation:
 def read_input_dict(data: dict) -> BatchSimulation:
     """Return BatchSimulation from input dict."""
     runs = []
+    label = 'unlabelled'
     if 'runs' in data:
         runs = data['runs']
     if 'ranges' in data:
         runs += expand_inputs_ranges(data['ranges'])
+        if 'label' in data['ranges']:
+            label = data['ranges']['label']
 
-    batch_sim = BatchSimulation()
+    batch_sim = BatchSimulation(label=label)
     assert len(batch_sim._simulations) == 0
 
     for single_run in runs:
