@@ -209,8 +209,17 @@ class TestDeformedDecoder:
 
 class TestDeformedSweepDecoder3D:
 
-    def test_most_likely_edge(self, code):
-        error_model = DeformedPauliErrorModel(0.9, 0, 0.1)
+    @pytest.mark.parametrize(
+        'noise_direction, expected_edge',
+        [
+            [(0.9, 0, 0.1), 0],
+            [(0.1, 0, 0.9), 1],
+            [(1/3, 1/3, 1/3), 0],
+            [(0, 0, 1), 1],
+        ]
+    )
+    def test_most_likely_edge(self, code, noise_direction, expected_edge):
+        error_model = DeformedPauliErrorModel(*noise_direction)
         probability = 0.5
         decoder = DeformedSweepDecoder3D(error_model, probability)
-        assert decoder.get_most_likely_edge() == 0
+        assert decoder.get_most_likely_edge() == expected_edge
