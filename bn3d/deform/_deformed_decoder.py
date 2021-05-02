@@ -81,10 +81,50 @@ class DeformedToric3DPymatchingDecoder(Toric3DPymatchingDecoder):
         return weights.flatten()
 
 
+class DeformedSweepDecoder3D(SweepDecoder3D):
+
+    _error_model: ErrorModel
+    _probability: float
+    _default_edge: int
+
+    def __init__(self, error_model, probability):
+        super(SweepDecoder3D, self).__init__()
+        self._error_model = error_model
+        self._probability = probability
+        self._default_edge = self.get_most_likely_edge()
+
+    def get_most_likely_edge(self):
+        """Most likely face for detectable Z error."""
+
+        # The most likely edge is an int.
+        edge: int
+
+        p_X, p_Y, p_Z = (
+            np.array(self._error_model.direction)*self._probability
+        )
+        p_regular = p_Y + p_Z
+        p_deformed = p_Y + p_X
+
+        # Pick the y-axis, which is undeformed, if undeformed error more
+        # likely.
+        if p_regular > p_deformed:
+            edge = 1
+
+        # Otherwise, the deformed x-axis edge is more likely.
+        else:
+            edge = 0
+
+        return edge
+
+    def get_default_direction(self, code):
+        """Use most likely direction based on noise."""
+        return self._default_edge
+
+
 class DeformedSweepMatchDecoder(Decoder):
 
     label = 'Toric 3D Sweep Pymatching Decoder'
-    _sweeper: SweepDecoder3D
+    _sweeper: DeformedSweepDecoder3D
     _matcher: DeformedToric3DPymatchingDecoder
 
     def __init__(self, error_model: ErrorModel, probability: float):
