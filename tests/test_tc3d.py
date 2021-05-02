@@ -115,7 +115,6 @@ def test_correcting_X_noise_produces_X_logical_errors_only():
     H_Z = Z_stabilisers[:, 3*L**3:]
     X_logicals = get_X_logicals(L)
     Z_logicals = get_Z_logicals(L)
-    logicals = get_all_logicals(L)
 
     matching = Matching(H_Z)
     noise_X = np.random.binomial(1, p, H_Z.shape[1])
@@ -129,7 +128,9 @@ def test_correcting_X_noise_produces_X_logical_errors_only():
     total_error[:3*L**3] = total_error_X
 
     # Compute the effective error on the logical qubits.
-    effective_error = get_effective_error(logicals, total_error)
+    effective_error = get_effective_error(
+        total_error, X_logicals, Z_logicals
+    )
 
     # Make sure the total error is non-trivial.
     assert total_error.sum() > 0

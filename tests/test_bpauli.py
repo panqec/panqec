@@ -1,3 +1,10 @@
+"""
+Tests for custom implementation of pauli bit strings.
+
+:Author:
+    Eric Huang
+"""
+import pytest
 import numpy as np
 from bn3d.bpauli import (
     pauli_string_to_bvector, bvector_to_pauli_string, bvector_to_barray,
@@ -25,23 +32,52 @@ def test_pauli_string_bvector_inverse():
     assert pstring == new_pstring
 
 
-def test_bcommute_singles():
-    III = np.array([0, 0, 0, 0, 0, 0])
-    XXX = np.array([1, 1, 1, 0, 0, 0])
-    ZZZ = np.array([0, 0, 0, 1, 1, 1])
-    assert bcommute(XXX, ZZZ) == 1
-    assert bcommute(III, XXX) == 0
-    assert bcommute(III, XXX) == 0
+class TestBcommute:
 
+    def test_bcommute_singles(self):
+        III = np.array([0, 0, 0, 0, 0, 0])
+        XXX = np.array([1, 1, 1, 0, 0, 0])
+        ZZZ = np.array([0, 0, 0, 1, 1, 1])
+        assert bcommute(XXX, ZZZ) == 1
+        assert bcommute(III, XXX) == 0
+        assert bcommute(III, XXX) == 0
 
-def test_bcommute_one_to_many():
-    XYZ = pauli_string_to_bvector('XYZ')
-    IXY = pauli_string_to_bvector('IXY')
-    ZZI = pauli_string_to_bvector('ZZI')
-    assert bcommute(XYZ, IXY) == 0
-    assert bcommute(IXY, ZZI) == 1
-    assert np.all(bcommute(XYZ, [IXY, ZZI]) == [[0, 0]])
-    assert np.all(bcommute([XYZ, IXY], [ZZI, IXY]) == [[0, 0], [1, 0]])
+    def test_bcommute_many_to_one(self):
+        stabilizers = np.array([
+            pauli_string_to_bvector('XXI'),
+            pauli_string_to_bvector('IXX'),
+        ])
+        error = pauli_string_to_bvector('IZI')
+        syndrome = bcommute(stabilizers, error)
+        assert syndrome.shape == (2,)
+        assert np.all(syndrome == [1, 1])
+
+        syndrome = bcommute(error, stabilizers)
+        assert syndrome.shape == (2,)
+        assert np.all(syndrome == [1, 1])
+
+    def test_bcommute_one_to_many(self):
+        XYZ = pauli_string_to_bvector('XYZ')
+        IXY = pauli_string_to_bvector('IXY')
+        ZZI = pauli_string_to_bvector('ZZI')
+        assert bcommute(XYZ, IXY) == 0
+        assert bcommute(IXY, ZZI) == 1
+        assert np.all(bcommute(XYZ, [IXY, ZZI]) == [[0, 0]])
+        assert np.all(bcommute([XYZ, IXY], [ZZI, IXY]) == [[0, 0], [1, 0]])
+
+    def test_raise_error_if_not_even_length(self):
+        with pytest.raises(ValueError):
+            bcommute([0, 0, 1, 0, 1], [0, 1, 0, 1, 0])
+
+        with pytest.raises(ValueError):
+            bcommute([0, 0, 0], [0, 1])
+
+        with pytest.raises(ValueError):
+            bcommute([0, 0, 0, 0], [0, 1, 0])
+
+    def test_raise_error_if_unequal_shapes(self):
+        with pytest.raises(ValueError):
+            bcommute([0, 0, 0, 1], [1, 0, 1, 1, 0, 1])
 
 
 def test_bvector_to_barray():
@@ -56,27 +92,23 @@ def test_bvector_to_barray():
 
 
 def test_get_effective_errror_single():
-    logicals = np.array([
-        pauli_string_to_bvector('XXXXX'),
-        pauli_string_to_bvector('ZZZZZ')
-    ])
+    X_logicals = pauli_string_to_bvector('XXXXX')
+    Z_logicals = pauli_string_to_bvector('ZZZZZ')
     total_error = pauli_string_to_bvector('YYYYY')
-    effective_error = get_effective_error(logicals, total_error)
+    effective_error = get_effective_error(total_error, X_logicals, Z_logicals)
     assert np.all(effective_error.shape == (2, ))
     assert bvector_to_pauli_string(effective_error) == 'Y'
 
 
-def test_get_effective_errror_many():
-    logicals = np.array([
-        pauli_string_to_bvector('XXXXX'),
-        pauli_string_to_bvector('ZZZZZ')
-    ])
+def test_get_effective_error_many():
+    X_logicals = pauli_string_to_bvector('XXXXX')
+    Z_logicals = pauli_string_to_bvector('ZZZZZ')
     total_error = np.array([
         pauli_string_to_bvector('YYYYY'),
         pauli_string_to_bvector('IIIII'),
         pauli_string_to_bvector('XXXZZ'),
     ])
-    effective_error = get_effective_error(logicals, total_error)
+    effective_error = get_effective_error(total_error, X_logicals, Z_logicals)
     assert np.all(effective_error.shape == (3, 2))
     assert np.all(effective_error == np.array([
         pauli_string_to_bvector('Y'),

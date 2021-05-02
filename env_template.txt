@@ -1,5 +1,8 @@
 # Copy this file and rename it to .env
 # Then change these variables to whatever you want.
 
-# The output directory for BN3D.
-export BN3D_DIR=/home/ehua7365/Documents/bn3d/results/
+# Use this to change the default output directory.
+# export BN3D_DIR=/path/to/directory/
+
+# Uncomment this to use dark theme for plotting.
+# export BN3D_DARK_THEME=True

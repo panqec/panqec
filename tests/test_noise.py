@@ -1,10 +1,74 @@
 import numpy as np
 import itertools
 import pytest
+from qecsim.paulitools import bsf_to_pauli, bsf_wt
 from bn3d.noise import (
     generate_pauli_noise, deform_operator, get_deformed_weights
 )
 from bn3d.bpauli import get_bvector_index
+from bn3d.noise import PauliErrorModel
+from bn3d.tc3d import ToricCode3D
+
+
+class TestPauliNoise:
+
+    @pytest.fixture(autouse=True)
+    def seed_random(self):
+        np.random.seed(0)
+
+    @pytest.fixture
+    def code(self):
+        return ToricCode3D(3, 4, 5)
+
+    @pytest.fixture
+    def error_model(self):
+        return PauliErrorModel(0.2, 0.3, 0.5)
+
+    def test_label(self, error_model):
+        assert error_model.label == 'Pauli X0.2Y0.3Z0.5'
+
+    def test_generate(self, code, error_model):
+        probability = 0.1
+        error = error_model.generate(code, probability, rng=np.random)
+        assert np.any(error != 0)
+        assert error.shape == (2*code.n_k_d[0], )
+
+    def test_probability_zero(self, code, error_model):
+        probability = 0
+        error = error_model.generate(code, probability, rng=np.random)
+        assert np.all(error == 0)
+
+    def test_probability_one(self, code, error_model):
+        probability = 1
+        error = error_model.generate(code, probability, rng=np.random)
+
+        # Error everywhere so weight is number of qubits.
+        assert bsf_wt(error) == code.n_k_d[0]
+
+    def test_generate_all_X_errors(self, code):
+        probability = 1
+        direction = (1, 0, 0)
+        error_model = PauliErrorModel(*direction)
+        error = error_model.generate(code, probability, rng=np.random)
+        assert bsf_to_pauli(error) == 'X'*code.n_k_d[0]
+
+    def test_generate_all_Y_errors(self, code):
+        probability = 1
+        direction = (0, 1, 0)
+        error_model = PauliErrorModel(*direction)
+        error = error_model.generate(code, probability, rng=np.random)
+        assert bsf_to_pauli(error) == 'Y'*code.n_k_d[0]
+
+    def test_generate_all_Z_errors(self, code):
+        probability = 1
+        direction = (0, 0, 1)
+        error_model = PauliErrorModel(*direction)
+        error = error_model.generate(code, probability, rng=np.random)
+        assert bsf_to_pauli(error) == 'Z'*code.n_k_d[0]
+
+    def test_raise_error_if_direction_does_not_sum_to_1(self):
+        with pytest.raises(ValueError):
+            PauliErrorModel(0, 0, 0)
 
 
 class TestGeneratePauliNoise:

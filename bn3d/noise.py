@@ -1,10 +1,42 @@
 """
-Noise models for 3D Toric Code.
+Noise models for 3D Toric Code including deformed noise.
+
+:Author:
+    Eric Huang
 """
 
+import functools
+from typing import Tuple
 import numpy as np
+from qecsim.models.generic import SimpleErrorModel
 from .bpauli import barray_to_bvector, bvector_to_barray, get_bvector_index
 from .utils import nested_map
+
+
+class PauliErrorModel(SimpleErrorModel):
+    """Pauli channel IID noise model."""
+
+    direction: Tuple[float, float, float]
+
+    def __init__(self, r_x, r_y, r_z):
+        if not np.isclose(r_x + r_y + r_z, 1):
+            raise ValueError(
+                f'Noise direction ({r_x}, {r_y}, {r_z}) does not sum to 1.0'
+            )
+        self.direction = r_x, r_y, r_z
+
+    @property
+    def label(self):
+        return 'Pauli X{}Y{}Z{}'.format(*self.direction)
+
+    @functools.lru_cache()
+    def probability_distribution(self, probability: float) -> Tuple:
+        r_x, r_y, r_z = self.direction
+        p_i = 1 - probability
+        p_x = r_x*probability
+        p_y = r_y*probability
+        p_z = r_z*probability
+        return p_i, p_x, p_y, p_z
 
 
 def generate_pauli_noise(

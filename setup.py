@@ -3,7 +3,9 @@ from setuptools import setup
 requirements = [
     'PyMatching',
     'tqdm',
-    'python-dotenv'
+    'python-dotenv',
+    'qecsim',
+    'pandas',
 ]
 
 setup(
@@ -14,5 +16,6 @@ setup(
     email='ehuang1@perimeterinstitute.ca',
     packages=['bn3d'],
     zip_safe=False,
-    requirements=requirements
+    requirements=requirements,
+    scripts=['bin/bn3d'],
 )

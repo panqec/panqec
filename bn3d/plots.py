@@ -1,3 +1,9 @@
+"""
+Routines for plotting thing .
+
+:Author:
+    Eric Huang
+"""
 import json
 import matplotlib.pyplot as plt
 

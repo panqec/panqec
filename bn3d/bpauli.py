@@ -1,5 +1,11 @@
 """
-Bit array or vector representations of Paulis.
+Bit array or vector representations of Paulis for 3Di codes.
+
+Although qecsim already has such an implementation, some of these extra
+routines are useful specifically for dealing with the 3D code.
+
+:Author:
+    Eric Huang
 """
 import numpy as np
 
@@ -42,6 +48,14 @@ def bcommute(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     a = np.array(a)
     b = np.array(b)
 
+    # Determine the output shape.
+    # In particular, flatten array where needed.
+    output_shape = None
+    if len(a.shape) == 2 and len(b.shape) == 1:
+        output_shape = a.shape[0]
+    elif len(a.shape) == 1 and len(b.shape) == 2:
+        output_shape = b.shape[0]
+
     # If only singles, then convert to 2D array.
     if len(a.shape) == 1:
         a = np.reshape(a, (1, a.shape[0]))
@@ -75,6 +89,10 @@ def bcommute(a: np.ndarray, b: np.ndarray) -> np.ndarray:
             b_X = b[i_b, :n]
             b_Z = b[i_b, n:]
             commutes[i_a, i_b] = np.sum(a_X*b_Z + a_Z*b_X) % 2
+
+    if output_shape is not None:
+        commutes = commutes.reshape(output_shape)
+
     return commutes
 
 
@@ -112,29 +130,33 @@ def bvector_to_pauli_string(bvector: np.ndarray) -> str:
 
 
 def get_effective_error(
-    logicals: np.ndarray,
-    total_error: np.ndarray
+    total_error: np.ndarray,
+    logical_xs: np.ndarray,
+    logical_zs: np.ndarray,
 ) -> np.ndarray:
     """Effective Pauli error on logical qubits after decoding."""
 
-    if len(logicals.shape) == 1:
-        raise ValueError('Must have at least two logicals.')
+    if logical_xs.shape != logical_zs.shape:
+        raise ValueError('Logical Xs and Zs must be of same shape.')
 
-    n_logical = int(len(logicals)/2)
-    n_physical = int(logicals.shape[1]/2)
-    assert n_physical > n_logical
+    if len(logical_xs.shape) == 1:
+        n_logical = 1
+    else:
+        n_logical = int(len(logical_xs))
 
+    # Get the number of total errors given.
     num_total_errors = 1
     if len(total_error.shape) > 1:
         num_total_errors = total_error.shape[0]
 
-    # First half are X logicals, second half are Z logicals.
-    X_logicals = np.array(logicals)[:n_logical]
-    Z_logicals = np.array(logicals)[n_logical:]
+    effective_Z = bcommute(logical_xs, total_error)
+    effective_X = bcommute(logical_zs, total_error)
+    if len(effective_Z.shape) == 1:
+        effective = np.array([effective_X, effective_Z]).T
+    else:
+        effective = np.concatenate([effective_X.T, effective_Z.T], axis=1)
 
-    effective_Z = bcommute(X_logicals, total_error)
-    effective_X = bcommute(Z_logicals, total_error)
-    effective = np.concatenate([effective_X.T, effective_Z.T], axis=1)
+    # Flatten the array if only one total error is given.
     if num_total_errors == 1:
         effective = effective.reshape(2*n_logical)
     return effective

@@ -1,5 +1,10 @@
 """
 Test PyMatching is working correctly for Toric Code as shown in their Tutorial.
+
+These tests are largely copied from the tutorial provided by Pymatching.
+
+:Author:
+    Eric Huang
 """
 
 import numpy as np

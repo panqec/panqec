@@ -1,0 +1,27 @@
+{
+  "comments": "Some comments about this run.",
+  "ranges": {
+    "label": "myrun",
+    "code": {
+      "model": "ToricCode3D",
+      "parameters": [
+        [3, 3, 3],
+        [4, 4, 4],
+        [5, 5, 5]
+      ]
+    },
+    "noise": {
+      "model": "PauliErrorModel",
+      "parameters": [
+        [1, 0, 0],
+        [0.5, 0, 0.5],
+        [0, 0, 1]
+      ]
+    },
+    "decoder": {
+      "model": "SweepMatchDecoder"
+    },
+    "probability": [0.1, 0.2, 0.3],
+    "trials": 10
+  }
+}

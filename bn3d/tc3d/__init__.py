@@ -1,5 +1,16 @@
+"""
+Toric code in 3D.
+
+:Author:
+    Eric Huang
+"""
 import numpy as np
-from .bpauli import barray_to_bvector, new_barray
+from ..bpauli import barray_to_bvector, new_barray
+from ._toric_code_3d import ToricCode3D  # noqa
+from ._toric_3d_pauli import Toric3DPauli  # noqa
+from ._pymatching_decoder import Toric3DPymatchingDecoder  # noqa
+from ._sweep_decoder_3d import SweepDecoder3D  # noqa
+from ._sweep_match_decoder import SweepMatchDecoder  # noqa
 
 
 def get_vertex_Z_stabilisers(L: int) -> np.ndarray:
