@@ -6,6 +6,8 @@ Many of these are copied from the internet.
 :Author:
     Eric Huang
 """
+import numpy as np
+import json
 from typing import Callable
 
 
@@ -34,3 +36,10 @@ def nested_map(function: Callable):
 
 def identity(x):
     return x
+
+
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
