@@ -27,7 +27,7 @@ class PauliErrorModel(SimpleErrorModel):
 
     @property
     def label(self):
-        return 'PauliX{}Y{}Z{}'.format(*self.direction)
+        return 'Pauli X{}Y{}Z{}'.format(*self.direction)
 
     @functools.lru_cache()
     def probability_distribution(self, probability: float) -> Tuple:
