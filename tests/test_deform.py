@@ -4,7 +4,8 @@ import numpy as np
 from bn3d.bpauli import bcommute
 from bn3d.tc3d import ToricCode3D, Toric3DPauli
 from bn3d.deform import (
-    DeformedPauliErrorModel, DeformedSweepMatchDecoder, DeformedSweepDecoder3D
+    DeformedPauliErrorModel, DeformedSweepMatchDecoder, DeformedSweepDecoder3D,
+    DeformedToric3DPymatchingDecoder
 )
 from bn3d.bpauli import bvector_to_pauli_string
 
@@ -142,6 +143,7 @@ class TestDeformedDecoder:
         syndrome = np.zeros(len(code.stabilizers), dtype=np.uint)
         correction = decoder.decode(code, syndrome)
         assert np.all(correction == 0)
+        assert issubclass(correction.dtype.type, np.integer)
 
     def test_decode_single_X_on_undeformed_axis(self, code):
         error_model = DeformedPauliErrorModel(0.1, 0.2, 0.7)
@@ -260,3 +262,30 @@ class TestDeformedSweepDecoder3D:
         probability = 0.5
         decoder = DeformedSweepDecoder3D(error_model, probability)
         assert decoder.get_most_likely_edge() == expected_edge
+
+    def test_decode_trivial(self, code):
+        error_model = DeformedPauliErrorModel(1/3, 1/3, 1/3)
+        probability = 0.5
+        decoder = DeformedSweepDecoder3D(error_model, probability)
+        n = code.n_k_d[0]
+        error = np.zeros(2*n, dtype=np.uint)
+        syndrome = bcommute(code.stabilizers, error)
+        correction = decoder.decode(code, syndrome)
+        total_error = (correction + error) % 2
+        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert issubclass(correction.dtype.type, np.integer)
+
+
+class TestDeformedToric3DPymatchingDecoder:
+
+    def test_decode_trivial(self, code):
+        error_model = DeformedPauliErrorModel(1/3, 1/3, 1/3)
+        probability = 0.5
+        decoder = DeformedToric3DPymatchingDecoder(error_model, probability)
+        n = code.n_k_d[0]
+        error = np.zeros(2*n, dtype=np.uint)
+        syndrome = bcommute(code.stabilizers, error)
+        correction = decoder.decode(code, syndrome)
+        total_error = (correction + error) % 2
+        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert issubclass(correction.dtype.type, np.integer)
