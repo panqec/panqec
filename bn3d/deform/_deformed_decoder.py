@@ -100,10 +100,8 @@ class DeformedSweepDecoder3D(SweepDecoder3D):
         p_X, p_Y, p_Z = (
             np.array(self._error_model.direction)*self._probability
         )
-        print(f'{p_X=} {p_Y=} {p_Z=}')
         p_regular = p_Y + p_Z
         p_deformed = p_Y + p_X
-        print(f'{p_regular=} {p_deformed=}')
 
         # Pick the y-axis, which is undeformed, if undeformed error more
         # likely.
@@ -128,7 +126,9 @@ class DeformedSweepMatchDecoder(Decoder):
     _matcher: DeformedToric3DPymatchingDecoder
 
     def __init__(self, error_model: ErrorModel, probability: float):
-        self._sweeper = SweepDecoder3D()
+        self._sweeper = DeformedSweepDecoder3D(
+            error_model, probability
+        )
         self._matcher = DeformedToric3DPymatchingDecoder(
             error_model, probability
         )
