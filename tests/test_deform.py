@@ -163,6 +163,43 @@ class TestDeformedDecoder:
         total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
+    @pytest.mark.parametrize(
+        'operator, location',
+        [
+            ['X', (0, 0, 0, 0)],
+            ['Y', (0, 1, 0, 0)],
+            ['Z', (0, 0, 1, 0)],
+            ['X', (1, 0, 0, 1)],
+            ['Y', (1, 0, 2, 0)],
+            ['Z', (1, 2, 0, 0)],
+            ['X', (2, 0, 0, 2)],
+            ['Y', (2, 1, 1, 0)],
+            ['Z', (2, 0, 2, 0)],
+        ]
+    )
+    def test_decode_single_qubit_error(
+        self, code, operator, location
+    ):
+        noise_direction = (0.1, 0.2, 0.7)
+        error_model = DeformedPauliErrorModel(*noise_direction)
+        probability = 0.1
+        decoder = DeformedSweepMatchDecoder(error_model, probability)
+
+        # Single-qubit X error on undeformed edge.
+        error_pauli = Toric3DPauli(code)
+        error_pauli.site('X', (code.Y_AXIS, 0, 0, 0))
+        error = error_pauli.to_bsf()
+        assert np.any(error != 0)
+
+        # Calculate the syndrome and make sure it's nontrivial.
+        syndrome = bcommute(code.stabilizers, error)
+        assert np.any(syndrome != 0)
+
+        # Total error should be in code space.
+        correction = decoder.decode(code, syndrome)
+        total_error = (error + correction) % 2
+        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+
     def test_deformed_pymatching_weights_nonuniform(self, code):
         error_model = DeformedPauliErrorModel(0.1, 0.2, 0.7)
         probability = 0.1
