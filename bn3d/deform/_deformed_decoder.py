@@ -140,4 +140,5 @@ class DeformedSweepMatchDecoder(Decoder):
         x_correction = self._matcher.decode(code, syndrome)
 
         correction = (z_correction + x_correction) % 2
+        correction = correction.astype(np.uint)
         return correction
