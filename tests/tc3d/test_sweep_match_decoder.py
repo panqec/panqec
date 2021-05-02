@@ -25,6 +25,7 @@ class TestSweepMatchDecoder:
         correction = decoder.decode(code, syndrome)
         assert correction.shape == 2*code.n_k_d[0]
         assert np.all(bcommute(code.stabilizers, correction) == 0)
+        assert issubclass(correction.dtype.type, np.integer)
 
     @pytest.mark.parametrize(
         'pauli, location',

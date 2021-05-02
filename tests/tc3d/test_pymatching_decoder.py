@@ -25,6 +25,7 @@ class TestToric3DPymatchingDecoder:
         correction = decoder.decode(code, syndrome)
         assert correction.shape == 2*code.n_k_d[0]
         assert np.all(bcommute(code.stabilizers, correction) == 0)
+        assert issubclass(correction.dtype.type, np.integer)
 
     def test_decode_X_error(self, decoder, code):
         error = Toric3DPauli(code)
