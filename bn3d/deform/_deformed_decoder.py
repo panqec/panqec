@@ -27,7 +27,6 @@ class DeformedToric3DPymatchingDecoder(Toric3DPymatchingDecoder):
         # Only keep the Z vertex stabilizers.
         H_z = code.stabilizers[n_faces:, n_qubits:]
         weights = self.get_deformed_weights(code)
-        print(f'{set(weights)=}')
         return Matching(H_z, spacelike_weights=weights)
 
     def get_deformed_weights(self, code: StabilizerCode) -> np.ndarray:
@@ -36,7 +35,6 @@ class DeformedToric3DPymatchingDecoder(Toric3DPymatchingDecoder):
         # Extract undeformed error probabilities.
         r_x, r_y, r_z = self._error_model.direction
         p_X, p_Y, p_Z = np.array([r_x, r_y, r_z])*self._probability
-        print(f'{r_x=} {r_y=} {r_z=} {self._probability=}')
 
         # Very small regularizer to deal with infinities.
         epsilon = self._epsilon
@@ -102,8 +100,10 @@ class DeformedSweepDecoder3D(SweepDecoder3D):
         p_X, p_Y, p_Z = (
             np.array(self._error_model.direction)*self._probability
         )
+        print(f'{p_X=} {p_Y=} {p_Z=}')
         p_regular = p_Y + p_Z
         p_deformed = p_Y + p_X
+        print(f'{p_regular=} {p_deformed=}')
 
         # Pick the y-axis, which is undeformed, if undeformed error more
         # likely.
