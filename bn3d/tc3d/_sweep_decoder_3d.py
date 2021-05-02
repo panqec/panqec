@@ -8,7 +8,7 @@ from ._toric_3d_pauli import Toric3DPauli
 
 class SweepDecoder3D(Decoder):
 
-    label = 'Toric 3D Sweep Decoder'
+    label: str = 'Toric 3D Sweep Decoder'
 
     def get_face_syndromes(
         self, code: ToricCode3D, full_syndrome: np.ndarray
@@ -24,6 +24,7 @@ class SweepDecoder3D(Decoder):
     def flip_edge(
         self, index: Tuple, signs: np.ndarray, correction: Toric3DPauli
     ):
+        """Flip signs at index and updating correction."""
         correction.site('Z', index)
         edge, L_x, L_y, L_z = index
 
@@ -55,7 +56,8 @@ class SweepDecoder3D(Decoder):
         signs[index_3] = 1 - signs[index_3]
         signs[index_4] = 1 - signs[index_4]
 
-    def get_default_direction(self, code):
+    def get_default_direction(self, code: ToricCode3D):
+        """The default direction when all faces are excited."""
         return code.X_AXIS
 
     def decode(self, code: ToricCode3D, syndrome: np.ndarray) -> np.ndarray:
