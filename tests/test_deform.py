@@ -133,14 +133,18 @@ class TestDeformOperator:
 class TestDeformedDecoder:
 
     def test_decode_trivial(self, code):
+        error_model = DeformedPauliErrorModel(0.1, 0.2, 0.7)
+        probability = 0.1
+        decoder = DeformedSweepMatchDecoder(error_model, probability)
+
         syndrome = np.zeros(len(code.stabilizers), dtype=np.uint)
-        decoder = DeformedSweepMatchDecoder()
         correction = decoder.decode(code, syndrome)
         assert np.all(correction == 0)
 
     def test_decode_single_X_on_undeformed_axis(self, code):
-
-        decoder = DeformedSweepMatchDecoder()
+        error_model = DeformedPauliErrorModel(0.1, 0.2, 0.7)
+        probability = 0.1
+        decoder = DeformedSweepMatchDecoder(error_model, probability)
 
         # Single-qubit X error on undeformed edge.
         error_pauli = Toric3DPauli(code)
@@ -156,3 +160,46 @@ class TestDeformedDecoder:
         correction = decoder.decode(code, syndrome)
         total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
+
+    def test_deformed_pymatching_weights_nonuniform(self, code):
+        error_model = DeformedPauliErrorModel(0.1, 0.2, 0.7)
+        probability = 0.1
+        decoder = DeformedSweepMatchDecoder(error_model, probability)
+        assert decoder._matcher._error_model.direction == (0.1, 0.2, 0.7)
+        matching = decoder._matcher.get_matcher(code)
+        assert matching.stabiliser_graph.distance(0, 0) == 0
+        distance_matrix = np.array(matching.stabiliser_graph.all_distances)
+        n_vertices = int(np.product(code.size))
+        assert distance_matrix.shape == (n_vertices, n_vertices)
+
+        # Distances from the origin vertex.
+        origin_distances = distance_matrix[0].reshape(code.size)
+        assert origin_distances[0, 0, 0] == 0
+
+        # Distances in the undeformed direction should be equal.
+        assert origin_distances[0, 1, 0] == origin_distances[0, 0, 1]
+
+        # Distances in the deformed direction should be different.
+        assert origin_distances[1, 0, 0] != origin_distances[0, 0, 1]
+
+    def test_equal_XZ_bias_deformed_pymatching_weights_uniform(self, code):
+        error_model = DeformedPauliErrorModel(0.4, 0.2, 0.4)
+        print(f'{error_model.direction=}')
+        probability = 0.1
+        decoder = DeformedSweepMatchDecoder(error_model, probability)
+        assert decoder._matcher._error_model.direction == (0.4, 0.2, 0.4)
+        matching = decoder._matcher.get_matcher(code)
+        assert matching.stabiliser_graph.distance(0, 0) == 0
+        distance_matrix = np.array(matching.stabiliser_graph.all_distances)
+        n_vertices = int(np.product(code.size))
+        assert distance_matrix.shape == (n_vertices, n_vertices)
+
+        # Distances from the origin vertex.
+        origin_distances = distance_matrix[0].reshape(code.size)
+        assert origin_distances[0, 0, 0] == 0
+
+        # Distances in the undeformed direction should be equal.
+        assert origin_distances[0, 1, 0] == origin_distances[0, 0, 1]
+
+        # Distances in the deformed direction should be different.
+        assert origin_distances[1, 0, 0] == origin_distances[0, 0, 1]
