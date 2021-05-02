@@ -18,10 +18,10 @@ class DeformableToric3DPauli(Toric3DPauli):
     }
 
     def __init__(self, code: StabilizerCode, bsf: Optional[np.ndarray] = None):
-
         super(DeformableToric3DPauli, self).__init__(code, bsf=bsf)
 
     def deform(self):
+        """Replace X with Z and Z with X on the qubits to be deformed."""
 
         # The axis edge to deform operators on.
         deform_axis = self.code.X_AXIS
