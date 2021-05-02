@@ -3,6 +3,7 @@ API for running simulations.
 """
 import os
 import json
+from json import JSONDecodeError
 import itertools
 from typing import List, Dict, Callable
 import datetime
@@ -28,16 +29,16 @@ def run_once(
         raise ValueError('Error probability must be in [0, 1].')
 
     if rng is None:
-        rng = np.random.default_rng()
+        rng = np.random
 
-    error = error_model.generate(code, probability=error_probability)
+    error = error_model.generate(code, probability=error_probability, rng=rng)
     syndrome = bcommute(code.stabilizers, error)
     correction = decoder.decode(code, syndrome)
     total_error = (correction + error) % 2
     effective_error = get_effective_error(
         total_error, code.logical_xs, code.logical_zs
     )
-    success = np.all(effective_error == 0)
+    success = bool(np.all(effective_error == 0))
 
     results = {
         'error': error,
@@ -59,7 +60,7 @@ class Simulation:
     decoder: Decoder
     error_probability: float
     label: str
-    _results: list = []
+    _results: dict = {}
     rng = None
 
     def __init__(
@@ -74,18 +75,32 @@ class Simulation:
         self.label = '_'.join([
             code.label, error_model.label, decoder.label, f'{probability}'
         ])
+        self._results = {
+            'effective_error': [],
+            'success': [],
+        }
 
     def run(self, repeats: int):
         """Run assuming perfect measurement."""
         self.start_time = datetime.datetime.now()
         for i_trial in range(repeats):
-            self._results.append(
-                run_once(
-                    self.code, self.error_model, self.decoder,
-                    error_probability=self.error_probability,
-                    rng=self.rng
-                )
+            shot = run_once(
+                self.code, self.error_model, self.decoder,
+                error_probability=self.error_probability,
+                rng=self.rng
             )
+            for key, value in shot.items():
+                if key in self._results.keys():
+                    self._results[key].append(value)
+
+    @property
+    def n_results(self):
+        return len(self._results['success'])
+
+    @property
+    def results(self):
+        res = self._results
+        return res
 
     @property
     def file_name(self) -> str:
@@ -97,12 +112,26 @@ class Simulation:
         return file_path
 
     def load_results(self, output_dir: str):
-        """Load results from directory."""
+        """Load previously written results from directory."""
         file_path = self.get_file_path(output_dir)
-        if os.path.exists(file_path):
-            with open(file_path) as f:
-                data = json.load(f)
-            self._results = data['results']
+        try:
+            if os.path.exists(file_path):
+                with open(file_path) as f:
+                    data = json.load(f)
+                for key in self._results.keys():
+                    if key in data['results'].keys():
+                        self._results[key] = data['results'][key]
+                        if (
+                            len(self.results[key]) > 0
+                            and isinstance(self._results[key][0], list)
+                        ):
+                            self._results[key] = [
+                                np.array(array_value)
+                                for array_value in self._results[key]
+                            ]
+                self._results = data['results']
+        except JSONDecodeError:
+            pass
 
     def save_results(self, output_dir: str):
         """Save results to directory."""
@@ -130,7 +159,7 @@ class BatchSimulation():
         label='unlabelled',
         on_update: Callable = identity,
         update_frequency: int = 10,
-        save_frequency: int = 10,
+        save_frequency: int = 100,
     ):
         self._simulations = []
         self.update_frequency = update_frequency
@@ -138,6 +167,9 @@ class BatchSimulation():
         self.label = label
         self._output_dir = os.path.join(BN3D_DIR, self.label)
         os.makedirs(self._output_dir, exist_ok=True)
+
+    def __getitem__(self, *args):
+        return self._simulations.__getitem__(*args)
 
     def append(self, simulation: Simulation):
         self._simulations.append(simulation)
@@ -150,32 +182,60 @@ class BatchSimulation():
         pass
 
     def run(self, n_trials, progress: Callable = identity):
+        try:
+            self._run(n_trials, progress=progress)
+        except KeyboardInterrupt:
+            print('Simulation paused')
+
+    def _run(self, n_trials, progress: Callable = identity):
         self.load_results()
         max_remaining_trials = max([
-            max(0, n_trials - len(simulation._results))
+            max(0, n_trials - simulation.n_results)
             for simulation in self._simulations
         ])
         for i_trial in progress(list(range(max_remaining_trials))):
             for simulation in self._simulations:
-                if len(simulation._results) < n_trials:
+                if simulation.n_results < n_trials:
                     simulation.run(1)
             if i_trial > 0:
-                if i_trial % self.update_frequency:
+                if i_trial % self.update_frequency == 0:
                     self.on_update()
-                if i_trial % self.save_frequency:
+                if i_trial % self.save_frequency == 0:
                     self.save_results()
             if i_trial == n_trials - 1:
                 self.on_update()
                 self.save_results()
 
-    def save_results(self):
+    def _save_results(self):
         for simulation in self._simulations:
             simulation.save_results(self._output_dir)
+
+    def save_results(self):
+        try:
+            self._save_results()
+
+        # Do not give up saving results during keyboard interrupt.
+        except KeyboardInterrupt:
+            print('Simulation paused. Saving results. Do not interrupt again')
+            self._save_results()
+            print('Results saved')
+            raise KeyboardInterrupt('Simulation paused')
 
     def get_results(self):
         results = []
         for simulation in self._simulations:
-            results.append(simulation.results)
+            success = np.array(simulation.results['success'])
+            simulation_data = {
+                'size': simulation.code.size,
+                'code': simulation.code.label,
+                'n_k_d': simulation.code.n_k_d,
+                'error_model': simulation.error_model.label,
+                'probability': simulation.error_probability,
+                'n_success': np.sum(success),
+                'n_fail': np.sum(~success),
+                'n_trials': len(success),
+            }
+            results.append(simulation_data)
         return results
 
 
@@ -281,14 +341,14 @@ def _create_decoder(
     return decoder
 
 
-def read_input_json(file_path: str) -> BatchSimulation:
+def read_input_json(file_path: str, *args, **kwargs) -> BatchSimulation:
     """Read json input file."""
     with open(file_path) as f:
         data = json.load(f)
-    return read_input_dict(data)
+    return read_input_dict(data, *args, **kwargs)
 
 
-def read_input_dict(data: dict) -> BatchSimulation:
+def read_input_dict(data: dict, *args, **kwargs) -> BatchSimulation:
     """Return BatchSimulation from input dict."""
     runs = []
     label = 'unlabelled'
@@ -299,7 +359,9 @@ def read_input_dict(data: dict) -> BatchSimulation:
         if 'label' in data['ranges']:
             label = data['ranges']['label']
 
-    batch_sim = BatchSimulation(label=label)
+    kwargs['label'] = label
+
+    batch_sim = BatchSimulation(*args, **kwargs)
     assert len(batch_sim._simulations) == 0
 
     for single_run in runs:

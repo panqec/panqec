@@ -15,7 +15,7 @@ DATA_DIR = os.path.join(BASE_DIR, 'data')
 @pytest.fixture
 def required_fields():
     return [
-        'error', 'syndrome', 'correction', 'effective_error', 'success'
+        'effective_error', 'success'
     ]
 
 
@@ -54,7 +54,11 @@ def test_run_once(required_fields):
     results = run_once(
         code, error_model, decoder, error_probability=probability
     )
-    assert set(results.keys()).issubset(required_fields)
+    assert set(required_fields).issubset(results.keys())
+    assert results['error'].shape == (2*code.n_k_d[0],)
+    assert results['syndrome'].shape == (code.stabilizers.shape[0],)
+    assert isinstance(results['success'], bool)
+    assert results['effective_error'].shape == (2*code.logical_xs.shape[0],)
 
 
 class TestSimulationFiveQubitCode():
@@ -76,11 +80,8 @@ class TestSimulationFiveQubitCode():
         probability = 0.5
         simulation = Simulation(code, error_model, decoder, probability)
         simulation.run(10)
-        assert len(simulation._results) == 10
-        assert all(
-            set(results.keys()).issubset(required_fields)
-            for results in simulation._results
-        )
+        assert len(simulation._results['success']) == 10
+        assert set(required_fields).issubset(simulation._results.keys())
 
 
 @pytest.fixture
