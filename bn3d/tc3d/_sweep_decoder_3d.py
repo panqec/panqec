@@ -9,7 +9,6 @@ from ._toric_3d_pauli import Toric3DPauli
 class SweepDecoder3D(Decoder):
 
     label = 'Toric 3D Sweep Decoder'
-    DEFAULT_EDGE = 0
 
     def get_face_syndromes(
         self, code: ToricCode3D, full_syndrome: np.ndarray
@@ -56,8 +55,13 @@ class SweepDecoder3D(Decoder):
         signs[index_3] = 1 - signs[index_3]
         signs[index_4] = 1 - signs[index_4]
 
+    def get_default_direction(self, code):
+        return code.X_AXIS
+
     def decode(self, code: ToricCode3D, syndrome: np.ndarray) -> np.ndarray:
         """Get Z corrections given measured syndrome."""
+        default_direction = self.get_default_direction(code)
+
         signs = np.reshape(
             self.get_face_syndromes(code, syndrome),
             newshape=code.shape
@@ -76,7 +80,7 @@ class SweepDecoder3D(Decoder):
 
                 if x_face and y_face and z_face:
                     self.flip_edge(
-                        (self.DEFAULT_EDGE, L_x, L_y, L_z), signs, correction
+                        (default_direction, L_x, L_y, L_z), signs, correction
                     )
                 elif y_face and z_face:
                     self.flip_edge((0, L_x, L_y, L_z), signs, correction)
