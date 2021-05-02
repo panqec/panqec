@@ -3,7 +3,9 @@ import pytest
 import numpy as np
 from bn3d.bpauli import bcommute
 from bn3d.tc3d import ToricCode3D, Toric3DPauli
-from bn3d.deform import DeformedPauliErrorModel, DeformedSweepMatchDecoder
+from bn3d.deform import (
+    DeformedPauliErrorModel, DeformedSweepMatchDecoder, DeformedSweepDecoder3D
+)
 from bn3d.bpauli import bvector_to_pauli_string
 
 
@@ -203,3 +205,12 @@ class TestDeformedDecoder:
 
         # Distances in the deformed direction should be different.
         assert origin_distances[1, 0, 0] == origin_distances[0, 0, 1]
+
+
+class TestDeformedSweepDecoder3D:
+
+    def test_most_likely_edge(self, code):
+        error_model = DeformedPauliErrorModel(0.9, 0, 0.1)
+        probability = 0.5
+        decoder = DeformedSweepDecoder3D(error_model, probability)
+        assert decoder.get_most_likely_edge() == 0
