@@ -6,6 +6,7 @@ from ._deformable_toric_3d_pauli import DeformableToric3DPauli
 
 
 class DeformedPauliErrorModel(ErrorModel):
+    """Pauli error model with qubits deformed."""
 
     _undeformed_model: PauliErrorModel
 
@@ -32,4 +33,5 @@ class DeformedPauliErrorModel(ErrorModel):
 
     @property
     def direction(self):
+        """Undeformed noise direction (r_X, r_Y, r_Z) for qubits."""
         return self._undeformed_model.direction
