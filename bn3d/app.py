@@ -78,7 +78,12 @@ class Simulation:
         self._results = {
             'effective_error': [],
             'success': [],
+            'wall_time': 0,
         }
+
+    @property
+    def wall_time(self):
+        return self._results['wall_time']
 
     def run(self, repeats: int):
         """Run assuming perfect measurement."""
@@ -92,6 +97,8 @@ class Simulation:
             for key, value in shot.items():
                 if key in self._results.keys():
                     self._results[key].append(value)
+        finish_time = datetime.datetime.now() - self.start_time
+        self._results['wall_time'] += finish_time.total_seconds()
 
     @property
     def n_results(self):
@@ -122,7 +129,8 @@ class Simulation:
                     if key in data['results'].keys():
                         self._results[key] = data['results'][key]
                         if (
-                            len(self.results[key]) > 0
+                            isinstance(self.results[key], list)
+                            and len(self.results[key]) > 0
                             and isinstance(self._results[key][0], list)
                         ):
                             self._results[key] = [
@@ -139,7 +147,9 @@ class Simulation:
             json.dump({
                 'results': self._results,
                 'inputs': {
+                    'size': self.code.size,
                     'code': self.code.label,
+                    'n_k_d': self.code.n_k_d,
                     'error_model': self.error_model.label,
                     'decoder': self.decoder.label,
                     'error_probability': self.error_probability,
@@ -181,6 +191,18 @@ class BatchSimulation():
     def on_update(self):
         pass
 
+    def estimate_remaining_time(self, n_trials: int):
+        """Estimate remaining time given target n_trials."""
+        return sum(
+            (n_trials - sim.n_results)*sim.wall_time/sim.n_results
+            for sim in self._simulations
+            if sim.n_results != 0
+        )
+
+    @property
+    def wall_time(self):
+        return sum(sim.wall_time for sim in self._simulations)
+
     def run(self, n_trials, progress: Callable = identity):
         try:
             self._run(n_trials, progress=progress)
@@ -189,10 +211,15 @@ class BatchSimulation():
 
     def _run(self, n_trials, progress: Callable = identity):
         self.load_results()
+
+        # Use the maximum remaining trials to overestimate how much is
+        # remaniing for purposes of reporting progress to give a conservative
+        # estimate of what is left without disappointing the user.
         max_remaining_trials = max([
             max(0, n_trials - simulation.n_results)
             for simulation in self._simulations
         ])
+
         for i_trial in progress(list(range(max_remaining_trials))):
             for simulation in self._simulations:
                 if simulation.n_results < n_trials:
@@ -202,7 +229,7 @@ class BatchSimulation():
                     self.on_update()
                 if i_trial % self.save_frequency == 0:
                     self.save_results()
-            if i_trial == n_trials - 1:
+            if i_trial == max_remaining_trials - 1:
                 self.on_update()
                 self.save_results()
 
@@ -235,6 +262,19 @@ class BatchSimulation():
                 'n_fail': np.sum(~success),
                 'n_trials': len(success),
             }
+
+            # Use sample mean as estimator for effective error rate.
+            simulation_data['p_est'] = (
+                simulation_data['n_fail']/simulation_data['n_trials']
+            )
+
+            # Use posterior Beta distribution of the effective error rate
+            # standard distribution as standard error.
+            simulation_data['p_se'] = np.sqrt(
+                simulation_data['p_est']*(1 - simulation_data['p_est'])
+                / (simulation_data['n_trials'] + 1)
+            )
+
             results.append(simulation_data)
         return results
 
