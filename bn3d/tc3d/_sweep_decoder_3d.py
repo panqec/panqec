@@ -71,8 +71,16 @@ class SweepDecoder3D(Decoder):
         correction = Toric3DPauli(code)
         ranges = [range(length) for length in signs.shape[1:]]
 
-        while np.any(signs):
+        # Keep track of the signs on the previous step.
+        previous_signs = np.zeros_like(signs)
 
+        # Keep sweeping until there are no changes.
+        while np.any(previous_signs != signs):
+
+            # Record the current state.
+            previous_signs = signs.copy()
+
+            # Sweep through every edge.
             for L_x, L_y, L_z in itertools.product(*ranges):
 
                 # Get the syndromes on each face in sweep direction.
