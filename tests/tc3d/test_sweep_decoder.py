@@ -91,3 +91,12 @@ class TestSweepDecoder3D:
             correction = decoder.decode(code, syndrome)
             total_error = (error.to_bsf() + correction) % 2
             assert np.all(bcommute(code.stabilizers, total_error) == 0)
+
+    def test_decode_where_final_signs_are_non_trivial(self):
+        code = ToricCode3D(3, 3, 3)
+        decoder = SweepDecoder3D()
+        syndrome = np.zeros(code.stabilizers.shape[0], dtype=np.uint)
+        detections = [1, 5, 10, 14, 19, 23]
+        for index in detections:
+            syndrome[index] = 1
+        decoder.decode(code, syndrome)
