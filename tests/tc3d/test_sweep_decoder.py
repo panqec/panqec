@@ -105,28 +105,32 @@ class TestSweepDecoder3D:
         total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
-    @pytest.mark.skip
-    def test_decode_where_final_signs_are_non_trivial(self):
+    def test_decode_with_general_Z_noise(self):
         code = ToricCode3D(3, 3, 3)
         decoder = SweepDecoder3D()
         np.random.seed(0)
         error_model = PauliErrorModel(0, 0, 1)
 
         in_codespace = []
-        for i in range(10):
-            error = error_model.generate(code, probability=0.1, rng=np.random)
+        for i in range(100):
+            error = error_model.generate(code, probability=0.01, rng=np.random)
             syndrome = bcommute(code.stabilizers, error)
             correction = decoder.decode(code, syndrome)
             total_error = (error + correction) % 2
             in_codespace.append(
                 np.all(bcommute(code.stabilizers, total_error) == 0)
             )
-        print(sum(in_codespace))
         assert all(in_codespace)
 
     def test_sweep_move_two_edges(self):
         code = ToricCode3D(3, 3, 3)
         decoder = SweepDecoder3D()
+
+        error = Toric3DPauli(code)
+        error.site('Z', (0, 1, 1, 1))
+        error.site('Z', (1, 1, 1, 1))
+
+        syndrome = bcommute(code.stabilizers, error.to_bsf())
 
         correction = Toric3DPauli(code)
 
@@ -139,6 +143,9 @@ class TestSweepDecoder3D:
         signs[2, 1, 0, 1] = 1
         signs[2, 0, 1, 1] = 1
 
+        n_faces = code.n_k_d[0]
+        assert np.all(syndrome[:n_faces].reshape(signs.shape) == signs)
+
         # Expected signs after one sweep.
         expected_signs_1 = np.zeros((3, 3, 3, 3), dtype=np.uint)
         expected_signs_1[2, 1, 0, 1] = 1
@@ -147,7 +154,6 @@ class TestSweepDecoder3D:
         expected_signs_1[0, 1, 0, 0] = 1
         expected_signs_1[1, 0, 1, 1] = 1
         expected_signs_1[1, 0, 1, 0] = 1
-
         signs_1 = decoder.sweep_move(signs, correction, default_direction=0)
         assert np.all(expected_signs_1 == signs_1)
 
@@ -156,7 +162,10 @@ class TestSweepDecoder3D:
         assert np.all(signs_2 == 0)
 
         expected_correction = Toric3DPauli(code)
-        expected_correction.vertex('Z', (1, 1, 1))
+        expected_correction.site('Z', (2, 1, 1, 1))
+        expected_correction.site('Z', (0, 0, 1, 1))
+        expected_correction.site('Z', (1, 1, 0, 1))
+        expected_correction.site('Z', (2, 1, 1, 0))
 
         # Only need to compare the Z block because sweep only corrects Z block
         # anyway.

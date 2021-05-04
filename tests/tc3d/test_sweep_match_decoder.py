@@ -76,7 +76,6 @@ class TestSweepMatchDecoder:
         total_error = (error.to_bsf() + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
-    @pytest.mark.skip
     def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
 
         codes = [
