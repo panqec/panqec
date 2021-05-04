@@ -24,7 +24,7 @@ class SweepDecoder3D(Decoder):
     def flip_edge(
         self, index: Tuple, signs: np.ndarray, correction: Toric3DPauli
     ):
-        """Flip signs at index and updating correction."""
+        """Flip signs at index and update correction."""
         correction.site('Z', index)
         edge, L_x, L_y, L_z = index
 
@@ -32,6 +32,7 @@ class SweepDecoder3D(Decoder):
         ortho_edge_1 = (edge + 1) % 3
         ortho_edge_2 = (edge + 2) % 3
 
+        # Get the indices of the 4 faces surrounding an edge.
         # The faces in each orthogonal direction.
         face_1 = (ortho_edge_1, L_x, L_y, L_z)
         face_2 = (ortho_edge_2, L_x, L_y, L_z)
@@ -63,40 +64,62 @@ class SweepDecoder3D(Decoder):
     def decode(self, code: ToricCode3D, syndrome: np.ndarray) -> np.ndarray:
         """Get Z corrections given measured syndrome."""
         default_direction = self.get_default_direction(code)
+        max_sweep = 10*code.n_k_d[0]
 
         signs = np.reshape(
             self.get_face_syndromes(code, syndrome),
             newshape=code.shape
         )
         correction = Toric3DPauli(code)
-        ranges = [range(length) for length in signs.shape[1:]]
 
         # Keep track of the signs on the previous step.
         previous_signs = np.zeros_like(signs)
 
         # Keep sweeping until there are no changes.
-        while np.any(previous_signs != signs):
+        i_sweep = 0
+        # while np.any(previous_signs != signs):
+        while np.any(signs):
 
             # Record the current state.
             previous_signs = signs.copy()
-
-            # Sweep through every edge.
-            for L_x, L_y, L_z in itertools.product(*ranges):
-
-                # Get the syndromes on each face in sweep direction.
-                x_face = signs[0, L_x, L_y, L_z]
-                y_face = signs[1, L_x, L_y, L_z]
-                z_face = signs[2, L_x, L_y, L_z]
-
-                if x_face and y_face and z_face:
-                    self.flip_edge(
-                        (default_direction, L_x, L_y, L_z), signs, correction
-                    )
-                elif y_face and z_face:
-                    self.flip_edge((0, L_x, L_y, L_z), signs, correction)
-                elif x_face and z_face:
-                    self.flip_edge((1, L_x, L_y, L_z), signs, correction)
-                elif x_face and y_face:
-                    self.flip_edge((2, L_x, L_y, L_z), signs, correction)
+            if i_sweep > 0:
+                if np.any(syndrome):
+                    print(np.where(syndrome))
+                break
+            i_sweep += 1
+            signs = self.sweep_move(signs, correction, default_direction)
 
         return correction.to_bsf()
+
+    def sweep_move(
+        self, signs: np.ndarray, correction: Toric3DPauli,
+        default_direction: int = 0
+    ) -> np.ndarray:
+        """Apply the sweep move once."""
+
+        new_signs = signs.copy()
+
+        ranges = [range(length) for length in signs.shape[1:]]
+        flip_locations = []
+
+        # Sweep through every edge.
+        for L_x, L_y, L_z in itertools.product(*ranges):
+
+            # Get the syndromes on each face in sweep direction.
+            x_face = signs[0, L_x, L_y, L_z]
+            y_face = signs[1, L_x, L_y, L_z]
+            z_face = signs[2, L_x, L_y, L_z]
+
+            if x_face and y_face and z_face:
+                flip_locations.append((default_direction, L_x, L_y, L_z))
+            elif y_face and z_face:
+                flip_locations.append((0, L_x, L_y, L_z))
+            elif x_face and z_face:
+                flip_locations.append((1, L_x, L_y, L_z))
+            elif x_face and y_face:
+                flip_locations.append((2, L_x, L_y, L_z))
+
+        for location in flip_locations:
+            self.flip_edge(location, new_signs, correction)
+
+        return new_signs

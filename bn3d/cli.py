@@ -1,7 +1,7 @@
 from typing import Optional
 import click
 import bn3d
-from .config import codes, error_models, decoders
+from .config import CODES, ERROR_MODELS, DECODERS
 
 
 @click.group()
@@ -46,17 +46,17 @@ def ls(model_type=None):
     if model_type is None or model_type == 'codes':
         print('Codes:')
         print('\n'.join([
-            '    ' + name for name in sorted(codes.keys())
+            '    ' + name for name in sorted(CODES.keys())
         ]))
     if model_type is None or model_type == 'noise':
         print('Error Models (Noise):')
         print('\n'.join([
-            '    ' + name for name in sorted(error_models.keys())
+            '    ' + name for name in sorted(ERROR_MODELS.keys())
         ]))
     if model_type is None or model_type == 'decoders':
         print('Decoders:')
         print('\n'.join([
-            '    ' + name for name in sorted(decoders.keys())
+            '    ' + name for name in sorted(DECODERS.keys())
         ]))
 
 

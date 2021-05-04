@@ -2,16 +2,17 @@
 API for running simulations.
 """
 import os
+import inspect
 import json
 from json import JSONDecodeError
 import itertools
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, Union, Any
 import datetime
 import numpy as np
 from qecsim.model import StabilizerCode, ErrorModel, Decoder
 from .bpauli import bcommute, get_effective_error
 from .config import (
-    codes, error_models, decoders, noise_dependent_decoders, BN3D_DIR
+    CODES, ERROR_MODELS, DECODERS, BN3D_DIR
 )
 from .utils import identity, NumpyEncoder
 
@@ -284,6 +285,8 @@ def _parse_parameters_range(parameters):
     if len(parameters) > 0:
         if isinstance(parameters, list):
             parameters_range = parameters
+        elif isinstance(parameters, dict):
+            parameters_range = [parameters]
         else:
             parameters_range = [parameters]
     return parameters_range
@@ -291,15 +294,15 @@ def _parse_parameters_range(parameters):
 
 def expand_inputs_ranges(data: dict) -> List[Dict]:
     runs: List[Dict] = []
-    code_range: List[List] = [[]]
+    code_range: List[Dict] = [{}]
     if 'parameters' in data['code']:
         code_range = _parse_parameters_range(data['code']['parameters'])
 
-    noise_range: List[List] = [[]]
+    noise_range: List[Dict] = [{}]
     if 'parameters' in data['noise']:
         noise_range = _parse_parameters_range(data['noise']['parameters'])
 
-    decoder_range: List[List] = [[]]
+    decoder_range: List[Dict] = [{}]
     if 'parameters' in data['decoder']:
         decoder_range = _parse_parameters_range(
             data['decoder']['parameters']
@@ -329,56 +332,64 @@ def expand_inputs_ranges(data: dict) -> List[Dict]:
     return runs
 
 
-def parse_run(run: dict) -> Simulation:
+def _parse_code_dict(code_dict: Dict[str, Any]) -> StabilizerCode:
+    code_name = code_dict['model']
+    code_params: Union[list, dict] = []
+    if 'parameters' in code_dict:
+        code_params = code_dict['parameters']
+    code_class = CODES[code_name]
+    if isinstance(code_params, dict):
+        code = code_class(**code_params)
+    else:
+        code = code_class(*code_params)
+    return code
+
+
+def _parse_error_model_dict(noise_dict: Dict[str, Any]) -> ErrorModel:
+    error_model_name = noise_dict['model']
+    error_model_params: Union[list, dict] = []
+    if 'parameters' in noise_dict:
+        error_model_params = noise_dict['parameters']
+    error_model_class = ERROR_MODELS[error_model_name]
+    if isinstance(error_model_params, dict):
+        error_model = error_model_class(**error_model_params)
+    else:
+        error_model = error_model_class(*error_model_params)
+    return error_model
+
+
+def _parse_decoder_dict(
+    decoder_dict: Dict[str, Any],
+    error_model: ErrorModel,
+    probability: float
+) -> Decoder:
+    decoder_name = decoder_dict['model']
+    decoder_class = DECODERS[decoder_name]
+    decoder_params: dict = {}
+    if 'parameters' in decoder_dict:
+        decoder_params = decoder_dict['parameters']
+    else:
+        decoder_params = {}
+
+    signature = inspect.signature(decoder_class)
+
+    if 'error_model' in signature.parameters.keys():
+        decoder_params['error_model'] = error_model
+    if 'probability' in signature.parameters.keys():
+        decoder_params['probability'] = probability
+    decoder = decoder_class(**decoder_params)
+    return decoder
+
+
+def parse_run(run: Dict[str, Any]) -> Simulation:
     """Parse a single dict describing the run."""
-    code_name = run['code']['model']
-    if 'parameters' in run['code']:
-        code_params = run['code']['parameters']
-    else:
-        code_params = []
-    code_class = codes[code_name]
-    code = code_class(*code_params)
-
-    error_model_name = run['noise']['model']
-    if 'parameters' in run['noise']:
-        error_model_params = run['noise']['parameters']
-    else:
-        error_model_params = []
-    error_model_class = error_models[error_model_name]
-    error_model = error_model_class(*error_model_params)
-
+    code = _parse_code_dict(run['code'])
+    error_model = _parse_error_model_dict(run['noise'])
     probability = run['probability']
+    decoder = _parse_decoder_dict(run['decoder'], error_model, probability)
 
-    decoder_name = run['decoder']['model']
-    if 'parameters' in run['decoder']:
-        decoder_params = run['decoder']['parameters']
-    else:
-        decoder_params = []
-    decoder = _create_decoder(
-        decoder_name, decoder_params, error_model, probability
-    )
     simulation = Simulation(code, error_model, decoder, probability)
     return simulation
-
-
-def _create_decoder(
-    decoder_name: str,
-    decoder_params: list = [],
-    error_model: ErrorModel = None,
-    probability: float = None
-) -> Decoder:
-    """Create decoder maybe depending on noise model and rate.
-
-    Because some decoders can be optimized for a given noise model
-    and error rate.
-    """
-    decoder_class = decoders[decoder_name]
-
-    # TODO deal with decoders that depend on noise
-    if decoder_name in noise_dependent_decoders:
-        pass
-    decoder = decoder_class(*decoder_params)
-    return decoder
 
 
 def read_input_json(file_path: str, *args, **kwargs) -> BatchSimulation:
