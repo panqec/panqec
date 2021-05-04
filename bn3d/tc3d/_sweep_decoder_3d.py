@@ -22,10 +22,9 @@ class SweepDecoder3D(Decoder):
         return face_syndromes
 
     def flip_edge(
-        self, index: Tuple, signs: np.ndarray, correction: Toric3DPauli
+        self, index: Tuple, signs: np.ndarray
     ):
         """Flip signs at index and update correction."""
-        correction.site('Z', index)
         edge, L_x, L_y, L_z = index
 
         # The two orthogonal edge directions.
@@ -64,7 +63,6 @@ class SweepDecoder3D(Decoder):
     def decode(self, code: ToricCode3D, syndrome: np.ndarray) -> np.ndarray:
         """Get Z corrections given measured syndrome."""
         default_direction = self.get_default_direction(code)
-        max_sweep = 10*code.n_k_d[0]
 
         signs = np.reshape(
             self.get_face_syndromes(code, syndrome),
@@ -72,21 +70,9 @@ class SweepDecoder3D(Decoder):
         )
         correction = Toric3DPauli(code)
 
-        # Keep track of the signs on the previous step.
-        previous_signs = np.zeros_like(signs)
-
         # Keep sweeping until there are no changes.
-        i_sweep = 0
-        # while np.any(previous_signs != signs):
         while np.any(signs):
 
-            # Record the current state.
-            previous_signs = signs.copy()
-            if i_sweep > 0:
-                if np.any(syndrome):
-                    print(np.where(syndrome))
-                break
-            i_sweep += 1
             signs = self.sweep_move(signs, correction, default_direction)
 
         return correction.to_bsf()
@@ -120,6 +106,7 @@ class SweepDecoder3D(Decoder):
                 flip_locations.append((2, L_x, L_y, L_z))
 
         for location in flip_locations:
-            self.flip_edge(location, new_signs, correction)
+            self.flip_edge(location, new_signs)
+            correction.site('Z', location)
 
         return new_signs
