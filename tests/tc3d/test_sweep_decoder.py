@@ -4,6 +4,7 @@ import numpy as np
 from qecsim.paulitools import bsf_wt
 from bn3d.tc3d import ToricCode3D, SweepDecoder3D, Toric3DPauli
 from bn3d.bpauli import bcommute
+from bn3d.noise import PauliErrorModel
 
 
 class TestSweepDecoder3D:
@@ -92,11 +93,79 @@ class TestSweepDecoder3D:
             total_error = (error.to_bsf() + correction) % 2
             assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
+    def test_decode_error_on_two_edges_sharing_same_vertex(self):
+        code = ToricCode3D(3, 3, 3)
+        decoder = SweepDecoder3D()
+        error_pauli = Toric3DPauli(code)
+        error_pauli.site('Z', (0, 1, 1, 1))
+        error_pauli.site('Z', (1, 1, 1, 1))
+        error = error_pauli.to_bsf()
+        syndrome = bcommute(code.stabilizers, error)
+        correction = decoder.decode(code, syndrome)
+        total_error = (error + correction) % 2
+        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+
+    @pytest.mark.skip
     def test_decode_where_final_signs_are_non_trivial(self):
         code = ToricCode3D(3, 3, 3)
         decoder = SweepDecoder3D()
-        syndrome = np.zeros(code.stabilizers.shape[0], dtype=np.uint)
-        detections = [1, 5, 10, 14, 19, 23]
-        for index in detections:
-            syndrome[index] = 1
-        decoder.decode(code, syndrome)
+        np.random.seed(0)
+        error_model = PauliErrorModel(0, 0, 1)
+
+        in_codespace = []
+        for i in range(10):
+            error = error_model.generate(code, probability=0.1, rng=np.random)
+            syndrome = bcommute(code.stabilizers, error)
+            correction = decoder.decode(code, syndrome)
+            total_error = (error + correction) % 2
+            in_codespace.append(
+                np.all(bcommute(code.stabilizers, total_error) == 0)
+            )
+        print(sum(in_codespace))
+        assert all(in_codespace)
+
+    def test_sweep_move_two_edges(self):
+        code = ToricCode3D(3, 3, 3)
+        decoder = SweepDecoder3D()
+
+        correction = Toric3DPauli(code)
+
+        # Syndrome from errors on x edge and y edge on vertex (0, 0, 0).
+        signs = np.zeros((3, 3, 3, 3), dtype=np.uint)
+        signs[1, 1, 1, 1] = 1
+        signs[1, 1, 1, 0] = 1
+        signs[0, 1, 1, 1] = 1
+        signs[0, 1, 1, 0] = 1
+        signs[2, 1, 0, 1] = 1
+        signs[2, 0, 1, 1] = 1
+
+        # Expected signs after one sweep.
+        expected_signs_1 = np.zeros((3, 3, 3, 3), dtype=np.uint)
+        expected_signs_1[2, 1, 0, 1] = 1
+        expected_signs_1[2, 0, 1, 1] = 1
+        expected_signs_1[0, 1, 0, 1] = 1
+        expected_signs_1[0, 1, 0, 0] = 1
+        expected_signs_1[1, 0, 1, 1] = 1
+        expected_signs_1[1, 0, 1, 0] = 1
+
+        signs_1 = decoder.sweep_move(signs, correction, default_direction=0)
+        assert np.all(expected_signs_1 == signs_1)
+
+        # Expected signs after two sweeps, should be all gone.
+        signs_2 = decoder.sweep_move(signs_1, correction, default_direction=0)
+        assert np.all(signs_2 == 0)
+
+        expected_correction = Toric3DPauli(code)
+        expected_correction.vertex('Z', (1, 1, 1))
+
+        # Only need to compare the Z block because sweep only corrects Z block
+        # anyway.
+        correction_edges = set(
+            map(tuple, np.array(np.where(correction._zs)).T)
+        )
+        expected_correction_edges = set(
+            map(tuple, np.array(np.where(expected_correction._zs)).T)
+        )
+
+        assert correction_edges == expected_correction_edges
+        assert np.all(correction._zs == expected_correction._zs)
