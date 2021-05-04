@@ -70,10 +70,18 @@ class SweepDecoder3D(Decoder):
         )
         correction = Toric3DPauli(code)
 
-        # Keep sweeping until there are no changes.
+        signs_0 = signs.copy()
+        i = 0
+        # Keep sweeping until there are no syndromes.
         while np.any(signs):
+            i += 1
 
+            if i > 1000:
+                raise Exception()
+            signs_0 = signs.copy()
             signs = self.sweep_move(signs, correction, default_direction)
+            if np.all(signs_0 == signs):
+                import pdb; pdb.set_trace()
 
         return correction.to_bsf()
 

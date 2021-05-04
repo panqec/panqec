@@ -105,6 +105,7 @@ class TestSweepDecoder3D:
         total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
+    @pytest.mark.skip
     def test_decode_with_general_Z_noise(self):
         code = ToricCode3D(3, 3, 3)
         decoder = SweepDecoder3D()
@@ -112,15 +113,61 @@ class TestSweepDecoder3D:
         error_model = PauliErrorModel(0, 0, 1)
 
         in_codespace = []
-        for i in range(100):
-            error = error_model.generate(code, probability=0.01, rng=np.random)
-            syndrome = bcommute(code.stabilizers, error)
-            correction = decoder.decode(code, syndrome)
-            total_error = (error + correction) % 2
-            in_codespace.append(
-                np.all(bcommute(code.stabilizers, total_error) == 0)
-            )
+        try:
+            for i in range(100):
+                error = error_model.generate(
+                    code, probability=0.1, rng=np.random
+                )
+                syndrome = bcommute(code.stabilizers, error)
+                correction = decoder.decode(code, syndrome)
+                total_error = (error + correction) % 2
+                in_codespace.append(
+                    np.all(bcommute(code.stabilizers, total_error) == 0)
+                )
+        except Exception:
+            raise Exception()
         assert all(in_codespace)
+
+    def test_never_ending_example(self):
+        code = ToricCode3D(3, 3, 3)
+        decoder = SweepDecoder3D()
+
+        # Weight-8 Z error that may start infinite loop in sweep decoder.
+        error_pauli = Toric3DPauli(code)
+        sites = [
+            (0, 0, 2, 2), (0, 1, 1, 1), (0, 2, 0, 2), (1, 0, 0, 0),
+            (1, 1, 0, 2), (1, 2, 2, 1), (2, 1, 2, 1), (2, 2, 0, 0)
+        ]
+        for site in sites:
+            error_pauli.site('Z', site)
+        error = error_pauli.to_bsf()
+        assert error.sum() == 8
+
+        # Compute the syndrome and make sure it's nontrivial.
+        syndrome = bcommute(code.stabilizers, error)
+        assert np.any(syndrome)
+
+        # Check face X stabilizer syndrome measurements.
+        expected_syndrome_faces = [
+            (0, 0, 0, 0), (0, 0, 0, 2), (0, 1, 0, 1), (0, 1, 0, 2),
+            (0, 1, 1, 1), (0, 1, 2, 1), (0, 2, 0, 0), (0, 2, 2, 1),
+            (1, 0, 2, 2), (1, 1, 0, 0), (1, 1, 1, 0), (1, 1, 1, 1),
+            (1, 1, 2, 1), (1, 2, 0, 0), (1, 2, 0, 1), (1, 2, 0, 2),
+            (2, 0, 0, 0), (2, 0, 0, 2), (2, 0, 1, 2), (2, 0, 2, 2),
+            (2, 1, 0, 1), (2, 1, 0, 2), (2, 1, 1, 1), (2, 1, 2, 1),
+            (2, 2, 0, 0), (2, 2, 0, 2), (2, 2, 2, 1), (2, 2, 2, 2)
+        ]
+        assert np.all(
+            np.array(expected_syndrome_faces).T
+            == np.where(syndrome[:code.n_k_d[0]].reshape(3, 3, 3, 3))
+        )
+
+        # This is the part where it might hang.
+        correction = decoder.decode(code, syndrome)
+        total_error = (error + correction) % 2
+
+        # Check that we're back in the code space.
+        assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
     def test_sweep_move_two_edges(self):
         code = ToricCode3D(3, 3, 3)
@@ -142,7 +189,6 @@ class TestSweepDecoder3D:
         signs[0, 1, 1, 0] = 1
         signs[2, 1, 0, 1] = 1
         signs[2, 0, 1, 1] = 1
-
         n_faces = code.n_k_d[0]
         assert np.all(syndrome[:n_faces].reshape(signs.shape) == signs)
 
