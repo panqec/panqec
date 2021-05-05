@@ -48,3 +48,13 @@ class NumpyEncoder(json.JSONEncoder):
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
+
+
+def list_where(array, dense=True):
+    """Get locations of binary list as sorted list of tuples."""
+    if dense:
+        return ' '.join(map(
+            lambda x: ''.join(map(str, x)),
+            sorted(map(tuple, np.array(np.where(array)).T))
+        ))
+    return sorted(map(tuple, np.array(np.where(array)).T))
