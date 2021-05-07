@@ -1,7 +1,7 @@
 {
   "comments": "Some comments about this run.",
   "ranges": {
-    "label": "myrun",
+    "label": "test_range",
     "code": {
       "model": "ToricCode3D",
       "parameters": [
