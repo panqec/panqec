@@ -2,14 +2,14 @@
   "comments": "Some comments about this run.",
   "runs": [
     {
-      "label": "myrun",
+      "label": "test_single",
       "code": {
         "model": "ToricCode3D",
-        "parameters": [3, 3, 3]
+        "parameters": {"L_x": 3}
       },
       "noise": {
         "model": "PauliErrorModel",
-        "parameters": [1, 0, 0]
+        "parameters": {"r_x": 1, "r_y": 0, "r_z": 0}
       },
       "decoder": {
         "model": "SweepMatchDecoder"

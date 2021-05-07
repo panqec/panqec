@@ -77,7 +77,7 @@ class TestDeformedPauliErrorModel:
 
     def test_label(self, code):
         error_model = DeformedPauliErrorModel(1, 0, 0)
-        assert error_model.label == 'Deformed Pauli (1, 0, 0)'
+        assert error_model.label == 'Deformed Pauli X1Y0Z0'
 
 
 class TestDeformOperator:
@@ -249,19 +249,26 @@ class TestDeformedDecoder:
 class TestDeformedSweepDecoder3D:
 
     @pytest.mark.parametrize(
-        'noise_direction, expected_edge',
+        'noise_direction, expected_edge_probs',
         [
-            [(0.9, 0, 0.1), 0],
-            [(0.1, 0, 0.9), 1],
-            [(1/3, 1/3, 1/3), 0],
-            [(0, 0, 1), 1],
+            [(0.9, 0, 0.1), (0.81818, 0.090909, 0.090909)],
+            [(0.1, 0, 0.9), (0.05263, 0.47368, 0.47368)],
+            [(1/3, 1/3, 1/3), (0.3333, 0.3333, 0.3333)],
+            [(0, 0, 1), (0, 0.5, 0.5)],
         ]
     )
-    def test_most_likely_edge(self, code, noise_direction, expected_edge):
+    def test_get_edge_probabilities(
+        self, code, noise_direction, expected_edge_probs
+    ):
         error_model = DeformedPauliErrorModel(*noise_direction)
         probability = 0.5
         decoder = DeformedSweepDecoder3D(error_model, probability)
-        assert decoder.get_most_likely_edge() == expected_edge
+        print(decoder.get_edge_probabilities())
+        np.testing.assert_allclose(
+            decoder.get_edge_probabilities(),
+            expected_edge_probs,
+            rtol=0.01
+        )
 
     def test_decode_trivial(self, code):
         error_model = DeformedPauliErrorModel(1/3, 1/3, 1/3)

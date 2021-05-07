@@ -48,3 +48,20 @@ class NumpyEncoder(json.JSONEncoder):
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
+
+
+def list_where_str(array):
+    return ' '.join(map(
+        lambda x: ''.join(map(str, x)),
+        sorted(map(tuple, np.array(np.where(array)).T))
+    ))
+
+
+def list_where(array):
+    """Get locations of binary list as sorted list of tuples."""
+    return sorted(map(tuple, np.array(np.where(array)).T))
+
+
+def set_where(array):
+    """Get locations of binary list as sorted list of tuples."""
+    return set(map(tuple, np.array(np.where(array)).T))

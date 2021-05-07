@@ -15,7 +15,7 @@ class DeformedPauliErrorModel(ErrorModel):
 
     @property
     def label(self) -> str:
-        return 'Deformed Pauli {!r}'.format(self.direction)
+        return 'Deformed Pauli X{}Y{}Z{}'.format(*self.direction)
 
     def generate(
         self, code: StabilizerCode, probability: float, rng=None

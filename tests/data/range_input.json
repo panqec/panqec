@@ -1,21 +1,21 @@
 {
   "comments": "Some comments about this run.",
   "ranges": {
-    "label": "myrun",
+    "label": "test_range",
     "code": {
       "model": "ToricCode3D",
       "parameters": [
-        [3, 3, 3],
-        [4, 4, 4],
-        [5, 5, 5]
+        {"L_x": 3},
+        {"L_x": 4},
+        {"L_x": 5}
       ]
     },
     "noise": {
       "model": "PauliErrorModel",
       "parameters": [
-        [1, 0, 0],
-        [0.5, 0, 0.5],
-        [0, 0, 1]
+        {"r_x": 1, "r_y": 0, "r_z": 0},
+        {"r_x": 0.5, "r_y": 0, "r_z": 0.5},
+        {"r_x": 0, "r_y": 0, "r_z": 1}
       ]
     },
     "decoder": {
