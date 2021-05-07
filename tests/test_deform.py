@@ -77,7 +77,7 @@ class TestDeformedPauliErrorModel:
 
     def test_label(self, code):
         error_model = DeformedPauliErrorModel(1, 0, 0)
-        assert error_model.label == 'Deformed Pauli (1, 0, 0)'
+        assert error_model.label == 'Deformed Pauli X1Y0Z0'
 
 
 class TestDeformOperator:
