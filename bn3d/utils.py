@@ -50,11 +50,18 @@ class NumpyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-def list_where(array, dense=True):
+def list_where_str(array):
+    return ' '.join(map(
+        lambda x: ''.join(map(str, x)),
+        sorted(map(tuple, np.array(np.where(array)).T))
+    ))
+
+
+def list_where(array):
     """Get locations of binary list as sorted list of tuples."""
-    if dense:
-        return ' '.join(map(
-            lambda x: ''.join(map(str, x)),
-            sorted(map(tuple, np.array(np.where(array)).T))
-        ))
     return sorted(map(tuple, np.array(np.where(array)).T))
+
+
+def set_where(array):
+    """Get locations of binary list as sorted list of tuples."""
+    return set(map(tuple, np.array(np.where(array)).T))
