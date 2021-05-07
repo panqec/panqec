@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --partition=debugq
+#SBATCH --partition=defq
 #SBATCH --job-name=deformed_00
 #SBATCH --nodes=3
 #SBATCH --output=deformed_00.out
