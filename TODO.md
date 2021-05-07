@@ -6,9 +6,9 @@
 - [x] Update demo notebook to use new API
 
 ### CLI
-- [ ] Fix CLI to deal with noise-dependent decoders
-- [ ] Get demo notebook working with new API
+- [x] Fix CLI to deal with noise-dependent decoders
+- [x] Get demo notebook working with new API
 - [ ] Get tests of CLI run command working
 
 ### Slurm
-- [ ] Get simulations running on slurm
+- [x] Get simulations running on slurm
