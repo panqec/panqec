@@ -52,6 +52,12 @@ def run_once(
     return results
 
 
+def run_file(file_name: str, n_trials: int, progress: Callable = identity):
+    """Run an input json file."""
+    batch_sim = read_input_json(file_name)
+    batch_sim.run(n_trials, progress=progress)
+
+
 class Simulation:
     """Quantum Error Correction Simulation."""
 

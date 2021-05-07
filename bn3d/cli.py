@@ -1,6 +1,9 @@
+import os
 from typing import Optional
 import click
 import bn3d
+from tqdm import tqdm
+from .app import run_file
 from .config import CODES, ERROR_MODELS, DECODERS
 
 
@@ -16,23 +19,15 @@ def cli():
 
 
 @click.command()
-@click.option('-f', '--file', 'file_', type=click.File())
-@click.option('-c', '--code')
-@click.option('-n', '--noise')
-@click.option('-d', '--decoder')
-@click.option('-p', '--probability', type=click.FLOAT)
-@click.option('-t', '--trials', type=click.INT)
+@click.option('-f', '--file', 'file_')
+@click.option('-t', '--trials', default=100, type=click.INT)
 def run(
-    file_: Optional[str] = None,
-    code: str = 'ToricCode3D(3, 3, 3)',
-    noise: str = 'PauliErrorModel(1, 0, 0)',
-    decoder: str = 'PyMatchingSweepDecoder3D()',
-    probability: float = 0.5,
-    trials: int = 10
+    file_: Optional[str],
+    trials: int
 ):
     """Run a single job or run many jobs from input file."""
     if file_ is not None:
-        raise NotImplementedError('Run file not working yet')
+        run_file(os.path.abspath(file_), trials, progress=tqdm)
     else:
         raise NotImplementedError('Run not working yet')
 
