@@ -20,7 +20,7 @@ def cli():
 
 @click.command()
 @click.option('-f', '--file', 'file_')
-@click.option('-t', '--trials', default=100, type=click.INT)
+@click.option('-t', '--trials', default=100, type=click.INT, show_default=True)
 def run(
     file_: Optional[str],
     trials: int
