@@ -86,7 +86,7 @@ class DeformedSweepDecoder3D(SweepDecoder3D):
     _default_edge: int
 
     def __init__(self, error_model, probability):
-        super(SweepDecoder3D, self).__init__()
+        super(DeformedSweepDecoder3D, self).__init__()
         self._error_model = error_model
         self._probability = probability
         self._default_edge = self.get_most_likely_edge()

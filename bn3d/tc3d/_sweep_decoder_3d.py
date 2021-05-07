@@ -10,9 +10,11 @@ class SweepDecoder3D(Decoder):
 
     label: str = 'Toric 3D Sweep Decoder'
     _rng: np.random.Generator
+    max_sweep_factor: int
 
-    def __init__(self, seed: int = 0):
+    def __init__(self, seed: int = 0, max_sweep_factor: int = 4):
         self._rng = np.random.default_rng(seed)
+        self.max_sweep_factor = max_sweep_factor
 
     def get_face_syndromes(
         self, code: ToricCode3D, full_syndrome: np.ndarray
@@ -77,7 +79,7 @@ class SweepDecoder3D(Decoder):
         """Get Z corrections given measured syndrome."""
 
         # Maximum number of times to sweep before giving up.
-        max_sweeps = 10*int(code.n_k_d[0])
+        max_sweeps = self.max_sweep_factor*int(max(code.size))
 
         # The syndromes represented as an array of 0s and 1s.
         signs = self.get_sign_array(code, syndrome)
