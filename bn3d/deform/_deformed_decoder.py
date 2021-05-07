@@ -1,3 +1,4 @@
+from typing import Tuple
 import itertools
 import numpy as np
 from pymatching import Matching
@@ -83,19 +84,18 @@ class DeformedSweepDecoder3D(SweepDecoder3D):
 
     _error_model: ErrorModel
     _probability: float
-    _default_edge: int
+    _p_edges: int
 
     def __init__(self, error_model, probability):
         super(DeformedSweepDecoder3D, self).__init__()
         self._error_model = error_model
         self._probability = probability
-        self._default_edge = self.get_most_likely_edge()
+        self._p_edges = self.get_edge_probabilities()
 
-    def get_most_likely_edge(self):
+    def get_edge_probabilities(self):
         """Most likely face for detectable Z error."""
 
-        # The most likely edge is an int.
-        edge: int
+        p_edges: Tuple[float, float, float]
 
         p_X, p_Y, p_Z = (
             np.array(self._error_model.direction)*self._probability
@@ -103,20 +103,15 @@ class DeformedSweepDecoder3D(SweepDecoder3D):
         p_regular = p_Y + p_Z
         p_deformed = p_Y + p_X
 
-        # Pick the y-axis, which is undeformed, if undeformed error more
-        # likely.
-        if p_regular > p_deformed:
-            edge = 1
+        p = np.array([p_deformed, p_regular, p_regular])
+        p_edges = tuple(p/p.sum())
 
-        # Otherwise, the deformed x-axis edge is more likely.
-        else:
-            edge = 0
+        return p_edges
 
-        return edge
-
-    def get_default_direction(self, code):
+    def get_default_direction(self):
         """Use most likely direction based on noise."""
-        return self._default_edge
+        direction = int(self._rng.choice([0, 1, 2], size=1, p=self._p_edges))
+        return direction
 
 
 class DeformedSweepMatchDecoder(Decoder):
