@@ -6,7 +6,7 @@ import inspect
 import json
 from json import JSONDecodeError
 import itertools
-from typing import List, Dict, Callable, Union, Any
+from typing import List, Dict, Callable, Union, Any, Optional
 import datetime
 import numpy as np
 from qecsim.model import StabilizerCode, ErrorModel, Decoder
@@ -52,9 +52,12 @@ def run_once(
     return results
 
 
-def run_file(file_name: str, n_trials: int, progress: Callable = identity):
+def run_file(
+    file_name: str, n_trials: int, progress: Callable = identity,
+    output_dir: Optional[str] = None
+):
     """Run an input json file."""
-    batch_sim = read_input_json(file_name)
+    batch_sim = read_input_json(file_name, output_dir=output_dir)
     batch_sim.run(n_trials, progress=progress)
 
 
@@ -177,12 +180,16 @@ class BatchSimulation():
         on_update: Callable = identity,
         update_frequency: int = 10,
         save_frequency: int = 100,
+        output_dir: Optional[str] = None,
     ):
         self._simulations = []
         self.update_frequency = update_frequency
         self.save_frequency = save_frequency
         self.label = label
-        self._output_dir = os.path.join(BN3D_DIR, self.label)
+        if output_dir is not None:
+            self._output_dir = os.path.join(output_dir, self.label)
+        else:
+            self._output_dir = os.path.join(BN3D_DIR, self.label)
         os.makedirs(self._output_dir, exist_ok=True)
 
     def __getitem__(self, *args):

@@ -6,7 +6,7 @@ from qecsim.models.basic import FiveQubitCode
 from qecsim.models.generic import NaiveDecoder
 from bn3d.noise import PauliErrorModel
 from bn3d.app import (
-    read_input_json, run_once, Simulation, expand_inputs_ranges
+    read_input_json, run_once, Simulation, expand_inputs_ranges, run_file
 )
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
@@ -105,3 +105,12 @@ def test_expand_inputs_ranges(example_ranges):
     ranges = example_ranges
     expanded_inputs = expand_inputs_ranges(ranges)
     assert len(expanded_inputs) == 27
+
+
+def test_run_file_range_input(tmpdir):
+    input_json = os.path.join(DATA_DIR, 'range_input.json')
+    n_trials = 2
+    assert os.listdir(tmpdir) == []
+    run_file(input_json, n_trials, output_dir=tmpdir)
+    assert os.listdir(tmpdir) == ['test_range']
+    assert len(os.listdir(os.path.join(tmpdir, 'test_range'))) > 0
