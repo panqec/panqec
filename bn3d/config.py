@@ -13,7 +13,8 @@ from .deform import DeformedPauliErrorModel, DeformedSweepMatchDecoder
 from .noise import PauliErrorModel
 
 # Load the .env file into environmental variables.
-load_dotenv()
+if os.getenv('BN3D_DIR') is None:
+    load_dotenv()
 
 BN3D_DARK_THEME = False
 if os.getenv('BN3D_DARK_THEME'):
