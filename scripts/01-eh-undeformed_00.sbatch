@@ -3,7 +3,7 @@
 #SBATCH --job-name=undeformed_00
 #SBATCH --nodes=3
 #SBATCH --output=undeformed_00.out
-#SBATCH --time=5:00:00
+#SBATCH --time=10:00:00
 
 set -euxo pipefail
 
