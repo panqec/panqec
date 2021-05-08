@@ -61,6 +61,15 @@ def test_run_once(required_fields):
     assert results['effective_error'].shape == (2*code.logical_xs.shape[0],)
 
 
+def test_run_once_invalid_probability():
+    code = FiveQubitCode()
+    decoder = NaiveDecoder()
+    error_model = PauliErrorModel(1, 0, 0)
+    probability = -1
+    with pytest.raises(ValueError):
+        run_once(code, error_model, decoder, error_probability=probability)
+
+
 class TestSimulationFiveQubitCode():
 
     @pytest.fixture
