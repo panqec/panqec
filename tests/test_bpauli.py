@@ -91,6 +91,14 @@ def test_bvector_to_barray():
     assert np.all(a == a_new)
 
 
+def test_effective_error_wrong_size_raises_exception():
+    X_logicals = np.array([1, 0, 1], dtype=np.uint)
+    Z_logicals = np.array([1, 0, 1, 0], dtype=np.uint)
+    total_error = np.array([0, 1], dtype=np.uint)
+    with pytest.raises(ValueError):
+        get_effective_error(total_error, X_logicals, Z_logicals)
+
+
 def test_get_effective_errror_single():
     X_logicals = pauli_string_to_bvector('XXXXX')
     Z_logicals = pauli_string_to_bvector('ZZZZZ')
