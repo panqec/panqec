@@ -6,12 +6,14 @@ Utilities for automating slurm jobs.
 """
 
 import os
-from typing import Optional, List
+from typing import Optional, List, Dict
 from glob import glob
 from .config import SLURM_DIR, SBATCH_TEMPLATE
 
 
-def generate_sbatch(files: Optional[List[str]] = None):
+def generate_sbatch(
+    files: Optional[List[str]] = None, n_trials: int = 1000
+):
     """Generate sbatch files."""
     input_dir = os.path.join(SLURM_DIR, 'inputs')
     sbatch_dir = os.path.join(SLURM_DIR, 'sbatch')
@@ -22,11 +24,18 @@ def generate_sbatch(files: Optional[List[str]] = None):
     input_files = glob(os.path.join(input_dir, '*.json'))
     for input_file in input_files:
         name = os.path.splitext(os.path.split(input_file)[-1])[0]
-        sbatch_file = os.path.join(sbatch_dir, f'{name}.json')
-        replacement = {
+        sbatch_file = os.path.join(sbatch_dir, f'{name}.sbatch')
+        replacement: Dict[str, str] = {
+            'partition': 'defq',
             'job_name': name,
+            'nodes': '3',
+            'output': f'slurm/out/{name}',
+            'time': '15:00:00',
+            'input_dir': 'slurm/inputs',
+            'input_name': name,
+            'n_trials': str(n_trials)
         }
         for field, value in replacement.items():
-            modified_text = template_text.replace('$' + field, value)
+            modified_text = template_text.replace('${%s}' % field, value)
         with open(sbatch_file, 'w') as f:
             f.write(modified_text)
