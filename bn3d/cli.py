@@ -63,10 +63,12 @@ def slurm():
 
 
 @click.command()
-@click.option('-f', '--files', multiple=True, default=None)
-def gen(files: Optional[List[str]] = None):
+@click.option('--n_trials', default=1000, type=click.INT, show_default=True)
+@click.option('--partition', default='defq', show_default=True)
+@click.option('--time', default='10:00:00', show_default=True)
+def gen(n_trials, partition, time):
     """Generate sbatch files."""
-    generate_sbatch(files=files)
+    generate_sbatch(n_trials, partition, time)
 
 
 slurm.add_command(gen)

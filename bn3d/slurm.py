@@ -12,32 +12,41 @@ from .config import SLURM_DIR, SBATCH_TEMPLATE
 
 
 def generate_sbatch(
-    n_trials: int = 1000,
-    partition: str = 'defq',
-    time: str = '01:00:00'
+    n_trials: int,
+    partition: str,
+    time: str,
 ):
     """Generate sbatch files."""
     input_dir = os.path.join(SLURM_DIR, 'inputs')
     sbatch_dir = os.path.join(SLURM_DIR, 'sbatch')
+    output_dir = os.path.join(SLURM_DIR, 'out')
 
     with open(SBATCH_TEMPLATE) as f:
         template_text = f.read()
 
     input_files = glob(os.path.join(input_dir, '*.json'))
+    print(input_dir)
+    print(f'Found {len(input_files)} input files')
+    print('\n'.join(input_files))
     for input_file in input_files:
         name = os.path.splitext(os.path.split(input_file)[-1])[0]
+        print(f'Generating sbatch for {name}')
         sbatch_file = os.path.join(sbatch_dir, f'{name}.sbatch')
         replacement: Dict[str, str] = {
             'partition': partition,
             'job_name': name,
             'nodes': '3',
-            'output': f'slurm/out/{name}',
+            'output': os.path.join(output_dir, f'{name}.out'),
             'time': time,
-            'input_dir': 'slurm/inputs',
-            'input_name': name,
+            'input_file': input_file,
             'n_trials': str(n_trials)
         }
+        modified_text = template_text
         for field, value in replacement.items():
-            modified_text = template_text.replace('${%s}' % field, value)
+            field_key = '${%s}' % field
+            assert field in modified_text
+            assert field_key in modified_text
+            modified_text = modified_text.replace(field_key, value)
         with open(sbatch_file, 'w') as f:
             f.write(modified_text)
+        print(f'Generated {sbatch_file}')
