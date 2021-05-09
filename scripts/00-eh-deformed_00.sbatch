@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --partition=defq
-#SBATCH --job-name=deformed_00
+#SBATCH --job-name=deformed_01
 #SBATCH --nodes=3
-#SBATCH --output=deformed_00.out
-#SBATCH --time=10:00:00
+#SBATCH --output=deformed_01.out
+#SBATCH --time=20:00:00
 
 set -euxo pipefail
 
@@ -13,6 +13,6 @@ date
 
 module load python/3.8
 source venv/bin/activate
-bn3d run --file scripts/deformed_00.json --trials 1000
+bn3d run --file scripts/deformed_01.json --trials 1000
 
 date
