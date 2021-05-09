@@ -1,7 +1,7 @@
 {
   "comments": "Basic run deformed",
   "ranges": {
-    "label": "deformed_00",
+    "label": "deformed_01",
     "code": {
       "model": "ToricCode3D",
       "parameters": [
