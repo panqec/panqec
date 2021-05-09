@@ -148,8 +148,10 @@ class Simulation:
                                 for array_value in self._results[key]
                             ]
                 self._results = data['results']
-        except JSONDecodeError:
-            pass
+        except JSONDecodeError as err:
+            print(f'Error loading existing results file {file_path}')
+            print('Starting this from scratch')
+            print(err)
 
     def save_results(self, output_dir: str):
         """Save results to directory."""
@@ -407,8 +409,12 @@ def parse_run(run: Dict[str, Any]) -> Simulation:
 
 def read_input_json(file_path: str, *args, **kwargs) -> BatchSimulation:
     """Read json input file."""
-    with open(file_path) as f:
-        data = json.load(f)
+    try:
+        with open(file_path) as f:
+            data = json.load(f)
+    except JSONDecodeError as err:
+        print(f'Error reading input file {file_path}')
+        raise err
     return read_input_dict(data, *args, **kwargs)
 
 
