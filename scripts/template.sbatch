@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --partition=defq
-#SBATCH --job-name=$JOB_NAME
+#SBATCH --job-name=$job_name
 #SBATCH --nodes=3
-#SBATCH --output=$JOB_NAME.out
+#SBATCH --output=$job_name.out
 #SBATCH --time=5:00:00
 
 set -euxo pipefail
@@ -13,6 +13,6 @@ date
 
 module load python/3.8
 source venv/bin/activate
-bn3d run --file scripts/$JOB_NAME.json --trials $N_TRIALS
+bn3d run --file scripts/$job_name.json --trials $n_trials
 
 date
