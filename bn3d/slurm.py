@@ -6,13 +6,15 @@ Utilities for automating slurm jobs.
 """
 
 import os
-from typing import Optional, List, Dict
+from typing import Dict
 from glob import glob
 from .config import SLURM_DIR, SBATCH_TEMPLATE
 
 
 def generate_sbatch(
-    files: Optional[List[str]] = None, n_trials: int = 1000
+    n_trials: int = 1000,
+    partition: str = 'defq',
+    time: str = '01:00:00'
 ):
     """Generate sbatch files."""
     input_dir = os.path.join(SLURM_DIR, 'inputs')
@@ -26,11 +28,11 @@ def generate_sbatch(
         name = os.path.splitext(os.path.split(input_file)[-1])[0]
         sbatch_file = os.path.join(sbatch_dir, f'{name}.sbatch')
         replacement: Dict[str, str] = {
-            'partition': 'defq',
+            'partition': partition,
             'job_name': name,
             'nodes': '3',
             'output': f'slurm/out/{name}',
-            'time': '15:00:00',
+            'time': time,
             'input_dir': 'slurm/inputs',
             'input_name': name,
             'n_trials': str(n_trials)
