@@ -1,10 +1,11 @@
 import os
-from typing import Optional
+from typing import Optional, List
 import click
 import bn3d
 from tqdm import tqdm
 from .app import run_file
 from .config import CODES, ERROR_MODELS, DECODERS
+from .slurm import generate_sbatch
 
 
 @click.group()
@@ -55,5 +56,20 @@ def ls(model_type=None):
         ]))
 
 
+@click.group()
+def slurm():
+    """Routines for producing and running slurm scripts."""
+    pass
+
+
+@click.command()
+@click.option('-f', '--files', multiple=True, default=None)
+def gen(files: Optional[List[str]] = None):
+    """Generate sbatch files."""
+    generate_sbatch(files=files)
+
+
+slurm.add_command(gen)
 cli.add_command(run)
 cli.add_command(ls)
+cli.add_command(slurm)
