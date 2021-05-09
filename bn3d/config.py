@@ -12,6 +12,8 @@ from .tc3d import ToricCode3D, Toric3DPymatchingDecoder, SweepMatchDecoder
 from .deform import DeformedPauliErrorModel, DeformedSweepMatchDecoder
 from .noise import PauliErrorModel
 
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+
 # Load the .env file into environmental variables.
 if os.getenv('BN3D_DIR') is None:
     load_dotenv()
@@ -50,3 +52,12 @@ DECODERS = {
     'NaiveDecoder': NaiveDecoder,
     'DeformedSweepMatchDecoder': DeformedSweepMatchDecoder,
 }
+
+# Slurm automation config.
+SLURM_DIR = os.path.join(os.path.dirname(BASE_DIR), 'slurm')
+if os.getenv('SLURM_DIR') is not None:
+    SLURM_DIR = os.path.abspath(str(os.getenv('SLURM_DIR')))
+
+SBATCH_TEMPLATE = os.path.join(
+    os.path.dirname(BASE_DIR), 'scripts', 'template.sbatch'
+)

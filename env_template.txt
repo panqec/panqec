@@ -4,5 +4,8 @@
 # Use this to change the default output directory.
 # export BN3D_DIR=/path/to/directory/
 
+# Use this to change the default slurm file directory.
+# export SLURM_DIR=/home/ehua7365/Documents/bn3d/slurm
+
 # Uncomment this to use dark theme for plotting.
 # export BN3D_DARK_THEME=True
