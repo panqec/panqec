@@ -5,7 +5,7 @@ import bn3d
 from tqdm import tqdm
 from .app import run_file
 from .config import CODES, ERROR_MODELS, DECODERS
-from .slurm import generate_sbatch
+from .slurm import generate_sbatch, get_status
 
 
 @click.group(invoke_without_command=True)
@@ -79,7 +79,14 @@ def gen(n_trials, partition, time, cores):
     generate_sbatch(n_trials, partition, time, cores)
 
 
+@click.command()
+def status():
+    """Show the status of running jobs."""
+    get_status()
+
+
 slurm.add_command(gen)
+slurm.add_command(status)
 cli.add_command(run)
 cli.add_command(ls)
 cli.add_command(slurm)

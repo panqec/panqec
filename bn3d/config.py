@@ -61,3 +61,10 @@ if os.getenv('SLURM_DIR') is not None:
 SBATCH_TEMPLATE = os.path.join(
     os.path.dirname(BASE_DIR), 'scripts', 'template.sbatch'
 )
+
+# Slurm username for reporting status.
+SLURM_USERNAME = None
+if os.getenv('USER') is not None:
+    SLURM_USERNAME = os.getenv('USER')
+elif os.getenv('USERNAME') is not None:
+    SLURM_USERNAME = os.getenv('USERNAME')
