@@ -1,5 +1,5 @@
 import os
-from typing import Optional, List
+from typing import Optional
 import click
 import bn3d
 from tqdm import tqdm
@@ -8,21 +8,25 @@ from .config import CODES, ERROR_MODELS, DECODERS
 from .slurm import generate_sbatch
 
 
-@click.group()
+@click.group(invoke_without_command=True)
 @click.version_option(version=bn3d.__version__, prog_name='bn3d')
-def cli():
+@click.pass_context
+def cli(ctx):
     """
     bn3d - biased noise in 3D simulations.
 
     See bn3d COMMAND --help for command-specific help.
     """
-    pass
+    if not ctx.invoked_subcommand:
+        print(ctx.get_help())
 
 
 @click.command()
+@click.pass_context
 @click.option('-f', '--file', 'file_')
 @click.option('-t', '--trials', default=100, type=click.INT, show_default=True)
 def run(
+    ctx,
     file_: Optional[str],
     trials: int
 ):
@@ -30,7 +34,7 @@ def run(
     if file_ is not None:
         run_file(os.path.abspath(file_), trials, progress=tqdm)
     else:
-        raise NotImplementedError('Run not working yet')
+        print(ctx.get_help())
 
 
 @click.command()
@@ -39,6 +43,7 @@ def run(
     case_sensitive=False
 ))
 def ls(model_type=None):
+    """List available codes, noise models and decoders."""
     if model_type is None or model_type == 'codes':
         print('Codes:')
         print('\n'.join([
@@ -56,19 +61,22 @@ def ls(model_type=None):
         ]))
 
 
-@click.group()
-def slurm():
-    """Routines for producing and running slurm scripts."""
-    pass
+@click.group(invoke_without_command=True)
+@click.pass_context
+def slurm(ctx):
+    """Routines for generating and running slurm scripts."""
+    if not ctx.invoked_subcommand:
+        print(ctx.get_help())
 
 
 @click.command()
 @click.option('--n_trials', default=1000, type=click.INT, show_default=True)
 @click.option('--partition', default='defq', show_default=True)
 @click.option('--time', default='10:00:00', show_default=True)
-def gen(n_trials, partition, time):
+@click.option('--cores', default=1, type=click.INT, show_default=True)
+def gen(n_trials, partition, time, cores):
     """Generate sbatch files."""
-    generate_sbatch(n_trials, partition, time)
+    generate_sbatch(n_trials, partition, time, cores)
 
 
 slurm.add_command(gen)

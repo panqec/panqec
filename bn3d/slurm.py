@@ -15,6 +15,7 @@ def generate_sbatch(
     n_trials: int,
     partition: str,
     time: str,
+    cores: int,
 ):
     """Generate sbatch files."""
     input_dir = os.path.join(SLURM_DIR, 'inputs')
@@ -35,7 +36,7 @@ def generate_sbatch(
         replacement: Dict[str, str] = {
             'partition': partition,
             'job_name': name,
-            'nodes': '3',
+            'nodes': str(cores),
             'output': os.path.join(output_dir, f'{name}.out'),
             'time': time,
             'input_file': input_file,
