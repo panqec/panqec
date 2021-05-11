@@ -82,14 +82,17 @@ def get_squeue_status():
 def get_out_status():
     out_dir = os.path.join(SLURM_DIR, 'out')
     out_dir_glob = os.path.join(out_dir, '*.out')
-    if len(glob(out_dir_glob)) > 0:
-        tail_command = f'tail -n2 {out_dir_glob}'
-        out_status = subprocess.Popen(
-            tail_command.split(),
-            stdout=subprocess.PIPE
-        )
-        out_status_output, out_status_error = out_status.communicate()
-        print(out_status_output)
+    out_files = glob(out_dir_glob)
+    if len(out_files) > 0:
+        for out_file in out_files:
+            print(out_file)
+            tail_command = f'tail -n2 {out_file}'
+            out_status = subprocess.Popen(
+                tail_command.split(),
+                stdout=subprocess.PIPE
+            )
+            out_status_output, out_status_error = out_status.communicate()
+            print(out_status_output)
     else:
         print('No slurm .out files available')
 
