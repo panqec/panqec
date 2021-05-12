@@ -307,7 +307,7 @@ def _parse_parameters_range(parameters):
     return parameters_range
 
 
-def expand_inputs_ranges(data: dict) -> List[Dict]:
+def expand_input_ranges(data: dict) -> List[Dict]:
     runs: List[Dict] = []
     code_range: List[Dict] = [{}]
     if 'parameters' in data['code']:
@@ -425,7 +425,7 @@ def read_input_dict(data: dict, *args, **kwargs) -> BatchSimulation:
     if 'runs' in data:
         runs = data['runs']
     if 'ranges' in data:
-        runs += expand_inputs_ranges(data['ranges'])
+        runs += expand_input_ranges(data['ranges'])
         if 'label' in data['ranges']:
             label = data['ranges']['label']
 
