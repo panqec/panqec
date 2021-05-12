@@ -74,7 +74,7 @@ def get_squeue_status():
             stdout=subprocess.PIPE
         )
         squeue_output, squeue_error = squeue.communicate()
-        print(squeue_output)
+        print(squeue_output.decode('utf-8'))
     except Exception:
         print('No squeue status available.')
 
