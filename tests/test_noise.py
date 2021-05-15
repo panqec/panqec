@@ -6,8 +6,8 @@ from bn3d.noise import (
     generate_pauli_noise, deform_operator, get_deformed_weights
 )
 from bn3d.bpauli import get_bvector_index
-from bn3d.noise import PauliErrorModel
-from bn3d.tc3d import ToricCode3D
+from bn3d.noise import PauliErrorModel, XNoiseOnYZEdgesOnly
+from bn3d.tc3d import ToricCode3D, Toric3DPauli
 
 
 class TestPauliNoise:
@@ -225,3 +225,55 @@ class TestGetDeformedWeights:
 
         # Weights for x-edges and z-edges should not be equal.
         assert np.any(weights[x_edge_indices] != weights[z_edge_indices])
+
+
+class TestXNoiseOnYZEdgesOnly:
+
+    @pytest.fixture(autouse=True)
+    def rng(self):
+        return np.random.default_rng(seed=0)
+
+    @pytest.fixture
+    def code(self):
+        return ToricCode3D(3, 4, 5)
+
+    @pytest.fixture
+    def error_model(self):
+        return XNoiseOnYZEdgesOnly()
+
+    def test_label(self, error_model):
+        assert error_model.label == 'X on yz edges'
+
+    def test_generate_zero_probability(self, code, error_model, rng):
+        error = error_model.generate(code, probability=0, rng=rng)
+        assert np.all(error == 0)
+
+    def test_generate_probability_half(self, code, error_model, rng):
+        error = error_model.generate(code, probability=0.5, rng=rng)
+        pauli = Toric3DPauli(code, bsf=error)
+        indices = itertools.product(*[
+            range(length) for length in code.size
+        ])
+        for x, y, z in indices:
+            assert pauli.operator((0, x, y, z)) == 'I', (
+                'All x edges should have no error'
+            )
+
+        assert any(error), 'Error should be non-trivial'
+
+    def test_generate_probability_one(self, code, error_model, rng):
+        error = error_model.generate(code, probability=1, rng=rng)
+        pauli = Toric3DPauli(code, bsf=error)
+        indices = itertools.product(*[
+            range(length) for length in code.size
+        ])
+        for x, y, z in indices:
+            assert pauli.operator((0, x, y, z)) == 'I', (
+                'All x edges should have no error'
+            )
+            assert pauli.operator((1, x, y, z)) == 'X', (
+                'All y edges should have X'
+            )
+            assert pauli.operator((2, x, y, z)) == 'X', (
+                'All z edges should have X'
+            )
