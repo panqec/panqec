@@ -255,17 +255,31 @@ class TestXNoiseOnYZEdgesOnly:
         assert np.all(error == 0)
 
     def test_generate_probability_half(self, code, error_model, rng):
-        error = error_model.generate(code, probability=0.5, rng=rng)
+        probability = 0.5
+        error = error_model.generate(code, probability=probability, rng=rng)
         pauli = Toric3DPauli(code, bsf=error)
-        indices = itertools.product(*[
+        indices = list(itertools.product(*[
             range(length) for length in code.size
-        ])
+        ]))
         for x, y, z in indices:
             assert pauli.operator((0, x, y, z)) == 'I', (
                 'All x edges should have no error'
             )
+            assert pauli.operator((1, x, y, z)) in ['I', 'X'], (
+                'Any error on y edge must be only X error'
+            )
+            assert pauli.operator((2, x, y, z)) in ['I', 'X'], (
+                'Any error on z edge must be only X error'
+            )
 
         assert any(error), 'Error should be non-trivial'
+
+        number_of_yz_edges = 2*len(indices)
+        number_of_errors = bsf_wt(error)
+        proportion_of_errors = number_of_errors/number_of_yz_edges
+        assert abs(probability - proportion_of_errors) < 0.1, (
+            'Number of errors on xy edges should reflect probability'
+        )
 
     def test_generate_probability_one(self, code, error_model, rng):
         error = error_model.generate(code, probability=1, rng=rng)
