@@ -146,3 +146,22 @@ You may also have the option of running many different parameters.
 }
 ```
 You would run the file using simliar commands.
+
+# Creating sbatch files for slurm
+If you want to run jobs with slurm, you may use this repo to automatically
+generate `.sbatch` files that slurm can run.
+
+Suppose you have done some sample runs locally of `myinputs.json`, which
+you can put in the `slurm/inputs/` directory.
+
+To generate `.sbatch` files, run
+```
+bn3d slurm gen --n_trials 1000 --partition defq --cores 3 --time 10:00:00
+```
+After running this command, `.sbatch` files will be created in the directory
+`slurm/sbatch/`.
+If you view them, you will see that they have the above information encoded
+in them, and you can just run then using the `sbatch` command.
+
+You can do the above generation on the cluster you are running it on so it
+works nicely with the file system there.
