@@ -71,24 +71,19 @@ In your browser, Jupyter will open and you can navigate to the `demo` folder
 and open some notebooks.
 Run the notebook you want to run and see the results computed interactively.
 
-# Running a simulation via the command line
-After installing the package, to run a single simulation on the command
-line, use
+# Code Style
+Just follow PEP 8, but to actually test that the code is compliant, run the
+linter using
 ```
-bn3d run --code 'ToricCode3D(3, 3, 3)' \
-        --noise 'PauliErrorModel(1, 0, 0)' \
-        --decoder 'PyMatchingSweepDecoder3D()'
-        --probability 0.1
-        --trials 10
+make lint
 ```
+It will run `flake8` and print out a list of non-compliances.
+It will also run `mypy` to do type checking.
 
-Alternatively, if you find that too verbose, you can specify the job you
-want to run in a `.json` file and run the following.
-```
-bn3d run -f myinputs.json
-```
-
-An example of what to put in `myinputs.json` would be the following.
+# Running simulations via the command line
+After installing the package, to run a single simulation create an input
+`.json`. Suppose you name it `myinputs.json` and have the following input
+parameters in side it, for example,
 ```
 {
   "comments": "Some comments about this run.",
@@ -97,22 +92,29 @@ An example of what to put in `myinputs.json` would be the following.
       "label": "myrun",
       "code": {
         "model": "ToricCode3D",
-        "parameters": [3, 3, 3]
+        "parameters": {"L_x": 3, "L_y": 3, "L_z": 3}
       },
       "noise": {
         "model": "PauliErrorModel",
-        "parameters": [1, 0, 0]
+        "parameters": {"r_x": 1, "r_y": 0, "r_z": 0}
       },
       "decoder": {
         "model": "SweepMatchDecoder"
       },
       "probability": 0.1,
-      "trials": 10
     }
   ]
 }
 ```
-You can have more runs with different parameters as you see fit.
+You may have more than one run, but each runs needs a label, which is
+the name of the subfolder the raw results will be saved to,
+the code and its parameters, the noise model and its parameters and a decoder
+(with parameters if needed) and a probability of error.
+To run the file, just use
+
+```
+bn3d run --file myinputs.json --trials 100
+```
 
 You may also have the option of running many different parameters.
 ```
@@ -123,33 +125,43 @@ You may also have the option of running many different parameters.
     "code": {
       "model": "ToricCode3D",
       "parameters": [
-        [3, 3, 3],
-        [4, 4, 4],
-        [5, 5, 5]
+        {"L_x": 3, "L_y": 3, "L_z": 3},
+        {"L_x": 4, "L_y": 4, "L_z": 4},
+        {"L_x": 5, "L_y": 5, "L_z": 5}
       ]
     },
     "noise": {
       "model": "PauliErrorModel",
       "parameters": [
-        [1, 0, 0],
-        [0.5, 0, 0.5],
-        [0, 0, 1]
+        {"r_x": 1, "r_y": 0, "r_z": 0},
+        {"r_x": 0.5, "r_y": 0, "r_z": 0.5},
+        {"r_x": 0, "r_y": 0, "r_z": 1},
       ]
     },
     "decoder": {
       "model": "SweepMatchDecoder"
     },
-    "probability": [0.1, 0.2, 0.3],
-    "trials": 10
+    "probability": [0.1, 0.2, 0.3]
   }
 }
 ```
+You would run the file using simliar commands.
 
-# Code Style
-Just follow PEP 8, but to actually test that the code is compliant, run the
-linter using
+# Creating sbatch files for slurm
+If you want to run jobs with slurm, you may use this repo to automatically
+generate `.sbatch` files that slurm can run.
+
+Suppose you have done some sample runs locally of `myinputs.json`, which
+you can put in the `slurm/inputs/` directory.
+
+To generate `.sbatch` files, run
 ```
-make lint
+bn3d slurm gen --n_trials 1000 --partition defq --cores 3 --time 10:00:00
 ```
-It will run `flake8` and print out a list of non-compliances.
-It will also run `mypy` to do type checking.
+After running this command, `.sbatch` files will be created in the directory
+`slurm/sbatch/`.
+If you view them, you will see that they have the above information encoded
+in them, and you can just run then using the `sbatch` command.
+
+You can do the above generation on the cluster you are running it on so it
+works nicely with the file system there.

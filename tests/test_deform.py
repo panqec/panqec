@@ -282,6 +282,22 @@ class TestDeformedSweepDecoder3D:
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 
+    def test_all_3_faces_active(self, code):
+        error_pauli = Toric3DPauli(code)
+        sites = [
+            (0, 1, 1, 1), (2, 1, 2, 1)
+        ]
+        for site in sites:
+            error_pauli.site('Z', site)
+        error = error_pauli.to_bsf()
+        error_model = DeformedPauliErrorModel(1/3, 1/3, 1/3)
+        probability = 0.5
+        decoder = DeformedSweepDecoder3D(error_model, probability)
+        syndrome = bcommute(code.stabilizers, error)
+        correction = decoder.decode(code, syndrome)
+        total_error = (error + correction) % 2
+        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+
 
 class TestDeformedToric3DPymatchingDecoder:
 

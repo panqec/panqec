@@ -6,7 +6,7 @@ from qecsim.models.basic import FiveQubitCode
 from qecsim.models.generic import NaiveDecoder
 from bn3d.noise import PauliErrorModel
 from bn3d.app import (
-    read_input_json, run_once, Simulation, expand_inputs_ranges
+    read_input_json, run_once, Simulation, expand_input_ranges, run_file
 )
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
@@ -61,6 +61,15 @@ def test_run_once(required_fields):
     assert results['effective_error'].shape == (2*code.logical_xs.shape[0],)
 
 
+def test_run_once_invalid_probability():
+    code = FiveQubitCode()
+    decoder = NaiveDecoder()
+    error_model = PauliErrorModel(1, 0, 0)
+    probability = -1
+    with pytest.raises(ValueError):
+        run_once(code, error_model, decoder, error_probability=probability)
+
+
 class TestSimulationFiveQubitCode():
 
     @pytest.fixture
@@ -94,5 +103,14 @@ def example_ranges():
 
 def test_expand_inputs_ranges(example_ranges):
     ranges = example_ranges
-    expanded_inputs = expand_inputs_ranges(ranges)
+    expanded_inputs = expand_input_ranges(ranges)
     assert len(expanded_inputs) == 27
+
+
+def test_run_file_range_input(tmpdir):
+    input_json = os.path.join(DATA_DIR, 'range_input.json')
+    n_trials = 2
+    assert os.listdir(tmpdir) == []
+    run_file(input_json, n_trials, output_dir=tmpdir)
+    assert os.listdir(tmpdir) == ['test_range']
+    assert len(os.listdir(os.path.join(tmpdir, 'test_range'))) > 0

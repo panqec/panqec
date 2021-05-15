@@ -6,7 +6,7 @@ import inspect
 import json
 from json import JSONDecodeError
 import itertools
-from typing import List, Dict, Callable, Union, Any
+from typing import List, Dict, Callable, Union, Any, Optional
 import datetime
 import numpy as np
 from qecsim.model import StabilizerCode, ErrorModel, Decoder
@@ -52,9 +52,12 @@ def run_once(
     return results
 
 
-def run_file(file_name: str, n_trials: int, progress: Callable = identity):
+def run_file(
+    file_name: str, n_trials: int, progress: Callable = identity,
+    output_dir: Optional[str] = None
+):
     """Run an input json file."""
-    batch_sim = read_input_json(file_name)
+    batch_sim = read_input_json(file_name, output_dir=output_dir)
     batch_sim.run(n_trials, progress=progress)
 
 
@@ -145,8 +148,10 @@ class Simulation:
                                 for array_value in self._results[key]
                             ]
                 self._results = data['results']
-        except JSONDecodeError:
-            pass
+        except JSONDecodeError as err:
+            print(f'Error loading existing results file {file_path}')
+            print('Starting this from scratch')
+            print(err)
 
     def save_results(self, output_dir: str):
         """Save results to directory."""
@@ -177,12 +182,16 @@ class BatchSimulation():
         on_update: Callable = identity,
         update_frequency: int = 10,
         save_frequency: int = 100,
+        output_dir: Optional[str] = None,
     ):
         self._simulations = []
         self.update_frequency = update_frequency
         self.save_frequency = save_frequency
         self.label = label
-        self._output_dir = os.path.join(BN3D_DIR, self.label)
+        if output_dir is not None:
+            self._output_dir = os.path.join(output_dir, self.label)
+        else:
+            self._output_dir = os.path.join(BN3D_DIR, self.label)
         os.makedirs(self._output_dir, exist_ok=True)
 
     def __getitem__(self, *args):
@@ -298,7 +307,7 @@ def _parse_parameters_range(parameters):
     return parameters_range
 
 
-def expand_inputs_ranges(data: dict) -> List[Dict]:
+def expand_input_ranges(data: dict) -> List[Dict]:
     runs: List[Dict] = []
     code_range: List[Dict] = [{}]
     if 'parameters' in data['code']:
@@ -400,8 +409,12 @@ def parse_run(run: Dict[str, Any]) -> Simulation:
 
 def read_input_json(file_path: str, *args, **kwargs) -> BatchSimulation:
     """Read json input file."""
-    with open(file_path) as f:
-        data = json.load(f)
+    try:
+        with open(file_path) as f:
+            data = json.load(f)
+    except JSONDecodeError as err:
+        print(f'Error reading input file {file_path}')
+        raise err
     return read_input_dict(data, *args, **kwargs)
 
 
@@ -412,7 +425,7 @@ def read_input_dict(data: dict, *args, **kwargs) -> BatchSimulation:
     if 'runs' in data:
         runs = data['runs']
     if 'ranges' in data:
-        runs += expand_inputs_ranges(data['ranges'])
+        runs += expand_input_ranges(data['ranges'])
         if 'label' in data['ranges']:
             label = data['ranges']['label']
 
