@@ -10,7 +10,7 @@ from qecsim.models.basic import FiveQubitCode
 from qecsim.models.generic import NaiveDecoder
 from .tc3d import ToricCode3D, Toric3DPymatchingDecoder, SweepMatchDecoder
 from .deform import DeformedPauliErrorModel, DeformedSweepMatchDecoder
-from .noise import PauliErrorModel
+from .noise import PauliErrorModel, XNoiseOnYZEdgesOnly
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -45,6 +45,7 @@ CODES = {
 ERROR_MODELS = {
     'PauliErrorModel': PauliErrorModel,
     'DeformedPauliErrorModel': DeformedPauliErrorModel,
+    'XNoiseOnYZEdgesOnly': XNoiseOnYZEdgesOnly,
 }
 DECODERS = {
     'Toric3DPymatchingDecoder': Toric3DPymatchingDecoder,

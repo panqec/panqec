@@ -6,10 +6,13 @@ Noise models for 3D Toric Code including deformed noise.
 """
 
 import functools
+import itertools
 from typing import Tuple
 import numpy as np
 from qecsim.models.generic import SimpleErrorModel
+from qecsim.model import ErrorModel, StabilizerCode
 from .bpauli import barray_to_bvector, bvector_to_barray, get_bvector_index
+from .tc3d import Toric3DPauli
 from .utils import nested_map
 
 
@@ -37,6 +40,47 @@ class PauliErrorModel(SimpleErrorModel):
         p_y = r_y*probability
         p_z = r_z*probability
         return p_i, p_x, p_y, p_z
+
+
+class XNoiseOnYZEdgesOnly(ErrorModel):
+    """IID Bit flip noise on y and z edges only.
+
+    No errors on x edges.
+    """
+
+    label = 'X on yz edges'
+
+    def __init__(self):
+        pass
+
+    def generate(
+        self, code: StabilizerCode, probability: float, rng=None
+    ) -> np.ndarray:
+        """Sample noise."""
+
+        # Initialize a Pauli operator object.
+        pauli = Toric3DPauli(code)
+
+        # 0 means no error, 1 means error.
+        choices = [0, 1]
+
+        # Probabilities of no error and probabilit of error.
+        probabilities = [1 - probability, probability]
+
+        # Generate errors on y edge and z edge.
+        y_edge_errors = rng.choice(choices, size=code.size, p=probabilities)
+        z_edge_errors = rng.choice(choices, size=code.size, p=probabilities)
+
+        ranges = [range(length) for length in code.size]
+        for x, y, z in itertools.product(*ranges):
+            if y_edge_errors[x, y, z]:
+                pauli.site('X', (1, x, y, z))
+            if z_edge_errors[x, y, z]:
+                pauli.site('X', (2, x, y, z))
+
+        # Convert to binary sympectic form.
+        error = pauli.to_bsf()
+        return error
 
 
 def generate_pauli_noise(
