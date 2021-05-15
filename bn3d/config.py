@@ -9,7 +9,9 @@ from dotenv import load_dotenv
 from qecsim.models.basic import FiveQubitCode
 from qecsim.models.generic import NaiveDecoder
 from .tc3d import ToricCode3D, Toric3DPymatchingDecoder, SweepMatchDecoder
-from .deform import DeformedPauliErrorModel, DeformedSweepMatchDecoder
+from .deform import (
+    DeformedPauliErrorModel, DeformedSweepMatchDecoder, FoliatedMatchingDecoder
+)
 from .noise import PauliErrorModel, XNoiseOnYZEdgesOnly
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -52,6 +54,7 @@ DECODERS = {
     'SweepMatchDecoder': SweepMatchDecoder,
     'NaiveDecoder': NaiveDecoder,
     'DeformedSweepMatchDecoder': DeformedSweepMatchDecoder,
+    'FoliatedMatchingDecoder': FoliatedMatchingDecoder,
 }
 
 # Slurm automation config.
