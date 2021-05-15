@@ -28,26 +28,6 @@ class FoliatedMatchingDecoder(Decoder):
         self._matchers = {}
         self._n_faces = {}
 
-    def _get_vertex_indices_3d(self, code: StabilizerCode) -> np.ndarray:
-        n_vertices = int(np.product(code.size))
-        vertex_indices_3d = np.reshape(list(range(n_vertices)), code.size)
-        return vertex_indices_3d
-
-    def _get_edge_indices_3d(self, code: StabilizerCode) -> np.ndarray:
-        n_qubits = code.n_k_d[0]
-        edge_indices_3d = np.reshape(list(range(n_qubits)), code.shape)
-        return edge_indices_3d
-
-    def _get_vertex_indices_2d(self, code: StabilizerCode) -> np.ndarray:
-        _, L_y, L_z = code.size
-        vertex_indices_2d = np.reshape(list(range(L_y*L_z)), (L_y, L_z))
-        return vertex_indices_2d
-
-    def _get_edge_indices_2d(self, code: StabilizerCode) -> np.ndarray:
-        _, L_y, L_z = code.size
-        edge_indices_2d = np.reshape(list(range(2*L_y*L_z)), (2, L_y, L_z))
-        return edge_indices_2d
-
     def new_matcher_list(self, code: StabilizerCode) -> List[Matching]:
         """Return a new list of Matching objects for a given code."""
         # Get the number of X stabilizers (faces).
@@ -69,14 +49,6 @@ class FoliatedMatchingDecoder(Decoder):
         # denoting the qubit (edge) for that stabilizer generator.
         H_z_3d = H_z.reshape((L_x, L_y, L_z, 3, L_x, L_y, L_z))
 
-        # Mapping from 3d coordinates to index labels.
-        # vertex_indices_3d = self._get_vertex_indices_3d(code)
-        # edge_indices_3d = self._get_edge_indices_3d(code)
-
-        # Mapping from 2d coordinates to index labels.
-        # vertex_indices_2d = self._get_vertex_indices_2d(code)
-        # edge_indices_2d = self._get_edge_indices_2d(code)
-
         matcher_list: List[Matching] = []
 
         for x in range(L_x):
@@ -86,22 +58,6 @@ class FoliatedMatchingDecoder(Decoder):
             H_z_layer = H_z_2d.reshape((L_y*L_z, 2*L_y*L_z))
             matcher_list.append(Matching(H_z_layer))
 
-        # for x in range(code.size[0]):
-        #     H_z_2d = np.zeros((L_y*L_z, 2*L_y*L_z), dtype=np.uint)
-        #     for y, z in itertools.product(range(L_y), range(L_z)):
-        #         vertex_label_3d = vertex_indices_3d[x, y, z]
-        #         y_edge_label_3d = edge_indices_3d[1, x, y, z]
-        #         z_edge_label_3d = edge_indices_3d[2, x, y, z]
-        #         vertex_label_2d = vertex_indices_2d[y, z]
-        #         y_edge_label_2d = edge_indices_2d[0, y, z]
-        #         z_edge_label_2d = edge_indices_2d[1, y, z]
-        #         H_z_2d[vertex_label_2d, y_edge_label_2d] = H_z[
-        #             vertex_label_3d, y_edge_label_3d
-        #         ]
-        #         H_z_2d[vertex_label_2d, z_edge_label_2d] = H_z[
-        #             vertex_label_3d, z_edge_label_3d
-        #         ]
-        #     matcher_list.append(Matching(H_z_2d))
         return matcher_list
 
     def get_matcher_list(self, code: StabilizerCode) -> List[Matching]:
