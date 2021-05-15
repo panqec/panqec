@@ -6,7 +6,7 @@ from bn3d.tc3d import ToricCode3D, Toric3DPauli
 from bn3d.noise import XNoiseOnYZEdgesOnly
 from bn3d.deform import (
     DeformedPauliErrorModel, DeformedSweepMatchDecoder, DeformedSweepDecoder3D,
-    DeformedToric3DPymatchingDecoder
+    DeformedToric3DPymatchingDecoder, FoliatedMatchingDecoder
 )
 from bn3d.bpauli import bvector_to_pauli_string
 
@@ -319,12 +319,58 @@ class TestMatchingXNoiseOnYZEdgesOnly:
 
     def test_decode(self, code):
         for seed in range(5):
-            rng = np.random.default_rng(seed=0)
+            rng = np.random.default_rng(seed=seed)
             probability = 0.5
             error_model = XNoiseOnYZEdgesOnly()
             decoder = DeformedToric3DPymatchingDecoder(
                 error_model, probability
             )
+            error = error_model.generate(
+                code, probability=probability, rng=rng
+            )
+            assert any(error), 'Error should be non-trivial'
+            syndrome = bcommute(code.stabilizers, error)
+            correction = decoder.decode(code, syndrome)
+            assert any(correction), 'Correction should be non-trivial'
+            total_error = (correction + error) % 2
+            assert np.all(bcommute(code.stabilizers, total_error) == 0), (
+                'Total error should be in code space'
+            )
+
+            # Error and correction as objects.
+            error_pauli = Toric3DPauli(code, bsf=error)
+            correction_pauli = Toric3DPauli(code, bsf=correction)
+
+            # Lattice vertex locations.
+            locations = list(itertools.product(*[
+                range(length) for length in code.size
+            ]))
+
+            assert all(
+                error_pauli.operator((0, x, y, z)) == 'I'
+                for x, y, z in locations
+            ), 'No errors should be on x edges'
+
+            assert all(
+                correction_pauli.operator((0, x, y, z)) == 'I'
+                for x, y, z in locations
+            ), 'No corrections should be on x edges'
+
+            assert any([
+                correction_pauli.operator((1, x, y, z)) != 'I'
+                or correction_pauli.operator((2, x, y, z)) != 'I'
+                for x, y, z in locations
+            ]), 'Non-trivial corrections should be on the y and z edges'
+
+
+class TestFoliatedDecoderXNoiseOnYZEdgesOnly:
+
+    def test_decode(self, code):
+        for seed in range(5):
+            rng = np.random.default_rng(seed=seed)
+            probability = 0.5
+            error_model = XNoiseOnYZEdgesOnly()
+            decoder = FoliatedMatchingDecoder()
             error = error_model.generate(
                 code, probability=probability, rng=rng
             )
