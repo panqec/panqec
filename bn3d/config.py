@@ -10,7 +10,8 @@ from qecsim.models.basic import FiveQubitCode
 from qecsim.models.generic import NaiveDecoder
 from .tc3d import ToricCode3D, Toric3DPymatchingDecoder, SweepMatchDecoder
 from .deform import (
-    DeformedPauliErrorModel, DeformedSweepMatchDecoder, FoliatedMatchingDecoder
+    DeformedPauliErrorModel, DeformedSweepMatchDecoder,
+    FoliatedMatchingDecoder, DeformedToric3DPymatchingDecoder
 )
 from .noise import PauliErrorModel, XNoiseOnYZEdgesOnly
 
@@ -55,6 +56,7 @@ DECODERS = {
     'NaiveDecoder': NaiveDecoder,
     'DeformedSweepMatchDecoder': DeformedSweepMatchDecoder,
     'FoliatedMatchingDecoder': FoliatedMatchingDecoder,
+    'DeformedToric3DPymatchingDecoder': DeformedToric3DPymatchingDecoder,
 }
 
 # Slurm automation config.
