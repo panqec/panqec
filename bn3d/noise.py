@@ -48,10 +48,11 @@ class XNoiseOnYZEdgesOnly(ErrorModel):
     No errors on x edges.
     """
 
-    label = 'X on yz edges'
+    label: str = 'X on yz edges'
+    direction: Tuple[float, float, float]
 
     def __init__(self):
-        pass
+        self.direction = (1, 0, 0)
 
     def generate(
         self, code: StabilizerCode, probability: float, rng=None
