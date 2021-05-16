@@ -7,11 +7,13 @@ Settings from environmental variables and config files.
 import os
 from dotenv import load_dotenv
 from qecsim.models.basic import FiveQubitCode
+from qecsim.models.toric import ToricCode
 from qecsim.models.generic import NaiveDecoder
 from .tc3d import ToricCode3D, Toric3DPymatchingDecoder, SweepMatchDecoder
+from .tc2d import Toric2DPymatchingDecoder
 from .deform import (
     DeformedPauliErrorModel, DeformedSweepMatchDecoder,
-    FoliatedMatchingDecoder, DeformedToric3DPymatchingDecoder
+    FoliatedMatchingDecoder, DeformedToric3DPymatchingDecoder,
 )
 from .noise import PauliErrorModel, XNoiseOnYZEdgesOnly
 
@@ -42,6 +44,7 @@ if os.getenv('BN3D_DIR') is not None:
 
 # Register your models here.
 CODES = {
+    'ToricCode': ToricCode,
     'ToricCode3D': ToricCode3D,
     'FiveQubitCode': FiveQubitCode,
 }
@@ -51,6 +54,7 @@ ERROR_MODELS = {
     'XNoiseOnYZEdgesOnly': XNoiseOnYZEdgesOnly,
 }
 DECODERS = {
+    'Toric2DPymatchingDecoder': Toric2DPymatchingDecoder,
     'Toric3DPymatchingDecoder': Toric3DPymatchingDecoder,
     'SweepMatchDecoder': SweepMatchDecoder,
     'NaiveDecoder': NaiveDecoder,
