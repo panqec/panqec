@@ -98,6 +98,18 @@ def annotate_point(
     )
 
 
+def plot_sample_points(plt, points, markersize=1):
+    horizontal_coords, vertical_coords = np.array([
+        project_triangle(p) for p in points
+    ]).T
+    plt.plot(
+        horizontal_coords, vertical_coords,
+        'k.',
+        markersize=markersize,
+        label='Sample'
+    )
+
+
 def plot_hashing_bound(plt, pdf=None):
     """Plot hashing bound."""
 
