@@ -5,10 +5,9 @@ Routines for plotting thing .
     Eric Huang
 """
 import json
-import matplotlib.pyplot as plt
 
 
-def plot_export_json(export_json):
+def plot_export_json(plt, export_json):
     """Plot data in previously exported .json file."""
     with open(export_json) as f:
         data = json.load(f)

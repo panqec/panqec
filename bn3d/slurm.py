@@ -122,7 +122,10 @@ def get_results_status():
         print(batch_sim.label)
         wall_time = batch_sim.wall_time
         time_remaining = batch_sim.estimate_remaining_time(n_trials)
-        progress = wall_time/(wall_time + time_remaining)
+        if wall_time + time_remaining > 0:
+            progress = wall_time/(wall_time + time_remaining)
+        else:
+            progress = 0
         print('    target n_trials =', n_trials)
         print(
             '    wall time =',

@@ -139,26 +139,37 @@ def get_effective_error(
     if logical_xs.shape != logical_zs.shape:
         raise ValueError('Logical Xs and Zs must be of same shape.')
 
+    # Number of pairs of logical operators.
     if len(logical_xs.shape) == 1:
         n_logical = 1
     else:
-        n_logical = int(len(logical_xs))
+        n_logical = int(logical_xs.shape[0])
 
     # Get the number of total errors given.
     num_total_errors = 1
     if len(total_error.shape) > 1:
         num_total_errors = total_error.shape[0]
 
+    # The shape of the array to be returned.
+    final_shape: tuple = (num_total_errors, 2*n_logical)
+    if num_total_errors == 1:
+        final_shape = (2*n_logical, )
+
     effective_Z = bcommute(logical_xs, total_error)
     effective_X = bcommute(logical_zs, total_error)
-    if len(effective_Z.shape) == 1:
+
+    if num_total_errors == 1:
+        effective = np.concatenate([effective_X, effective_Z])
+    elif n_logical == 1:
         effective = np.array([effective_X, effective_Z]).T
     else:
-        effective = np.concatenate([effective_X.T, effective_Z.T], axis=1)
+        effective = np.array([
+            np.concatenate([effective_X[:, i], effective_Z[:, i]])
+            for i in range(num_total_errors)
+        ])
 
     # Flatten the array if only one total error is given.
-    if num_total_errors == 1:
-        effective = effective.reshape(2*n_logical)
+    effective = effective.reshape(final_shape)
     return effective
 
 
