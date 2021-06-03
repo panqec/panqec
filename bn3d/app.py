@@ -324,12 +324,10 @@ def expand_input_ranges(
     noise_range: List[Dict] = [{}]
     if 'parameters' in data['noise']:
         noise_range = _parse_parameters_range(data['noise']['parameters'])
-        print('total', len(noise_range))
         if start is not None:
             noise_range = noise_range[start:]
             if n_runs is not None:
                 noise_range = noise_range[:n_runs]
-        print('running', len(noise_range))
 
     decoder_range: List[Dict] = [{}]
     if 'parameters' in data['decoder']:
