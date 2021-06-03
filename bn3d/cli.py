@@ -5,7 +5,10 @@ import bn3d
 from tqdm import tqdm
 from .app import run_file
 from .config import CODES, ERROR_MODELS, DECODERS
-from .slurm import generate_sbatch, get_status, generate_sbatch_nist
+from .slurm import (
+    generate_sbatch, get_status, generate_sbatch_nist, count_input_runs,
+    clear_out_folder, clear_sbatch_folder
+)
 
 
 @click.group(invoke_without_command=True)
@@ -25,14 +28,23 @@ def cli(ctx):
 @click.pass_context
 @click.option('-f', '--file', 'file_')
 @click.option('-t', '--trials', default=100, type=click.INT, show_default=True)
+@click.option('-s', '--start', default=None, type=click.INT, show_default=True)
+@click.option(
+    '-n', '--n_runs', default=None, type=click.INT, show_default=True
+)
 def run(
     ctx,
     file_: Optional[str],
-    trials: int
+    trials: int,
+    start: Optional[int],
+    n_runs: Optional[int]
 ):
     """Run a single job or run many jobs from input file."""
     if file_ is not None:
-        run_file(os.path.abspath(file_), trials, progress=tqdm)
+        run_file(
+            os.path.abspath(file_), trials,
+            start=start, n_runs=n_runs, progress=tqdm,
+        )
     else:
         print(ctx.get_help())
 
@@ -80,17 +92,40 @@ def gen(n_trials, partition, time, cores):
 
 
 @click.command()
+@click.argument('name', required=True)
 @click.option('--n_trials', default=1000, type=click.INT, show_default=True)
 @click.option('--nodes', default=1, type=click.INT, show_default=True)
 @click.option('--ntasks', default=1, type=click.INT, show_default=True)
 @click.option('--cpus_per_task', default=40, type=click.INT, show_default=True)
 @click.option('--mem', default=10000, type=click.INT, show_default=True)
 @click.option('--time', default='10:00:00', show_default=True)
-def gennist(n_trials, nodes, ntasks, cpus_per_task, mem, time):
+@click.option('--split', default=1, type=click.INT, show_default=True)
+def gennist(name, n_trials, nodes, ntasks, cpus_per_task, mem, time, split):
     """Generate sbatch files for NIST cluster."""
     generate_sbatch_nist(
-        n_trials, nodes, ntasks, cpus_per_task, mem, time
+        name, n_trials, nodes, ntasks, cpus_per_task, mem, time, split
     )
+
+
+@click.command()
+@click.argument('folder', required=True, type=click.Choice(
+    ['all', 'out', 'sbatch'],
+    case_sensitive=False
+))
+def clear(folder):
+    """Clear generated files."""
+    if folder == 'out' or folder == 'all':
+        clear_out_folder()
+    if folder == 'sbatch' or folder == 'all':
+        clear_sbatch_folder()
+
+
+@click.command()
+@click.argument('name', required=True)
+def count(name):
+    """Count number of input parameters contained."""
+    n_runs = count_input_runs(name)
+    print(n_runs)
 
 
 @click.command()
@@ -102,6 +137,8 @@ def status():
 slurm.add_command(gen)
 slurm.add_command(gennist)
 slurm.add_command(status)
+slurm.add_command(count)
+slurm.add_command(clear)
 cli.add_command(run)
 cli.add_command(ls)
 cli.add_command(slurm)

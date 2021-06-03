@@ -116,7 +116,7 @@ class DeformedSweepDecoder3D(SweepDecoder3D):
 
 class DeformedSweepMatchDecoder(Decoder):
 
-    label = 'Toric 3D Sweep Pymatching Decoder'
+    label = 'Deformed Toric 3D Sweep Pymatching Decoder'
     _sweeper: DeformedSweepDecoder3D
     _matcher: DeformedToric3DPymatchingDecoder
 

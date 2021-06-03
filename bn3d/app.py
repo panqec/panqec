@@ -6,7 +6,7 @@ import inspect
 import json
 from json import JSONDecodeError
 import itertools
-from typing import List, Dict, Callable, Union, Any, Optional
+from typing import List, Dict, Callable, Union, Any, Optional, Tuple
 import datetime
 import numpy as np
 from qecsim.model import StabilizerCode, ErrorModel, Decoder
@@ -53,11 +53,26 @@ def run_once(
 
 
 def run_file(
-    file_name: str, n_trials: int, progress: Callable = identity,
-    output_dir: Optional[str] = None
+    file_name: str, n_trials: int,
+    start: Optional[int] = None,
+    n_runs: Optional[int] = None,
+    progress: Callable = identity,
+    output_dir: Optional[str] = None,
+    verbose: bool = True,
 ):
     """Run an input json file."""
-    batch_sim = read_input_json(file_name, output_dir=output_dir)
+    batch_sim = read_input_json(
+        file_name, output_dir=output_dir,
+        start=start, n_runs=n_runs
+    )
+    if verbose:
+        print(f'running {len(batch_sim._simulations)} simulations:')
+        for simulation in batch_sim._simulations:
+            code = simulation.code.label
+            noise = simulation.error_model.label
+            decoder = simulation.decoder.label
+            probability = simulation.error_probability
+            print(f'    {code}, {noise}, {decoder}, {probability}')
     batch_sim.run(n_trials, progress=progress)
 
 
@@ -307,8 +322,8 @@ def _parse_parameters_range(parameters):
     return parameters_range
 
 
-def expand_input_ranges(data: dict) -> List[Dict]:
-    runs: List[Dict] = []
+def _parse_all_ranges(data: dict) -> Tuple[list, list, list, list]:
+
     code_range: List[Dict] = [{}]
     if 'parameters' in data['code']:
         code_range = _parse_parameters_range(data['code']['parameters'])
@@ -324,11 +339,20 @@ def expand_input_ranges(data: dict) -> List[Dict]:
         )
 
     probability_range = _parse_parameters_range(data['probability'])
+    return code_range, noise_range, decoder_range, probability_range
+
+
+def expand_input_ranges(data: dict) -> List[Dict]:
+    runs: List[Dict] = []
+
+    (
+        code_range, noise_range, decoder_range, probability_range
+    ) = _parse_all_ranges(data)
 
     for (
-        code_param, noise_param, decoder_param, probability
+        noise_param, decoder_param, probability, code_param
     ) in itertools.product(
-        code_range, noise_range, decoder_range, probability_range
+        noise_range, decoder_range, probability_range, code_range
     ):
         run = {
             k: v for k, v in data.items()
@@ -418,21 +442,55 @@ def read_input_json(file_path: str, *args, **kwargs) -> BatchSimulation:
     return read_input_dict(data, *args, **kwargs)
 
 
-def read_input_dict(data: dict, *args, **kwargs) -> BatchSimulation:
-    """Return BatchSimulation from input dict."""
+def get_runs(
+    data: dict, start: Optional[int] = None, n_runs: Optional[int] = None
+) -> List[dict]:
+    """Get expanded runs from input dictionary."""
     runs = []
-    label = 'unlabelled'
     if 'runs' in data:
         runs = data['runs']
     if 'ranges' in data:
         runs += expand_input_ranges(data['ranges'])
+
+    # Filter the range of runs.
+    if start is not None:
+        runs = runs[start:]
+        if n_runs is not None:
+            runs = runs[:n_runs]
+
+    return runs
+
+
+def count_runs(file_path: str) -> Optional[int]:
+    """Count the number of noise parameters in an input file.
+
+    Return None if no noise parameters range given.
+    """
+    n_runs = None
+    with open(file_path) as f:
+        data = json.load(f)
+    all_runs = get_runs(data, start=None, n_runs=None)
+    n_runs = len(all_runs)
+    return n_runs
+
+
+def read_input_dict(
+    data: dict,
+    start: Optional[int] = None,
+    n_runs: Optional[int] = None,
+    *args, **kwargs
+) -> BatchSimulation:
+    """Return BatchSimulation from input dict."""
+    label = 'unlabelled'
+    if 'ranges' in data:
         if 'label' in data['ranges']:
             label = data['ranges']['label']
-
     kwargs['label'] = label
 
     batch_sim = BatchSimulation(*args, **kwargs)
     assert len(batch_sim._simulations) == 0
+
+    runs = get_runs(data, start=start, n_runs=n_runs)
 
     for single_run in runs:
         batch_sim.append(parse_run(single_run))
