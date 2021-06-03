@@ -18,6 +18,29 @@ from .config import (
 from .app import read_input_json, count_runs
 
 
+def _delete_files_with_ext(folder_path, extension):
+    """Delete files with extension in folder."""
+    files = glob(os.path.join(folder_path, f'*.{extension}'))
+    total_files = len(files)
+    for file_path in files:
+        print(f'Deleting {file_path}')
+        os.remove(file_path)
+    print(f'Deleted {total_files} .{extension} files')
+
+
+def clear_sbatch_folder():
+    """Delete all sbatch files in the sbatch folder."""
+    sbatch_dir = os.path.join(SLURM_DIR, 'sbatch')
+    _delete_files_with_ext(sbatch_dir, 'sbatch')
+    _delete_files_with_ext(sbatch_dir, 'sh')
+
+
+def clear_out_folder():
+    """Delete all out files in the sbatch folder."""
+    sbatch_dir = os.path.join(SLURM_DIR, 'out')
+    _delete_files_with_ext(sbatch_dir, 'out')
+
+
 def count_input_runs(name: str) -> Optional[int]:
     input_dir = os.path.join(SLURM_DIR, 'inputs')
     input_file = os.path.join(input_dir, f'{name}.json')
@@ -60,16 +83,41 @@ def generate_sbatch_nist(
         else:
             split = min(split, run_count)
             parts = np.array_split(range(run_count), split)
+            sbatch_files = []
             for i_part, part in enumerate(parts):
                 split_label = f'_{i_part}'
                 start = part[0]
                 n_runs = len(part)
                 options = f' --start {start} --n_runs {n_runs}'
-                _write_sbatch(
+                sbatch_file = _write_sbatch(
                     sbatch_dir, template_text,
                     name, output_dir, nodes, ntasks, cpus_per_task,
                     mem, time, input_file, n_trials, options, split_label
                 )
+                sbatch_files.append(sbatch_file)
+
+            write_submit_sh(name, sbatch_files)
+
+
+def write_submit_sh(name, sbatch_files):
+    """Write script to submit all sbatch files for a given run."""
+    sbatch_dir = os.path.join(SLURM_DIR, 'sbatch')
+    sh_path = os.path.join(sbatch_dir, f'submit_{name}.sh')
+    n_jobs = len(sbatch_files)
+    lines = [
+        '#!/bin/bash',
+        f'echo "Submitting {n_jobs} jobs for {name}"'
+    ]
+    flags = '-p pml'
+    for sbatch_file in sbatch_files:
+        lines.append(
+            f'sbatch {flags} \'{sbatch_file}\''
+        )
+    lines.append('echo "Success! Happy waiting!"')
+    sh_contents = '\n'.join(lines)
+    with open(sh_path, 'w') as f:
+        f.write(sh_contents)
+    print(f'Run {sh_path} to submit all jobs')
 
 
 def _write_sbatch(
@@ -77,7 +125,8 @@ def _write_sbatch(
     name: str, output_dir: str, nodes: int, ntasks: int, cpus_per_task: int,
     mem: int, time: str, input_file: str, n_trials: int, options: str,
     split_label: str
-):
+) -> str:
+    """Write sbatch file and return the path."""
     sbatch_file = os.path.join(
         sbatch_dir, f'{name}{split_label}.sbatch'
     )
@@ -102,6 +151,7 @@ def _write_sbatch(
     with open(sbatch_file, 'w') as f:
         f.write(modified_text)
     print(f'Generated {sbatch_file}')
+    return sbatch_file
 
 
 def generate_sbatch(

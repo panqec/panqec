@@ -57,13 +57,22 @@ def run_file(
     start: Optional[int] = None,
     n_runs: Optional[int] = None,
     progress: Callable = identity,
-    output_dir: Optional[str] = None
+    output_dir: Optional[str] = None,
+    verbose: bool = True,
 ):
     """Run an input json file."""
     batch_sim = read_input_json(
         file_name, output_dir=output_dir,
         start=start, n_runs=n_runs
     )
+    if verbose:
+        print(f'running {len(batch_sim._simulations)} simulations:')
+        for simulation in batch_sim._simulations:
+            code = simulation.code.label
+            noise = simulation.error_model.label
+            decoder = simulation.decoder.label
+            probability = simulation.error_probability
+            print(f'    {code}, {noise}, {decoder}, {probability}')
     batch_sim.run(n_trials, progress=progress)
 
 
@@ -341,9 +350,9 @@ def expand_input_ranges(data: dict) -> List[Dict]:
     ) = _parse_all_ranges(data)
 
     for (
-        code_param, noise_param, decoder_param, probability
+        noise_param, decoder_param, probability, code_param
     ) in itertools.product(
-        code_range, noise_range, decoder_range, probability_range
+        noise_range, decoder_range, probability_range, code_range
     ):
         run = {
             k: v for k, v in data.items()

@@ -6,7 +6,8 @@ from tqdm import tqdm
 from .app import run_file
 from .config import CODES, ERROR_MODELS, DECODERS
 from .slurm import (
-    generate_sbatch, get_status, generate_sbatch_nist, count_input_runs
+    generate_sbatch, get_status, generate_sbatch_nist, count_input_runs,
+    clear_out_folder, clear_sbatch_folder
 )
 
 
@@ -107,6 +108,19 @@ def gennist(name, n_trials, nodes, ntasks, cpus_per_task, mem, time, split):
 
 
 @click.command()
+@click.argument('folder', required=True, type=click.Choice(
+    ['all', 'out', 'sbatch'],
+    case_sensitive=False
+))
+def clear(folder):
+    """Clear generated files."""
+    if folder == 'out' or folder == 'all':
+        clear_out_folder()
+    if folder == 'sbatch' or folder == 'all':
+        clear_sbatch_folder()
+
+
+@click.command()
 @click.argument('name', required=True)
 def count(name):
     """Count number of input parameters contained."""
@@ -124,6 +138,7 @@ slurm.add_command(gen)
 slurm.add_command(gennist)
 slurm.add_command(status)
 slurm.add_command(count)
+slurm.add_command(clear)
 cli.add_command(run)
 cli.add_command(ls)
 cli.add_command(slurm)
