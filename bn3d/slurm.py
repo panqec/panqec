@@ -22,6 +22,7 @@ def generate_sbatch_nist(
     nodes: int,
     ntasks: int,
     cpus_per_task: int,
+    mem: int,
     time: str
 ):
     """Generate sbatch files for NIST."""
@@ -37,6 +38,7 @@ def generate_sbatch_nist(
     print(f'Found {len(input_files)} input files')
     print('\n'.join(input_files))
     for input_file in input_files:
+
         name = os.path.splitext(os.path.split(input_file)[-1])[0]
         print(f'Generating NIST sbatch for {name}')
         sbatch_file = os.path.join(sbatch_dir, f'{name}.sbatch')
@@ -46,6 +48,7 @@ def generate_sbatch_nist(
             'nodes': str(nodes),
             'ntasks': str(ntasks),
             'cpus_per_task': str(cpus_per_task),
+            'mem': str(mem),
             'time': time,
             'input_file': input_file,
             'n_trials': str(n_trials)

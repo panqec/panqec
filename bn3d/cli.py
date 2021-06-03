@@ -84,10 +84,13 @@ def gen(n_trials, partition, time, cores):
 @click.option('--nodes', default=1, type=click.INT, show_default=True)
 @click.option('--ntasks', default=1, type=click.INT, show_default=True)
 @click.option('--cpus_per_task', default=40, type=click.INT, show_default=True)
+@click.option('--mem', default=10000, type=click.INT, show_default=True)
 @click.option('--time', default='10:00:00', show_default=True)
-def gennist(n_trials, nodes, ntasks, cpus_per_task, time):
-    """Generate sbatch files forst NIST cluster."""
-    generate_sbatch_nist(n_trials, nodes, ntasks, cpus_per_task, time)
+def gennist(n_trials, nodes, ntasks, cpus_per_task, mem, time):
+    """Generate sbatch files for NIST cluster."""
+    generate_sbatch_nist(
+        n_trials, nodes, ntasks, cpus_per_task, mem, time
+    )
 
 
 @click.command()
