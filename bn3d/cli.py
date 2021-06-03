@@ -5,7 +5,7 @@ import bn3d
 from tqdm import tqdm
 from .app import run_file
 from .config import CODES, ERROR_MODELS, DECODERS
-from .slurm import generate_sbatch, get_status
+from .slurm import generate_sbatch, get_status, generate_sbatch_nist
 
 
 @click.group(invoke_without_command=True)
@@ -80,12 +80,27 @@ def gen(n_trials, partition, time, cores):
 
 
 @click.command()
+@click.option('--n_trials', default=1000, type=click.INT, show_default=True)
+@click.option('--nodes', default=1, type=click.INT, show_default=True)
+@click.option('--ntasks', default=1, type=click.INT, show_default=True)
+@click.option('--cpus_per_task', default=40, type=click.INT, show_default=True)
+@click.option('--mem', default=10000, type=click.INT, show_default=True)
+@click.option('--time', default='10:00:00', show_default=True)
+def gennist(n_trials, nodes, ntasks, cpus_per_task, mem, time):
+    """Generate sbatch files for NIST cluster."""
+    generate_sbatch_nist(
+        n_trials, nodes, ntasks, cpus_per_task, mem, time
+    )
+
+
+@click.command()
 def status():
     """Show the status of running jobs."""
     get_status()
 
 
 slurm.add_command(gen)
+slurm.add_command(gennist)
 slurm.add_command(status)
 cli.add_command(run)
 cli.add_command(ls)

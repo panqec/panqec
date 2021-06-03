@@ -3,6 +3,7 @@
 #SBATCH --output=${output}
 #SBATCH --nodes=${nodes}
 #SBATCH --ntasks=${ntasks}
+#SBATCH --mem=${mem}
 #SBATCH --cpus-per-task=${cpus_per_task}
 #SBATCH --time=${time}
 
