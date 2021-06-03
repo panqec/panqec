@@ -9,13 +9,20 @@ import os
 import subprocess
 import re
 import datetime
-from typing import Dict
+from typing import Dict, Optional
 from glob import glob
 import numpy as np
 from .config import (
     SLURM_DIR, SBATCH_TEMPLATE, SLURM_USERNAME, NIST_TEMPLATE
 )
 from .app import read_input_json, count_runs
+
+
+def count_input_runs(name: str) -> Optional[int]:
+    input_dir = os.path.join(SLURM_DIR, 'inputs')
+    input_file = os.path.join(input_dir, f'{name}.json')
+    n_runs = count_runs(input_file)
+    return n_runs
 
 
 def generate_sbatch_nist(

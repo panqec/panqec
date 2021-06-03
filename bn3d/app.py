@@ -6,7 +6,7 @@ import inspect
 import json
 from json import JSONDecodeError
 import itertools
-from typing import List, Dict, Callable, Union, Any, Optional
+from typing import List, Dict, Callable, Union, Any, Optional, Tuple
 import datetime
 import numpy as np
 from qecsim.model import StabilizerCode, ErrorModel, Decoder
@@ -313,10 +313,8 @@ def _parse_parameters_range(parameters):
     return parameters_range
 
 
-def expand_input_ranges(
-    data: dict, start: Optional[int] = None, n_runs: Optional[int] = None
-) -> List[Dict]:
-    runs: List[Dict] = []
+def _parse_all_ranges(data: dict) -> Tuple[list, list, list, list]:
+
     code_range: List[Dict] = [{}]
     if 'parameters' in data['code']:
         code_range = _parse_parameters_range(data['code']['parameters'])
@@ -324,10 +322,6 @@ def expand_input_ranges(
     noise_range: List[Dict] = [{}]
     if 'parameters' in data['noise']:
         noise_range = _parse_parameters_range(data['noise']['parameters'])
-        if start is not None:
-            noise_range = noise_range[start:]
-            if n_runs is not None:
-                noise_range = noise_range[:n_runs]
 
     decoder_range: List[Dict] = [{}]
     if 'parameters' in data['decoder']:
@@ -336,6 +330,15 @@ def expand_input_ranges(
         )
 
     probability_range = _parse_parameters_range(data['probability'])
+    return code_range, noise_range, decoder_range, probability_range
+
+
+def expand_input_ranges(data: dict) -> List[Dict]:
+    runs: List[Dict] = []
+
+    (
+        code_range, noise_range, decoder_range, probability_range
+    ) = _parse_all_ranges(data)
 
     for (
         code_param, noise_param, decoder_param, probability
@@ -438,7 +441,13 @@ def get_runs(
     if 'runs' in data:
         runs = data['runs']
     if 'ranges' in data:
-        runs += expand_input_ranges(data['ranges'], start=start, n_runs=n_runs)
+        runs += expand_input_ranges(data['ranges'])
+
+    # Filter the range of runs.
+    if start is not None:
+        runs = runs[start:]
+        if n_runs is not None:
+            runs = runs[:n_runs]
 
     return runs
 
@@ -451,12 +460,8 @@ def count_runs(file_path: str) -> Optional[int]:
     n_runs = None
     with open(file_path) as f:
         data = json.load(f)
-    if 'ranges' in data:
-        if 'parameters' in data['ranges']['noise']:
-            noise_range = _parse_parameters_range(
-                data['ranges']['noise']['parameters']
-            )
-            n_runs = len(noise_range)
+    all_runs = get_runs(data, start=None, n_runs=None)
+    n_runs = len(all_runs)
     return n_runs
 
 

@@ -5,7 +5,9 @@ import bn3d
 from tqdm import tqdm
 from .app import run_file
 from .config import CODES, ERROR_MODELS, DECODERS
-from .slurm import generate_sbatch, get_status, generate_sbatch_nist
+from .slurm import (
+    generate_sbatch, get_status, generate_sbatch_nist, count_input_runs
+)
 
 
 @click.group(invoke_without_command=True)
@@ -105,6 +107,14 @@ def gennist(name, n_trials, nodes, ntasks, cpus_per_task, mem, time, split):
 
 
 @click.command()
+@click.argument('name', required=True)
+def count(name):
+    """Count number of input parameters contained."""
+    n_runs = count_input_runs(name)
+    print(n_runs)
+
+
+@click.command()
 def status():
     """Show the status of running jobs."""
     get_status()
@@ -113,6 +123,7 @@ def status():
 slurm.add_command(gen)
 slurm.add_command(gennist)
 slurm.add_command(status)
+slurm.add_command(count)
 cli.add_command(run)
 cli.add_command(ls)
 cli.add_command(slurm)
