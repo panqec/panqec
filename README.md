@@ -167,9 +167,10 @@ You can do the above generation on the cluster you are running it on so it
 works nicely with the file system there.
 
 # Generating sbatch files for NIST cluster
-To generate sbatch files for NIST cluster.
+To generate sbatch files for NIST cluster for job `deformed_rays` split over 19
+sbatch files.
 ```
-bn3d slurm gennist --n_trials 1000
+bn3d slurm gennist deformed_rays --n_trials 1000 --split 19
 ```
 For more help
 ```
