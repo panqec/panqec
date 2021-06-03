@@ -1,7 +1,7 @@
 {
   "comments": "Deformed from depolarizing to infinite bias",
   "ranges": {
-    "label": "deformed_02",
+    "label": "deformed_rays",
     "code": {
       "model": "ToricCode3D",
       "parameters": [

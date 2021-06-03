@@ -1,7 +1,7 @@
 {
   "comments": "Undeformed from depolarizing to infinite bias",
   "ranges": {
-    "label": "undeformed_02",
+    "label": "undeformed_rays",
     "code": {
       "model": "ToricCode3D",
       "parameters": [
