@@ -165,3 +165,13 @@ in them, and you can just run then using the `sbatch` command.
 
 You can do the above generation on the cluster you are running it on so it
 works nicely with the file system there.
+
+# Generating sbatch files for NIST cluster
+To generate sbatch files for NIST cluster.
+```
+bn3d slurm gennist --n_trials 1000
+```
+For more help
+```
+bn3d slurm gennist --help
+```
