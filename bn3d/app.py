@@ -53,11 +53,17 @@ def run_once(
 
 
 def run_file(
-    file_name: str, n_trials: int, progress: Callable = identity,
+    file_name: str, n_trials: int,
+    start: Optional[int] = None,
+    n_runs: Optional[int] = None,
+    progress: Callable = identity,
     output_dir: Optional[str] = None
 ):
     """Run an input json file."""
-    batch_sim = read_input_json(file_name, output_dir=output_dir)
+    batch_sim = read_input_json(
+        file_name, output_dir=output_dir,
+        start=start, n_runs=n_runs
+    )
     batch_sim.run(n_trials, progress=progress)
 
 
@@ -307,7 +313,9 @@ def _parse_parameters_range(parameters):
     return parameters_range
 
 
-def expand_input_ranges(data: dict) -> List[Dict]:
+def expand_input_ranges(
+    data: dict, start: Optional[int] = None, n_runs: Optional[int] = None
+) -> List[Dict]:
     runs: List[Dict] = []
     code_range: List[Dict] = [{}]
     if 'parameters' in data['code']:
@@ -316,6 +324,12 @@ def expand_input_ranges(data: dict) -> List[Dict]:
     noise_range: List[Dict] = [{}]
     if 'parameters' in data['noise']:
         noise_range = _parse_parameters_range(data['noise']['parameters'])
+        print('total', len(noise_range))
+        if start is not None:
+            noise_range = noise_range[start:]
+            if n_runs is not None:
+                noise_range = noise_range[:n_runs]
+        print('running', len(noise_range))
 
     decoder_range: List[Dict] = [{}]
     if 'parameters' in data['decoder']:
@@ -418,21 +432,53 @@ def read_input_json(file_path: str, *args, **kwargs) -> BatchSimulation:
     return read_input_dict(data, *args, **kwargs)
 
 
-def read_input_dict(data: dict, *args, **kwargs) -> BatchSimulation:
-    """Return BatchSimulation from input dict."""
+def get_runs(
+    data: dict, start: Optional[int] = None, n_runs: Optional[int] = None
+) -> List[dict]:
+    """Get expanded runs from input dictionary."""
     runs = []
-    label = 'unlabelled'
     if 'runs' in data:
         runs = data['runs']
     if 'ranges' in data:
-        runs += expand_input_ranges(data['ranges'])
+        runs += expand_input_ranges(data['ranges'], start=start, n_runs=n_runs)
+
+    return runs
+
+
+def count_runs(file_path: str) -> Optional[int]:
+    """Count the number of noise parameters in an input file.
+
+    Return None if no noise parameters range given.
+    """
+    n_runs = None
+    with open(file_path) as f:
+        data = json.load(f)
+    if 'ranges' in data:
+        if 'parameters' in data['ranges']['noise']:
+            noise_range = _parse_parameters_range(
+                data['ranges']['noise']['parameters']
+            )
+            n_runs = len(noise_range)
+    return n_runs
+
+
+def read_input_dict(
+    data: dict,
+    start: Optional[int] = None,
+    n_runs: Optional[int] = None,
+    *args, **kwargs
+) -> BatchSimulation:
+    """Return BatchSimulation from input dict."""
+    label = 'unlabelled'
+    if 'ranges' in data:
         if 'label' in data['ranges']:
             label = data['ranges']['label']
-
     kwargs['label'] = label
 
     batch_sim = BatchSimulation(*args, **kwargs)
     assert len(batch_sim._simulations) == 0
+
+    runs = get_runs(data, start=start, n_runs=n_runs)
 
     for single_run in runs:
         batch_sim.append(parse_run(single_run))

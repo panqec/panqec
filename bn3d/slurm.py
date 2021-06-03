@@ -11,19 +11,22 @@ import re
 import datetime
 from typing import Dict
 from glob import glob
+import numpy as np
 from .config import (
     SLURM_DIR, SBATCH_TEMPLATE, SLURM_USERNAME, NIST_TEMPLATE
 )
-from .app import read_input_json
+from .app import read_input_json, count_runs
 
 
 def generate_sbatch_nist(
+    name: str,
     n_trials: int,
     nodes: int,
     ntasks: int,
     cpus_per_task: int,
     mem: int,
-    time: str
+    time: str,
+    split: int,
 ):
     """Generate sbatch files for NIST."""
     input_dir = os.path.join(SLURM_DIR, 'inputs')
@@ -33,35 +36,65 @@ def generate_sbatch_nist(
     with open(NIST_TEMPLATE) as f:
         template_text = f.read()
 
-    input_files = glob(os.path.join(input_dir, '*.json'))
-    print(input_dir)
-    print(f'Found {len(input_files)} input files')
-    print('\n'.join(input_files))
-    for input_file in input_files:
+    input_file = os.path.join(input_dir, f'{name}.json')
+    if not os.path.exists(input_file):
+        print(f'File {input_file} not found')
+    else:
+        print(f'Generating NIST sbatch files for {name}')
+        run_count = count_runs(input_file)
+        if split == 1 or run_count is None:
+            split_label = ''
+            options = ''
+            _write_sbatch(
+                sbatch_dir, template_text,
+                name, output_dir, nodes, ntasks, cpus_per_task,
+                mem, time, input_file, n_trials, options, split_label
+            )
+        else:
+            split = min(split, run_count)
+            parts = np.array_split(range(run_count), split)
+            for i_part, part in enumerate(parts):
+                split_label = f'_{i_part}'
+                start = part[0]
+                n_runs = len(part)
+                options = f' --start {start} --n_runs {n_runs}'
+                _write_sbatch(
+                    sbatch_dir, template_text,
+                    name, output_dir, nodes, ntasks, cpus_per_task,
+                    mem, time, input_file, n_trials, options, split_label
+                )
 
-        name = os.path.splitext(os.path.split(input_file)[-1])[0]
-        print(f'Generating NIST sbatch for {name}')
-        sbatch_file = os.path.join(sbatch_dir, f'{name}.sbatch')
-        replacement: Dict[str, str] = {
-            'job_name': name,
-            'output': os.path.join(output_dir, f'{name}.out'),
-            'nodes': str(nodes),
-            'ntasks': str(ntasks),
-            'cpus_per_task': str(cpus_per_task),
-            'mem': str(mem),
-            'time': time,
-            'input_file': input_file,
-            'n_trials': str(n_trials)
-        }
-        modified_text = template_text
-        for field, value in replacement.items():
-            field_key = '${%s}' % field
-            assert field in modified_text, f'{field} missing from template'
-            assert field_key in modified_text
-            modified_text = modified_text.replace(field_key, value)
-        with open(sbatch_file, 'w') as f:
-            f.write(modified_text)
-        print(f'Generated NIST {sbatch_file}')
+
+def _write_sbatch(
+    sbatch_dir: str, template_text: str,
+    name: str, output_dir: str, nodes: int, ntasks: int, cpus_per_task: int,
+    mem: int, time: str, input_file: str, n_trials: int, options: str,
+    split_label: str
+):
+    sbatch_file = os.path.join(
+        sbatch_dir, f'{name}{split_label}.sbatch'
+    )
+    replacement: Dict[str, str] = {
+        'job_name': f'{name}{split_label}',
+        'output': os.path.join(output_dir, f'{name}{split_label}.out'),
+        'nodes': str(nodes),
+        'ntasks': str(ntasks),
+        'cpus_per_task': str(cpus_per_task),
+        'mem': str(mem),
+        'time': time,
+        'input_file': input_file,
+        'n_trials': str(n_trials),
+        'options': options,
+    }
+    modified_text = template_text
+    for field, value in replacement.items():
+        field_key = '${%s}' % field
+        assert field in modified_text, f'{field} missing from template'
+        assert field_key in modified_text
+        modified_text = modified_text.replace(field_key, value)
+    with open(sbatch_file, 'w') as f:
+        f.write(modified_text)
+    print(f'Generated {sbatch_file}')
 
 
 def generate_sbatch(
