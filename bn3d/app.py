@@ -212,6 +212,12 @@ class BatchSimulation():
     def __getitem__(self, *args):
         return self._simulations.__getitem__(*args)
 
+    def __iter__(self):
+        return self._simulations.__iter__()
+
+    def __next__(self):
+        return self._simulations.__next__()
+
     def append(self, simulation: Simulation):
         self._simulations.append(simulation)
 
