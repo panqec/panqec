@@ -65,3 +65,48 @@ def list_where(array):
 def set_where(array):
     """Get locations of binary list as sorted list of tuples."""
     return set(map(tuple, np.array(np.where(array)).T))
+
+
+def fmt_uncertainty(x, dx, sn=None, sn_cutoff=8, unit=None):
+    """Format uncertainty for latex."""
+    n_decimals = -int(np.floor(np.log10(np.abs(dx))))
+    leading_magnitude = np.abs(dx)/10**-n_decimals
+    if leading_magnitude <= 1.5:
+        n_decimals += 1
+    if sn is None:
+        if np.abs(x) >= 10**sn_cutoff or np.abs(x) <= 10**-sn_cutoff:
+            sn = True
+        else:
+            sn = False
+    if sn:
+        exponent = int(np.floor(np.log10(np.abs(x))))
+        x_mag = np.abs(x)/10**exponent
+        dx_mag = np.abs(dx)/10**exponent
+    else:
+        exponent = 0
+        x_mag = np.abs(x)
+        dx_mag = np.abs(dx)
+    x_round = np.round(x_mag, decimals=n_decimals + exponent)
+    dx_round = np.round(dx_mag, decimals=n_decimals + exponent)
+    if dx_round > 1.5:
+        x_str = str(int(x_round))
+    else:
+        x_str = str(x_round)
+    dx_str = str(dx_round)
+
+    if sn:
+        fmt_str = r'(%s \pm %s)\times {10}^{%s}' % (
+            x_str, dx_str, exponent
+        )
+        if x < 0:
+            fmt_str = f'-{fmt_str}'
+    else:
+        fmt_str = r'%s \pm %s' % (x_str, dx_str)
+        if x < 0:
+            fmt_str = f'-({fmt_str})'
+    if unit is not None:
+        if '(' not in fmt_str:
+            fmt_str = f'({fmt_str})'
+        fmt_str += r'\ \mathrm{%s}' % unit
+    fmt_str = f'${fmt_str}$'
+    return fmt_str
