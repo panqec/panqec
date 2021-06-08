@@ -289,6 +289,10 @@ class BatchSimulation():
         results = []
         for simulation in self._simulations:
             success = np.array(simulation.results['success'])
+            if len(success) > 0:
+                n_fail = np.sum(~success)
+            else:
+                n_fail = 0
             simulation_data = {
                 'size': simulation.code.size,
                 'code': simulation.code.label,
@@ -296,14 +300,17 @@ class BatchSimulation():
                 'error_model': simulation.error_model.label,
                 'probability': simulation.error_probability,
                 'n_success': np.sum(success),
-                'n_fail': np.sum(~success),
+                'n_fail': n_fail,
                 'n_trials': len(success),
             }
 
             # Use sample mean as estimator for effective error rate.
-            simulation_data['p_est'] = (
-                simulation_data['n_fail']/simulation_data['n_trials']
-            )
+            if simulation_data['n_trials'] != 0:
+                simulation_data['p_est'] = (
+                    simulation_data['n_fail']/simulation_data['n_trials']
+                )
+            else:
+                simulation_data['p_est'] = np.nan
 
             # Use posterior Beta distribution of the effective error rate
             # standard distribution as standard error.
