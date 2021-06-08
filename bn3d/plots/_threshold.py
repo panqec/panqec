@@ -11,7 +11,7 @@ from ._hashing_bound import project_triangle, get_hashing_bound
 from ..analysis import quadratic
 
 
-def detailed_plot(plt, results_df, error_model):
+def detailed_plot(plt, results_df, error_model, x_limits=None):
     """Plot routine on loop."""
     df = results_df.copy()
     fig, axes = plt.subplots(ncols=3, figsize=(12, 4))
@@ -20,6 +20,8 @@ def detailed_plot(plt, results_df, error_model):
         (1, 'p_x', 'p_x_se', 'Point sector'),
         (2, 'p_z', 'p_z_se', 'Loop sector'),
     ]
+    if x_limits is None:
+        x_limits = [(0, 0.5), (0, 0.5), (0, 0.5)]
     for (i_ax, prob, prob_se, title) in plot_labels:
         ax = axes[i_ax]
         for code_size in df['size'].unique():
@@ -29,9 +31,13 @@ def detailed_plot(plt, results_df, error_model):
             ax.errorbar(
                 df_filtered['probability'], df_filtered[prob],
                 yerr=df_filtered[prob_se],
-                label=df_filtered['code'].iloc[0]
+                label=df_filtered['code'].iloc[0],
+                capsize=1,
+                linestyle='-',
+                marker='.',
             )
         ax.set_yscale('log')
+        ax.set_xlim(x_limits[i_ax])
         ax.set_ylim(1e-2, 1e0)
         ax.set_title(title)
         ax.set_xlabel('Physical Error Rate')
@@ -461,13 +467,17 @@ def plot_crossing_collapse(
 
 
 def plot_deformedxps(plt, results_df, pdf=None):
-    detailed_plot(plt, results_df, 'Deformed Pauli X1.0Y0.0Z0.0')
+    detailed_plot(
+        plt, results_df, 'Deformed Pauli X1.0Y0.0Z0.0',
+    )
     if pdf:
         plt.savefig(pdf, bbox_inches='tight')
 
 
 def plot_deformedzps(plt, results_df, pdf=None):
-    detailed_plot(plt, results_df, 'Deformed Pauli X0.0Y0.0Z1.0')
+    detailed_plot(
+        plt, results_df, 'Deformed Pauli X0.0Y0.0Z1.0',
+    )
     if pdf:
         plt.savefig(pdf, bbox_inches='tight')
 

@@ -50,20 +50,26 @@ def get_results_df(
         for sim, batch_result in zip(batch_sim, batch_results):
             batch_result['label'] = batch_label
             batch_result['noise_direction'] = sim.error_model.direction
-            batch_result['p_x'] = np.array(
-                sim.results['effective_error']
-            )[:, :3].any(axis=1).mean()
-            batch_result['p_x_se'] = np.sqrt(
-                batch_result['p_x']*(1 - batch_result['p_x'])
-                / (sim.n_results + 1)
-            )
-            batch_result['p_z'] = np.array(
-                sim.results['effective_error']
-            )[:, 3:].any(axis=1).mean()
-            batch_result['p_z_se'] = np.sqrt(
-                batch_result['p_z']*(1 - batch_result['p_z'])
-                / (sim.n_results + 1)
-            )
+            if len(sim.results['effective_error']) > 0:
+                batch_result['p_x'] = np.array(
+                    sim.results['effective_error']
+                )[:, :3].any(axis=1).mean()
+                batch_result['p_x_se'] = np.sqrt(
+                    batch_result['p_x']*(1 - batch_result['p_x'])
+                    / (sim.n_results + 1)
+                )
+                batch_result['p_z'] = np.array(
+                    sim.results['effective_error']
+                )[:, 3:].any(axis=1).mean()
+                batch_result['p_z_se'] = np.sqrt(
+                    batch_result['p_z']*(1 - batch_result['p_z'])
+                    / (sim.n_results + 1)
+                )
+            else:
+                batch_result['p_x'] = np.nan
+                batch_result['p_x_se'] = np.nan
+                batch_result['p_z'] = np.nan
+                batch_result['p_z_se'] = np.nan
         results += batch_results
 
     results_df = pd.DataFrame(results)
@@ -232,6 +238,7 @@ def fit_fss_params(
         (p_left_val <= df_filt['probability'])
         & (df_filt['probability'] <= p_right_val)
     ].copy()
+    df_trunc = df_trunc.dropna(subset=['p_est'])
     df_trunc['d'] = df_trunc['n_k_d'].apply(lambda x: x[2])
 
     d_list = df_trunc['d'].values
@@ -244,7 +251,11 @@ def fit_fss_params(
         f_0 = df_trunc['p_est'].mean()
     params_0 = [p_nearest, 0.5, f_0, 1, 1]
 
-    params_opt = get_fit_params(p_list, d_list, f_list, params_0=params_0)
+    try:
+        params_opt = get_fit_params(p_list, d_list, f_list, params_0=params_0)
+    except RuntimeError:
+        print('fitting failed')
+        params_opt = np.array([np.nan]*5)
 
     df_trunc['rescaled_p'] = rescale_prob([p_list, d_list], *params_opt)
 
