@@ -8,6 +8,7 @@ Routines for analysing output data.
 import os
 import warnings
 from typing import List, Optional, Tuple
+import itertools
 import datetime
 import numpy as np
 import pandas as pd
@@ -17,6 +18,7 @@ from scipy.signal import argrelextrema
 from .config import SLURM_DIR
 from .app import read_input_json
 from .plots._hashing_bound import project_triangle
+from .utils import fmt_uncertainty
 
 
 def get_results_df(
@@ -238,6 +240,8 @@ def fit_fss_params(
 
     # Initial parameters to optimize.
     f_0 = df_trunc[df_trunc['probability'] == p_nearest]['p_est'].mean()
+    if pd.isna(f_0):
+        f_0 = df_trunc['p_est'].mean()
     params_0 = [p_nearest, 0.5, f_0, 1, 1]
 
     params_opt = get_fit_params(p_list, d_list, f_list, params_0=params_0)
@@ -360,6 +364,82 @@ def get_thresholds_df(results_df):
     thresholds_df['p_th_fss_left'] = p_th_fss_left
     thresholds_df['p_th_fss_right'] = p_th_fss_right
     thresholds_df['p_th_fss_se'] = p_th_fss_se
+    thresholds_df['fss_params'] = list(map(tuple, fss_params))
 
     trunc_results_df = pd.concat(df_trunc_list, axis=0)
     return thresholds_df, trunc_results_df, params_bs_list
+
+
+def export_summary_table_latex(
+    bias_direction, deformed, summary_df_part, table_dir=None
+):
+    latex_lines = (
+        summary_df_part.drop('Bias', axis=1)
+        .to_latex(index=False, escape=False).split('\n')
+    )
+    if latex_lines[-1] == '':
+        latex_lines.pop(-1)
+    latex_lines.append(
+        r'\caption{Thresholds for $%s$ bias in %s 3D toric code.}%%' % (
+            bias_direction.upper(),
+            {True: 'deformed', False: 'undeformed'}[deformed]
+        )
+    )
+    table_name = 'thresh%s%s' % (
+        bias_direction,
+        {True: 'deformed', False: 'undeformed'}[deformed]
+    )
+    latex_lines.append(
+        r'\label{tab:%s}' % table_name
+    )
+    latex_str = '\n'.join(latex_lines)
+    if table_dir is not None:
+        table_tex = os.path.join(table_dir, f'{table_name}.tex')
+        with open(table_tex, 'w') as f:
+            f.write(latex_str)
+    return latex_str
+
+
+def export_summary_tables(thresholds_df, table_dir=None, verbose=True):
+    summary_df_list = []
+    summary_df_latex = []
+    for bias_direction, deformed in itertools.product(
+        ['x', 'y', 'z'], [True, False]
+    ):
+        eta_key = f'eta_{bias_direction}'
+        deform_filter = thresholds_df['error_model'].str.contains('Deformed')
+        if not deformed:
+            deform_filter = ~deform_filter
+        summary_df_part = thresholds_df[
+            deform_filter
+            & (thresholds_df[eta_key] >= 0.5)
+        ].sort_values(by=eta_key).copy()
+        summary_df_part['Bias'] = r'$%s$' % bias_direction.upper()
+        summary_df_part[eta_key] = summary_df_part[eta_key].map(
+            '{:.1f}'.format
+        ).replace('inf', r'$\infty$', regex=False)
+        # str.replace('inf', r'$\infty$', regex=False)
+        summary_df_part['p_th_latex'] = summary_df_part[[
+            'p_th_fss', 'p_th_fss_se'
+        ]].apply(
+            lambda x: fmt_uncertainty(x[0]*100, x[1]*100, unit=r'\%'), axis=1
+        )
+        summary_df_part = summary_df_part[[
+            'Bias', eta_key, 'r_x', 'r_y', 'r_z', 'p_th_latex',
+        ]]
+        for k in ['r_x', 'r_y', 'r_z']:
+            summary_df_part[k] = summary_df_part[k].round(4)
+        summary_df_part.columns = [
+            'Bias', r'$\eta$', r'$r_X$', r'$r_Y$', r'$r_Z$',
+            r'$p_{\mathrm{th}}$ ($\%$)'
+        ]
+        summary_df_list.append(summary_df_part)
+        summary_df_latex.append(
+            export_summary_table_latex(
+                bias_direction, deformed,
+                summary_df_part, table_dir=table_dir
+            )
+        )
+        if verbose:
+            print(summary_df_latex[-1])
+    return summary_df_list, summary_df_latex

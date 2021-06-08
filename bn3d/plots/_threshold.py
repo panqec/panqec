@@ -4,7 +4,7 @@ Routines for extracting plotting threshold.
 :Author:
     Eric Huang
 """
-
+import re
 import numpy as np
 import pandas as pd
 from ._hashing_bound import project_triangle, get_hashing_bound
@@ -90,8 +90,31 @@ def plot_data_collapse(plt, df_trunc, params_opt, params_bs):
         fontsize=16
     )
     plt.ylabel(r'Logical failure rate $p_{\mathrm{fail}}$', fontsize=16)
-    plt.title(df_trunc['error_model'].iloc[0])
+
+    error_model = df_trunc['error_model'].iloc[0]
+    title = get_error_model_format(error_model)
+    plt.title(title)
     plt.legend()
+
+
+def get_error_model_format(error_model: str, eta=None) -> str:
+    if 'deformed' in error_model:
+        fmt = 'Deformed'
+    else:
+        fmt = 'Undeformed'
+
+    if eta is None:
+        match = re.search(r'X(.+)Y(.+)Z(.+)', error_model)
+        if match:
+            r_x = np.round(float(match.group(1)), 4)
+            r_y = np.round(float(match.group(2)), 4)
+            r_z = np.round(float(match.group(3)), 4)
+            fmt += ' $(r_X, r_Y, r_Z)=({},{},{})$'.format(r_x, r_y, r_z)
+        else:
+            fmt = error_model
+    else:
+        fmt += r' $\eta={}$'.format(eta)
+    return fmt
 
 
 def plot_threshold_fss(
@@ -115,11 +138,11 @@ def plot_threshold_fss(
         p_th_fss_left, p_th_fss_right, alpha=0.5, color='pink'
     )
     plt.xlabel(
-        r'Rescaled error probability $(p - p_{\mathrm{th}})d^{1/\nu}$',
+        'Error probability $p$',
         fontsize=16
     )
     plt.ylabel(r'Logical failure rate $p_{\mathrm{fail}}$', fontsize=16)
-    plt.title(df_trunc['error_model'].iloc[0])
+    plt.title(get_error_model_format(df_trunc['error_model'].iloc[0]))
     plt.legend()
 
 
@@ -154,15 +177,35 @@ def draw_tick_symbol(
     plt.gca().add_line(line)
 
 
-def plot_threshold_vs_bias(plt, Line2D, error_model_df, png=None):
+def format_eta(eta, decimals=4):
+    if eta == np.inf:
+        return r'\infty'
+    elif np.isclose(np.round(eta, decimals) % 1, 0):
+        return str(int(np.round(eta, decimals)))
+    else:
+        return str(np.round(eta, decimals))
+
+
+def plot_threshold_vs_bias(
+    plt, Line2D, error_model_df, main_linestyle='-',
+    eta_keys=['eta_x', 'eta_z', 'eta_y'],
+    markers=['x', 'o', '^'],
+    colors=['r', 'b', 'g'],
+    labels=None,
+    hashing=True,
+    png=None,
+):
     p_th_key = 'p_th_fss'
     p_th_se_key = 'p_th_fss_se'
-    plt.figure()
-    eta_keys = ['eta_x', 'eta_z', 'eta_y']
-    colors = ['r', 'b', 'g']
-    markers = ['x', 'o', '^']
+    if labels is None:
+        labels = [
+            r'${}$ bias'.format(eta_key[-1].upper())
+            for eta_key in eta_keys
+        ]
     inf_replacement = 1000
-    for eta_key, color, marker in zip(eta_keys, colors, markers):
+    for eta_key, color, marker, label in zip(
+        eta_keys, colors, markers, labels
+    ):
         df_filt = error_model_df[
             error_model_df[eta_key] >= 0.5
         ].sort_values(by=eta_key)
@@ -170,9 +213,10 @@ def plot_threshold_vs_bias(plt, Line2D, error_model_df, png=None):
         plt.errorbar(
             df_filt[eta_key], df_filt[p_th_key],
             yerr=df_filt[p_th_se_key],
-            fmt='o-',
+            linestyle=main_linestyle,
             color=color,
-            label=r'${}$ bias'.format(eta_key[-1].upper()),
+            capsize=5,
+            label=label,
             marker=marker
         )
         plt.plot(
@@ -198,41 +242,44 @@ def plot_threshold_vs_bias(plt, Line2D, error_model_df, png=None):
     p_th_dep = error_model_df[error_model_df[eta_key] == 0.5].iloc[0][p_th_key]
     plt.text(0.5, p_th_dep + 0.01, f'{p_th_dep:.3f}', ha='center')
 
-    eta_interp = np.logspace(np.log10(0.5), np.log10(100), 101)
-    interp_points = [
-        (
-            1/(2*(1 + eta)),
-            1/(2*(1 + eta)),
-            eta/(1 + eta)
+    # Plot the hashing bound curve.
+    if hashing:
+        eta_interp = np.logspace(np.log10(0.5), np.log10(100), 101)
+        interp_points = [
+            (
+                1/(2*(1 + eta)),
+                1/(2*(1 + eta)),
+                eta/(1 + eta)
+            )
+            for eta in eta_interp
+        ]
+        hb_interp = [
+            get_hashing_bound(point)
+            for point in interp_points
+        ]
+        plt.plot(eta_interp, hb_interp, '-.', color='black', label='hashing')
+        plt.plot(
+            df_filt[eta_key],
+            [get_hashing_bound(point) for point in df_filt['noise_direction']],
+            'k.'
         )
-        for eta in eta_interp
-    ]
-    hb_interp = [
-        get_hashing_bound(point)
-        for point in interp_points
-    ]
-    plt.plot(eta_interp, hb_interp, '-.', color='black', label='hashing')
-    plt.plot(
-        df_filt[eta_key],
-        [get_hashing_bound(point) for point in df_filt['noise_direction']],
-        'k.'
-    )
-    plt.plot(
-        inf_replacement,
-        get_hashing_bound((0, 0, 1)),
-        '.'
-    )
-    plt.plot(
-        [
-            eta_interp[-1],
+        plt.plot(
             inf_replacement,
-        ],
-        [
-            hb_interp[-1],
-            get_hashing_bound((0, 0, 1))
-        ],
-        '--', color='black', linewidth=1,
-    )
+            get_hashing_bound((0, 0, 1)),
+            '.'
+        )
+        plt.plot(
+            [
+                eta_interp[-1],
+                inf_replacement,
+            ],
+            [
+                hb_interp[-1],
+                get_hashing_bound((0, 0, 1))
+            ],
+            '--', color='black', linewidth=1,
+        )
+
     plt.legend()
     plt.xscale('log')
     draw_tick_symbol(plt, Line2D, log=True)
@@ -246,11 +293,13 @@ def plot_threshold_vs_bias(plt, Line2D, error_model_df, png=None):
         plt.savefig(png)
 
 
-def plot_thresholds_on_triangle(plt, error_model_df):
+def plot_thresholds_on_triangle(
+    plt, error_model_df, title='Thresholds',
+    colors=['r', 'b', 'g']
+):
     eta_keys = ['eta_x', 'eta_z', 'eta_y']
-    colors = ['r', 'b', 'g']
     markers = ['x', 'o', '^']
-    label_offsets = [(0, 0.1), (0.1, 0), (0, 0.1)]
+    label_offsets = [(0, 0.1), (0.2, 0), (0, 0.1)]
 
     plt.plot(*np.array([
         project_triangle(point)
@@ -277,23 +326,206 @@ def plot_thresholds_on_triangle(plt, error_model_df):
             *np.array(project_triangle(df_filt.iloc[-1]['noise_direction']))
             + offset,
             '{:.2f}'.format(df_filt.iloc[-1]['p_th_sd']),
-            color=color, ha='center'
+            color=color, ha='center',
+            fontsize=16
         )
     plt.text(
         *np.array(project_triangle((1, 0, 0))) + [-0.1, -0.1],
         r'$X$',
-        ha='center', fontsize=16, color='r'
+        ha='center', fontsize=20, color='r'
     )
     plt.text(
         *np.array(project_triangle((0, 1, 0))) + [0.1, -0.1],
         r'$Y$',
-        ha='center', fontsize=16, color='g'
+        ha='center', fontsize=20, color='g'
     )
     plt.text(
         *np.array(project_triangle((0, 0, 1))) + [0, 0.1],
         r'$Z$',
-        ha='center', fontsize=16, color='b'
+        ha='center', fontsize=20, color='b'
     )
     plt.axis('off')
-    plt.legend(title='Thresholds')
+    plt.legend(title=title, loc='upper left', title_fontsize=16, fontsize=12)
     plt.gca().set_aspect(1)
+
+
+def plot_combined_threshold_vs_bias(plt, Line2D, thresholds_df, pdf=None):
+    thres_df_filt = thresholds_df[
+        thresholds_df['error_model'].str.contains('Deformed')
+    ]
+    plot_threshold_vs_bias(
+        plt, Line2D, thres_df_filt,
+        labels=['X deformed', 'Z deformed', 'Y deformed']
+    )
+    thres_df_filt = thresholds_df[
+        ~thresholds_df['error_model'].str.contains('Deformed')
+    ]
+    plot_threshold_vs_bias(
+        plt, Line2D, thres_df_filt,
+        eta_keys=['eta_x', 'eta_z'],
+        colors=['#ff9999', '#9999ff'],
+        labels=['X undef.', 'Z undef.'],
+        markers=['', '', ''],
+        main_linestyle='--',
+        hashing=False
+    )
+    plt.ylim(0, 0.5)
+    plt.text(0.5, -0.06, 'Depol.', ha='center')
+    if pdf:
+        plt.savefig(pdf, bbox_inches='tight')
+
+
+def plot_crossing_collapse(
+    plt, bias_direction, deformed, results_df,
+    thresholds_df, trunc_results_df, params_bs_list,
+    pdf=None
+):
+    params_bs_dict = dict(zip(
+        thresholds_df['error_model'].values,
+        params_bs_list
+    ))
+    eta_key = f'eta_{bias_direction}'
+    plot_thresholds_df = thresholds_df[
+        ~(thresholds_df['error_model'].str.contains('Deformed') ^ deformed)
+        & (thresholds_df[eta_key] >= 0.5)
+    ].sort_values(by=eta_key)
+    fig, axes = plt.subplots(
+        plot_thresholds_df.shape[0], 2, figsize=(10, 15),
+        gridspec_kw={'width_ratios': [1.2, 1]}
+    )
+    for i, (_, row) in enumerate(plot_thresholds_df.iterrows()):
+        plt.sca(axes[i, 0])
+        df_trunc = trunc_results_df[
+            (trunc_results_df['error_model'] == row['error_model'])
+        ]
+        df_no_trunc = results_df[
+            results_df['error_model'] == row['error_model']
+        ].copy()
+        df_no_trunc['d'] = results_df['n_k_d'].apply(lambda x: x[2])
+        plot_threshold_fss(
+            plt, df_no_trunc, row['p_th_fss'], row['p_th_fss_left'],
+            row['p_th_fss_right'], row['p_th_fss_se']
+        )
+        plt.title(None)
+        plt.ylabel(r'$p_{\mathrm{fail}}$')
+        plt.gca().tick_params(direction='in')
+        if i < plot_thresholds_df.shape[0] - 1:
+            plt.gca().tick_params(labelbottom=False, direction='in')
+            plt.xlabel(None)
+        else:
+            plt.xlabel(r'Error Rate $p$')
+        plt.gca().minorticks_on()
+        plt.gca().tick_params(direction='in', which='minor')
+        plt.ylim(0, 0.9)
+        plt.xlim(0, 1.5*plot_thresholds_df['p_right'].max())
+        plt.gca().get_legend().remove()
+        plt.gca().legend(
+            plt.gca().get_legend_handles_labels()[1][:1],
+            title=r'%s $\eta_%s=%s$' % (
+                {True: 'Deformed', False: 'Undeformed'}[deformed],
+                bias_direction.upper(),
+                format_eta(row[eta_key])
+            ),
+            title_fontsize=12,
+            loc='lower right'
+        )
+
+        plt.sca(axes[i, 1])
+        plot_data_collapse(
+            plt, df_trunc, row['fss_params'],
+            params_bs_dict[row['error_model']]
+        )
+        plt.title(None)
+        plt.ylabel(None)
+        rescaled_p_vals = trunc_results_df[
+            trunc_results_df['error_model'] == row['error_model']
+        ]['rescaled_p']
+        plt.xlim(
+            np.min(rescaled_p_vals) - 0.05,
+            np.max(rescaled_p_vals) + 0.05
+        )
+        plt.gca().tick_params(labelleft=False, axis='y', direction='in')
+        if i < plot_thresholds_df.shape[0] - 1:
+            plt.gca().tick_params(labelbottom=False, direction='in')
+            plt.xlabel(None)
+        else:
+            plt.xlabel(r'Rescaled Error rate $(p-p_{\mathrm{th}})d^{1/\nu}$')
+        plt.gca().get_legend().remove()
+        plt.legend(
+            ncol=3
+        )
+        plt.ylim(0, 0.9)
+    fig.subplots_adjust(wspace=0.01, hspace=0)
+    if pdf:
+        plt.savefig(pdf, bbox_inches='tight')
+
+
+def plot_deformedxps(plt, results_df, pdf=None):
+    detailed_plot(plt, results_df, 'Deformed Pauli X1.0Y0.0Z0.0')
+    if pdf:
+        plt.savefig(pdf, bbox_inches='tight')
+
+
+def plot_deformedzps(plt, results_df, pdf=None):
+    detailed_plot(plt, results_df, 'Deformed Pauli X0.0Y0.0Z1.0')
+    if pdf:
+        plt.savefig(pdf, bbox_inches='tight')
+
+
+def plot_combined_triangles(plt, thresholds_df, pdf=None):
+    thres_df_filt = thresholds_df[
+        thresholds_df['error_model'].str.contains('Deformed')
+    ]
+    fig, axes = plt.subplots(nrows=2, figsize=(4, 8))
+    plt.sca(axes[0])
+    plot_thresholds_on_triangle(
+        plt, thres_df_filt, title='Deformed', colors=['r', 'b', 'g']
+    )
+    thres_df_filt = thresholds_df[
+        ~thresholds_df['error_model'].str.contains('Deformed')
+    ]
+    plt.sca(axes[1])
+    plot_thresholds_on_triangle(
+        plt, thres_df_filt, title='Undeform.',
+        colors=['#ff9999', '#9999ff', '#55aa55']
+    )
+    if pdf:
+        plt.savefig(pdf, bbox_inches='tight')
+
+
+def plot_crossing_example(
+    plt, results_df, thresholds_df, params_bs_list, pdf=None
+):
+    error_model = 'Deformed Pauli X0.0Y0.0Z1.0'
+    row = thresholds_df[thresholds_df['error_model'] == error_model].iloc[0]
+    df_no_trunc = results_df[
+        results_df['error_model'] == row['error_model']
+    ].copy()
+    df_no_trunc['d'] = results_df['n_k_d'].apply(lambda x: x[2])
+    plot_threshold_fss(
+        plt, df_no_trunc, row['p_th_fss'], row['p_th_fss_left'],
+        row['p_th_fss_right'], row['p_th_fss_se']
+    )
+    if pdf:
+        plt.savefig(pdf, bbox_inches='tight')
+
+
+def plot_collapse_example(
+    plt, thresholds_df, trunc_results_df, params_bs_list,
+    verbose=True, pdf=None
+):
+    error_model = 'Deformed Pauli X0.0Y0.0Z1.0'
+    row = thresholds_df[thresholds_df['error_model'] == error_model].iloc[0]
+    df_trunc = trunc_results_df[trunc_results_df['error_model'] == error_model]
+    i = thresholds_df['error_model'].tolist().index(error_model)
+    plot_data_collapse(plt, df_trunc, row['fss_params'], params_bs_list[i])
+    if verbose:
+        print(pd.DataFrame(
+            {
+                'value': row['fss_params'],
+                'se': np.std(params_bs_list[i], axis=0)
+            },
+            index=['p_th', 'nu', 'A', 'B', 'C']
+        ))
+    if pdf:
+        plt.savefig(pdf, bbox_inches='tight')

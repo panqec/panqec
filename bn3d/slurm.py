@@ -57,13 +57,19 @@ def generate_sbatch_nist(
     mem: int,
     time: str,
     split: int,
+    partition: str,
+    cluster: str,
 ):
     """Generate sbatch files for NIST."""
     input_dir = os.path.join(SLURM_DIR, 'inputs')
     sbatch_dir = os.path.join(SLURM_DIR, 'sbatch')
     output_dir = os.path.join(SLURM_DIR, 'out')
 
-    with open(NIST_TEMPLATE) as f:
+    template_path = NIST_TEMPLATE
+    if cluster == 'symmetry':
+        template_path = SBATCH_TEMPLATE
+
+    with open(template_path) as f:
         template_text = f.read()
 
     input_file = os.path.join(input_dir, f'{name}.json')
@@ -78,7 +84,8 @@ def generate_sbatch_nist(
             _write_sbatch(
                 sbatch_dir, template_text,
                 name, output_dir, nodes, ntasks, cpus_per_task,
-                mem, time, input_file, n_trials, options, split_label
+                mem, time, input_file, n_trials, options, split_label,
+                partition
             )
         else:
             split = min(split, run_count)
@@ -92,14 +99,15 @@ def generate_sbatch_nist(
                 sbatch_file = _write_sbatch(
                     sbatch_dir, template_text,
                     name, output_dir, nodes, ntasks, cpus_per_task,
-                    mem, time, input_file, n_trials, options, split_label
+                    mem, time, input_file, n_trials, options, split_label,
+                    partition
                 )
                 sbatch_files.append(sbatch_file)
 
             write_submit_sh(name, sbatch_files)
 
 
-def write_submit_sh(name, sbatch_files):
+def write_submit_sh(name, sbatch_files, flags=''):
     """Write script to submit all sbatch files for a given run."""
     sbatch_dir = os.path.join(SLURM_DIR, 'sbatch')
     sh_path = os.path.join(sbatch_dir, f'submit_{name}.sh')
@@ -108,7 +116,6 @@ def write_submit_sh(name, sbatch_files):
         '#!/bin/bash',
         f'echo "Submitting {n_jobs} jobs for {name}"'
     ]
-    flags = '-p pml'
     for sbatch_file in sbatch_files:
         lines.append(
             f'sbatch {flags} \'{sbatch_file}\''
@@ -124,13 +131,14 @@ def _write_sbatch(
     sbatch_dir: str, template_text: str,
     name: str, output_dir: str, nodes: int, ntasks: int, cpus_per_task: int,
     mem: int, time: str, input_file: str, n_trials: int, options: str,
-    split_label: str
+    split_label: str, partition: str
 ) -> str:
     """Write sbatch file and return the path."""
     sbatch_file = os.path.join(
         sbatch_dir, f'{name}{split_label}.sbatch'
     )
     replacement: Dict[str, str] = {
+        'partition': partition,
         'job_name': f'{name}{split_label}',
         'output': os.path.join(output_dir, f'{name}{split_label}.out'),
         'nodes': str(nodes),

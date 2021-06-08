@@ -1,4 +1,5 @@
 #!/bin/bash
+#SBATCH --partition=${partition}
 #SBATCH --job-name=${job_name}
 #SBATCH --output=${output}
 #SBATCH --nodes=${nodes}
