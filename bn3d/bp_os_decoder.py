@@ -21,6 +21,7 @@ def projection(vector, list_vectors):
 
 
 def select_independent_columns(A, rank):
+    print("Test", np.any(A))
     first_idx = np.where(A.any(0))[0][0]
 
     list_col_idx = [first_idx]
@@ -119,6 +120,7 @@ def bp_decoder(H, syndrome, p=0.3, max_iter=10):
 
 
 def osd_decoder(H, syndrome, bp_proba):
+    # print("H", H)
     n_stabilizers, n_data = H.shape
     syndrome = np.array(syndrome, dtype=np.uint)
 
