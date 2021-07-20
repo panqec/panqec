@@ -79,20 +79,16 @@ function insertError(qubit) {
     qubit.hasError = !qubit.hasError;
 
     // Activate stabilizers
-    console.log("Qubit", qubit.index)
     let nQubitErrors;
-    console.log('Stabilizer matrix', stabilizerMatrix)
     for (let iVertex=0; iVertex < stabilizerMatrix.length; iVertex++) {
         nQubitErrors = 0
         for (let iQubit=0; iQubit < stabilizerMatrix[0].length; iQubit++) {
             if (stabilizerMatrix[iVertex][iQubit] == 1) {
-                console.log("Neighbor", qubits[iQubit].index)
                 if (qubits[iQubit].hasError) {
                     nQubitErrors += 1
                 }
             }
         }
-        // console.log('nQubitErrors', nQubitErrors)
         if (nQubitErrors % 2 == 1) {
             activateVertex(vertices[iVertex])
         }
@@ -103,13 +99,13 @@ function insertError(qubit) {
 }
 
 function activateVertex(vertex) {
-    console.log('\nActivate vertex', vertex.index)
+    vertex.isActivated = true;
     vertex.material.color.setHex(COLOR.activatedVertex);
     vertex.material.transparent = false;
 }
 
 function deactivateVertex(vertex) {
-    console.log('\nDeactivate vertex', vertex.index)
+    vertex.isActivated = false;
     vertex.material.color.setHex(COLOR.vertex);
     vertex.material.transparent = true;
 }
@@ -117,8 +113,8 @@ function deactivateVertex(vertex) {
 
 async function buildCube() {
     stabilizerMatrix = await getStabilizerMatrix();
-    qubits = Array(stabilizerMatrix.length);
-    vertices = Array(stabilizerMatrix[0].length);
+    qubits = Array(stabilizerMatrix[0].length);
+    vertices = Array(stabilizerMatrix.length);
 
     for(let x=0; x < params.L; x++) {
         for(let y=0; y < params.L; y++) {
@@ -365,19 +361,41 @@ function onDocumentMouseDown(event) {
 
 }
 
-function onDocumentKeyDown(event) {
+function getSyndrome() {
+    return vertices.map(v => + v.isActivated);
+}
+
+async function getCorrection(syndrome) {
+    let response = await fetch('/decode', {
+        headers: {
+            'Content-Type': 'application/json'
+          },
+        method: 'POST',
+        body: JSON.stringify({
+            'L': params.L,
+            'p': params.errorProbability,
+            'max_bp_iter': 10,
+            'syndrome': syndrome
+        })
+    });
+    
+    let data  = await response.json();
+
+    return data
+}
+
+async function onDocumentKeyDown(event) {
     var keyCode = event.which;
 
     if (keyCode == KEY_CODE['d']) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("POST", '/decode', true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.send(JSON.stringify({
-            size: [2, 2, 2],
-            syndrome: [0, 0, 0],
-            p: params['errorProbability'],
-            max_bp_iter: 10
-        }));
+        let syndrome = getSyndrome();
+        let correction = await getCorrection(syndrome)
+
+        correction.forEach((c,i) => {
+            if (c) {
+                insertError(qubits[i])
+            }
+        });
     }
 
     else if (keyCode == KEY_CODE['r']) {

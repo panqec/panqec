@@ -58,6 +58,7 @@ def modular_rank(matrix):
 
 
 def bp_decoder(H, syndrome, p=0.3, max_iter=10):
+    print("test")
     n_stabilizers, n_data = H.shape
 
     neighbor_parity = [np.nonzero(H[i])[0].tolist()
