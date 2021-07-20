@@ -21,7 +21,6 @@ def projection(vector, list_vectors):
 
 
 def select_independent_columns(A, rank):
-    print("Test", np.any(A))
     first_idx = np.where(A.any(0))[0][0]
 
     list_col_idx = [first_idx]
@@ -54,15 +53,17 @@ def modular_solve(A, b):
 def modular_rank(matrix):
     matrix = np.array(matrix, dtype=int)
     matrix_nmod = nmod_mat(matrix.shape[0], matrix.shape[1], matrix.ravel().tolist(), 2)
-   
+
     return matrix_nmod.rank()
 
 
 def bp_decoder(H, syndrome, p=0.3, max_iter=10):
     n_stabilizers, n_data = H.shape
 
-    neighbor_parity = [np.nonzero(H[i])[0].tolist() for i in range(n_stabilizers)]
-    neighbor_data = [np.nonzero(H[:, j])[0].tolist() for j in range(n_data)]
+    neighbor_parity = [np.nonzero(H[i])[0].tolist()
+                       for i in range(n_stabilizers)]
+    neighbor_data = [np.nonzero(H[:, j])[0].tolist()
+                     for j in range(n_data)]
 
     edges = []
     for i in range(n_data):
@@ -90,8 +91,8 @@ def bp_decoder(H, syndrome, p=0.3, max_iter=10):
         for edge in edges:
             min_messages = np.inf
             prod_sign_messages = 1
-            
-            for i_data in neighbor_parity[edge[1]]:  
+
+            for i_data in neighbor_parity[edge[1]]:
                 if i_data != edge[0]:
                     message = message_data_to_parity[(i_data, edge[1])]
                     min_messages = min(min_messages, np.abs(message))
@@ -105,14 +106,15 @@ def bp_decoder(H, syndrome, p=0.3, max_iter=10):
             for i_parity in neighbor_data[edge[0]]:
                 if i_parity != edge[1]:
                     sum_messages += message_parity_to_data[(i_parity, edge[0])]
-                    
+
             message_data_to_parity[edge[0], edge[1]] = sum_messages
 
         # Hard decision
         for i_data in range(n_data):
-            log_ratio_error[i_data] = log_ratio_p + np.sum([message_parity_to_data[(i_parity, i_data)]
-                                                            for i_parity in neighbor_data[i_data]])
-        
+            sum_messages = np.sum([message_parity_to_data[(i_parity, i_data)]
+                                   for i_parity in neighbor_data[i_data]])
+            log_ratio_error[i_data] = log_ratio_p + sum_messages
+
         correction = np.where(np.array(log_ratio_error) <= 0)[0]
         predicted_probas = 1 / (np.exp(log_ratio_error)+1)
 
@@ -120,7 +122,6 @@ def bp_decoder(H, syndrome, p=0.3, max_iter=10):
 
 
 def osd_decoder(H, syndrome, bp_proba):
-    # print("H", H)
     n_stabilizers, n_data = H.shape
     syndrome = np.array(syndrome, dtype=np.uint)
 

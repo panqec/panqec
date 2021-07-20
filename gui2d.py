@@ -3,7 +3,7 @@ import time
 from qecsim.models.toric import ToricCode
 from ursina import *
 
-from bn3d.bp_os_decoder_2d import BeliefPropagationOSDDecoder
+from bn3d.bp_os_decoder import BeliefPropagationOSDDecoder
 
 config = {'sizes': dict(), 'colors': dict()}
 

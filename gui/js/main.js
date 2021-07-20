@@ -8,10 +8,10 @@ import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat
 const PI = Math.PI;
 const KEY_CODE = {'d': 68, 'r': 82, 'backspace': 8, 'o': 79}
 
-const X_AXIS = 0;
-const Y_AXIS = 1;
-const Z_AXIS = 2;
-const COLOR = {vertex: 0xf2f28c, edge: 0xffbcbc, error: 0xff0000}
+const X_AXIS = 1;
+const Y_AXIS = 2;
+const Z_AXIS = 0;
+const COLOR = {vertex: 0xf2f28c, edge: 0xffbcbc, error: 0xff0000, activatedVertex: 0xf1c232}
 const SIZE = {radiusEdge: 0.05, radiusVertex: 0.1, lengthEdge: 1}
 const MIN_OPACITY = 0.1;
 const MAX_OPACITY = 0.5;
@@ -19,26 +19,12 @@ const MAX_OPACITY = 0.5;
 const params = {
     opacity: MAX_OPACITY,
     errorProbability: 0.1,
+    L: 2,
 };
-
-
-// Get data from servers
-
-// var socket = socketIo.io.connect('http://' + document.domain + ':' + location.port);
-// socket.on('connect', function() {
-//      console.log('connected');
-// });
-// socket.on('message', function(data) {
-//      console.log(data);
-// });
-
-// Start the interface
 
 let camera, controls, scene, renderer, effect, mouse, raycaster, intersects, gui;
 
-let Lx = 5;
-let Ly = 5;
-let Lz = 5;
+let stabilizerMatrix;
 
 let qubits = Array();
 let vertices = Array();
@@ -47,30 +33,41 @@ init();
 animate();
 
 function getIndexQubit(axis, x, y, z) {
-    return axis*3*Lx*Ly*Lz + x*Ly*Lz + y*Lz + z;
+    let Lx = params.L;
+    let Ly = params.L;
+    let Lz = params.L;
+
+    return axis*Lx*Ly*Lz + x*Ly*Lz + y*Lz + z;
+    // return x*Ly*Lz*3 + y*Lz*3 + z*3 + axis;
 }
 
 function getIndexVertex(x, y, z) {
+    let Lx = params.L;
+    let Ly = params.L;
+    let Lz = params.L;
+
     return x*Ly*Lz + y*Lz + z;
+    // return y*Lx*Lz + x*Lz + z;
+    // return y*Lx*Lz + x*Lz + z;
 }
 
-function add_random_errors(p) {
+function addRandomErrors(p) {
     qubits.forEach(q => {
         if (Math.random() < p) {
-            insert_error(q);
+            insertError(q);
         }
     });
 }
 
-function remove_all_errors() {
+function removeAllErrors() {
     qubits.forEach(q => {
         if (q.hasError) {
-            insert_error(q);
+            insertError(q);
         }
     });
 }
 
-function insert_error(qubit) {
+function insertError(qubit) {
     if (qubit.hasError) {
         qubit.material.color.setHex(COLOR.edge);
         qubit.material.transparent = true;
@@ -80,13 +77,52 @@ function insert_error(qubit) {
         qubit.material.transparent = false;
     }
     qubit.hasError = !qubit.hasError;
+
+    // Activate stabilizers
+    console.log("Qubit", qubit.index)
+    let nQubitErrors;
+    console.log('Stabilizer matrix', stabilizerMatrix)
+    for (let iVertex=0; iVertex < stabilizerMatrix.length; iVertex++) {
+        nQubitErrors = 0
+        for (let iQubit=0; iQubit < stabilizerMatrix[0].length; iQubit++) {
+            if (stabilizerMatrix[iVertex][iQubit] == 1) {
+                console.log("Neighbor", qubits[iQubit].index)
+                if (qubits[iQubit].hasError) {
+                    nQubitErrors += 1
+                }
+            }
+        }
+        // console.log('nQubitErrors', nQubitErrors)
+        if (nQubitErrors % 2 == 1) {
+            activateVertex(vertices[iVertex])
+        }
+        else {
+            deactivateVertex(vertices[iVertex])
+        }
+    }
+}
+
+function activateVertex(vertex) {
+    console.log('\nActivate vertex', vertex.index)
+    vertex.material.color.setHex(COLOR.activatedVertex);
+    vertex.material.transparent = false;
+}
+
+function deactivateVertex(vertex) {
+    console.log('\nDeactivate vertex', vertex.index)
+    vertex.material.color.setHex(COLOR.vertex);
+    vertex.material.transparent = true;
 }
 
 
-function buildCube(Lx, Ly, Lz) {
-    for(let x=0; x < Lx; x++) {
-        for(let y=0; y < Ly; y++) {
-            for(let z=0; z < Lz; z++) {
+async function buildCube() {
+    stabilizerMatrix = await getStabilizerMatrix();
+    qubits = Array(stabilizerMatrix.length);
+    vertices = Array(stabilizerMatrix[0].length);
+
+    for(let x=0; x < params.L; x++) {
+        for(let y=0; y < params.L; y++) {
+            for(let z=0; z < params.L; z++) {
                 buildVertex(x, y, z);
                 buildEdge(X_AXIS, x, y, z);
                 buildEdge(Y_AXIS, x, y, z);
@@ -94,7 +130,6 @@ function buildCube(Lx, Ly, Lz) {
             }
         }
     }
-
 }
 
 function changeOpacity() {
@@ -107,6 +142,24 @@ function changeOpacity() {
     vertices.forEach(v => {
         v.material.opacity = params['opacity']
     });
+}
+
+function changeLatticeSize() {
+    qubits.forEach(q => {
+        q.material.dispose();
+        q.geometry.dispose();
+
+        scene.remove(q);
+    });
+
+    vertices.forEach(v => {
+        v.material.dispose();
+        v.geometry.dispose();
+
+        scene.remove(v);
+    });
+
+    buildCube();
 }
 
 function buildVertex(x, y, z) {
@@ -124,12 +177,41 @@ function buildVertex(x, y, z) {
     sphere.position.y = y;
     sphere.position.z = z;
 
-    vertices.push(sphere)
+    let index = getIndexVertex(x, y, z);
 
-    // sphere.adjacentQubits = 
+    sphere.index = index;
+    sphere.isActivated = false;
+
+    vertices[index] = sphere
 
     scene.add(sphere);
-    // vertices.push(sphere)
+
+    // Vertex number
+
+    // const loader = new THREE.FontLoader();
+
+    // loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function ( font ) {
+
+    //     const geometryText = new THREE.TextGeometry(String(index), {
+    //         font: font,
+    //         size: 0.1,
+    //         height: 0.03,
+    //         curveSegments: 2,
+    //         bevelEnabled: true,
+    //         bevelThickness: 0.001,
+    //         bevelSize: 0.001,
+    //         bevelSegments: 3
+    //     } );
+
+    //     let materialText = new THREE.MeshPhongMaterial({color: 0x00ff00});
+    //     let text = new THREE.Mesh(geometryText, materialText);
+
+    //     text.position.x = x;
+    //     text.position.y = y;
+    //     text.position.z = z;
+
+    //     scene.add(text)
+    // } );
 }
 
 function buildEdge(axis, x, y, z) {
@@ -143,36 +225,90 @@ function buildEdge(axis, x, y, z) {
     edge.position.z = z;
 
     if (axis == X_AXIS) {
-        edge.position.y -= SIZE.lengthEdge / 2
+        edge.position.y += SIZE.lengthEdge / 2
     }
     if (axis == Y_AXIS) {
         edge.rotateX(PI / 2)
-        edge.position.z -= SIZE.lengthEdge / 2
+        edge.position.z += SIZE.lengthEdge / 2
     }
     else if (axis == Z_AXIS) {
         edge.rotateZ(PI / 2)
-        edge.position.x -= SIZE.lengthEdge / 2
+        edge.position.x += SIZE.lengthEdge / 2
     }
 
     edge.hasError = false;
 
-    qubits.push(edge)
+    let index = getIndexQubit(axis, x, y, z)
+
+    edge.index = index;
+    qubits[index] = edge;
+
     scene.add(edge);
+
+    // Text for qubit number
+
+    // const loader = new THREE.FontLoader();
+
+    // loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function ( font ) {
+
+    //     const geometryText = new THREE.TextGeometry(String(index), {
+    //         font: font,
+    //         size: 0.1,
+    //         height: 0.03,
+    //         curveSegments: 2,
+    //         bevelEnabled: true,
+    //         bevelThickness: 0.001,
+    //         bevelSize: 0.001,
+    //         bevelSegments: 3
+    //     } );
+
+    //     let materialText = new THREE.MeshPhongMaterial({color: 0x0});
+    //     let text = new THREE.Mesh(geometryText, materialText);
+
+    //     text.position.x = x;
+    //     text.position.y = y;
+    //     text.position.z = z;
+
+    //     if (axis == X_AXIS) {
+    //         text.position.y -= SIZE.lengthEdge / 2
+    //     }
+    //     if (axis == Y_AXIS) {
+    //         text.rotateX(PI / 2)
+    //         text.position.z -= SIZE.lengthEdge / 2
+    //     }
+    //     else if (axis == Z_AXIS) {
+    //         text.rotateZ(PI / 2)
+    //         text.position.x -= SIZE.lengthEdge / 2
+    //     }
+
+    //     scene.add(text)
+    // } );
+
 }
 
-function getStabilizerMatrix() {
-    fetch('/stabilizer-matrix').then(response => response.json()).then(data => console.log(data))
+async function getStabilizerMatrix() {
+    let response = await fetch('/stabilizer-matrix', {
+        headers: {
+            'Content-Type': 'application/json'
+          },
+        method: 'POST',
+        body: JSON.stringify({
+            'L': params.L
+        })
+    });
+    
+    let data  = await response.json();
+
+    return data['H'];
 }
 
 
 function init() {
-    getStabilizerMatrix();
-
     scene = new THREE.Scene();
     scene.background = new THREE.Color( 0x444488 );
 
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-    camera.position.z = 10;
+    camera.position.z = 5;
     camera.position.y = 2;
     camera.position.x = 2;
 
@@ -198,7 +334,7 @@ function init() {
     
     controls = new OrbitControls( camera, renderer.domElement );
 
-    buildCube(5, 5, 5);
+    buildCube();
 
     document.addEventListener("keydown", onDocumentKeyDown, false);
     document.addEventListener( 'mousedown', onDocumentMouseDown, false );
@@ -207,26 +343,24 @@ function init() {
     gui = new GUI();
     gui.add(params, 'opacity', 0.1, 0.5).name('Opacity').onChange(changeOpacity);
     gui.add(params, 'errorProbability', 0, 0.5).name('Error probability');
+    gui.add(params, 'L', 2, 10, 1).name('Lattice size').onChange(changeLatticeSize);
     
     controls.update();
 }
 
-function onDocumentMouseDown(event) 
-{
+function onDocumentMouseDown(event) {
     if (event.ctrlKey) {
-        console.log("Click.");
-        
         mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
         mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 
         raycaster.setFromCamera(mouse, camera);
-    
+        
         intersects = raycaster.intersectObjects(qubits);
         if (intersects.length == 0) return;
         
-        const selectedQubit = intersects[0].object;
+        let selectedQubit = intersects[0].object;
         
-        insert_error(selectedQubit);
+        insertError(selectedQubit);
     }
 
 }
@@ -247,15 +381,11 @@ function onDocumentKeyDown(event) {
     }
 
     else if (keyCode == KEY_CODE['r']) {
-        add_random_errors(params['errorProbability']);
+        addRandomErrors(params['errorProbability']);
     }
 
     else if (keyCode == KEY_CODE['backspace']) {
-        remove_all_errors();
-    }
-
-    else if (keyCode == KEY_CODE['backspace']) {
-        remove_all_errors();
+        removeAllErrors();
     }
 
     else if (keyCode == KEY_CODE['o']) {

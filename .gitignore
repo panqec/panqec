@@ -131,3 +131,9 @@ dmypy.json
 # VIM
 *.swo
 *.swp
+
+# VS Code project settings
+.vscode
+
+# PyCharm project settings
+.idea
