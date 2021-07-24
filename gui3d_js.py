@@ -54,9 +54,9 @@ def send_correction():
     n_faces = n_stabilizers - n_vertices
     n_qubits = code.n_k_d[0]
 
-    H_x = code.stabilizers[n_faces:, n_qubits:]
+    Hx = code.stabilizers[n_faces:, n_qubits:]
 
-    correction = bp_osd_decoder(H_x, syndrome, p=p, max_bp_iter=max_bp_iter)
+    correction = bp_osd_decoder(Hx.astype(int), syndrome.astype(int), p=p, max_bp_iter=max_bp_iter)
 
     return json.dumps(correction.tolist())
 
