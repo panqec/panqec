@@ -5,9 +5,10 @@ from typing import Tuple, Dict
 # from bn3d.array_ops import to_array, rref_mod2
 
 
-def get_rref_mod2(A, syndrome):
+def get_rref_mod2(A, b):
     n_rows, n_cols = A.shape
     A = A.copy()
+    b = b.copy()
 
     i_pivot = 0
     i_col = 0
@@ -20,17 +21,27 @@ def get_rref_mod2(A, syndrome):
 
         if A[i_nonzero_row, i_col]:
             A[[i_pivot, i_nonzero_row]] = A[[i_nonzero_row, i_pivot]]
-            syndrome[i_row] = (syndrome[i_row] - syndrome[i_pivot]) % 2
-            
+            b[[i_pivot, i_nonzero_row]] = b[[i_nonzero_row, i_pivot]]
+
             for i_row in range(n_rows):
                 if i_row != i_pivot and A[i_row, i_col]:
                     A[i_row] = (A[i_row] - A[i_pivot]) % 2
-                    syndrome[i_row] = (syndrome[i_row] - syndrome[i_pivot]) % 2
-                    
+                    b[i_row] = (b[i_row] - b[i_pivot]) % 2
+
             i_pivot += 1
         i_col += 1
 
-    return A, syndrome
+    return A, b
+
+
+def solve_rref(A, b):
+    n_rows, n_cols = A.shape
+    x = np.zeros(n_rows)
+
+    for i in range(n_rows-1, -1, -1):
+        x[i] = b[i] - A[i].dot(x)
+
+    return x % 2
 
 
 def modular_rank(matrix):
@@ -60,11 +71,6 @@ def select_independent_columns(A):
     # A_rref = nmod_mat.rref(A_nmod)[0]
     # A_rref = rref_mod2(A, syndrome)
 
-    # print("Rank", modular_rank(A))
-    # print("Full matrix\n", A)
-    # print("Own rref\n", A_rref_2)
-    # print("Their rref\n", np.array(A_rref.table()))
-    # list_col_idx = select_columns_from_rref(A_rref)
     i_col, i_row = 0, 0
     list_col_idx = []
     while i_col < n_cols and i_row < n_rows:
@@ -87,21 +93,17 @@ def osd_decoder(H, syndrome, bp_proba):
     sorted_data_indices = list(np.argsort(-bp_proba))
     H_sorted = H[:, sorted_data_indices]
 
-    # A = np.array(H_sorted, dtype=np.float64)
-    H_sorted, syndrome = get_rref_mod2(H_sorted, syndrome)
-    # print(H_rref)
+    H_sorted_rref, syndrome_rref = get_rref_mod2(H_sorted, syndrome)
 
-    selected_col_indices = select_independent_columns(H_sorted)
+    selected_col_indices = select_independent_columns(H_sorted_rref)
     selected_row_indices = list(range(len(selected_col_indices)))
     # selected_row_indices = select_independent_columns(H_sorted[:, selected_col_indices].T)
 
-    # print("H_rref\n", H_sorted[:, selected_col_indices])
-    # aa
+    reduced_H_rref = H_sorted_rref[selected_row_indices][:, selected_col_indices]
+    reduced_syndrome_rref = syndrome_rref[selected_row_indices]
 
-    reduced_H = H_sorted[selected_row_indices][:, selected_col_indices]
-    reduced_syndrome = syndrome[selected_row_indices]
-
-    reduced_correction = modular_solve(reduced_H, reduced_syndrome)
+    reduced_correction = solve_rref(reduced_H_rref, reduced_syndrome_rref)
+    # reduced_correction = modular_solve(reduced_H, reduced_syndrome)
 
     sorted_correction = np.zeros(n_data)
     for i, idx in enumerate(selected_col_indices):
@@ -193,27 +195,6 @@ class BeliefPropagationOSDDecoder(Decoder):
 
     def __init__(self):
         pass
-
-    def new_row_echelon_form(
-        self, Hz: np.ndarray, Hx: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        list_rref = []
-        for H in [Hz, Hx]:
-            H_nmod = nmod_mat(H.shape[0], H.shape[1], H.ravel().tolist(), 2)
-            H_rref = to_array(nmod_mat.table(nmod_mat.rref(H_nmod)[0]))
-            list_rref.append(H_rref)
-
-        return tuple(list_rref)
-
-    def get_row_echelon_form(
-        self, code: StabilizerCode, Hz: np.ndarray, Hx: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        if code.label not in self._Hx_rref:
-            rref = self.new_row_echelon_form(Hz, Hx)
-            self._Hz_rref[code.label] = rref[0]
-            self._Hx_rref[code.label] = rref[1]
-        
-        return (self._Hz_rref[code.label], self._Hx_rref[code.label])
 
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
