@@ -5,6 +5,7 @@ from typing import Tuple, Dict
 # from bn3d.array_ops import to_array, rref_mod2
 
 
+# @profile
 def get_rref_mod2(A, b):
     n_rows, n_cols = A.shape
     A = A.copy()
@@ -13,20 +14,18 @@ def get_rref_mod2(A, b):
     i_pivot = 0
     i_col = 0
     while i_pivot < n_rows and i_col < n_cols:
-        i_nonzero_row = i_pivot
-        for i_row in range(i_pivot, n_rows):
-            if A[i_row, i_col]:
-                i_nonzero_row = i_row
-                break
+        i_nonzero_row = np.argmax(A[i_pivot:, i_col]) + i_pivot
 
         if A[i_nonzero_row, i_col]:
             A[[i_pivot, i_nonzero_row]] = A[[i_nonzero_row, i_pivot]]
             b[[i_pivot, i_nonzero_row]] = b[[i_nonzero_row, i_pivot]]
 
-            for i_row in range(n_rows):
-                if i_row != i_pivot and A[i_row, i_col]:
-                    A[i_row] = (A[i_row] - A[i_pivot]) % 2
-                    b[i_row] = (b[i_row] - b[i_pivot]) % 2
+            list_indices = np.where(A[:, i_col] == 1)[0]
+            list_indices = np.delete(list_indices, np.where(list_indices == i_pivot))
+
+            A[list_indices] += A[i_pivot]
+            A[list_indices] = np.where(A[list_indices] != 1, 0, 1)  # faster than modulo 2
+            b[list_indices] = (b[list_indices] - b[i_pivot]) % 2
 
             i_pivot += 1
         i_col += 1
@@ -116,6 +115,7 @@ def osd_decoder(H, syndrome, bp_proba):
     return correction
 
 
+# @profile
 def bp_decoder(H, syndrome, p=0.3, max_iter=10):
     n_stabilizers, n_data = H.shape
 
@@ -222,13 +222,8 @@ class BeliefPropagationOSDDecoder(Decoder):
         x_correction = bp_osd_decoder(Hx, syndrome_x, p=0.1, max_bp_iter=10)
         z_correction = bp_osd_decoder(Hz, syndrome_z, p=0.1, max_bp_iter=10)
 
-        print("Correction")
-        print(x_correction)
-        print(z_correction)
         correction = np.concatenate([x_correction, z_correction])
         correction = correction.astype(int)
-
-        # print("Correction\n", correction)
 
         return correction
 
