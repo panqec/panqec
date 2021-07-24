@@ -49,10 +49,16 @@ def send_correction():
     max_bp_iter = content['max_bp_iter']
 
     code = ToricCode3D(L, L, L)
+    n_vertices = int(np.product(code.size))
+    n_stabilizers = code.stabilizers.shape[0]
+    n_faces = n_stabilizers - n_vertices
+    n_qubits = code.n_k_d[0]
 
-    correction = bp_osd_decoder(code.stabilizers, syndrome, p=p, max_bp_iter=max_bp_iter)
+    H_x = code.stabilizers[n_faces:, n_qubits:]
 
-    return json.dumps(correction)
+    correction = bp_osd_decoder(H_x, syndrome, p=p, max_bp_iter=max_bp_iter)
+
+    return json.dumps(correction.tolist())
 
 
 if __name__ == '__main__':
