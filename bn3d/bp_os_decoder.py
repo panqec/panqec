@@ -1,12 +1,16 @@
 import numpy as np
 from qecsim.model import Decoder, StabilizerCode
-from flint import nmod_mat
-from typing import Tuple, Dict
-# from bn3d.array_ops import to_array, rref_mod2
+from typing import Dict
+import numpy.ma as ma
+
+# from bn3d.array_ops import rref_mod2
 
 
 # @profile
 def get_rref_mod2(A, b):
+    """Take a matrix A and a vector b.
+    Return the row echelon form of A and a new vector b,
+    modified with the same row operations"""
     n_rows, n_cols = A.shape
     A = A.copy()
     b = b.copy()
@@ -34,6 +38,7 @@ def get_rref_mod2(A, b):
 
 
 def solve_rref(A, b):
+    """Solve the system Ax=b mod 2, with A in row echelon form"""
     n_rows, n_cols = A.shape
     x = np.zeros(n_rows)
 
@@ -43,32 +48,8 @@ def solve_rref(A, b):
     return x % 2
 
 
-def modular_rank(matrix):
-    matrix = np.array(matrix, dtype=int)
-    matrix_nmod = nmod_mat(matrix.shape[0], matrix.shape[1], matrix.ravel().tolist(), 2)
-
-    return matrix_nmod.rank()
-
-
-def modular_solve(A, b):
-    n_rows, n_cols = A.shape
-
-    # assert (np.diag(A) == np.ones(len(np.diag(A)))).all()
-    A_nmod = nmod_mat(A.shape[0], A.shape[1], A.ravel().tolist(), 2)
-    b_nmod = nmod_mat(len(b), 1, b.ravel().tolist(), 2)
-
-    x_nmod = A_nmod.solve(b_nmod)
-
-    x = np.array(x_nmod.table(), dtype=int)
-
-    return x.ravel()
-
-
 def select_independent_columns(A):
     n_rows, n_cols = A.shape
-    # A_nmod = nmod_mat(n_rows, n_cols, A.ravel().tolist(), 2)
-    # A_rref = nmod_mat.rref(A_nmod)[0]
-    # A_rref = rref_mod2(A, syndrome)
 
     i_col, i_row = 0, 0
     list_col_idx = []
@@ -77,11 +58,6 @@ def select_independent_columns(A):
             list_col_idx.append(i_col)
             i_row += 1
         i_col += 1
-
-    # list_col_idx_2 = np.sort(np.unique(np.argmax(np.flip(A, axis=0), axis=0), return_index=True)[1])
-
-    # A_rref_np = np.array(A_rref.table(), dtype=int)
-    # print("A rref\n", A_rref_np[:, list_col_idx])
 
     return list_col_idx
 
@@ -118,64 +94,55 @@ def osd_decoder(H, syndrome, bp_proba):
 # @profile
 def bp_decoder(H, syndrome, p=0.3, max_iter=10):
     n_stabilizers, n_data = H.shape
-
-    neighbor_parity = [np.nonzero(H[i])[0].tolist()
-                       for i in range(n_stabilizers)]
-    neighbor_data = [np.nonzero(H[:, j])[0].tolist()
-                     for j in range(n_data)]
-
-    edges = []
-    for i in range(n_data):
-        for j in neighbor_data[i]:
-            edges.append((i, j))
-
+    
     log_ratio_p = np.log((1-p) / p)
 
-    message_data_to_parity = {edge: 0 for edge in edges}
-    message_parity_to_data = {edge[::-1]: 1 for edge in edges}
+    edges_p2d = np.nonzero(H)
+    message_d2p = ma.masked_array(np.inf * np.ones((n_data, n_stabilizers)), 1 - H.T)
+    message_p2d = ma.masked_array(np.zeros((n_stabilizers, n_data)), 1 - H)
 
     # Initialization
-    for edge in edges:
-        message_data_to_parity[edge] = log_ratio_p
-
-    log_ratio_error = [0 for _ in range(n_data)]
-    correction = [0 for _ in range(n_data)]
-    predicted_probas = np.zeros(n_data)
+    message_d2p[edges_p2d[1], edges_p2d[0]] = log_ratio_p
 
     for iter in range(max_iter):
         # Scaling factor
         alpha = 1 - 2**(-iter-1)
 
-        # Parity to data
-        for edge in edges:
-            min_messages = np.inf
-            prod_sign_messages = 1
+        # -------- Parity to data -------
 
-            for i_data in neighbor_parity[edge[1]]:
-                if i_data != edge[0]:
-                    message = message_data_to_parity[(i_data, edge[1])]
-                    min_messages = min(min_messages, np.abs(message))
-                    prod_sign_messages = prod_sign_messages * np.sign(message)
+        # Calculate sign neighboring messages
+        prod_sign_parity = np.sign(np.prod(message_d2p, axis=0))
+        sign_edges = np.sign(message_d2p[edges_p2d[1], edges_p2d[0]])
+        prod_sign_neighbors = prod_sign_parity[edges_p2d[0]] * sign_edges
 
-            message_parity_to_data[(edge[1], edge[0])] = -(2*syndrome[edge[1]]-1) * alpha * prod_sign_messages * min_messages
+        # Calculate min neighboring messages
+        abs_message_d2p = np.abs(message_d2p)
+        argmin_abs_parity = np.argmin(abs_message_d2p, axis=0)
+        min_abs_parity = abs_message_d2p[argmin_abs_parity, list(range(abs_message_d2p.shape[1]))]
 
-        # Data to parity
-        for edge in edges:
-            sum_messages = log_ratio_p
-            for i_parity in neighbor_data[edge[0]]:
-                if i_parity != edge[1]:
-                    sum_messages += message_parity_to_data[(i_parity, edge[0])]
+        mask = np.ones((n_data, n_stabilizers), dtype=bool)
+        mask[argmin_abs_parity, range(n_stabilizers)] = False
+        new_abs_message_d2p = ma.masked_array(abs_message_d2p, ~mask)
+        second_min_abs_parity = np.min(new_abs_message_d2p, axis=0)
 
-            message_data_to_parity[edge[0], edge[1]] = sum_messages
+        abs_edges = np.abs(message_d2p[edges_p2d[1], edges_p2d[0]])
+        cond = abs_edges > min_abs_parity[edges_p2d[0]]
+        min_neighbors = np.select([cond, ~cond], [min_abs_parity[edges_p2d[0]], second_min_abs_parity[edges_p2d[0]]])
 
-        # Hard decision
-        for i_data in range(n_data):
-            sum_messages = np.sum([message_parity_to_data[(i_parity, i_data)]
-                                   for i_parity in neighbor_data[i_data]])
-            log_ratio_error[i_data] = log_ratio_p + sum_messages
+        # Update the message
+        message_p2d[edges_p2d] = -(2*syndrome[edges_p2d[0]]-1) * alpha
+        message_p2d[edges_p2d] *= prod_sign_neighbors
+        message_p2d[edges_p2d] *= min_neighbors
 
-        correction = np.where(np.array(log_ratio_error) <= 0)[0]
-        predicted_probas = 1 / (np.exp(log_ratio_error)+1)
+        # -------- Data to parity --------
+        sum_messages_data = np.sum(message_p2d, axis=0)
+        message_d2p[edges_p2d[1], edges_p2d[0]] = log_ratio_p + sum_messages_data[edges_p2d[1]] - message_p2d[edges_p2d]
+
+    # Hard decision
+    sum_messages = np.sum(message_p2d, axis=0)
+    log_ratio_error = log_ratio_p + sum_messages
+
+    predicted_probas = 1 / (np.exp(log_ratio_error)+1)
 
     return correction, predicted_probas
 
@@ -208,8 +175,6 @@ class BeliefPropagationOSDDecoder(Decoder):
         Hz = code.stabilizers[:n_faces, :n_qubits]
         Hx = code.stabilizers[n_faces:, n_qubits:]
 
-        # Hz_rref, Hx_rref = self.get_row_echelon_form(code, Hz, Hx)
-
         syndrome = np.array(syndrome, dtype=int)
         syndrome_z = syndrome[:n_faces]
         syndrome_x = syndrome[n_faces:]
@@ -219,8 +184,8 @@ class BeliefPropagationOSDDecoder(Decoder):
         # syndrome_z = syndrome[:n_vertices]
         # syndrome_x = syndrome[n_vertices:]
 
-        x_correction = bp_osd_decoder(Hx, syndrome_x, p=0.1, max_bp_iter=10)
-        z_correction = bp_osd_decoder(Hz, syndrome_z, p=0.1, max_bp_iter=10)
+        x_correction = bp_osd_decoder(Hx, syndrome_x, p=0.05, max_bp_iter=10)
+        z_correction = bp_osd_decoder(Hz, syndrome_z, p=0.05, max_bp_iter=10)
 
         correction = np.concatenate([x_correction, z_correction])
         correction = correction.astype(int)
@@ -231,7 +196,6 @@ class BeliefPropagationOSDDecoder(Decoder):
 if __name__ == "__main__":
     from bn3d.tc3d import ToricCode3D
 
-    # print(to_array([[0 for j in range(10)] for _ in range(1000)]))
     L = 9
     code = ToricCode3D(L, L, L)
     decoder = BeliefPropagationOSDDecoder()
@@ -240,4 +204,4 @@ if __name__ == "__main__":
     syndrome = np.zeros(n_stabilizers)
 
     correction = decoder.decode(code, syndrome)
-    print(correction)
+    # print(correction)

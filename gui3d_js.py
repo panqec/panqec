@@ -43,7 +43,7 @@ def send_stabilizer_matrix():
 @app.route('/decode', methods=['POST'])
 def send_correction():
     content = request.json
-    syndrome = content['syndrome']
+    syndrome = np.array(content['syndrome'])
     L = content['L']
     p = content['p']
     max_bp_iter = content['max_bp_iter']
@@ -56,7 +56,7 @@ def send_correction():
 
     Hx = code.stabilizers[n_faces:, n_qubits:]
 
-    correction = bp_osd_decoder(Hx.astype(int), syndrome.astype(int), p=p, max_bp_iter=max_bp_iter)
+    correction = bp_osd_decoder(Hx, syndrome, p=p, max_bp_iter=max_bp_iter)
 
     return json.dumps(correction.tolist())
 
