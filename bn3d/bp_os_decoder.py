@@ -94,7 +94,7 @@ def osd_decoder(H, syndrome, bp_proba):
 # @profile
 def bp_decoder(H, syndrome, p=0.3, max_iter=10):
     n_stabilizers, n_data = H.shape
-    
+
     log_ratio_p = np.log((1-p) / p)
 
     edges_p2d = np.nonzero(H)
@@ -144,11 +144,11 @@ def bp_decoder(H, syndrome, p=0.3, max_iter=10):
 
     predicted_probas = 1 / (np.exp(log_ratio_error)+1)
 
-    return correction, predicted_probas
+    return predicted_probas
 
 
 def bp_osd_decoder(H, syndrome, p=0.3, max_bp_iter=10):
-    bp_correction, bp_probas = bp_decoder(H, syndrome, p, max_bp_iter)
+    bp_probas = bp_decoder(H, syndrome, p, max_bp_iter)
     correction = osd_decoder(H, syndrome, bp_probas)
 
     return correction
