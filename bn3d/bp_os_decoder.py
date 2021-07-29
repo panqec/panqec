@@ -1,17 +1,20 @@
 import numpy as np
-from qecsim.model import Decoder, StabilizerCode
-from typing import Tuple
+import itertools
+from qecsim.model import Decoder, StabilizerCode, ErrorModel
+from typing import Tuple, List
 import numpy.ma as ma
+from scipy.sparse import csc_matrix, csr_matrix, coo_matrix, lil_matrix, find
 
 
 # @profile
-def get_rref_mod2(A: np.ndarray, b: np.ndarray) -> Tuple(np.ndarray, np.ndarray):
+def get_rref_mod2(A: np.ndarray, b: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Take a matrix A and a vector b.
     Return the row echelon form of A and a new vector b,
     modified with the same row operations"""
     n_rows, n_cols = A.shape
     A = A.copy()
     b = b.copy()
+    # A_sparse = coo_matrix(A)
 
     i_pivot = 0
     i_col = 0
@@ -22,12 +25,11 @@ def get_rref_mod2(A: np.ndarray, b: np.ndarray) -> Tuple(np.ndarray, np.ndarray)
             A[[i_pivot, i_nonzero_row]] = A[[i_nonzero_row, i_pivot]]
             b[[i_pivot, i_nonzero_row]] = b[[i_nonzero_row, i_pivot]]
 
-            list_indices = np.where(A[:, i_col] == 1)[0]
-            list_indices = np.delete(list_indices, np.where(list_indices == i_pivot))
+            cond = A[:, i_col] == 1
+            cond[i_pivot] = False
 
-            A[list_indices] += A[i_pivot]
-            A[list_indices] = np.where(A[list_indices] != 1, 0, 1)  # faster than modulo 2
-            b[list_indices] = (b[list_indices] - b[i_pivot]) % 2
+            A[cond] = np.logical_xor(A[cond], A[i_pivot])
+            b[cond] = np.logical_xor(b[cond], b[i_pivot])
 
             i_pivot += 1
         i_col += 1
@@ -46,7 +48,7 @@ def solve_rref(A: np.ndarray, b: np.ndarray) -> np.ndarray:
     return x % 2
 
 
-def select_independent_columns(A: np.ndarray) -> list:
+def select_independent_columns(A: np.ndarray) -> List[int]:
     """Select independent columns of a matrix A in reduced row echelon form"""
     n_rows, n_cols = A.shape
 
@@ -62,7 +64,9 @@ def select_independent_columns(A: np.ndarray) -> list:
 
 
 # @profile
-def osd_decoder(H: np.ndarray, syndrome: np.ndarray, bp_proba: np.ndarray) -> np.ndarray:
+def osd_decoder(H: np.ndarray,
+                syndrome: np.ndarray,
+                bp_proba: np.ndarray) -> np.ndarray:
     """"Ordered Statistics Decoder
     It returns a correction array (1 for a correction and 0 otherwise)
     by inverting the linear system H*e=s
@@ -98,14 +102,17 @@ def osd_decoder(H: np.ndarray, syndrome: np.ndarray, bp_proba: np.ndarray) -> np
 
 
 # @profile
-def bp_decoder(H: np.ndarray, syndrome: np.ndarray, p=0.3, max_iter=10) -> np.ndarray:
+def bp_decoder(H: np.ndarray,
+               syndrome: np.ndarray,
+               probabilities: np.ndarray,
+               max_iter=10) -> np.ndarray:
     """Belief propagation decoder.
-    It returns the probability for each qubit to have an error
+    It returns a probability for each qubit to have had an error
     """
 
     n_parities, n_data = H.shape
 
-    log_ratio_p = np.log((1-p) / p)
+    log_ratio_p = np.log((1-probabilities) / probabilities)
 
     # Create tuple with parity indices and data indices
     # Each element (edges_p2d[0, i], edges_p2d[1, i]) is an edge
@@ -119,7 +126,7 @@ def bp_decoder(H: np.ndarray, syndrome: np.ndarray, p=0.3, max_iter=10) -> np.nd
     message_p2d = np.zeros((n_parities, n_data))
 
     # Initialization for all neighboring elements
-    message_d2p[edges_p2d[1], edges_p2d[0]] = log_ratio_p
+    message_d2p[edges_p2d[1], edges_p2d[0]] = log_ratio_p[edges_p2d[1]]
 
     for iter in range(max_iter):
         # Scaling factor
@@ -166,7 +173,7 @@ def bp_decoder(H: np.ndarray, syndrome: np.ndarray, p=0.3, max_iter=10) -> np.nd
         sum_messages_data = np.sum(message_p2d, axis=0)
 
         # For each edge, get the sum around the data bit, excluding that edge
-        message_d2p[edges_p2d[1], edges_p2d[0]] = log_ratio_p + sum_messages_data[edges_p2d[1]] - message_p2d[edges_p2d]
+        message_d2p[edges_p2d[1], edges_p2d[0]] = log_ratio_p[edges_p2d[1]] + sum_messages_data[edges_p2d[1]] - message_p2d[edges_p2d]
 
     # Soft decision
     sum_messages = np.sum(message_p2d, axis=0)
@@ -186,8 +193,39 @@ def bp_osd_decoder(H: np.ndarray, syndrome: np.ndarray, p=0.3, max_bp_iter=10) -
 class BeliefPropagationOSDDecoder(Decoder):
     label = 'Toric 2D Belief Propagation + OSD decoder'
 
-    def __init__(self):
-        pass
+    def __init__(self, error_model: ErrorModel,
+                 probability: float,
+                 max_bp_iter: int = 10,
+                 deformed: bool = False):
+        super().__init__()
+        self._error_model = error_model
+        self._probability = probability
+        self._deformed = deformed
+        self._max_bp_iter = max_bp_iter
+                
+    def get_probabilities(self, code: StabilizerCode) -> Tuple[np.ndarray, np.ndarray]:
+        r_x, r_y, r_z = self._error_model.direction
+        p_X, p_Y, p_Z = np.array([r_x, r_y, r_z])*self._probability
+
+        p_regular_x = p_X + p_Y
+        p_regular_z = p_Z + p_Y
+        p_deformed_x = p_Z + p_Y
+        p_deformed_z = p_X + p_Z
+
+        deformed_edge = code.X_AXIS
+
+        probabilities_x = np.ones(code.shape, dtype=float)*p_regular_x
+        probabilities_z = np.ones(code.shape, dtype=float)*p_regular_z
+
+        if self._deformed:
+            # The weights on the deformed edge are different
+            ranges = [range(length) for length in code.shape]
+            for axis, x, y, z in itertools.product(*ranges):
+                if axis == deformed_edge:
+                    probabilities_x[axis, x, y, z] = p_deformed_x
+                    probabilities_z[axis, x, y, z] = p_deformed_z
+
+        return probabilities_x.flatten(), probabilities_z.flatten()
 
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
@@ -210,8 +248,10 @@ class BeliefPropagationOSDDecoder(Decoder):
         # syndrome_z = syndrome[:n_vertices]
         # syndrome_x = syndrome[n_vertices:]
 
-        x_correction = bp_osd_decoder(Hx, syndrome_x, p=0.05, max_bp_iter=10)
-        z_correction = bp_osd_decoder(Hz, syndrome_z, p=0.05, max_bp_iter=10)
+        probabilities_x, probabilities_z = self.get_probabilities(code)
+
+        x_correction = bp_osd_decoder(Hx, syndrome_x, probabilities_x, max_bp_iter=self._max_bp_iter)
+        z_correction = bp_osd_decoder(Hz, syndrome_z, probabilities_z, max_bp_iter=self._max_bp_iter)
 
         correction = np.concatenate([x_correction, z_correction])
         correction = correction.astype(int)
@@ -221,13 +261,23 @@ class BeliefPropagationOSDDecoder(Decoder):
 
 if __name__ == "__main__":
     from bn3d.tc3d import ToricCode3D
+    import qecsim.paulitools as pt
+    from bn3d.noise import PauliErrorModel
 
     L = 9
     code = ToricCode3D(L, L, L)
-    decoder = BeliefPropagationOSDDecoder()
 
-    n_stabilizers = code.stabilizers.shape[0]
-    syndrome = np.zeros(n_stabilizers)
+    probability = 0.1
+    r_x, r_y, r_z = [0.1, 0.1, 0.8]
+
+    error_model = PauliErrorModel(r_x, r_y, r_z)
+    errors = error_model.generate(code, probability)
+    syndrome = pt.bsp(errors, code.stabilizers.T)
+
+    decoder = BeliefPropagationOSDDecoder(error_model, probability)
+
+    # n_stabilizers = code.stabilizers.shape[0]
+    # syndrome = np.zeros(n_stabilizers)
 
     correction = decoder.decode(code, syndrome)
     # print(correction)
