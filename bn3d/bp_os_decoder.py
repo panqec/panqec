@@ -202,7 +202,7 @@ class BeliefPropagationOSDDecoder(Decoder):
         self._probability = probability
         self._deformed = deformed
         self._max_bp_iter = max_bp_iter
-                
+
     def get_probabilities(self, code: StabilizerCode) -> Tuple[np.ndarray, np.ndarray]:
         r_x, r_y, r_z = self._error_model.direction
         p_X, p_Y, p_Z = np.array([r_x, r_y, r_z])*self._probability
@@ -210,7 +210,7 @@ class BeliefPropagationOSDDecoder(Decoder):
         p_regular_x = p_X + p_Y
         p_regular_z = p_Z + p_Y
         p_deformed_x = p_Z + p_Y
-        p_deformed_z = p_X + p_Z
+        p_deformed_z = p_X + p_Y
 
         deformed_edge = code.X_AXIS
 
@@ -224,7 +224,7 @@ class BeliefPropagationOSDDecoder(Decoder):
                 if axis == deformed_edge:
                     probabilities_x[axis, x, y, z] = p_deformed_x
                     probabilities_z[axis, x, y, z] = p_deformed_z
-
+                    
         return probabilities_x.flatten(), probabilities_z.flatten()
 
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
