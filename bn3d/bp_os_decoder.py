@@ -105,14 +105,15 @@ def osd_decoder(H: np.ndarray,
 def bp_decoder(H: np.ndarray,
                syndrome: np.ndarray,
                probabilities: np.ndarray,
-               max_iter=10) -> np.ndarray:
+               max_iter=10,
+               eps=1e-8) -> np.ndarray:
     """Belief propagation decoder.
     It returns a probability for each qubit to have had an error
     """
 
     n_parities, n_data = H.shape
 
-    log_ratio_p = np.log((1-probabilities) / probabilities)
+    log_ratio_p = np.log((1-probabilities-eps) / (probabilities+eps))
 
     # Create tuple with parity indices and data indices
     # Each element (edges_p2d[0, i], edges_p2d[1, i]) is an edge
