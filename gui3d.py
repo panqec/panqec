@@ -5,6 +5,7 @@ from bn3d.bp_os_decoder import bp_osd_decoder
 from bn3d.tc3d import ToricCode3D
 from bn3d.bp_os_decoder import BeliefPropagationOSDDecoder
 from bn3d.noise import PauliErrorModel
+from bn3d.deform import DeformedPauliErrorModel, DeformedSweepMatchDecoder
 
 import webbrowser
 from threading import Timer
@@ -36,39 +37,46 @@ def send_stabilizer_matrix():
     n_faces = n_stabilizers - n_vertices
     n_qubits = code.n_k_d[0]
 
-    H_z = code.stabilizers[:n_faces, :n_qubits]
-    H_x = code.stabilizers[n_faces:, n_qubits:]
+    Hz = code.stabilizers[:n_faces, :n_qubits]
+    Hx = code.stabilizers[n_faces:, n_qubits:]
 
-    return json.dumps({'H': H_x.tolist()})
+    return json.dumps({'Hx': Hx.tolist(), 'Hz': Hz.tolist()})
 
 
 @app.route('/decode', methods=['POST'])
 def send_correction():
     content = request.json
-    syndrome_x = np.array(content['syndrome'])
+    syndrome = np.array(content['syndrome'])
     L = content['L']
     p = content['p']
+    deformed = content['deformed']
     max_bp_iter = content['max_bp_iter']
+    decoder_name = content['decoder']
 
     code = ToricCode3D(L, L, L)
     n_vertices = int(np.product(code.size))
     n_stabilizers = code.stabilizers.shape[0]
     n_faces = n_stabilizers - n_vertices
-    # n_qubits = code.n_k_d[0]
-    
-    syndrome = np.zeros(n_stabilizers, dtype=np.uint)
-    syndrome[n_faces:] = syndrome_x
+    n_qubits = code.n_k_d[0]
 
-    # Hx = code.stabilizers[n_faces:, n_qubits:]
-    
-    error_model = PauliErrorModel(1, 0, 0)
-    decoder = BeliefPropagationOSDDecoder(error_model, p, 
-                                          max_bp_iter=max_bp_iter,
-                                          deformed=False)
+    if deformed:
+        error_model = DeformedPauliErrorModel(1, 0, 0)
+    else:
+        error_model = PauliErrorModel(1, 0, 0)
+
+    if decoder_name == 'bp':
+        decoder = BeliefPropagationOSDDecoder(error_model, p,
+                                              max_bp_iter=max_bp_iter,
+                                              deformed=deformed)
+    else:
+        decoder = DeformedSweepMatchDecoder(error_model, p)
 
     correction = decoder.decode(code, syndrome)
+    
+    correction_x = correction[:n_qubits]
+    correction_z = correction[n_qubits:]
 
-    return json.dumps(correction.tolist())
+    return json.dumps({'x': correction_x.tolist(), 'z': correction_z.tolist()})
 
 
 @app.route('/new-errors', methods=['POST'])
@@ -76,10 +84,14 @@ def send_random_errors():
     content = request.json
     L = content['L']
     p = content['p']
+    deformed = content['deformed']
 
     code = ToricCode3D(L, L, L)
     
-    error_model = PauliErrorModel(1, 0, 0)
+    if deformed:
+        error_model = DeformedPauliErrorModel(1, 0, 0)
+    else:
+        error_model = PauliErrorModel(1, 0, 0)
     errors = error_model.generate(code, p)
 
     return json.dumps(errors.tolist())

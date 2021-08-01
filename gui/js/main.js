@@ -11,7 +11,12 @@ const KEY_CODE = {'d': 68, 'r': 82, 'backspace': 8, 'o': 79}
 const X_AXIS = 1;
 const Y_AXIS = 2;
 const Z_AXIS = 0;
-const COLOR = {vertex: 0xf2f28c, edge: 0xffbcbc, error: 0xff0000, activatedVertex: 0xf1c232}
+const AXES = [X_AXIS, Y_AXIS, Z_AXIS];
+const X_ERROR = 0;
+const Z_ERROR = 1;
+const COLOR = {vertex: 0xf2f28c, face: 0xf2f28c, edge: 0xffbcbc, 
+               errorX: 0xff0000, errorZ: 0x25CCF7, errorY: 0xa55eea, 
+               activatedVertex: 0xf1c232, activatedFace: 0xf1c232}
 const SIZE = {radiusEdge: 0.05, radiusVertex: 0.1, lengthEdge: 1}
 const MIN_OPACITY = 0.1;
 const MAX_OPACITY = 0.5;
@@ -20,14 +25,17 @@ const params = {
     opacity: MAX_OPACITY,
     errorProbability: 0.1,
     L: 2,
+    deformed: false,
+    decoder: 'bp'
 };
 
 let camera, controls, scene, renderer, effect, mouse, raycaster, intersects, gui;
 
-let stabilizerMatrix;
+let Hx, Hz;
 
 let qubits = Array();
 let vertices = Array();
+let faces = Array();
 
 init();
 animate();
@@ -38,7 +46,14 @@ function getIndexQubit(axis, x, y, z) {
     let Lz = params.L;
 
     return axis*Lx*Ly*Lz + x*Ly*Lz + y*Lz + z;
-    // return x*Ly*Lz*3 + y*Lz*3 + z*3 + axis;
+}
+
+function getIndexFace(axis, x, y, z) {
+    let Lx = params.L;
+    let Ly = params.L;
+    let Lz = params.L;
+
+    return axis*Lx*Ly*Lz + x*Ly*Lz + y*Lz + z;
 }
 
 function getIndexVertex(x, y, z) {
@@ -47,28 +62,33 @@ function getIndexVertex(x, y, z) {
     let Lz = params.L;
 
     return x*Ly*Lz + y*Lz + z;
-    // return y*Lx*Lz + x*Lz + z;
-    // return y*Lx*Lz + x*Lz + z;
 }
 
-function addRandomErrors(p) {
-    qubits.forEach(q => {
-        if (Math.random() < p) {
-            insertError(q);
+async function addRandomErrors() {
+    let errors = await getRandomErrors()
+    let n = errors.length / 2;
+    qubits.forEach((q, i) => {
+        if (errors[i]) {
+            insertError(q, X_ERROR);
+        }
+        if (errors[n+i]) {
+            insertError(q, Z_ERROR);
         }
     });
 }
 
 function removeAllErrors() {
     qubits.forEach(q => {
-        if (q.hasError) {
-            insertError(q);
-        }
+        [X_ERROR, Z_ERROR].forEach(errorType => {
+            if (q.hasError[errorType]) {
+                insertError(q, errorType);
+            }
+        })
     });
 }
 
-function insertError(qubit) {
-    if (qubit.hasError) {
+function insertError(qubit, type) {
+    if (qubit.hasError[type]) {
         qubit.material.color.setHex(COLOR.edge);
         qubit.material.transparent = true;
     }
@@ -76,15 +96,33 @@ function insertError(qubit) {
         qubit.material.color.setHex(COLOR.error);
         qubit.material.transparent = false;
     }
-    qubit.hasError = !qubit.hasError;
+    qubit.hasError[type] = !qubit.hasError[type];
 
-    // Activate stabilizers
+    if (qubit.hasError[X_ERROR] || qubit.hasError[Z_ERROR]) {
+        qubit.material.transparent = false;
+
+        if (qubit.hasError[X_ERROR] && qubit.hasError[Z_ERROR]) {
+            qubit.material.color.setHex(COLOR.errorY);
+        }
+        else if (qubit.hasError[X_ERROR]) {
+            qubit.material.color.setHex(COLOR.errorX);
+        }
+        else {
+            qubit.material.color.setHex(COLOR.errorZ);
+        }
+    }
+    else {
+        qubit.material.transparent = true;
+        qubit.material.color.setHex(COLOR.edge);
+    }
+
+    // Activate vertex stabilizers
     let nQubitErrors;
-    for (let iVertex=0; iVertex < stabilizerMatrix.length; iVertex++) {
+    for (let iVertex=0; iVertex < Hx.length; iVertex++) {
         nQubitErrors = 0
-        for (let iQubit=0; iQubit < stabilizerMatrix[0].length; iQubit++) {
-            if (stabilizerMatrix[iVertex][iQubit] == 1) {
-                if (qubits[iQubit].hasError) {
+        for (let iQubit=0; iQubit < Hx[0].length; iQubit++) {
+            if (Hx[iVertex][iQubit] == 1) {
+                if (qubits[iQubit].hasError[X_ERROR]) {
                     nQubitErrors += 1
                 }
             }
@@ -96,6 +134,24 @@ function insertError(qubit) {
             deactivateVertex(vertices[iVertex])
         }
     }
+
+    // Activate face stabilizers
+    for (let iFace=0; iFace < Hz.length; iFace++) {
+        nQubitErrors = 0
+        for (let iQubit=0; iQubit < Hx[0].length; iQubit++) {
+            if (Hz[iFace][iQubit] == 1) {
+                if (qubits[iQubit].hasError[Z_ERROR]) {
+                    nQubitErrors += 1
+                }
+            }
+        }
+        if (nQubitErrors % 2 == 1) {
+            activateFace(faces[iFace])
+        }
+        else {
+            deactivateFace(faces[iFace])
+        }
+    }
 }
 
 function activateVertex(vertex) {
@@ -104,25 +160,42 @@ function activateVertex(vertex) {
     vertex.material.transparent = false;
 }
 
+function activateFace(face) {
+    face.isActivated = true;
+    face.material.color.setHex(COLOR.activatedFace);
+    face.material.opacity = MAX_OPACITY;
+}
+
 function deactivateVertex(vertex) {
     vertex.isActivated = false;
     vertex.material.color.setHex(COLOR.vertex);
     vertex.material.transparent = true;
 }
 
+function deactivateFace(face) {
+    face.isActivated = false;
+    face.material.color.setHex(COLOR.face);
+    face.material.opacity = 0;
+}
+
 
 async function buildCube() {
-    stabilizerMatrix = await getStabilizerMatrix();
-    qubits = Array(stabilizerMatrix[0].length);
-    vertices = Array(stabilizerMatrix.length);
+    let stabilizers = await getStabilizerMatrices();
+    Hx = stabilizers['Hx'];
+    Hz = stabilizers['Hz'];
+    qubits = Array(Hx[0].length);
+    vertices = Array(Hx.length);
+    faces = Array(Hz.length)
 
     for(let x=0; x < params.L; x++) {
         for(let y=0; y < params.L; y++) {
             for(let z=0; z < params.L; z++) {
                 buildVertex(x, y, z);
-                buildEdge(X_AXIS, x, y, z);
-                buildEdge(Y_AXIS, x, y, z);
-                buildEdge(Z_AXIS, x, y, z);
+
+                AXES.forEach(axis => {
+                    buildEdge(axis, x, y, z);
+                    buildFace(axis, x, y, z)
+                });
             }
         }
     }
@@ -155,16 +228,53 @@ function changeLatticeSize() {
         scene.remove(v);
     });
 
+    faces.forEach(f => {
+        f.material.dispose();
+        f.geometry.dispose();
+
+        scene.remove(f);
+    });
+
     buildCube();
+}
+
+function buildFace(axis, x, y, z) {
+    const geometry = new THREE.PlaneGeometry(SIZE.lengthEdge-0.3, SIZE.lengthEdge-0.3);
+
+    const material = new THREE.MeshToonMaterial({color: COLOR.face, opacity: 0, transparent: true, side: THREE.DoubleSide});
+    const face = new THREE.Mesh(geometry, material);
+
+    face.position.x = x;
+    face.position.y = y;
+    face.position.z = z;
+
+    if (axis == Y_AXIS) {
+        face.position.x += SIZE.lengthEdge / 2;
+        face.position.y += SIZE.lengthEdge / 2;
+    }
+    if (axis == X_AXIS) {
+        face.position.x += SIZE.lengthEdge / 2;
+        face.position.z += SIZE.lengthEdge / 2;
+        face.rotateX(PI / 2)
+    }
+    else if (axis == Z_AXIS) {
+        face.position.z += SIZE.lengthEdge / 2
+        face.position.y += SIZE.lengthEdge / 2
+        face.rotateY(PI / 2)
+    }
+
+    let index = getIndexFace(axis, x, y, z);
+
+    face.index = index;
+    face.isActivated = false;
+
+    faces[index] = face;
+
+    scene.add(face);
 }
 
 function buildVertex(x, y, z) {
     const geometry = new THREE.SphereGeometry(SIZE.radiusVertex, 32, 32);
-
-    const alpha = 0.5;
-    const beta = 0.5;
-    const gamma = 0.5;
-    const diffuseColor = new THREE.Color().setHSL( alpha, 0.5, gamma * 0.5 + 0.1 ).multiplyScalar( 1 - beta * 0.2 );
 
     const material = new THREE.MeshToonMaterial({color: COLOR.vertex, opacity: params['opacity'], transparent: true});
     const sphere = new THREE.Mesh(geometry, material);
@@ -178,7 +288,7 @@ function buildVertex(x, y, z) {
     sphere.index = index;
     sphere.isActivated = false;
 
-    vertices[index] = sphere
+    vertices[index] = sphere;
 
     scene.add(sphere);
 
@@ -232,7 +342,7 @@ function buildEdge(axis, x, y, z) {
         edge.position.x += SIZE.lengthEdge / 2
     }
 
-    edge.hasError = false;
+    edge.hasError = [false, false];
 
     let index = getIndexQubit(axis, x, y, z)
 
@@ -282,7 +392,7 @@ function buildEdge(axis, x, y, z) {
 
 }
 
-async function getStabilizerMatrix() {
+async function getStabilizerMatrices() {
     let response = await fetch('/stabilizer-matrix', {
         headers: {
             'Content-Type': 'application/json'
@@ -295,7 +405,25 @@ async function getStabilizerMatrix() {
     
     let data  = await response.json();
 
-    return data['H'];
+    return data;
+}
+
+async function getRandomErrors() {
+    let response = await fetch('/new-errors', {
+        headers: {
+            'Content-Type': 'application/json'
+          },
+        method: 'POST',
+        body: JSON.stringify({
+            'L': params.L,
+            'p': params.errorProbability,
+            'deformed': params.deformed
+        })
+    });
+    
+    let data  = await response.json();
+
+    return data;
 }
 
 
@@ -340,7 +468,8 @@ function init() {
     gui.add(params, 'opacity', 0.1, 0.5).name('Opacity').onChange(changeOpacity);
     gui.add(params, 'errorProbability', 0, 0.5).name('Error probability');
     gui.add(params, 'L', 2, 10, 1).name('Lattice size').onChange(changeLatticeSize);
-    
+    gui.add(params, 'deformed').name('Deformed');
+    gui.add(params, 'decoder', {'Belief Propagation': 'bp', 'SweepMatch': 'sweepmatch'});
     controls.update();
 }
 
@@ -356,13 +485,21 @@ function onDocumentMouseDown(event) {
         
         let selectedQubit = intersects[0].object;
         
-        insertError(selectedQubit);
+        switch (event.button) {
+            case 0: // left click
+                insertError(selectedQubit, X_ERROR);
+                break;
+            case 2:
+                insertError(selectedQubit, Z_ERROR);
+                break;
+        }
     }
-
 }
 
 function getSyndrome() {
-    return vertices.map(v => + v.isActivated);
+    let syndrome_z = faces.map(f => + f.isActivated)
+    let syndrome_x = vertices.map(v => + v.isActivated);
+    return syndrome_z.concat(syndrome_x)
 }
 
 async function getCorrection(syndrome) {
@@ -375,7 +512,9 @@ async function getCorrection(syndrome) {
             'L': params.L,
             'p': params.errorProbability,
             'max_bp_iter': 10,
-            'syndrome': syndrome
+            'syndrome': syndrome,
+            'deformed': params.deformed,
+            'decoder': params.decoder
         })
     });
     
@@ -391,15 +530,20 @@ async function onDocumentKeyDown(event) {
         let syndrome = getSyndrome();
         let correction = await getCorrection(syndrome)
 
-        correction.forEach((c,i) => {
-            if (c) {
-                insertError(qubits[i])
+        correction['x'].forEach((c,i) => {
+            if(c) {
+                insertError(qubits[i], X_ERROR)
+            }
+        });
+        correction['z'].forEach((c,i) => {
+            if(c) {
+                insertError(qubits[i], Z_ERROR)
             }
         });
     }
 
     else if (keyCode == KEY_CODE['r']) {
-        addRandomErrors(params['errorProbability']);
+        addRandomErrors();
     }
 
     else if (keyCode == KEY_CODE['backspace']) {
@@ -416,7 +560,6 @@ async function onDocumentKeyDown(event) {
         gui.updateDisplay()
         changeOpacity();
     }
-    
 };
 
 function onWindowResize(){
