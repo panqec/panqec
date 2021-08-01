@@ -71,6 +71,20 @@ def send_correction():
     return json.dumps(correction.tolist())
 
 
+@app.route('/new-errors', methods=['POST'])
+def send_random_errors():
+    content = request.json
+    L = content['L']
+    p = content['p']
+
+    code = ToricCode3D(L, L, L)
+    
+    error_model = PauliErrorModel(1, 0, 0)
+    errors = error_model.generate(code, p)
+
+    return json.dumps(errors.tolist())
+
+
 if __name__ == '__main__':
     port = 5000
     Timer(1, open_browser, [port]).start()
