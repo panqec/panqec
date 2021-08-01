@@ -21,6 +21,8 @@ const SIZE = {radiusEdge: 0.05, radiusVertex: 0.1, lengthEdge: 1}
 const MIN_OPACITY = 0.1;
 const MAX_OPACITY = 0.5;
 
+let currentOpacity = MAX_OPACITY;
+
 const params = {
     opacity: MAX_OPACITY,
     errorProbability: 0.1,
@@ -202,14 +204,21 @@ async function buildCube() {
 }
 
 function changeOpacity() {
+    if (currentOpacity == MIN_OPACITY) {
+        currentOpacity = MAX_OPACITY;
+    }
+    else {
+        currentOpacity = MIN_OPACITY;
+    }
+
     qubits.forEach(q => {
-        if (!q.hasError) {
-            q.material.opacity = params['opacity']
+        if (!q.hasError[X_ERROR] && !q.hasError[Z_ERROR]) {
+            q.material.opacity = currentOpacity;
         }
     });
 
     vertices.forEach(v => {
-        v.material.opacity = params['opacity']
+        v.material.opacity = currentOpacity;
     });
 }
 
@@ -276,7 +285,7 @@ function buildFace(axis, x, y, z) {
 function buildVertex(x, y, z) {
     const geometry = new THREE.SphereGeometry(SIZE.radiusVertex, 32, 32);
 
-    const material = new THREE.MeshToonMaterial({color: COLOR.vertex, opacity: params['opacity'], transparent: true});
+    const material = new THREE.MeshToonMaterial({color: COLOR.vertex, opacity: currentOpacity, transparent: true});
     const sphere = new THREE.Mesh(geometry, material);
 
     sphere.position.x = x;
@@ -323,7 +332,7 @@ function buildVertex(x, y, z) {
 function buildEdge(axis, x, y, z) {
     const geometry = new THREE.CylinderGeometry(SIZE.radiusEdge, SIZE.radiusEdge, SIZE.lengthEdge, 32);
 
-    const material = new THREE.MeshPhongMaterial({color: COLOR.edge, opacity: params['opacity'], transparent: true});
+    const material = new THREE.MeshPhongMaterial({color: COLOR.edge, opacity: currentOpacity, transparent: true});
     const edge = new THREE.Mesh(geometry, material);
 
     edge.position.x = x;
@@ -465,7 +474,6 @@ function init() {
     window.addEventListener('resize', onWindowResize, false);
 
     gui = new GUI();
-    gui.add(params, 'opacity', 0.1, 0.5).name('Opacity').onChange(changeOpacity);
     gui.add(params, 'errorProbability', 0, 0.5).name('Error probability');
     gui.add(params, 'L', 2, 10, 1).name('Lattice size').onChange(changeLatticeSize);
     gui.add(params, 'deformed').name('Deformed');
@@ -551,13 +559,6 @@ async function onDocumentKeyDown(event) {
     }
 
     else if (keyCode == KEY_CODE['o']) {
-        if (params['opacity'] == MIN_OPACITY) {
-            params['opacity'] = MAX_OPACITY;
-        }
-        else {
-            params['opacity'] = MIN_OPACITY;
-        }
-        gui.updateDisplay()
         changeOpacity();
     }
 };
