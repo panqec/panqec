@@ -2,19 +2,19 @@ import itertools
 from typing import Tuple, Optional
 import numpy as np
 from qecsim.model import StabilizerCode
-from ._toric_3d_pauli import Toric3DPauli
+from ._rhombic_pauli import RhombicPauli
 from ..bpauli import bcommute
 
 
-class ToricCode3D(StabilizerCode):
+class RhombicCode(StabilizerCode):
 
     _shape: Tuple[int, int, int, int]
     X_AXIS: int = 0
     Y_AXIS: int = 1
     Z_AXIS: int = 2
     _stabilizers = np.array([])
-    _Hx = np.array([])
     _Hz = np.array([])
+    _Hx = np.array([])
     _logical_xs = np.array([])
     _logical_zs = np.array([])
 
@@ -37,30 +37,31 @@ class ToricCode3D(StabilizerCode):
 
     @property
     def label(self) -> str:
-        return 'Toric {}x{}x{}'.format(*self.size)
+        return 'Rhombic {}x{}x{}'.format(*self.size)
 
     @property
     def stabilizers(self) -> np.ndarray:
         if self._stabilizers.size == 0:
-            face_stabilizers = self.get_face_X_stabilizers()
-            vertex_stabilizers = self.get_vertex_Z_stabilizers()
+            cube_stabilizers = self.get_cube_X_stabilizers()
+            triangle_stabilizers = self.get_triangle_Z_stabilizers()
             self._stabilizers = np.concatenate([
-                face_stabilizers,
-                vertex_stabilizers,
+                cube_stabilizers,
+                triangle_stabilizers,
             ])
         return self._stabilizers
-    
+
     @property
     def Hz(self) -> np.ndarray:
         if self._Hz.size == 0:
-            self._Hz = self.get_face_X_stabilizers()
-        return self._Hz
+            self._Hz = self.get_cube_X_stabilizers()
+        return self._Hz[:, :self.n_k_d[0]]
 
     @property
     def Hx(self) -> np.ndarray:
         if self._Hx.size == 0:
-            self._Hx = self.get_vertex_Z_stabilizers()
-        return self._Hx
+            self._Hx = self.get_triangle_Z_stabilizers()
+        return self._Hx[:, self.n_k_d[0]:]
+
 
     @property
     def logical_xs(self) -> np.ndarray:
@@ -71,19 +72,19 @@ class ToricCode3D(StabilizerCode):
             logicals = []
 
             # X operators along x edges in x direction.
-            logical = Toric3DPauli(self)
+            logical = RhombicPauli(self)
             for x in range(L_x):
                 logical.site('X', (0, x, 0, 0))
             logicals.append(logical.to_bsf())
 
             # X operators along y edges in y direction.
-            logical = Toric3DPauli(self)
+            logical = RhombicPauli(self)
             for y in range(L_y):
                 logical.site('X', (1, 0, y, 0))
             logicals.append(logical.to_bsf())
 
             # X operators along z edges in z direction
-            logical = Toric3DPauli(self)
+            logical = RhombicPauli(self)
             for z in range(L_z):
                 logical.site('X', (2, 0, 0, z))
             logicals.append(logical.to_bsf())
@@ -100,21 +101,21 @@ class ToricCode3D(StabilizerCode):
             logicals = []
 
             # Z operators on x edges forming surface normal to x (yz plane).
-            logical = Toric3DPauli(self)
+            logical = RhombicPauli(self)
             for y in range(L_y):
                 for z in range(L_z):
                     logical.site('Z', (0, 0, y, z))
             logicals.append(logical.to_bsf())
 
             # Z operators on y edges forming surface normal to y (zx plane).
-            logical = Toric3DPauli(self)
+            logical = RhombicPauli(self)
             for z in range(L_z):
                 for x in range(L_x):
                     logical.site('Z', (1, x, 0, z))
             logicals.append(logical.to_bsf())
 
             # Z operators on z edges forming surface normal to z (xy plane).
-            logical = Toric3DPauli(self)
+            logical = RhombicPauli(self)
             for x in range(L_x):
                 for y in range(L_y):
                     logical.site('Z', (2, x, y, 0))
@@ -134,29 +135,28 @@ class ToricCode3D(StabilizerCode):
         """Shape of lattice for each qubit."""
         return self._shape
 
-    # TODO: ToricCode3D specific methods.
-    def get_vertex_Z_stabilizers(self) -> np.ndarray:
-        vertex_stabilizers = []
-        ranges = [range(length) for length in self.size]
+    def get_triangle_Z_stabilizers(self) -> np.ndarray:
+        triangle_stabilizers = []
+        ranges = [range(length) for length in (4,) + self.size]
 
         # Z operators for each vertex for each position.
+        for axis, L_x, L_y, L_z in itertools.product(*ranges):
+            operator = RhombicPauli(self)
+            operator.triangle('Z', axis, (L_x, L_y, L_z))
+            triangle_stabilizers.append(operator.to_bsf())
+        return np.array(triangle_stabilizers, dtype=np.uint)
+
+    def get_cube_X_stabilizers(self) -> np.ndarray:
+        cube_stabilizers = []
+        ranges = [range(length) for length in self.size]
+
         for L_x, L_y, L_z in itertools.product(*ranges):
-            operator = Toric3DPauli(self)
-            operator.vertex('Z', (L_x, L_y, L_z))
-            vertex_stabilizers.append(operator.to_bsf())
-        return np.array(vertex_stabilizers, dtype=np.uint)
+            if (L_x + L_y + L_z) % 2 == 1:
+                operator = RhombicPauli(self)
+                operator.cube('X', (L_x, L_y, L_z))
+                cube_stabilizers.append(operator.to_bsf())
+        return np.array(cube_stabilizers, dtype=np.uint)
 
-    def get_face_X_stabilizers(self) -> np.ndarray:
-        face_stabilizers = []
-        ranges = [range(length) for length in self.shape]
-
-        # X operators for each normal direction and for each face position.
-        for normal, L_x, L_y, L_z in itertools.product(*ranges):
-            operator = Toric3DPauli(self)
-            operator.face('X', normal, (L_x, L_y, L_z))
-            face_stabilizers.append(operator.to_bsf())
-        return np.array(face_stabilizers, dtype=np.uint)
-
-    def measure_syndrome(self, error: Toric3DPauli) -> np.ndarray:
+    def measure_syndrome(self, error: RhombicPauli) -> np.ndarray:
         """Perfectly measure syndromes given Pauli error."""
         return bcommute(self.stabilizers, error.to_bsf())

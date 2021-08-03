@@ -1,8 +1,8 @@
 import numpy as np
 
 from flask import Flask, send_from_directory, request, json
-from bn3d.bp_os_decoder import bp_osd_decoder
 from bn3d.tc3d import ToricCode3D, SweepMatchDecoder
+from bn3d.rhombic import RhombicCode
 from bn3d.bp_os_decoder import BeliefPropagationOSDDecoder
 from bn3d.noise import PauliErrorModel
 from bn3d.deform import DeformedPauliErrorModel, DeformedSweepMatchDecoder
@@ -30,15 +30,33 @@ def send_js(path):
 @app.route('/stabilizer-matrix', methods=['POST'])
 def send_stabilizer_matrix():
     L = request.json['L']
+    code_name = request.json['code_name']
 
-    code = ToricCode3D(L, L, L)
-    n_vertices = int(np.product(code.size))
-    n_stabilizers = code.stabilizers.shape[0]
-    n_faces = n_stabilizers - n_vertices
-    n_qubits = code.n_k_d[0]
+    if code_name == 'cubic':
+        code = ToricCode3D(L, L, L)
 
-    Hz = code.stabilizers[:n_faces, :n_qubits]
-    Hx = code.stabilizers[n_faces:, n_qubits:]
+        n_qubits = code.n_k_d[0]
+        n_stabilizers = code.stabilizers.shape[0]
+        n_vertices = int(np.product(code.size))
+        n_faces = n_stabilizers - n_vertices
+
+        Hz = code.stabilizers[:n_faces, :n_qubits]
+        Hx = code.stabilizers[n_faces:, n_qubits:]
+
+    elif code_name == 'rhombic':
+        code = RhombicCode(L, L, L)
+
+        n_qubits = code.n_k_d[0]
+        n_stabilizers = code.stabilizers.shape[0]
+        n_vertices = int(np.product(code.size))
+        n_triangles = 4 * n_vertices
+        n_cubes = n_stabilizers - n_triangles
+
+        Hz = code.stabilizers[:n_cubes, :n_qubits]
+        Hx = code.stabilizers[n_cubes:, n_qubits:]
+        
+    print(Hz.shape)
+    print(Hx.shape)
 
     return json.dumps({'Hx': Hx.tolist(), 'Hz': Hz.tolist()})
 
@@ -52,17 +70,33 @@ def send_correction():
     deformed = content['deformed']
     max_bp_iter = content['max_bp_iter']
     decoder_name = content['decoder']
+    error_model_name = content['error_model']
+    code_name = content['code_name']
 
-    code = ToricCode3D(L, L, L)
-    n_vertices = int(np.product(code.size))
-    n_stabilizers = code.stabilizers.shape[0]
-    n_faces = n_stabilizers - n_vertices
+    if code_name == 'cubic':
+        code = ToricCode3D(L, L, L)
+    elif code_name == 'rhombic':
+        code = RhombicCode(L, L, L)
+    else:
+        raise ValueError('Code not recognized')
+    # n_vertices = int(np.product(code.size))
+    # n_stabilizers = code.stabilizers.shape[0]
+    # n_faces = n_stabilizers - n_vertices
     n_qubits = code.n_k_d[0]
 
-    if deformed:
-        error_model = DeformedPauliErrorModel(1, 0, 0)
+    if error_model_name == 'Pure X':
+        rx, ry, rz = (1, 0, 0)
+    elif error_model_name == 'Pure Z':
+        rx, ry, rz = (0, 0, 1)
+    elif error_model_name == 'Depolarizing':
+        rx, ry, rz = (1/3, 1/3, 1/3)
     else:
-        error_model = PauliErrorModel(1, 0, 0)
+        raise ValueError('Error model not recognized')
+
+    if deformed:
+        error_model = DeformedPauliErrorModel(rx, ry, rz)
+    else:
+        error_model = PauliErrorModel(rx, ry, rz)
 
     if decoder_name == 'bp':
         decoder = BeliefPropagationOSDDecoder(error_model, p,
@@ -88,13 +122,23 @@ def send_random_errors():
     L = content['L']
     p = content['p']
     deformed = content['deformed']
+    error_model_name = content['error_model']
 
     code = ToricCode3D(L, L, L)
-    
-    if deformed:
-        error_model = DeformedPauliErrorModel(1, 0, 0)
+
+    if error_model_name == 'Pure X':
+        rx, ry, rz = (1, 0, 0)
+    elif error_model_name == 'Pure Z':
+        rx, ry, rz = (0, 0, 1)
+    elif error_model_name == 'Depolarizing':
+        rx, ry, rz = (1/3, 1/3, 1/3)
     else:
-        error_model = PauliErrorModel(1, 0, 0)
+        raise ValueError('Error model not recognized')
+
+    if deformed:
+        error_model = DeformedPauliErrorModel(rx, ry, rz)
+    else:
+        error_model = PauliErrorModel(rx, ry, rz)
     errors = error_model.generate(code, p)
 
     return json.dumps(errors.tolist())
@@ -102,6 +146,6 @@ def send_random_errors():
 
 if __name__ == '__main__':
     port = 5000
-    Timer(1, open_browser, [port]).start()
+    # Timer(1, open_browser, [port]).start()
 
     app.run(port=port)

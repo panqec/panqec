@@ -179,14 +179,18 @@ def bp_decoder(H: np.ndarray,
     # Soft decision
     sum_messages = np.sum(message_p2d, axis=0)
     log_ratio_error = log_ratio_p + sum_messages
+    correction = (log_ratio_error < 0).astype(np.uint)
+    
     predicted_probas = 1 / (np.exp(log_ratio_error)+1)
 
-    return predicted_probas
+    return correction, predicted_probas
 
 
 def bp_osd_decoder(H: np.ndarray, syndrome: np.ndarray, p=0.3, max_bp_iter=10) -> np.ndarray:
-    bp_probas = bp_decoder(H, syndrome, p, max_bp_iter)
-    correction = osd_decoder(H, syndrome, bp_probas)
+    correction, bp_probas = bp_decoder(H, syndrome, p, max_bp_iter)
+    if np.any(H.dot(correction) % 2 != syndrome):
+        correction = osd_decoder(H, syndrome, bp_probas)
+        print(np.all(H.dot(correction) % 2 == syndrome))
 
     return correction
 
@@ -225,24 +229,19 @@ class BeliefPropagationOSDDecoder(Decoder):
                 if axis == deformed_edge:
                     probabilities_x[axis, x, y, z] = p_deformed_x
                     probabilities_z[axis, x, y, z] = p_deformed_z
-                    
+   
         return probabilities_x.flatten(), probabilities_z.flatten()
 
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
-        n_vertices = int(np.product(code.size))
-        n_qubits = code.n_k_d[0]
-
-        n_stabilizers = code.stabilizers.shape[0]
-        n_faces = n_stabilizers - n_vertices
-
-        Hz = code.stabilizers[:n_faces, :n_qubits]
-        Hx = code.stabilizers[n_faces:, n_qubits:]
+        Hz = code.Hz
+        Hx = code.Hx
 
         syndrome = np.array(syndrome, dtype=int)
-        syndrome_z = syndrome[:n_faces]
-        syndrome_x = syndrome[n_faces:]
+
+        syndrome_z = syndrome[:len(Hz)]
+        syndrome_x = syndrome[len(Hz):]
 
         # H_z = code.stabilizers[:n_vertices, n_qubits:]
         # H_x = code.stabilizers[n_vertices:, :n_qubits]

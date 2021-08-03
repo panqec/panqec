@@ -15,8 +15,10 @@ const AXES = [X_AXIS, Y_AXIS, Z_AXIS];
 const X_ERROR = 0;
 const Z_ERROR = 1;
 const COLOR = {vertex: 0xf2f28c, face: 0xf2f28c, edge: 0xffbcbc, 
+               cube: 0xf2f28c, triangle: 0xf2f2cc,
                errorX: 0xff0000, errorZ: 0x25CCF7, errorY: 0xa55eea, 
-               activatedVertex: 0xf1c232, activatedFace: 0xf1c232}
+               activatedVertex: 0xf1c232, activatedFace: 0xf1c232, 
+               activatedTriangle: 0xf1c232, activatedCube: 0xf1c232}
 const SIZE = {radiusEdge: 0.05, radiusVertex: 0.1, lengthEdge: 1}
 const MIN_OPACITY = 0.1;
 const MAX_OPACITY = 0.5;
@@ -26,9 +28,16 @@ let currentOpacity = MAX_OPACITY;
 const params = {
     opacity: MAX_OPACITY,
     errorProbability: 0.1,
-    L: 2,
+    L: 3,
     deformed: false,
-    decoder: 'bp'
+    decoder: 'bp',
+    errorModel: 'Pure X',
+    codeName: 'rhombic'
+};
+
+const buttons = {
+    'decode': decode,
+    'addErrors': addRandomErrors
 };
 
 let camera, controls, scene, renderer, effect, mouse, raycaster, intersects, gui;
@@ -38,6 +47,8 @@ let Hx, Hz;
 let qubits = Array();
 let vertices = Array();
 let faces = Array();
+let cubes = Array();
+let triangles = Array();
 
 init();
 animate();
@@ -66,6 +77,22 @@ function getIndexVertex(x, y, z) {
     return x*Ly*Lz + y*Lz + z;
 }
 
+function getIndexCube(x, y, z) {
+    let Lx = params.L;
+    let Ly = params.L;
+    let Lz = params.L;
+
+    return Math.floor((x*Ly*Lz + y*Lz + z) / 2);
+}
+
+function getIndexTriangle(axis, x, y, z) {
+    let Lx = params.L;
+    let Ly = params.L;
+    let Lz = params.L;
+
+    return axis*Lx*Ly*Lz + x*Ly*Lz + y*Lz + z;
+}
+
 async function addRandomErrors() {
     let errors = await getRandomErrors()
     let n = errors.length / 2;
@@ -90,14 +117,6 @@ function removeAllErrors() {
 }
 
 function insertError(qubit, type) {
-    if (qubit.hasError[type]) {
-        qubit.material.color.setHex(COLOR.edge);
-        qubit.material.transparent = true;
-    }
-    else {
-        qubit.material.color.setHex(COLOR.error);
-        qubit.material.transparent = false;
-    }
     qubit.hasError[type] = !qubit.hasError[type];
 
     if (qubit.hasError[X_ERROR] || qubit.hasError[Z_ERROR]) {
@@ -115,10 +134,21 @@ function insertError(qubit, type) {
     }
     else {
         qubit.material.transparent = true;
+        qubit.material.opacity = currentOpacity;
         qubit.material.color.setHex(COLOR.edge);
     }
 
-    // Activate vertex stabilizers
+    if (params.codeName == 'cubic') {
+        updateVertices();
+        updateFaces();
+    }
+    else if (params.codeName == 'rhombic') {
+        updateTriangles();
+        updateCubes();
+    }
+}
+
+function updateVertices() {
     let nQubitErrors;
     for (let iVertex=0; iVertex < Hx.length; iVertex++) {
         nQubitErrors = 0
@@ -136,8 +166,10 @@ function insertError(qubit, type) {
             deactivateVertex(vertices[iVertex])
         }
     }
+}
 
-    // Activate face stabilizers
+function updateFaces() {
+    let nQubitErrors;
     for (let iFace=0; iFace < Hz.length; iFace++) {
         nQubitErrors = 0
         for (let iQubit=0; iQubit < Hx[0].length; iQubit++) {
@@ -156,6 +188,46 @@ function insertError(qubit, type) {
     }
 }
 
+function updateTriangles() {
+    let nQubitErrors;
+    for (let iTriangle=0; iTriangle < Hx.length; iTriangle++) {
+        nQubitErrors = 0
+        for (let iQubit=0; iQubit < Hx[0].length; iQubit++) {
+            if (Hx[iTriangle][iQubit] == 1) {
+                if (qubits[iQubit].hasError[X_ERROR]) {
+                    nQubitErrors += 1
+                }
+            }
+        }
+        if (nQubitErrors % 2 == 1) {
+            activateTriangle(triangles[iTriangle])
+        }
+        else {
+            deactivateTriangle(triangles[iTriangle])
+        }
+    }
+}
+
+function updateCubes() {
+    let nQubitErrors;
+    for (let iCube=0; iCube < Hz.length; iCube++) {
+        nQubitErrors = 0
+        for (let iQubit=0; iQubit < Hx[0].length; iQubit++) {
+            if (Hz[iCube][iQubit] == 1) {
+                if (qubits[iQubit].hasError[Z_ERROR]) {
+                    nQubitErrors += 1
+                }
+            }
+        }
+        if (nQubitErrors % 2 == 1) {
+            activateCube(cubes[iCube])
+        }
+        else {
+            deactivateCube(cubes[iCube])
+        }
+    }
+}
+
 function activateVertex(vertex) {
     vertex.isActivated = true;
     vertex.material.color.setHex(COLOR.activatedVertex);
@@ -166,6 +238,19 @@ function activateFace(face) {
     face.isActivated = true;
     face.material.color.setHex(COLOR.activatedFace);
     face.material.opacity = MAX_OPACITY;
+}
+
+function activateCube(cube) {
+    cube.isActivated = true;
+    cube.material.color.setHex(COLOR.activatedCube);
+    cube.material.opacity = MAX_OPACITY;
+}
+
+function activateTriangle(triangle) {
+    triangle.isActivated = true;
+    triangle.material.color.setHex(COLOR.activatedTriangle);
+    triangle.material.opacity = MAX_OPACITY;
+    triangle.material.transparent = false;
 }
 
 function deactivateVertex(vertex) {
@@ -180,24 +265,54 @@ function deactivateFace(face) {
     face.material.opacity = 0;
 }
 
+function deactivateCube(cube) {
+    cube.isActivated = false;
+    cube.material.color.setHex(COLOR.cube);
+    cube.material.opacity = currentOpacity;
+}
 
-async function buildCube() {
+function deactivateTriangle(triangle) {
+    triangle.isActivated = false;
+    triangle.material.color.setHex(COLOR.triangle);
+    triangle.material.opacity = currentOpacity;
+    triangle.material.transparent = true;
+}
+
+
+async function buildCode() {
     let stabilizers = await getStabilizerMatrices();
     Hx = stabilizers['Hx'];
     Hz = stabilizers['Hz'];
+
     qubits = Array(Hx[0].length);
+
     vertices = Array(Hx.length);
     faces = Array(Hz.length)
+
+    triangles = Array(Hx.length)
+    cubes = Array(Hz.length)
 
     for(let x=0; x < params.L; x++) {
         for(let y=0; y < params.L; y++) {
             for(let z=0; z < params.L; z++) {
-                buildVertex(x, y, z);
-
-                AXES.forEach(axis => {
+                for (let axis=0; axis < 3; axis++) {
                     buildEdge(axis, x, y, z);
-                    buildFace(axis, x, y, z)
-                });
+                }
+                if (params.codeName == 'cubic') {
+                    buildVertex(x, y, z);
+
+                    for (let axis=0; axis < 3; axis++) {
+                        buildFace(axis, x, y, z);
+                    }
+                }
+                else if (params.codeName == 'rhombic') {
+                    buildCube(x, y, z);
+
+                    for (let axis=0; axis < 4; axis++) {
+                        buildTriangle(axis, x, y, z);
+                    }
+                }
+
             }
         }
     }
@@ -219,6 +334,20 @@ function changeOpacity() {
 
     vertices.forEach(v => {
         v.material.opacity = currentOpacity;
+    });
+
+    cubes.forEach(c => {
+        if (!c.isActivated) {
+            c.material.opacity = currentOpacity;
+            c.children[0].material.opacity = currentOpacity;
+        }
+    });
+
+    triangles.forEach(t => {
+        if (!t.isActivated) {
+            t.material.opacity = currentOpacity;
+            t.children[0].material.opacity = currentOpacity;
+        }
     });
 }
 
@@ -244,7 +373,140 @@ function changeLatticeSize() {
         scene.remove(f);
     });
 
-    buildCube();
+    cubes.forEach(c => {
+        c.material.dispose();
+        c.geometry.dispose();
+
+        scene.remove(c);
+    });
+
+    triangles.forEach(t => {
+        t.material.dispose();
+        t.geometry.dispose();
+
+        scene.remove(t);
+    });
+
+
+    buildCode();
+}
+
+function buildTriangle(axis, x, y, z) {
+    const L = SIZE.lengthEdge / 4
+
+    const geometry = new THREE.BufferGeometry();
+
+    if (axis == 0) {
+        if ((x + y + z) % 2 == 0) {
+            var vertices = new Float32Array([
+                x+L,   y,   z,
+                x,   y+L, z,
+                x,   y,   z+L
+            ]);
+        }
+        else {
+            var vertices = new Float32Array([
+                x-L,   y,   z,
+                x,   y-L, z,
+                x,   y,   z-L
+            ]);
+        }
+    }
+
+    else if (axis == 1) {
+        if ((x + y + z) % 2 == 0) {
+            var vertices = new Float32Array([
+                x+L,   y,   z,
+                x,   y-L, z,
+                x,   y,   z-L
+            ]);
+        }
+        else {
+            var vertices = new Float32Array([
+                x-L,   y,   z,
+                x,   y+L, z,
+                x,   y,   z+L
+            ]);
+        }
+    }
+
+    else if (axis == 2) {
+        if ((x + y + z) % 2 == 0) {
+            var vertices = new Float32Array([
+                x-L,   y,   z,
+                x,   y+L, z,
+                x,   y,   z-L
+            ]);
+        }
+        else {
+            var vertices = new Float32Array([
+                x+L,   y,   z,
+                x,   y-L, z,
+                x,   y,   z+L
+            ]);
+        }
+    }
+
+    else if (axis == 3) {
+        if ((x + y + z) % 2 == 0) {
+            var vertices = new Float32Array([
+                x-L,   y,   z,
+                x,   y-L, z,
+                x,   y,   z+L
+            ]);
+        }
+        else {
+            var vertices = new Float32Array([
+                x+L,   y,   z,
+                x,   y+L, z,
+                x,   y,   z-L
+            ]);
+        }
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3) );
+
+    const material = new THREE.MeshBasicMaterial({color: COLOR.triangle, opacity: currentOpacity, transparent: true, side: THREE.DoubleSide});
+    const triangle = new THREE.Mesh(geometry, material);
+
+    var geo = new THREE.EdgesGeometry(triangle.geometry);
+    var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1, opacity: currentOpacity, transparent: true});
+    var wireframe = new THREE.LineSegments(geo, mat);
+    wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
+    triangle.add(wireframe);
+
+    let index = getIndexTriangle(axis, x, y, z);
+    triangle.index = index;
+    triangle.isActivated = false;
+    triangles[index] = triangle;
+
+    scene.add(triangle);
+}
+
+function buildCube(x, y, z) {
+    if ((x + y + z) % 2 == 1) {
+        const L = SIZE.lengthEdge - 0.2
+        const geometry = new THREE.BoxBufferGeometry(L, L, L);
+        const material = new THREE.MeshToonMaterial({color: COLOR.cube, opacity: currentOpacity, transparent: true});
+        const cube = new THREE.Mesh(geometry, material);
+
+        var geo = new THREE.EdgesGeometry( cube.geometry );
+        var mat = new THREE.LineBasicMaterial( { color: 0x000000, linewidth: 2, opacity: currentOpacity, transparent: true } );
+        var wireframe = new THREE.LineSegments( geo, mat );
+        wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
+        cube.add(wireframe);
+
+        cube.position.x = x + SIZE.lengthEdge / 2;
+        cube.position.y = y + SIZE.lengthEdge / 2;
+        cube.position.z = z + SIZE.lengthEdge / 2;
+
+        let index = getIndexCube(x, y, z);
+        cube.index = index;
+        cube.isActivated = false;
+        cubes[index] = cube;
+
+        scene.add(cube);
+    }
 }
 
 function buildFace(axis, x, y, z) {
@@ -408,7 +670,8 @@ async function getStabilizerMatrices() {
           },
         method: 'POST',
         body: JSON.stringify({
-            'L': params.L
+            'L': params.L,
+            'code_name': params.codeName
         })
     });
     
@@ -426,7 +689,8 @@ async function getRandomErrors() {
         body: JSON.stringify({
             'L': params.L,
             'p': params.errorProbability,
-            'deformed': params.deformed
+            'deformed': params.deformed,
+            'error_model': params.errorModel
         })
     });
     
@@ -453,6 +717,10 @@ function init() {
     dirLight2.position.set( - 1, - 1, - 1 );
     scene.add( dirLight2 );
 
+    const dirLight3 = new THREE.DirectionalLight( 0x002288 );
+    dirLight3.position.set(4, 4, 4);
+    scene.add( dirLight3 );
+
     const ambientLight = new THREE.AmbientLight( 0x222222 );
     scene.add( ambientLight );
 
@@ -464,20 +732,30 @@ function init() {
     document.body.appendChild( renderer.domElement );
 
     effect = new OutlineEffect(renderer);
+    // effect = renderer;
     
     controls = new OrbitControls( camera, renderer.domElement );
 
-    buildCube();
+    buildCode();
 
     document.addEventListener("keydown", onDocumentKeyDown, false);
     document.addEventListener( 'mousedown', onDocumentMouseDown, false );
     window.addEventListener('resize', onWindowResize, false);
 
     gui = new GUI();
-    gui.add(params, 'errorProbability', 0, 0.5).name('Error probability');
-    gui.add(params, 'L', 2, 10, 1).name('Lattice size').onChange(changeLatticeSize);
-    gui.add(params, 'deformed').name('Deformed');
-    gui.add(params, 'decoder', {'Belief Propagation': 'bp', 'SweepMatch': 'sweepmatch'});
+    const codeFolder = gui.addFolder('Code')
+    codeFolder.add(params, 'codeName', {'Cubic': 'cubic', 'Rhombic': 'rhombic'}).name('Code type').onChange(changeLatticeSize);
+    codeFolder.add(params, 'L', 2, 10, 1).name('Lattice size').onChange(changeLatticeSize);
+
+    const errorModelFolder = gui.addFolder('Error Model')
+    errorModelFolder.add(params, 'errorModel', {'Pure X': 'Pure X', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}).name('Model');
+    errorModelFolder.add(params, 'errorProbability', 0, 0.5).name('Probability');
+    errorModelFolder.add(params, 'deformed').name('Deformed');
+    errorModelFolder.add(buttons, 'addErrors').name('▶ Add errors (r)');
+
+    const decoderFolder = gui.addFolder('Decoder')
+    decoderFolder.add(params, 'decoder', {'Belief Propagation': 'bp', 'SweepMatch': 'sweepmatch'}).name('Decoder');
+    decoderFolder.add(buttons, 'decode').name("▶ Decode (d)");
     controls.update();
 }
 
@@ -505,8 +783,16 @@ function onDocumentMouseDown(event) {
 }
 
 function getSyndrome() {
-    let syndrome_z = faces.map(f => + f.isActivated)
-    let syndrome_x = vertices.map(v => + v.isActivated);
+    let syndrome_z, syndrome_x;
+    if (params.codeName == 'cubic') {
+        syndrome_z = faces.map(f => + f.isActivated)
+        syndrome_x = vertices.map(v => + v.isActivated);
+    }
+    else if (params.codeName == 'rhombic') {
+        syndrome_z = cubes.map(c => + c.isActivated)
+        syndrome_x = triangles.map(t => + t.isActivated);
+    }
+        
     return syndrome_z.concat(syndrome_x)
 }
 
@@ -522,7 +808,9 @@ async function getCorrection(syndrome) {
             'max_bp_iter': 10,
             'syndrome': syndrome,
             'deformed': params.deformed,
-            'decoder': params.decoder
+            'decoder': params.decoder,
+            'error_model': params.errorModel,
+            'code_name': params.codeName
         })
     });
     
@@ -531,23 +819,27 @@ async function getCorrection(syndrome) {
     return data
 }
 
-async function onDocumentKeyDown(event) {
+async function decode() {
+    let syndrome = getSyndrome();
+    let correction = await getCorrection(syndrome)
+
+    correction['x'].forEach((c,i) => {
+        if(c) {
+            insertError(qubits[i], X_ERROR)
+        }
+    });
+    correction['z'].forEach((c,i) => {
+        if(c) {
+            insertError(qubits[i], Z_ERROR)
+        }
+    });
+}
+
+function onDocumentKeyDown(event) {
     var keyCode = event.which;
 
     if (keyCode == KEY_CODE['d']) {
-        let syndrome = getSyndrome();
-        let correction = await getCorrection(syndrome)
-
-        correction['x'].forEach((c,i) => {
-            if(c) {
-                insertError(qubits[i], X_ERROR)
-            }
-        });
-        correction['z'].forEach((c,i) => {
-            if(c) {
-                insertError(qubits[i], Z_ERROR)
-            }
-        });
+        decode()
     }
 
     else if (keyCode == KEY_CODE['r']) {
@@ -581,5 +873,5 @@ function animate() {
 
     controls.update()
 
-    effect.render( scene, camera );
+    effect.render(scene, camera);
 }
