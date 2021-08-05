@@ -54,13 +54,13 @@ class ToricCode3D(StabilizerCode):
     def Hz(self) -> np.ndarray:
         if self._Hz.size == 0:
             self._Hz = self.get_face_X_stabilizers()
-        return self._Hz
+        return self._Hz[:, :self.n_k_d[0]]
 
     @property
     def Hx(self) -> np.ndarray:
         if self._Hx.size == 0:
             self._Hx = self.get_vertex_Z_stabilizers()
-        return self._Hx
+        return self._Hx[:, self.n_k_d[0]:]
 
     @property
     def logical_xs(self) -> np.ndarray:
