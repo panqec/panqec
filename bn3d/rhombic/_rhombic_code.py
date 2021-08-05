@@ -71,22 +71,28 @@ class RhombicCode(StabilizerCode):
             L_x, L_y, L_z = self.size
             logicals = []
 
-            # X operators along x edges in x direction.
+            # Sheet of X operators normal to the z direction
             logical = RhombicPauli(self)
             for x in range(L_x):
-                logical.site('X', (0, x, 0, 0))
+                for y in range(L_y):
+                    logical.site('X', (self.X_AXIS, x, y, 0))
+                    logical.site('X', (self.Y_AXIS, x, y, 0))
             logicals.append(logical.to_bsf())
 
-            # X operators along y edges in y direction.
+            # Sheet of X operators normal to the y direction
+            logical = RhombicPauli(self)
+            for x in range(L_x):
+                for z in range(L_z):
+                    logical.site('X', (self.X_AXIS, x, 0, z))
+                    logical.site('X', (self.Z_AXIS, x, 0, z))
+            logicals.append(logical.to_bsf())
+
+            # Sheet of X operators normal to the x direction
             logical = RhombicPauli(self)
             for y in range(L_y):
-                logical.site('X', (1, 0, y, 0))
-            logicals.append(logical.to_bsf())
-
-            # X operators along z edges in z direction
-            logical = RhombicPauli(self)
-            for z in range(L_z):
-                logical.site('X', (2, 0, 0, z))
+                for z in range(L_z):
+                    logical.site('X', (self.Y_AXIS, 0, y, z))
+                    logical.site('X', (self.Z_AXIS, 0, y, z))
             logicals.append(logical.to_bsf())
 
             self._logical_xs = np.array(logicals, dtype=np.uint)
@@ -100,25 +106,22 @@ class RhombicCode(StabilizerCode):
             L_x, L_y, L_z = self.size
             logicals = []
 
-            # Z operators on x edges forming surface normal to x (yz plane).
-            logical = RhombicPauli(self)
-            for y in range(L_y):
-                for z in range(L_z):
-                    logical.site('Z', (0, 0, y, z))
-            logicals.append(logical.to_bsf())
-
-            # Z operators on y edges forming surface normal to y (zx plane).
-            logical = RhombicPauli(self)
-            for z in range(L_z):
-                for x in range(L_x):
-                    logical.site('Z', (1, x, 0, z))
-            logicals.append(logical.to_bsf())
-
-            # Z operators on z edges forming surface normal to z (xy plane).
+            # Line of parallel Z operators along the x direction
             logical = RhombicPauli(self)
             for x in range(L_x):
-                for y in range(L_y):
-                    logical.site('Z', (2, x, y, 0))
+                logical.site('Z', (self.Y_AXIS, x, 0, 0))
+            logicals.append(logical.to_bsf())
+
+            # Line of parallel Z operators along the y direction
+            logical = RhombicPauli(self)
+            for y in range(L_y):
+                logical.site('Z', (self.Z_AXIS, 0, y, 0))
+            logicals.append(logical.to_bsf())
+
+            # Line of parallel Z operators along the z direction
+            logical = RhombicPauli(self)
+            for z in range(L_z):
+                logical.site('Z', (self.X_AXIS, 0, 0, z))
             logicals.append(logical.to_bsf())
 
             self._logical_zs = np.array(logicals, dtype=np.uint)
