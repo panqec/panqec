@@ -4,7 +4,7 @@ import click
 import bn3d
 from tqdm import tqdm
 from .app import run_file
-from .config import CODES, ERROR_MODELS, DECODERS
+from .config import CODES, ERROR_MODELS, DECODERS, BN3D_DIR
 from .slurm import (
     generate_sbatch, get_status, generate_sbatch_nist, count_input_runs,
     clear_out_folder, clear_sbatch_folder
@@ -29,6 +29,7 @@ def cli(ctx):
 @click.option('-f', '--file', 'file_')
 @click.option('-t', '--trials', default=100, type=click.INT, show_default=True)
 @click.option('-s', '--start', default=None, type=click.INT, show_default=True)
+@click.option('-o', '--output_dir', default=BN3D_DIR, type=click.STRING, show_default=True)
 @click.option(
     '-n', '--n_runs', default=None, type=click.INT, show_default=True
 )
@@ -37,13 +38,15 @@ def run(
     file_: Optional[str],
     trials: int,
     start: Optional[int],
-    n_runs: Optional[int]
+    n_runs: Optional[int],
+    output_dir: Optional[str]
 ):
     """Run a single job or run many jobs from input file."""
     if file_ is not None:
         run_file(
             os.path.abspath(file_), trials,
             start=start, n_runs=n_runs, progress=tqdm,
+            output_dir=output_dir
         )
     else:
         print(ctx.get_help())
