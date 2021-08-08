@@ -6,7 +6,6 @@ import numpy.ma as ma
 from scipy.sparse import csc_matrix, csr_matrix, coo_matrix, lil_matrix, find
 
 
-# @profile
 def get_rref_mod2(A: np.ndarray, b: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Take a matrix A and a vector b.
     Return the row echelon form of A and a new vector b,
@@ -129,7 +128,7 @@ def bp_decoder(H: np.ndarray,
     # Initialization for all neighboring elements
     message_d2p[edges_p2d[1], edges_p2d[0]] = log_ratio_p[edges_p2d[1]]
 
-    for iter in range(max_iter):
+    for iter in range(max_iter):        
         # Scaling factor
         alpha = 1 - 2**(-iter-1)
 
@@ -176,11 +175,14 @@ def bp_decoder(H: np.ndarray,
         # For each edge, get the sum around the data bit, excluding that edge
         message_d2p[edges_p2d[1], edges_p2d[0]] = log_ratio_p[edges_p2d[1]] + sum_messages_data[edges_p2d[1]] - message_p2d[edges_p2d]
 
-    # Soft decision
-    sum_messages = np.sum(message_p2d, axis=0)
-    log_ratio_error = log_ratio_p + sum_messages
-    correction = (log_ratio_error < 0).astype(np.uint)
-    
+        # Soft decision
+        sum_messages = np.sum(message_p2d, axis=0)
+        log_ratio_error = log_ratio_p + sum_messages
+        correction = (log_ratio_error < 0).astype(np.uint)
+        
+        if np.all(H.dot(correction) % 2 == syndrome):
+            break
+
     predicted_probas = 1 / (np.exp(log_ratio_error)+1)
 
     return correction, predicted_probas
@@ -190,7 +192,6 @@ def bp_osd_decoder(H: np.ndarray, syndrome: np.ndarray, p=0.3, max_bp_iter=10) -
     correction, bp_probas = bp_decoder(H, syndrome, p, max_bp_iter)
     if np.any(H.dot(correction) % 2 != syndrome):
         correction = osd_decoder(H, syndrome, bp_probas)
-        print(np.all(H.dot(correction) % 2 == syndrome))
 
     return correction
 
@@ -276,8 +277,4 @@ if __name__ == "__main__":
 
     decoder = BeliefPropagationOSDDecoder(error_model, probability)
 
-    # n_stabilizers = code.stabilizers.shape[0]
-    # syndrome = np.zeros(n_stabilizers)
-
     correction = decoder.decode(code, syndrome)
-    # print(correction)
