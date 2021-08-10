@@ -3,6 +3,8 @@ from typing import Optional
 import click
 import bn3d
 from tqdm import tqdm
+import numpy as np
+import json
 from .app import run_file
 from .config import CODES, ERROR_MODELS, DECODERS, BN3D_DIR
 from .slurm import (
@@ -74,6 +76,69 @@ def ls(model_type=None):
         print('\n'.join([
             '    ' + name for name in sorted(DECODERS.keys())
         ]))
+        
+
+@click.command()
+@click.option('-i', '--input_dir', required=True, type=str)
+@click.option('-d', '--decoder', required=True, type=click.Choice(
+    ['bp', 'sweepmatch'],
+    case_sensitive=False
+))
+def generate_input(input_dir, decoder):
+    """Generate the json files of every experiments"""
+
+    codes = ["cubic", "rhombic"]
+    directions = [{'r_x': r_x, 'r_y': 0, 'r_z': 1-r_x} for r_x in np.linspace(0, 1, 11)]
+    for code in codes:
+        for deformed in [True, False]:
+            for direction in directions:
+                label = "deformed" if deformed else "regular"
+                label += f"-{code}"
+                label += f"-{decoder}"
+                label += f"-{direction['r_x']:.2f}-{direction['r_y']:.2f}-{direction['r_z']:.2f}"
+                
+                code_model = "ToricCode3D" if code == 'cubic' else "RhombicCode"
+                code_parameters = [
+                    {"L_x": 4},
+                    {"L_x": 6},
+                    {"L_x": 8},
+                    {"L_x": 10},
+                ]
+                code_dict = {"model": code_model,
+                             "parameters": code_parameters}
+                
+                noise_model = "Deformed" if deformed else ""
+                noise_model += "PauliErrorModel"
+                noise_parameters = direction
+                noise_dict = {"model": noise_model,
+                              "parameters": noise_parameters}
+                
+                if decoder == "sweepmatch":
+                    decoder_model = "SweepMatchDecoder"
+                    if deformed:
+                        decoder_model = "Deformed" + decoder_model
+                    decoder_parameters = {}
+                else:
+                    decoder_model = "BeliefPropagationOSDDecoder"
+                    decoder_parameters = {'deformed': deformed}
+                decoder_dict = {"model": decoder_model,
+                                "parameters": decoder_parameters}
+                
+                delta = 0.01
+                probability = np.arange(0, 0.5+delta, delta).tolist()
+                
+                ranges_dict = {"label": label,
+                               "code": code_dict,
+                               "noise": noise_dict,
+                               "decoder": decoder_dict,
+                               "probability": probability}
+
+                json_dict = {"comments": "",
+                             "ranges": ranges_dict}
+
+                filename = os.path.join(input_dir, f'{label}.json')
+                with open(filename, 'w') as json_file:
+                    json.dump(json_dict, json_file, indent=4)
 
 
 @click.group(invoke_without_command=True)
@@ -154,3 +219,4 @@ slurm.add_command(clear)
 cli.add_command(run)
 cli.add_command(ls)
 cli.add_command(slurm)
+cli.add_command(generate_input)
