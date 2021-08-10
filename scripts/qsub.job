@@ -5,18 +5,19 @@
 # Request ten minutes of wallclock time (format hours:minutes:seconds).
 #$ -l h_rt=0:5:0
 
-# Request 1 gigabyte of RAM (must be an integer followed by M, G, or T)
+# Request 1G of RAM (must be an integer followed by M, G, or T)
 #$ -l mem=1G
 
-# Request 15 gigabyte of TMPDIR space (default is 10 GB - remove if cluster is diskless)
+# Request 1G of TMPDIR space (default is 10 GB - remove if cluster is diskless)
 #$ -l tmpfs=1G
 
-# Set the name of the job.
 #$ -N TestJob
+
+#$ -wd /home/ucapacp/Scratch/output
 
 # Automate transfer of output to Scratch from $TMPDIR.
 #Local2Scratch
 
 conda activate bn3d
-filename="`ls` | awk '{print $3}'"
+filename="`ls` | awk '{print $SGE_TASK_ID}'"
 bn3d run --file /home/ucapacp/bn3d/results/input/$filename --trials 20 -o $TMPDIR
