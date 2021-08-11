@@ -182,3 +182,9 @@ For more options see the help
 bn3d slurm gennist --help
 ```
 You can adjust the walltime, memory, etc.
+
+# How to generate parameters to run
+The space of Pauli operators is parameterized by a simplex (triangle).
+See `notebooks/12-eh-generate_params.ipynb` for how to generate values
+of `r_x`, `r_y` and `r_z` that parameterize things in terms of well-established
+values of eta, as defined by Dave Tuckett.
