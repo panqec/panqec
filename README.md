@@ -182,3 +182,26 @@ For more options see the help
 bn3d slurm gennist --help
 ```
 You can adjust the walltime, memory, etc.
+
+# How to generate parameters to run
+The space of Pauli operators is parameterized by a simplex (triangle).
+See `notebooks/12-eh-generate_params.ipynb` for how to generate values
+of `r_x`, `r_y` and `r_z` that parameterize things in terms of well-established
+values of eta, as defined by Dave Tuckett.
+
+# How to generate figures for the PSI essay
+Take a look at `notebooks/11-eh-essay_figures.ipynb` to generate the figures,
+but note that you will need to run the simulations first to have the data to
+make the plots.
+
+# How to make array jobs
+Once you have a json input file, there is a unique list of parameters.
+All you need to do is have something like this line in your sbatch file.
+
+```
+bn3d run --file /path/to/inputs.json --trials 1000 --start $START --n_runs $N_RUNS
+```
+
+The `--trials` flag is the number of Monte Carlo runs.
+`$START` is the index to start.
+`$N_RUNS` is hte number of indices to run.
