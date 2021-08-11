@@ -188,3 +188,8 @@ The space of Pauli operators is parameterized by a simplex (triangle).
 See `notebooks/12-eh-generate_params.ipynb` for how to generate values
 of `r_x`, `r_y` and `r_z` that parameterize things in terms of well-established
 values of eta, as defined by Dave Tuckett.
+
+# How to generate figures for the PSI essay
+Take a look at `notebooks/11-eh-essay_figures.ipynb` to generate the figures,
+but note that you will need to run the simulations first to have the data to
+make the plots.
