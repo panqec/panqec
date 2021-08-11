@@ -1,1 +1,3 @@
 *.ipynb
+!12-eh-generate_params.ipynb
+!11-eh-essay_figures.ipynb
