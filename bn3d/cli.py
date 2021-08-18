@@ -120,12 +120,12 @@ def generate_input(input_dir, decoder):
                     decoder_model = "SweepMatchDecoder"
                     if deformed:
                         decoder_model = "Deformed" + decoder_model
-                    decoder_parameters = {}
+                    decoder_dict = {"model": decoder_model}
                 else:
                     decoder_model = "BeliefPropagationOSDDecoder"
                     decoder_parameters = {'deformed': deformed}
-                decoder_dict = {"model": decoder_model,
-                                "parameters": decoder_parameters}
+                    decoder_dict = {"model": decoder_model,
+                                    "parameters": decoder_parameters}
 
                 delta = 0.005
                 probability = np.arange(0, 0.5+delta, delta).tolist()
