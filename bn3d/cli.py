@@ -11,6 +11,9 @@ from .slurm import (
     generate_sbatch, get_status, generate_sbatch_nist, count_input_runs,
     clear_out_folder, clear_sbatch_folder
 )
+from bn3d.plots._hashing_bound import (
+    generate_points_triangle
+)
 
 
 @click.group(invoke_without_command=True)
@@ -88,7 +91,7 @@ def generate_input(input_dir, decoder):
     """Generate the json files of every experiments"""
 
     codes = ["cubic", "rhombic"]
-    directions = [{'r_x': r_x, 'r_y': 0, 'r_z': 1-r_x} for r_x in np.linspace(0, 1, 11)]
+    directions = generate_points_triangle()
     for code in codes:
         for deformed in [True, False]:
             for direction in directions:
