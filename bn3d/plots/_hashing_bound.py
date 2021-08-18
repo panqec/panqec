@@ -42,6 +42,25 @@ def get_eta_bias(point, axis=2):
         return point[axis]/denominator
 
 
+def generate_points_triangle():
+    r_z_list = [
+        eta/(1 + eta)
+        for eta in [0.5, 1, 3, 10, 30, 100]
+    ] + [1.0]
+    radials = (np.array(r_z_list) - 1/3)/(2/3)
+    azimuthals = np.arange(0, 1, 1)
+    points = generate_points(radials, azimuthals)
+
+    combined_points = np.unique(np.concatenate([points]), axis=0)
+
+    noise_parameters = [
+        dict(zip(['r_x', 'r_y', 'r_z'], map(float, p + 0)))
+        for p in combined_points
+    ]
+
+    return noise_parameters
+
+
 def generate_points(radials, azimuthals):
     x_channel, y_channel, z_channel = np.eye(3)
     depolarizing = np.ones(3)/3
