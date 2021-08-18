@@ -79,7 +79,7 @@ def ls(model_type=None):
         print('\n'.join([
             '    ' + name for name in sorted(DECODERS.keys())
         ]))
-        
+
 
 @click.command()
 @click.option('-i', '--input_dir', required=True, type=str)
@@ -99,7 +99,7 @@ def generate_input(input_dir, decoder):
                 label += f"-{code}"
                 label += f"-{decoder}"
                 label += f"-{direction['r_x']:.2f}-{direction['r_y']:.2f}-{direction['r_z']:.2f}"
-                
+
                 code_model = "ToricCode3D" if code == 'cubic' else "RhombicCode"
                 code_parameters = [
                     {"L_x": 4},
@@ -109,13 +109,13 @@ def generate_input(input_dir, decoder):
                 ]
                 code_dict = {"model": code_model,
                              "parameters": code_parameters}
-                
+
                 noise_model = "Deformed" if deformed else ""
                 noise_model += "PauliErrorModel"
                 noise_parameters = direction
                 noise_dict = {"model": noise_model,
                               "parameters": noise_parameters}
-                
+
                 if decoder == "sweepmatch":
                     decoder_model = "SweepMatchDecoder"
                     if deformed:
@@ -126,10 +126,10 @@ def generate_input(input_dir, decoder):
                     decoder_parameters = {'deformed': deformed}
                 decoder_dict = {"model": decoder_model,
                                 "parameters": decoder_parameters}
-                
-                delta = 0.01
+
+                delta = 0.005
                 probability = np.arange(0, 0.5+delta, delta).tolist()
-                
+     
                 ranges_dict = {"label": label,
                                "code": code_dict,
                                "noise": noise_dict,
