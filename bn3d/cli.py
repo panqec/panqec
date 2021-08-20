@@ -102,7 +102,7 @@ def generate_input(input_dir, decoder):
                     label += f"-{code}"
                     label += f"-{decoder}"
                     label += f"-{direction['r_x']:.2f}-{direction['r_y']:.2f}-{direction['r_z']:.2f}"
-                    label += f"-p-{p:.2f}"
+                    label += f"-p-{p:.3f}"
 
                     code_model = "ToricCode3D" if code == 'cubic' else "RhombicCode"
                     code_parameters = [
