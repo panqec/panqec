@@ -17,4 +17,11 @@
 - [ ] investigate why thresholds
 
 ### Finite-size scaling
-- [ ] implement it
+- [x] implement it
+
+### Stat mech
+- [ ] `SpinModel` class
+    - [ ] `energy_diff`
+- [ ] `Observable` class
+- [ ] `MCSampler` class
+- [ ] Convergence test - 3 error bars per tau window

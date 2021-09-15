@@ -205,3 +205,9 @@ bn3d run --file /path/to/inputs.json --trials 1000 --start $START --n_runs $N_RU
 The `--trials` flag is the number of Monte Carlo runs.
 `$START` is the index to start.
 `$N_RUNS` is hte number of indices to run.
+
+# Statistical Mechanics Markov Chain Monte Carlo
+This package now also includes classes for dealing with classical statistical
+mechanics models which have a correspondence with quantum error correcting
+codes on lattices.
+They are implemented in an object-oriented manner.
