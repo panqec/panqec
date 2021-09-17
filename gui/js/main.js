@@ -28,11 +28,12 @@ let currentOpacity = MAX_OPACITY;
 const params = {
     opacity: MAX_OPACITY,
     errorProbability: 0.1,
-    L: 3,
-    deformed: false,
+    L: 4,
+    deformed: true,
     decoder: 'bp',
-    errorModel: 'Pure X',
-    codeName: 'rhombic'
+    max_bp_iter: 10,
+    errorModel: 'Pure Z',
+    codeName: 'cubic'
 };
 
 const buttons = {
@@ -283,6 +284,8 @@ async function buildCode() {
     let stabilizers = await getStabilizerMatrices();
     Hx = stabilizers['Hx'];
     Hz = stabilizers['Hz'];
+    var logical_xs = stabilizers['logical_xs']
+    var logical_zs = stabilizers['logical_zs']
 
     qubits = Array(Hx[0].length);
 
@@ -316,6 +319,12 @@ async function buildCode() {
             }
         }
     }
+
+    // qubits.forEach((q, i) => {
+    //     if (logical_zs[2][i]) {
+    //         insertError(q, Z_ERROR);
+    //     }
+    // });
 }
 
 function changeOpacity() {
@@ -485,7 +494,7 @@ function buildTriangle(axis, x, y, z) {
 
 function buildCube(x, y, z) {
     if ((x + y + z) % 2 == 1) {
-        const L = SIZE.lengthEdge - 0.2
+        const L = SIZE.lengthEdge - 0.3
         const geometry = new THREE.BoxBufferGeometry(L, L, L);
         const material = new THREE.MeshToonMaterial({color: COLOR.cube, opacity: currentOpacity, transparent: true});
         const cube = new THREE.Mesh(geometry, material);
@@ -755,6 +764,7 @@ function init() {
 
     const decoderFolder = gui.addFolder('Decoder')
     decoderFolder.add(params, 'decoder', {'Belief Propagation': 'bp', 'SweepMatch': 'sweepmatch'}).name('Decoder');
+    decoderFolder.add(params, 'max_bp_iter', 1, 100, 1).name('Max iterations BP');
     decoderFolder.add(buttons, 'decode').name("▶ Decode (d)");
     controls.update();
 }
@@ -805,7 +815,7 @@ async function getCorrection(syndrome) {
         body: JSON.stringify({
             'L': params.L,
             'p': params.errorProbability,
-            'max_bp_iter': 10,
+            'max_bp_iter': params.max_bp_iter,
             'syndrome': syndrome,
             'deformed': params.deformed,
             'decoder': params.decoder,

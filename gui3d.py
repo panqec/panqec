@@ -54,11 +54,10 @@ def send_stabilizer_matrix():
 
         Hz = code.stabilizers[:n_cubes, :n_qubits]
         Hx = code.stabilizers[n_cubes:, n_qubits:]
-        
-    print(Hz.shape)
-    print(Hx.shape)
 
-    return json.dumps({'Hx': Hx.tolist(), 'Hz': Hz.tolist()})
+    return json.dumps({'Hx': Hx.tolist(), 'Hz': Hz.tolist(),
+                       'logical_xs': code.logical_xs[:, :n_qubits].tolist(), 
+                       'logical_zs': code.logical_zs[:, n_qubits:].tolist()})
 
 
 @app.route('/decode', methods=['POST'])
@@ -99,6 +98,7 @@ def send_correction():
         error_model = PauliErrorModel(rx, ry, rz)
 
     if decoder_name == 'bp':
+        print("Deformed", deformed)
         decoder = BeliefPropagationOSDDecoder(error_model, p,
                                               max_bp_iter=max_bp_iter,
                                               deformed=deformed)
@@ -146,6 +146,6 @@ def send_random_errors():
 
 if __name__ == '__main__':
     port = 5000
-    # Timer(1, open_browser, [port]).start()
+    Timer(1, open_browser, [port]).start()
 
     app.run(port=port)
