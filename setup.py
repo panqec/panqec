@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 requirements = [
     'PyMatching',
@@ -14,7 +14,7 @@ setup(
     url='http://github.com/ehua7365/bn3d',
     author='Eric Huang',
     email='ehuang1@perimeterinstitute.ca',
-    packages=['bn3d'],
+    packages=find_packages(),
     zip_safe=False,
     requirements=requirements,
     scripts=['bin/bn3d'],

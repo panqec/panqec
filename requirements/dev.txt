@@ -9,3 +9,7 @@ jupyterlab==3.0.14
 coverage==5.5
 pytest-cov==2.11.1
 pandas==1.2.4
+
+# GUI
+Flask==2.0.1
+ursina==4.0.0

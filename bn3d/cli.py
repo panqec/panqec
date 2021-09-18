@@ -3,11 +3,16 @@ from typing import Optional
 import click
 import bn3d
 from tqdm import tqdm
+import numpy as np
+import json
 from .app import run_file
-from .config import CODES, ERROR_MODELS, DECODERS
+from .config import CODES, ERROR_MODELS, DECODERS, BN3D_DIR
 from .slurm import (
     generate_sbatch, get_status, generate_sbatch_nist, count_input_runs,
     clear_out_folder, clear_sbatch_folder
+)
+from bn3d.plots._hashing_bound import (
+    generate_points_triangle
 )
 
 
@@ -30,6 +35,10 @@ def cli(ctx):
 @click.option('-t', '--trials', default=100, type=click.INT, show_default=True)
 @click.option('-s', '--start', default=None, type=click.INT, show_default=True)
 @click.option(
+    '-o', '--output_dir', default=BN3D_DIR, type=click.STRING,
+    show_default=True
+)
+@click.option(
     '-n', '--n_runs', default=None, type=click.INT, show_default=True
 )
 def run(
@@ -37,13 +46,15 @@ def run(
     file_: Optional[str],
     trials: int,
     start: Optional[int],
-    n_runs: Optional[int]
+    n_runs: Optional[int],
+    output_dir: Optional[str]
 ):
     """Run a single job or run many jobs from input file."""
     if file_ is not None:
         run_file(
             os.path.abspath(file_), trials,
             start=start, n_runs=n_runs, progress=tqdm,
+            output_dir=output_dir
         )
     else:
         print(ctx.get_help())
@@ -71,6 +82,79 @@ def ls(model_type=None):
         print('\n'.join([
             '    ' + name for name in sorted(DECODERS.keys())
         ]))
+
+
+@click.command()
+@click.option('-i', '--input_dir', required=True, type=str)
+@click.option('-d', '--decoder', required=True, type=click.Choice(
+    ['bp', 'sweepmatch'],
+    case_sensitive=False
+))
+def generate_input(input_dir, decoder):
+    """Generate the json files of every experiments"""
+
+    codes = ["cubic", "rhombic"]
+    delta = 0.005
+    probabilities = np.arange(0, 0.5+delta, delta).tolist()
+    directions = generate_points_triangle()
+    for code in codes:
+        for deformed in [True, False]:
+            for direction in directions:
+                for p in probabilities:
+                    label = "deformed" if deformed else "regular"
+                    label += f"-{code}"
+                    label += f"-{decoder}"
+                    label += (
+                        f"-{direction['r_x']:.2f}-{direction['r_y']:.2f}"
+                        f"-{direction['r_z']:.2f}"
+                    )
+                    label += f"-p-{p:.3f}"
+
+                    code_model = (
+                        "ToricCode3D" if code == 'cubic' else "RhombicCode"
+                    )
+                    code_parameters = [
+                        {"L_x": 4},
+                        {"L_x": 6},
+                        {"L_x": 8},
+                        {"L_x": 10},
+                    ]
+                    code_dict = {
+                        "model": code_model,
+                        "parameters": code_parameters
+                    }
+
+                    noise_model = "Deformed" if deformed else ""
+                    noise_model += "PauliErrorModel"
+                    noise_parameters = direction
+                    noise_dict = {
+                        "model": noise_model,
+                        "parameters": noise_parameters
+                    }
+
+                    if decoder == "sweepmatch":
+                        decoder_model = "SweepMatchDecoder"
+                        if deformed:
+                            decoder_model = "Deformed" + decoder_model
+                        decoder_dict = {"model": decoder_model}
+                    else:
+                        decoder_model = "BeliefPropagationOSDDecoder"
+                        decoder_parameters = {'deformed': deformed}
+                        decoder_dict = {"model": decoder_model,
+                                        "parameters": decoder_parameters}
+
+                    ranges_dict = {"label": label,
+                                   "code": code_dict,
+                                   "noise": noise_dict,
+                                   "decoder": decoder_dict,
+                                   "probability": [p]}
+
+                    json_dict = {"comments": "",
+                                 "ranges": ranges_dict}
+
+                    filename = os.path.join(input_dir, f'{label}.json')
+                    with open(filename, 'w') as json_file:
+                        json.dump(json_dict, json_file, indent=4)
 
 
 @click.group(invoke_without_command=True)
@@ -151,3 +235,4 @@ slurm.add_command(clear)
 cli.add_command(run)
 cli.add_command(ls)
 cli.add_command(slurm)
+cli.add_command(generate_input)
