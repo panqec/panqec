@@ -708,15 +708,61 @@ async function getRandomErrors() {
     return data;
 }
 
+function closeInstructions() {
+    var closingCross = document.getElementById('closingCross');
+    var instructions = document.getElementById('instructions');
+
+    instructions.style.visibility = 'hidden';
+    closingCross.style.visibility = 'hidden';
+}
+
 
 function init() {
+    // Display instructions
+    var closingCross = document.createElement('div');
+    closingCross.id = 'closingCross';
+    closingCross.style.position = 'absolute';
+    closingCross.style.top = 15 + 'px';
+    closingCross.style.left = 15 + 'px';
+    closingCross.style.fontFamily = 'sans-serif';
+    closingCross.style.fontSize = 30 + 'px';
+    closingCross.style.color = 'white';
+    closingCross.innerHTML = "<a style='color: inherit; text-decoration: inherit' href='#'>×</a>";
+    closingCross.addEventListener('mouseenter', e => { closingCross.style.opacity = 0.6; })
+    closingCross.addEventListener('mouseleave', e => { closingCross.style.opacity = 1; })
+    closingCross.onclick = closeInstructions;
+
+    var instructions = document.createElement('div');
+    instructions.id = 'instructions';
+    instructions.style.position = 'absolute';
+    instructions.style.top = 40 + 'px';
+    instructions.style.left = 40 + 'px';
+    instructions.style.fontFamily = 'sans-serif'
+    instructions.style.fontSize = 20 + 'px'
+    instructions.style.color = "white";
+    instructions.style.opacity = 0.6;
+    instructions.style.transparent = "true"
+    instructions.innerHTML = 
+    "\
+        <table style='border-spacing: 10px'>\
+        <tr><td><b>CTRL + Left click</b></td><td>X error</td></tr>\
+        <tr><td><b>CTRL + Right click</b></td><td>Z error</td></tr>\
+        <tr><td><b>R</b></td><td>Random errors</td></tr>\
+        <tr><td><b>D</b></td><td>Decode</td></tr>\
+        </table>\
+    ";
+    document.body.appendChild(instructions);
+    document.body.appendChild(closingCross);
+
+
+    // Create scene
     scene = new THREE.Scene();
     scene.background = new THREE.Color( 0x444488 );
 
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-    camera.position.z = 5;
-    camera.position.y = 2;
-    camera.position.x = 2;
+    camera.position.z = 6;
+    camera.position.y = 3;
+    camera.position.x = 3;
 
     const dirLight1 = new THREE.DirectionalLight( 0xffffff );
     dirLight1.position.set( 1, 1, 1 );
