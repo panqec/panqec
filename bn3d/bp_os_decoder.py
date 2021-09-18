@@ -3,7 +3,6 @@ import itertools
 from qecsim.model import Decoder, StabilizerCode, ErrorModel
 from typing import Tuple, List
 import numpy.ma as ma
-from scipy.sparse import csc_matrix, csr_matrix, coo_matrix, lil_matrix, find
 
 
 def get_rref_mod2(
@@ -111,7 +110,7 @@ def bp_decoder(H: np.ndarray,
                syndrome: np.ndarray,
                probabilities: np.ndarray,
                max_iter=10,
-               eps=1e-8) -> np.ndarray:
+               eps=1e-8) -> Tuple[np.ndarray, np.ndarray]:
     """Belief propagation decoder.
     It returns a probability for each qubit to have had an error
     """
@@ -195,7 +194,7 @@ def bp_decoder(H: np.ndarray,
         log_ratio_error = log_ratio_p + sum_messages
         correction = (log_ratio_error < 0).astype(np.uint)
 
-        if np.all(H.dot(correction) % 2 == syndrome):
+        if np.all(np.mod(H.dot(correction), 2) == syndrome):
             break
 
     predicted_probas = 1 / (np.exp(log_ratio_error)+1)
@@ -207,7 +206,7 @@ def bp_osd_decoder(
     H: np.ndarray, syndrome: np.ndarray, p=0.3, max_bp_iter=10
 ) -> np.ndarray:
     correction, bp_probas = bp_decoder(H, syndrome, p, max_bp_iter)
-    if np.any(H.dot(correction) % 2 != syndrome):
+    if np.any(np.mod(H.dot(correction), 2) != syndrome):
         correction = osd_decoder(H, syndrome, bp_probas)
 
     return correction
