@@ -748,7 +748,9 @@ function init() {
         <table style='border-spacing: 10px'>\
         <tr><td><b>CTRL + Left click</b></td><td>X error</td></tr>\
         <tr><td><b>CTRL + Right click</b></td><td>Z error</td></tr>\
+        <tr><td><b>Backspace</b></td><td>Remove errors</td></tr>\
         <tr><td><b>R</b></td><td>Random errors</td></tr>\
+        <tr><td><b>O</b></td><td>Toggle opacity</td></tr>\
         <tr><td><b>D</b></td><td>Decode</td></tr>\
         </table>\
     ";
