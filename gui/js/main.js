@@ -709,12 +709,19 @@ async function getRandomErrors() {
     return data;
 }
 
-function closeInstructions() {
+function toggleInstructions() {
     var closingCross = document.getElementById('closingCross');
     var instructions = document.getElementById('instructions');
 
-    instructions.style.visibility = 'hidden';
-    closingCross.style.visibility = 'hidden';
+    if (instructions.style.visibility == 'hidden') {
+        instructions.style.visibility = 'visible';
+        closingCross.innerHTML = "<a style='color: inherit; text-decoration: inherit' href='#'>× Instructions</a>";
+
+    }
+    else {
+        instructions.style.visibility = 'hidden';
+        closingCross.innerHTML = "<a style='color: inherit; text-decoration: inherit' href='#'>🔽 Instructions</a>";
+    }
 }
 
 
@@ -726,12 +733,12 @@ function init() {
     closingCross.style.top = 15 + 'px';
     closingCross.style.left = 15 + 'px';
     closingCross.style.fontFamily = 'sans-serif';
-    closingCross.style.fontSize = 30 + 'px';
+    closingCross.style.fontSize = 20 + 'px';
     closingCross.style.color = 'white';
-    closingCross.innerHTML = "<a style='color: inherit; text-decoration: inherit' href='#'>×</a>";
+    closingCross.innerHTML = "<a style='color: inherit; text-decoration: inherit' href='#'>× Instructions</a>";
     closingCross.addEventListener('mouseenter', e => { closingCross.style.opacity = 0.6; })
     closingCross.addEventListener('mouseleave', e => { closingCross.style.opacity = 1; })
-    closingCross.onclick = closeInstructions;
+    closingCross.onclick = toggleInstructions;
 
     var instructions = document.createElement('div');
     instructions.id = 'instructions';
