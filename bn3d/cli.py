@@ -34,7 +34,10 @@ def cli(ctx):
 @click.option('-f', '--file', 'file_')
 @click.option('-t', '--trials', default=100, type=click.INT, show_default=True)
 @click.option('-s', '--start', default=None, type=click.INT, show_default=True)
-@click.option('-o', '--output_dir', default=BN3D_DIR, type=click.STRING, show_default=True)
+@click.option(
+    '-o', '--output_dir', default=BN3D_DIR, type=click.STRING,
+    show_default=True
+)
 @click.option(
     '-n', '--n_runs', default=None, type=click.INT, show_default=True
 )
@@ -101,24 +104,33 @@ def generate_input(input_dir, decoder):
                     label = "deformed" if deformed else "regular"
                     label += f"-{code}"
                     label += f"-{decoder}"
-                    label += f"-{direction['r_x']:.2f}-{direction['r_y']:.2f}-{direction['r_z']:.2f}"
+                    label += (
+                        f"-{direction['r_x']:.2f}-{direction['r_y']:.2f}"
+                        f"-{direction['r_z']:.2f}"
+                    )
                     label += f"-p-{p:.3f}"
 
-                    code_model = "ToricCode3D" if code == 'cubic' else "RhombicCode"
+                    code_model = (
+                        "ToricCode3D" if code == 'cubic' else "RhombicCode"
+                    )
                     code_parameters = [
                         {"L_x": 4},
                         {"L_x": 6},
                         {"L_x": 8},
                         {"L_x": 10},
                     ]
-                    code_dict = {"model": code_model,
-                                "parameters": code_parameters}
+                    code_dict = {
+                        "model": code_model,
+                        "parameters": code_parameters
+                    }
 
                     noise_model = "Deformed" if deformed else ""
                     noise_model += "PauliErrorModel"
                     noise_parameters = direction
-                    noise_dict = {"model": noise_model,
-                                "parameters": noise_parameters}
+                    noise_dict = {
+                        "model": noise_model,
+                        "parameters": noise_parameters
+                    }
 
                     if decoder == "sweepmatch":
                         decoder_model = "SweepMatchDecoder"
@@ -130,7 +142,7 @@ def generate_input(input_dir, decoder):
                         decoder_parameters = {'deformed': deformed}
                         decoder_dict = {"model": decoder_model,
                                         "parameters": decoder_parameters}
-        
+
                     ranges_dict = {"label": label,
                                    "code": code_dict,
                                    "noise": noise_dict,
