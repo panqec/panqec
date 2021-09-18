@@ -29,10 +29,10 @@ const params = {
     opacity: MAX_OPACITY,
     errorProbability: 0.1,
     L: 4,
-    deformed: true,
+    deformed: false,
     decoder: 'bp',
     max_bp_iter: 10,
-    errorModel: 'Pure Z',
+    errorModel: 'Depolarizing',
     codeName: 'cubic'
 };
 
