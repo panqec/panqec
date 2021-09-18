@@ -10,6 +10,8 @@ from qecsim.models.basic import FiveQubitCode
 from qecsim.models.toric import ToricCode
 from qecsim.models.generic import NaiveDecoder
 from .tc3d import ToricCode3D, Toric3DPymatchingDecoder, SweepMatchDecoder
+from .rhombic import RhombicCode
+from .bp_os_decoder import BeliefPropagationOSDDecoder
 from .tc2d import Toric2DPymatchingDecoder
 from .deform import (
     DeformedPauliErrorModel, DeformedSweepMatchDecoder,
@@ -46,6 +48,7 @@ if os.getenv('BN3D_DIR') is not None:
 CODES = {
     'ToricCode': ToricCode,
     'ToricCode3D': ToricCode3D,
+    'RhombicCode': RhombicCode,
     'FiveQubitCode': FiveQubitCode,
 }
 ERROR_MODELS = {
@@ -61,6 +64,7 @@ DECODERS = {
     'DeformedSweepMatchDecoder': DeformedSweepMatchDecoder,
     'FoliatedMatchingDecoder': FoliatedMatchingDecoder,
     'DeformedToric3DPymatchingDecoder': DeformedToric3DPymatchingDecoder,
+    'BeliefPropagationOSDDecoder': BeliefPropagationOSDDecoder
 }
 
 # Slurm automation config.

@@ -13,6 +13,8 @@ class ToricCode3D(StabilizerCode):
     Y_AXIS: int = 1
     Z_AXIS: int = 2
     _stabilizers = np.array([])
+    _Hx = np.array([])
+    _Hz = np.array([])
     _logical_xs = np.array([])
     _logical_zs = np.array([])
 
@@ -47,6 +49,18 @@ class ToricCode3D(StabilizerCode):
                 vertex_stabilizers,
             ])
         return self._stabilizers
+    
+    @property
+    def Hz(self) -> np.ndarray:
+        if self._Hz.size == 0:
+            self._Hz = self.get_face_X_stabilizers()
+        return self._Hz[:, :self.n_k_d[0]]
+
+    @property
+    def Hx(self) -> np.ndarray:
+        if self._Hx.size == 0:
+            self._Hx = self.get_vertex_Z_stabilizers()
+        return self._Hx[:, self.n_k_d[0]:]
 
     @property
     def logical_xs(self) -> np.ndarray:
