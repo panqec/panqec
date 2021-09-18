@@ -211,3 +211,17 @@ This package now also includes classes for dealing with classical statistical
 mechanics models which have a correspondence with quantum error correcting
 codes on lattices.
 They are implemented in an object-oriented manner.
+
+# Run the 3D GUI
+To run the 3D GUI, after you have activated the environment, run
+```
+python3 gui3d.py
+```
+Then open your browser and go to the link printed out in the command line.
+
+# Run the 2D GUI
+To run the 2D GUI, after you have activated the environment, run
+```
+python2 gui2d.py
+```
+This is not as well-developed as the 3D GUI.
