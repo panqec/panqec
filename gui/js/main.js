@@ -810,7 +810,7 @@ function init() {
     gui = new GUI();
     const codeFolder = gui.addFolder('Code')
     codeFolder.add(params, 'codeName', {'Cubic': 'cubic', 'Rhombic': 'rhombic'}).name('Code type').onChange(changeLatticeSize);
-    codeFolder.add(params, 'L', {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6}).name('Lattice size').onChange(changeLatticeSize);
+    codeFolder.add(params, 'L', {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
 
     const errorModelFolder = gui.addFolder('Error Model')
     errorModelFolder.add(params, 'errorModel', {'Pure X': 'Pure X', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}).name('Model');
