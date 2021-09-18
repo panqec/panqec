@@ -62,7 +62,6 @@ class RhombicCode(StabilizerCode):
             self._Hx = self.get_triangle_Z_stabilizers()
         return self._Hx[:, self.n_k_d[0]:]
 
-
     @property
     def logical_xs(self) -> np.ndarray:
         """The 3 logical X operators."""

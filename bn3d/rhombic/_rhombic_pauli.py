@@ -22,7 +22,9 @@ class RhombicPauli(ToricPauli):
 
         super().__init__(code, bsf=bsf)
 
-    def triangle(self, operator: str, axis: int, location: Tuple[int, int, int]):
+    def triangle(
+        self, operator: str, axis: int, location: Tuple[int, int, int]
+    ):
         r"""Apply operator on sites neighbouring vertex (3-body terms).
 
         Parameters
@@ -70,7 +72,7 @@ class RhombicPauli(ToricPauli):
                 self.site(operator, (0, x-1, y, z))
                 self.site(operator, (1, x, y-1, z))
                 self.site(operator, (2, x, y, z))
-                
+
         else:
             if axis == 0:
                 self.site(operator, (0, x-1, y, z))
@@ -88,7 +90,7 @@ class RhombicPauli(ToricPauli):
                 self.site(operator, (0, x, y, z))
                 self.site(operator, (1, x, y, z))
                 self.site(operator, (2, x, y, z-1))
-        
+
     def cube(
         self, operator: str,
         location: Tuple[int, int, int]
@@ -129,14 +131,13 @@ class RhombicPauli(ToricPauli):
         self.site(operator, (X_AXIS, x, y, z+1))
         self.site(operator, (X_AXIS, x, y+1, z))
         self.site(operator, (X_AXIS, x, y+1, z+1))
-        
+
         self.site(operator, (Y_AXIS, x, y, z))
         self.site(operator, (Y_AXIS, x+1, y, z))
         self.site(operator, (Y_AXIS, x, y, z+1))
         self.site(operator, (Y_AXIS, x+1, y, z+1))
-        
+
         self.site(operator, (Z_AXIS, x, y, z))
         self.site(operator, (Z_AXIS, x+1, y, z))
         self.site(operator, (Z_AXIS, x, y+1, z))
         self.site(operator, (Z_AXIS, x+1, y+1, z))
-

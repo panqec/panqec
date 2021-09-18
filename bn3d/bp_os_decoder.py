@@ -6,7 +6,9 @@ import numpy.ma as ma
 from scipy.sparse import csc_matrix, csr_matrix, coo_matrix, lil_matrix, find
 
 
-def get_rref_mod2(A: np.ndarray, b: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def get_rref_mod2(
+    A: np.ndarray, b: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray]:
     """Take a matrix A and a vector b.
     Return the row echelon form of A and a new vector b,
     modified with the same row operations"""
@@ -80,10 +82,13 @@ def osd_decoder(H: np.ndarray,
     # Get the reduced row echelon form (rref) of H, to simplify calculations
     H_sorted_rref, syndrome_rref = get_rref_mod2(H_sorted, syndrome)
 
-    # Create a full-rank squared matrix, by selecting independent columns and rows
+    # Create a full-rank squared matrix, by selecting independent columns and
+    # rows
     selected_col_indices = select_independent_columns(H_sorted_rref)
     selected_row_indices = list(range(len(selected_col_indices)))
-    reduced_H_rref = H_sorted_rref[selected_row_indices][:, selected_col_indices]
+    reduced_H_rref = H_sorted_rref[selected_row_indices][
+        :, selected_col_indices
+    ]
     reduced_syndrome_rref = syndrome_rref[selected_row_indices]
 
     # Solve the system H*e = s, in its rref
@@ -93,7 +98,8 @@ def osd_decoder(H: np.ndarray,
     sorted_correction = np.zeros(n_data)
     sorted_correction[selected_col_indices] = reduced_correction
 
-    # Rearrange the indices of the correction to take the initial sorting into account
+    # Rearrange the indices of the correction to take the initial sorting into
+    # account.
     correction = np.zeros(n_data)
     correction[sorted_data_indices] = sorted_correction
 
@@ -120,15 +126,15 @@ def bp_decoder(H: np.ndarray,
     edges_p2d = np.nonzero(H)
 
     # Create messages from parity to data and from data to parity
-    # The initialization with np.inf (resp. zero) allows to ignore non-neighboring
-    # elements when doing a min (resp. sum)
+    # The initialization with np.inf (resp. zero) allows to ignore
+    # non-neighboring elements when doing a min (resp. sum)
     message_d2p = np.inf * np.ones((n_data, n_parities))
     message_p2d = np.zeros((n_parities, n_data))
 
     # Initialization for all neighboring elements
     message_d2p[edges_p2d[1], edges_p2d[0]] = log_ratio_p[edges_p2d[1]]
 
-    for iter in range(max_iter):        
+    for iter in range(max_iter):
         # Scaling factor
         alpha = 1 - 2**(-iter-1)
 
@@ -140,18 +146,21 @@ def bp_decoder(H: np.ndarray,
         # Calculate sign of each message
         sign_edges = np.sign(message_d2p[edges_p2d[1], edges_p2d[0]])
 
-        # For each edge, calculate sign of the neighbors of the parity bit in that edge
-        # excluding the edge itself
+        # For each edge, calculate sign of the neighbors of the parity bit in
+        # that edge excluding the edge itself
         prod_sign_neighbors = prod_sign_parity[edges_p2d[0]] * sign_edges
 
-        # Calculate minimum of the neighboring messages (in absolute value) for each edge
-        # excluding that edge itself.
+        # Calculate minimum of the neighboring messages (in absolute value) for
+        # each edge excluding that edge itself.
         # For that calculate the absolute value of each message
         abs_message_d2p = np.abs(message_d2p)
 
-        # Then calculate the min and second min of the neighbors at each parity bit
+        # Then calculate the min and second min of the neighbors at each parity
+        # bit.
         argmin_abs_parity = np.argmin(abs_message_d2p, axis=0)
-        min_abs_parity = abs_message_d2p[argmin_abs_parity, list(range(abs_message_d2p.shape[1]))]
+        min_abs_parity = abs_message_d2p[
+            argmin_abs_parity, list(range(abs_message_d2p.shape[1]))
+        ]
         mask = np.ones((n_data, n_parities), dtype=bool)
         mask[argmin_abs_parity, range(n_parities)] = False
         new_abs_message_d2p = ma.masked_array(abs_message_d2p, ~mask)
@@ -160,7 +169,10 @@ def bp_decoder(H: np.ndarray,
         # It allows to calculate the minimum excluding the edge
         abs_edges = np.abs(message_d2p[edges_p2d[1], edges_p2d[0]])
         cond = abs_edges > min_abs_parity[edges_p2d[0]]
-        min_neighbors = np.select([cond, ~cond], [min_abs_parity[edges_p2d[0]], second_min_abs_parity[edges_p2d[0]]])
+        min_neighbors = np.select(
+            [cond, ~cond],
+            [min_abs_parity[edges_p2d[0]], second_min_abs_parity[edges_p2d[0]]]
+        )
 
         # Update the message
         message_p2d[edges_p2d] = -(2*syndrome[edges_p2d[0]]-1) * alpha
@@ -173,13 +185,16 @@ def bp_decoder(H: np.ndarray,
         sum_messages_data = np.sum(message_p2d, axis=0)
 
         # For each edge, get the sum around the data bit, excluding that edge
-        message_d2p[edges_p2d[1], edges_p2d[0]] = log_ratio_p[edges_p2d[1]] + sum_messages_data[edges_p2d[1]] - message_p2d[edges_p2d]
+        message_d2p[edges_p2d[1], edges_p2d[0]] = (
+            log_ratio_p[edges_p2d[1]]
+            + sum_messages_data[edges_p2d[1]] - message_p2d[edges_p2d]
+        )
 
         # Soft decision
         sum_messages = np.sum(message_p2d, axis=0)
         log_ratio_error = log_ratio_p + sum_messages
         correction = (log_ratio_error < 0).astype(np.uint)
-        
+
         if np.all(H.dot(correction) % 2 == syndrome):
             break
 
@@ -188,7 +203,9 @@ def bp_decoder(H: np.ndarray,
     return correction, predicted_probas
 
 
-def bp_osd_decoder(H: np.ndarray, syndrome: np.ndarray, p=0.3, max_bp_iter=10) -> np.ndarray:
+def bp_osd_decoder(
+    H: np.ndarray, syndrome: np.ndarray, p=0.3, max_bp_iter=10
+) -> np.ndarray:
     correction, bp_probas = bp_decoder(H, syndrome, p, max_bp_iter)
     if np.any(H.dot(correction) % 2 != syndrome):
         correction = osd_decoder(H, syndrome, bp_probas)
@@ -209,7 +226,9 @@ class BeliefPropagationOSDDecoder(Decoder):
         self._deformed = deformed
         self._max_bp_iter = max_bp_iter
 
-    def get_probabilities(self, code: StabilizerCode) -> Tuple[np.ndarray, np.ndarray]:
+    def get_probabilities(
+        self, code: StabilizerCode
+    ) -> Tuple[np.ndarray, np.ndarray]:
         r_x, r_y, r_z = self._error_model.direction
         p_X, p_Y, p_Z = np.array([r_x, r_y, r_z])*self._probability
 
@@ -230,7 +249,7 @@ class BeliefPropagationOSDDecoder(Decoder):
                 if axis == deformed_edge:
                     probabilities_x[axis, x, y, z] = p_deformed_x
                     probabilities_z[axis, x, y, z] = p_deformed_z
-   
+
         return probabilities_x.flatten(), probabilities_z.flatten()
 
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
@@ -251,8 +270,12 @@ class BeliefPropagationOSDDecoder(Decoder):
 
         probabilities_x, probabilities_z = self.get_probabilities(code)
 
-        x_correction = bp_osd_decoder(Hx, syndrome_x, probabilities_x, max_bp_iter=self._max_bp_iter)
-        z_correction = bp_osd_decoder(Hz, syndrome_z, probabilities_z, max_bp_iter=self._max_bp_iter)
+        x_correction = bp_osd_decoder(
+            Hx, syndrome_x, probabilities_x, max_bp_iter=self._max_bp_iter
+        )
+        z_correction = bp_osd_decoder(
+            Hz, syndrome_z, probabilities_z, max_bp_iter=self._max_bp_iter
+        )
 
         correction = np.concatenate([x_correction, z_correction])
         correction = correction.astype(int)

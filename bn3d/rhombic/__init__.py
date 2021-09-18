@@ -1,1 +1,1 @@
-from ._rhombic_code import RhombicCode
+from ._rhombic_code import RhombicCode  # noqa

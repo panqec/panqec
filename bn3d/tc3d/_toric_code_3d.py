@@ -49,7 +49,7 @@ class ToricCode3D(StabilizerCode):
                 vertex_stabilizers,
             ])
         return self._stabilizers
-    
+
     @property
     def Hz(self) -> np.ndarray:
         if self._Hz.size == 0:
