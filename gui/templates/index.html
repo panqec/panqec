@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Toric Codes</title>
+</head>
+<body style="margin: 0">
+    {% if request.path == url_for('send_index_2d') %}
+        <script type="module" src="js/gui2d.js"></script>
+        <script>console.log('test 2d')</script>
+    {% elif request.path == url_for('send_index_3d') %}
+        <script type="module" src="js/gui3d.js"></script>
+        <script>console.log('test 3d')</script>
+    {% else %}
+        <b>Problem: {{ request.path }}</b>
+        <script>console.log('test final')</script>
+    {% endif %}
+</body>
+</html>

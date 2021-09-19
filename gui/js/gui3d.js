@@ -287,6 +287,8 @@ async function buildCode() {
     var logical_xs = stabilizers['logical_xs']
     var logical_zs = stabilizers['logical_zs']
 
+    console.log(Hx);
+
     qubits = Array(Hx[0].length);
 
     vertices = Array(Hx.length);
@@ -724,9 +726,25 @@ function toggleInstructions() {
     }
 }
 
+function buildGUI() {
+    gui = new GUI();
+    const codeFolder = gui.addFolder('Code')
+    codeFolder.add(params, 'codeName', {'Cubic': 'cubic', 'Rhombic': 'rhombic'}).name('Code type').onChange(changeLatticeSize);
+    codeFolder.add(params, 'L', {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
 
-function init() {
-    // Display instructions
+    const errorModelFolder = gui.addFolder('Error Model')
+    errorModelFolder.add(params, 'errorModel', {'Pure X': 'Pure X', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}).name('Model');
+    errorModelFolder.add(params, 'errorProbability', 0, 0.5).name('Probability');
+    errorModelFolder.add(params, 'deformed').name('Deformed');
+    errorModelFolder.add(buttons, 'addErrors').name('▶ Add errors (r)');
+
+    const decoderFolder = gui.addFolder('Decoder')
+    decoderFolder.add(params, 'decoder', {'Belief Propagation': 'bp', 'SweepMatch': 'sweepmatch'}).name('Decoder');
+    decoderFolder.add(params, 'max_bp_iter', 1, 100, 1).name('Max iterations BP');
+    decoderFolder.add(buttons, 'decode').name("▶ Decode (d)");
+}
+
+function buildInstructions() {
     var closingCross = document.createElement('div');
     closingCross.id = 'closingCross';
     closingCross.style.position = 'absolute';
@@ -763,6 +781,12 @@ function init() {
     ";
     document.body.appendChild(instructions);
     document.body.appendChild(closingCross);
+}
+
+
+function init() {
+    // Display instructions
+    buildInstructions()
 
 
     // Create scene
@@ -807,21 +831,8 @@ function init() {
     document.addEventListener( 'mousedown', onDocumentMouseDown, false );
     window.addEventListener('resize', onWindowResize, false);
 
-    gui = new GUI();
-    const codeFolder = gui.addFolder('Code')
-    codeFolder.add(params, 'codeName', {'Cubic': 'cubic', 'Rhombic': 'rhombic'}).name('Code type').onChange(changeLatticeSize);
-    codeFolder.add(params, 'L', {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
+    buildGUI()
 
-    const errorModelFolder = gui.addFolder('Error Model')
-    errorModelFolder.add(params, 'errorModel', {'Pure X': 'Pure X', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}).name('Model');
-    errorModelFolder.add(params, 'errorProbability', 0, 0.5).name('Probability');
-    errorModelFolder.add(params, 'deformed').name('Deformed');
-    errorModelFolder.add(buttons, 'addErrors').name('▶ Add errors (r)');
-
-    const decoderFolder = gui.addFolder('Decoder')
-    decoderFolder.add(params, 'decoder', {'Belief Propagation': 'bp', 'SweepMatch': 'sweepmatch'}).name('Decoder');
-    decoderFolder.add(params, 'max_bp_iter', 1, 100, 1).name('Max iterations BP');
-    decoderFolder.add(buttons, 'decode').name("▶ Decode (d)");
     controls.update();
 }
 

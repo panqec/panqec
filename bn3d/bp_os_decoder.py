@@ -236,7 +236,10 @@ class BeliefPropagationOSDDecoder(Decoder):
         p_deformed_x = p_Z + p_Y
         p_deformed_z = p_X + p_Y
 
-        deformed_edge = code.X_AXIS
+        if hasattr(code, 'X_AXIS'):
+            deformed_edge = code.X_AXIS
+        else:
+            deformed_edge = 0
 
         probabilities_x = np.ones(code.shape, dtype=float)*p_regular_x
         probabilities_z = np.ones(code.shape, dtype=float)*p_regular_z
@@ -254,8 +257,17 @@ class BeliefPropagationOSDDecoder(Decoder):
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
-        Hz = code.Hz
-        Hx = code.Hx
+        if hasattr(code, 'Hz'):
+            Hz = code.Hz
+            Hx = code.Hx
+        else:
+            n_qubits = code.n_k_d[0]
+            n_stabilizers = code.stabilizers.shape[0]
+            n_vertices = int(np.product(code.size))
+            n_faces = n_stabilizers - n_vertices
+
+            Hz = code.stabilizers[:n_faces, n_qubits:]
+            Hx = code.stabilizers[n_faces:, :n_qubits]
 
         syndrome = np.array(syndrome, dtype=int)
 

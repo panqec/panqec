@@ -1,7 +1,8 @@
 import numpy as np
 
-from flask import Flask, send_from_directory, request, json
+from flask import Flask, send_from_directory, request, json, redirect, render_template
 from bn3d.tc3d import ToricCode3D, SweepMatchDecoder
+from qecsim.models.toric import ToricCode
 from bn3d.rhombic import RhombicCode
 from bn3d.bp_os_decoder import BeliefPropagationOSDDecoder
 from bn3d.noise import PauliErrorModel
@@ -19,12 +20,22 @@ def open_browser(port):
 
 @app.route('/')
 def send_index():
-    return send_from_directory('gui', 'index.html')
+    return redirect('/3d')
+
+
+@app.route('/2d')
+def send_index_2d():
+    return render_template('index.html')
+
+
+@app.route('/3d')
+def send_index_3d():
+    return render_template('index.html')
 
 
 @app.route('/js/<path:path>')
 def send_js(path):
-    return send_from_directory('gui/js', path)
+    return send_from_directory('js', path)
 
 
 @app.route('/stabilizer-matrix', methods=['POST'])
@@ -32,7 +43,18 @@ def send_stabilizer_matrix():
     L = request.json['L']
     code_name = request.json['code_name']
 
-    if code_name == 'cubic':
+    if code_name == 'toric2d':
+        code = ToricCode(L, L)
+
+        n_qubits = code.n_k_d[0]
+        n_stabilizers = code.stabilizers.shape[0]
+        n_vertices = int(np.product(code.size))
+        n_faces = n_stabilizers - n_vertices
+
+        Hz = code.stabilizers[:n_faces, n_qubits:]
+        Hx = code.stabilizers[n_faces:, :n_qubits]
+
+    elif code_name == 'cubic':
         code = ToricCode3D(L, L, L)
 
         n_qubits = code.n_k_d[0]
@@ -56,7 +78,7 @@ def send_stabilizer_matrix():
         Hx = code.stabilizers[n_cubes:, n_qubits:]
 
     return json.dumps({'Hx': Hx.tolist(), 'Hz': Hz.tolist(),
-                       'logical_xs': code.logical_xs[:, :n_qubits].tolist(), 
+                       'logical_xs': code.logical_xs[:, :n_qubits].tolist(),
                        'logical_zs': code.logical_zs[:, n_qubits:].tolist()})
 
 
@@ -72,7 +94,9 @@ def send_correction():
     error_model_name = content['error_model']
     code_name = content['code_name']
 
-    if code_name == 'cubic':
+    if code_name == 'toric2d':
+        code = ToricCode(L, L)
+    elif code_name == 'cubic':
         code = ToricCode3D(L, L, L)
     elif code_name == 'rhombic':
         code = RhombicCode(L, L, L)
@@ -146,6 +170,6 @@ def send_random_errors():
 
 if __name__ == '__main__':
     port = 5000
-    Timer(1, open_browser, [port]).start()
+    # Timer(1, open_browser, [port]).start()
 
     app.run(port=port)
