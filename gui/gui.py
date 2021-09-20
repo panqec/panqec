@@ -11,6 +11,7 @@ from bn3d.deform import DeformedPauliErrorModel, DeformedSweepMatchDecoder
 import webbrowser
 from threading import Timer
 
+
 app = Flask(__name__)
 
 
@@ -31,6 +32,11 @@ def send_index_2d():
 @app.route('/3d')
 def send_index_3d():
     return render_template('index.html')
+
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory('static/favicon.ico')
 
 
 @app.route('/js/<path:path>')
