@@ -700,7 +700,8 @@ async function getRandomErrors() {
             'L': params.L,
             'p': params.errorProbability,
             'deformed': params.deformed,
-            'error_model': params.errorModel
+            'error_model': params.errorModel,
+            'code_name': params.codeName
         })
     });
     

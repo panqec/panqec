@@ -108,9 +108,7 @@ def send_correction():
         code = RhombicCode(L, L, L)
     else:
         raise ValueError('Code not recognized')
-    # n_vertices = int(np.product(code.size))
-    # n_stabilizers = code.stabilizers.shape[0]
-    # n_faces = n_stabilizers - n_vertices
+
     n_qubits = code.n_k_d[0]
 
     if error_model_name == 'Pure X':
@@ -128,7 +126,6 @@ def send_correction():
         error_model = PauliErrorModel(rx, ry, rz)
 
     if decoder_name == 'bp':
-        print("Deformed", deformed)
         decoder = BeliefPropagationOSDDecoder(error_model, p,
                                               max_bp_iter=max_bp_iter,
                                               deformed=deformed)
@@ -153,8 +150,16 @@ def send_random_errors():
     p = content['p']
     deformed = content['deformed']
     error_model_name = content['error_model']
+    code_name = content['code_name']
 
-    code = ToricCode3D(L, L, L)
+    if code_name == 'toric2d':
+        code = ToricCode(L, L)
+    elif code_name == 'cubic':
+        code = ToricCode3D(L, L, L)
+    elif code_name == 'rhombic':
+        code = RhombicCode(L, L, L)
+    else:
+        raise ValueError('Code not recognized')
 
     if error_model_name == 'Pure X':
         rx, ry, rz = (1, 0, 0)

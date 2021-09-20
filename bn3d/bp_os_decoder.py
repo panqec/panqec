@@ -247,10 +247,10 @@ class BeliefPropagationOSDDecoder(Decoder):
         if self._deformed:
             # The weights on the deformed edge are different
             ranges = [range(length) for length in code.shape]
-            for axis, x, y, z in itertools.product(*ranges):
-                if axis == deformed_edge:
-                    probabilities_x[axis, x, y, z] = p_deformed_x
-                    probabilities_z[axis, x, y, z] = p_deformed_z
+            for coord in itertools.product(*ranges):
+                if coord[0] == deformed_edge:
+                    probabilities_x[coord] = p_deformed_x
+                    probabilities_z[coord] = p_deformed_z
 
         return probabilities_x.flatten(), probabilities_z.flatten()
 

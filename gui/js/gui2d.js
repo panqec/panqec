@@ -27,10 +27,10 @@ let currentOpacity = MAX_OPACITY;
 const params = {
     errorProbability: 0.1,
     L: 6,
-    deformed: false,
+    deformed: true,
     decoder: 'bp',
     max_bp_iter: 10,
-    errorModel: 'Depolarizing',
+    errorModel: 'Pure Z',
     codeName: 'toric2d'
 };
 
@@ -338,7 +338,8 @@ async function getRandomErrors() {
             'L': params.L,
             'p': params.errorProbability,
             'deformed': params.deformed,
-            'error_model': params.errorModel
+            'error_model': params.errorModel,
+            'code_name': params.codeName
         })
     });
     
