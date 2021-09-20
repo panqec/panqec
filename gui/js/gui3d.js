@@ -287,8 +287,6 @@ async function buildCode() {
     var logical_xs = stabilizers['logical_xs']
     var logical_zs = stabilizers['logical_zs']
 
-    console.log(Hx);
-
     qubits = Array(Hx[0].length);
 
     vertices = Array(Hx.length);

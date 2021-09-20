@@ -188,7 +188,6 @@ async function buildCode() {
     Hx = stabilizers['Hx'];
     Hz = stabilizers['Hz'];
 
-    console.log(Hx);
     var logical_xs = stabilizers['logical_xs']
     var logical_zs = stabilizers['logical_zs']
 
