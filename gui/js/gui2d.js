@@ -108,9 +108,11 @@ function insertError(qubit, type) {
         else {
             qubit.material.color.setHex(COLOR.errorZ);
         }
+        qubit.material.transparent = false;
     }
     else {
         qubit.material.color.setHex(COLOR.edge);
+        qubit.material.transparent = true;
     }
 
     updateVertices();
@@ -160,6 +162,7 @@ function updateFaces() {
 function activateVertex(vertex) {
     vertex.isActivated = true;
     vertex.material.color.setHex(COLOR.activatedVertex);
+    vertex.material.transparent = false;
 }
 
 function activateFace(face) {
@@ -171,6 +174,7 @@ function activateFace(face) {
 function deactivateVertex(vertex) {
     vertex.isActivated = false;
     vertex.material.color.setHex(COLOR.vertex);
+    vertex.material.transparent = true;
 }
 
 function deactivateFace(face) {
@@ -256,7 +260,7 @@ function buildFace(x, y) {
 function buildVertex(x, y) {
     const geometry = new THREE.SphereGeometry(SIZE.radiusVertex, 32, 32);
 
-    const material = new THREE.MeshToonMaterial({color: COLOR.vertex});
+    const material = new THREE.MeshToonMaterial({color: COLOR.vertex, opacity: 0.3, transparent: true});
     const sphere = new THREE.Mesh(geometry, material);
 
     sphere.position.x = x - params.L / 2;
@@ -276,7 +280,7 @@ function buildVertex(x, y) {
 function buildEdge(axis, x, y) {
     const geometry = new THREE.CylinderGeometry(SIZE.radiusEdge, SIZE.radiusEdge, SIZE.lengthEdge, 32);
 
-    const material = new THREE.MeshPhongMaterial({color: COLOR.edge});
+    const material = new THREE.MeshPhongMaterial({color: COLOR.edge, opacity: 0.7, transparent: true});
     const edge = new THREE.Mesh(geometry, material);
 
     edge.position.x = x - params.L / 2;
