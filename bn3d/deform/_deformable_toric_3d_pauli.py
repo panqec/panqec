@@ -24,21 +24,24 @@ class DeformableToric3DPauli(Toric3DPauli):
         """Replace X with Z and Z with X on the qubits to be deformed."""
 
         # The axis edge to deform operators on.
-        deform_axis = self.code.X_AXIS
+        if hasattr(self.code, 'X_AXIS'):
+            deform_axis = self.code.X_AXIS
+        else:
+            deform_axis = 0
 
         # The ranges of indices to iterate over.
         ranges = [range(length) for length in self.code.shape]
 
         # Change the Xs to Zs and Zs to Xs on the edges to deform.
-        for axis, x, y, z in itertools.product(*ranges):
-            original_operator = self.operator((axis, x, y, z))
+        for coord in itertools.product(*ranges):
+            axis = coord[0]
+            original_operator = self.operator(coord)
             deformed_operator = self._deform_map[original_operator]
 
             # Only deform on the axis to be deformed.
             if axis == deform_axis:
-
                 # Apply the operator at the site again to remove it.
-                self.site(original_operator, (axis, x, y, z))
+                self.site(original_operator, coord)
 
                 # Apply the new operator at the site.
-                self.site(deformed_operator, (axis, x, y, z))
+                self.site(deformed_operator, coord)
