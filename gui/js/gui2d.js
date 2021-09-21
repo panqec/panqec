@@ -71,6 +71,13 @@ function getIndexVertex(x, y) {
     return x*Ly + y;
 }
 
+function globalOffset(L) {
+    return {x: - L / 2 + SIZE.lengthEdge,
+            y: - L / 2,
+            z: - 3 * L
+        };
+}
+
 async function addRandomErrors() {
     let errors = await getRandomErrors()
     let n = errors.length / 2;
@@ -239,9 +246,9 @@ function buildFace(x, y) {
     const material = new THREE.MeshToonMaterial({color: COLOR.face, transparent: true, opacity: 0, side: THREE.DoubleSide});
     const face = new THREE.Mesh(geometry, material);
 
-    face.position.x = x - params.L / 2;
-    face.position.y = y - params.L / 2;
-    face.position.z = -3*params.L;
+    face.position.x = x + globalOffset(params.L).x;
+    face.position.y = y + globalOffset(params.L).y;
+    face.position.z = globalOffset(params.L).z;
 
     face.position.x -= SIZE.lengthEdge / 2;
     face.position.y += SIZE.lengthEdge / 2;
@@ -262,9 +269,9 @@ function buildVertex(x, y) {
     const material = new THREE.MeshToonMaterial({color: COLOR.vertex, opacity: 0.3, transparent: true});
     const sphere = new THREE.Mesh(geometry, material);
 
-    sphere.position.x = x - params.L / 2;
-    sphere.position.y = y - params.L / 2;
-    sphere.position.z = -3*params.L;
+    sphere.position.x = x + globalOffset(params.L).x;
+    sphere.position.y = y + globalOffset(params.L).y;
+    sphere.position.z = globalOffset(params.L).z;
 
     let index = getIndexVertex(x, y);
 
@@ -282,9 +289,9 @@ function buildEdge(axis, x, y) {
     const material = new THREE.MeshPhongMaterial({color: COLOR.edge, opacity: 0.7, transparent: true});
     const edge = new THREE.Mesh(geometry, material);
 
-    edge.position.x = x - params.L / 2;
-    edge.position.y = y - params.L / 2;
-    edge.position.z = -3*params.L;
+    edge.position.x = x + globalOffset(params.L).x;
+    edge.position.y = y + globalOffset(params.L).y;
+    edge.position.z = globalOffset(params.L).z;
 
     if (axis == X_AXIS) {
         edge.position.x -= SIZE.lengthEdge / 2;
