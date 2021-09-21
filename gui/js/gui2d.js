@@ -445,7 +445,7 @@ function init() {
     document.addEventListener("keydown", onDocumentKeyDown, false);
     document.addEventListener('mousedown', onDocumentMouseDown, false);
     window.addEventListener('resize', onWindowResize, false);
-    // window.addEventListener("contextmenu", e => e.preventDefault());
+    window.addEventListener("contextmenu", e => e.preventDefault());
 
     buildGUI();
 
