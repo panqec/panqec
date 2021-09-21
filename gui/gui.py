@@ -21,17 +21,22 @@ def open_browser(port):
 
 @app.route('/')
 def send_index():
-    return redirect('/3d')
+    return render_template('index.html')
 
 
 @app.route('/2d')
 def send_index_2d():
-    return render_template('index.html')
+    return render_template('gui.html')
 
 
 @app.route('/3d')
 def send_index_3d():
-    return render_template('index.html')
+    return render_template('gui.html')
+
+
+@app.route('/main.css')
+def css():
+    return send_from_directory('static/css/main.css')
 
 
 @app.route('/favicon.ico')

@@ -348,21 +348,6 @@ async function getRandomErrors() {
     return data;
 }
 
-function toggleInstructions() {
-    var closingCross = document.getElementById('closingCross');
-    var instructions = document.getElementById('instructions');
-
-    if (instructions.style.visibility == 'hidden') {
-        instructions.style.visibility = 'visible';
-        closingCross.innerHTML = "<a style='color: inherit; text-decoration: inherit' href='#'>× Instructions</a>";
-
-    }
-    else {
-        instructions.style.visibility = 'hidden';
-        closingCross.innerHTML = "<a style='color: inherit; text-decoration: inherit' href='#'>🔽 Instructions</a>";
-    }
-}
-
 function buildGUI() {
     gui = new GUI();
     const codeFolder = gui.addFolder('Code')
@@ -381,30 +366,29 @@ function buildGUI() {
     decoderFolder.add(buttons, 'decode').name("▶ Decode (d)");
 }
 
+function toggleInstructions() {
+    var closingCross = document.getElementById('closingCross');
+    var instructions = document.getElementById('instructions');
+
+    if (instructions.style.visibility == 'hidden') {
+        instructions.style.visibility = 'visible';
+        closingCross.innerHTML = "<a href='#'>× Instructions</a>";
+
+    }
+    else {
+        instructions.style.visibility = 'hidden';
+        closingCross.innerHTML = "<a href='#'>🔽 Instructions</a>";
+    }
+}
+
 function buildInstructions() {
     var closingCross = document.createElement('div');
     closingCross.id = 'closingCross';
-    closingCross.style.position = 'absolute';
-    closingCross.style.top = 15 + 'px';
-    closingCross.style.left = 15 + 'px';
-    closingCross.style.fontFamily = 'sans-serif';
-    closingCross.style.fontSize = 20 + 'px';
-    closingCross.style.color = 'white';
-    closingCross.innerHTML = "<a style='color: inherit; text-decoration: inherit' href='#'>× Instructions</a>";
-    closingCross.addEventListener('mouseenter', e => { closingCross.style.opacity = 0.6; })
-    closingCross.addEventListener('mouseleave', e => { closingCross.style.opacity = 1; })
+    closingCross.innerHTML = "<a href='#'>× Instructions</a>";
     closingCross.onclick = toggleInstructions;
 
     var instructions = document.createElement('div');
     instructions.id = 'instructions';
-    instructions.style.position = 'absolute';
-    instructions.style.top = 40 + 'px';
-    instructions.style.left = 40 + 'px';
-    instructions.style.fontFamily = 'sans-serif'
-    instructions.style.fontSize = 20 + 'px'
-    instructions.style.color = "white";
-    instructions.style.opacity = 0.6;
-    instructions.style.transparent = "true"
     instructions.innerHTML = 
     "\
         <table style='border-spacing: 10px'>\
@@ -419,10 +403,19 @@ function buildInstructions() {
     document.body.appendChild(closingCross);
 }
 
+function buildReturnArrow() {
+    var returnArrow = document.createElement('div');
+    returnArrow.id = 'returnArrow'
+    returnArrow.innerHTML = "<a href='/'>❮</a>"
+
+    document.body.appendChild(returnArrow);
+}
+
 
 function init() {
     // Display instructions
-    buildInstructions()
+    buildInstructions();
+    buildReturnArrow();
 
     // Create scene
     scene = new THREE.Scene();
@@ -452,7 +445,7 @@ function init() {
     document.addEventListener("keydown", onDocumentKeyDown, false);
     document.addEventListener('mousedown', onDocumentMouseDown, false);
     window.addEventListener('resize', onWindowResize, false);
-    window.addEventListener("contextmenu", e => e.preventDefault());
+    // window.addEventListener("contextmenu", e => e.preventDefault());
 
     buildGUI();
 
