@@ -93,7 +93,7 @@ def ls(model_type=None):
 def generate_input(input_dir, decoder):
     """Generate the json files of every experiments"""
 
-    codes = ["cubic", "rhombic"]
+    codes = ["cubic"]
     delta = 0.005
     probabilities = np.arange(0, 0.5+delta, delta).tolist()
     directions = generate_points_triangle()
