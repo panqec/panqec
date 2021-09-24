@@ -21,32 +21,75 @@ from .plots._hashing_bound import project_triangle
 from .utils import fmt_uncertainty
 
 
+def get_results_df_from_batch(batch_sim, batch_label):
+    batch_results = batch_sim.get_results()
+    # print(
+    #     'wall_time =',
+    #     str(datetime.timedelta(seconds=batch_sim.wall_time))
+    # )
+    # print('n_trials = ', min(sim.n_results for sim in batch_sim))
+    for sim, batch_result in zip(batch_sim, batch_results):
+        batch_result['label'] = batch_label
+        batch_result['noise_direction'] = sim.error_model.direction
+        if len(sim.results['effective_error']) > 0:
+            batch_result['p_x'] = np.array(
+                sim.results['effective_error']
+            )[:, :3].any(axis=1).mean()
+            batch_result['p_x_se'] = np.sqrt(
+                batch_result['p_x']*(1 - batch_result['p_x'])
+                / (sim.n_results + 1)
+            )
+            batch_result['p_z'] = np.array(
+                sim.results['effective_error']
+            )[:, 3:].any(axis=1).mean()
+            batch_result['p_z_se'] = np.sqrt(
+                batch_result['p_z']*(1 - batch_result['p_z'])
+                / (sim.n_results + 1)
+            )
+        else:
+            batch_result['p_x'] = np.nan
+            batch_result['p_x_se'] = np.nan
+            batch_result['p_z'] = np.nan
+            batch_result['p_z_se'] = np.nan
+
+    results = batch_results
+
+    results_df = pd.DataFrame(results)
+    return results_df
+
+
 def get_results_df(
-    job_list: List[str], alt_output_dir: str = None
+    job_list: List[str],
+    output_dir: str,
+    input_dir: str = None
 ) -> pd.DataFrame:
     """Get raw results in DataFrame."""
+    if input_dir is None:
+        input_dir = os.path.join(SLURM_DIR, 'inputs')
+
     input_files = [
-        os.path.join(SLURM_DIR, 'inputs', f'{name}.json')
+        os.path.join(input_dir, f'{name}.json')
+        for name in job_list
+    ]
+    output_dirs = [
+        os.path.join(output_dir, name)
         for name in job_list
     ]
     batches = {}
-    for input_file in input_files:
-        batch_sim = read_input_json(input_file)
-        if alt_output_dir is not None:
-            for sim in batch_sim:
-                sim.load_results(alt_output_dir)
-        else:
-            batch_sim.load_results()
+    for i in range(len(input_files)):
+        batch_sim = read_input_json(input_files[i])
+        for sim in batch_sim:
+            sim.load_results(output_dirs[i])
         batches[batch_sim.label] = batch_sim
 
     results = []
     for batch_label, batch_sim in batches.items():
         batch_results = batch_sim.get_results()
-        print(
-            'wall_time =',
-            str(datetime.timedelta(seconds=batch_sim.wall_time))
-        )
-        print('n_trials = ', min(sim.n_results for sim in batch_sim))
+        # print(
+        #     'wall_time =',
+        #     str(datetime.timedelta(seconds=batch_sim.wall_time))
+        # )
+        # print('n_trials = ', min(sim.n_results for sim in batch_sim))
         for sim, batch_result in zip(batch_sim, batch_results):
             batch_result['label'] = batch_label
             batch_result['noise_direction'] = sim.error_model.direction
@@ -101,7 +144,8 @@ def get_p_th_sd_interp(
             by='probability'
         )
         interpolator = interp1d(
-            df_filt_code['probability'], df_filt_code['p_est']
+            df_filt_code['probability'], df_filt_code['p_est'],
+            fill_value="extrapolate"
         )
         curves[code] = interpolator(p_interp)
     interp_df = pd.DataFrame(curves)
@@ -113,6 +157,12 @@ def get_p_th_sd_interp(
     # Local minima and local maxima indices.
     i_minima = argrelextrema(interp_std.values, np.less)[0]
     i_maxima = argrelextrema(interp_std.values, np.greater)[0]
+    
+    if len(i_minima) == 0:
+        i_minima = argrelextrema(interp_std.values, np.less_equal)[0]
+        
+    if len(i_maxima) == 0:
+        i_maxima = argrelextrema(interp_std.values, np.greater_equal)[0]
 
     # Also include the end points in the maxima.
     i_maxima = np.array([0] + i_maxima.tolist() + [len(p_interp) - 1])
@@ -139,7 +189,12 @@ def get_p_th_sd_interp(
         std_peak_heights.append(left_height + right_height)
 
     # Find the local minimum surrounded by highest peaks.
-    i_crossover = i_minima[np.argmax(std_peak_heights)]
+    try:
+        i_crossover = i_minima[np.argmax(std_peak_heights)]
+    except ValueError as err:
+        print(std_peak_heights, i_minima)
+        print(interp_std.values)
+        raise ValueError(err)
 
     # Left and right peak SD locations.
     p_left = p_interp[i_maxima[i_maxima < i_crossover].max()]
@@ -166,6 +221,22 @@ def get_code_df(results_df: pd.DataFrame) -> pd.DataFrame:
     return code_df
 
 
+def longest_sequence(arr, char):
+    curr_seq_start = 0
+    curr_seq_stop = 0
+    best_seq = (curr_seq_start, curr_seq_stop)
+    for i in range(len(arr)):
+        if arr[i] == char:
+            curr_seq_stop += 1
+            if curr_seq_stop - curr_seq_start > best_seq[1] - best_seq[0]:
+                best_seq = (curr_seq_start, curr_seq_stop)
+        else:
+            curr_seq_start = i+1
+            curr_seq_stop = i+1
+
+    return best_seq
+
+
 def get_p_th_nearest(df_filt: pd.DataFrame) -> float:
     code_df = get_code_df(df_filt)
     # Estimate the threshold by where the order of the lines change.
@@ -178,21 +249,59 @@ def get_p_th_nearest(df_filt: pd.DataFrame) -> float:
     p_est_df = p_est_df.sort_index()
 
     # Where the ordering changes the most.
+    # orders = np.argsort(p_est_df.values, axis=1)
+    # orders = np.apply_along_axis(lambda x: 'A' if np.all(np.diff(x) < 0) else ('B' if np.all(np.diff(x) > 0) else '0'), 1, orders)
+
+    # cond = np.all(np.isclose(p_est_df.values, np.zeros(p_est_df.shape[1])), axis=1)
+    # orders[cond] = 'A'
+
+    # longest_A_seq = longest_sequence(orders, 'A')
+    # longest_B_seq = longest_sequence(orders, 'B')
+    # if longest_A_seq[1] > longest_B_seq[0]:
+    #     print(p_est_df)
+    #     print(p_est_df.values)
+    #     print(np.argsort(p_est_df.values, axis=1))
+    #     print(orders)
+    #     raise RuntimeError(f"Problem with finding p_th_nearest: {longest_A_seq} > {longest_B_seq}")
+
+    # p_th_nearest = p_est_df.index[(longest_B_seq[0] + longest_A_seq[1]) // 2]
+
     i_order_change = np.diff(
         np.diff(
             np.argsort(p_est_df.values, axis=1)
         ).sum(axis=1)
     ).argmax()
-
     p_th_nearest = p_est_df.index[i_order_change]
+
     return p_th_nearest
 
+
+# def fit_function(x_data, *params):
+#     p, d = x_data
+#     p_th, nu, A, B, C = params
+#     x = (p - p_th)*d**nu
+#     return A + B*x + C*x**2
 
 def fit_function(x_data, *params):
     p, d = x_data
     p_th, nu, A, B, C = params
-    x = (p - p_th)*d**(1/nu)
+    x = (p - p_th)*d**nu
     return A + B*x + C*x**2
+
+
+def grad_fit_function(x_data, *params):
+    p, d = x_data
+    p_th, nu, A, B, C = params
+    x = (p - p_th)*d**nu
+
+    grad_p_th = - B * d**nu - 2*C*(p - p_th) * d**(2*nu)
+    grad_nu = x * np.log(d) * (B + 2*C*x)
+    grad_A = 1 * np.ones(grad_nu.shape)
+    grad_B = x * np.ones(grad_nu.shape)
+    grad_C = x**2 * np.ones(grad_nu.shape)
+
+    jac = np.vstack([grad_p_th, grad_nu, grad_A, grad_B, grad_C]).T
+    return jac
 
 
 def quadratic(x, *params):
@@ -203,11 +312,11 @@ def quadratic(x, *params):
 def rescale_prob(x_data, *params):
     p, d = x_data
     p_th, nu, A, B, C = params
-    x = (p - p_th)*d**(1/nu)
+    x = (p - p_th)*d**nu
     return x
 
 
-def get_fit_params(p_list, d_list, f_list, params_0=None) -> np.ndarray:
+def get_fit_params(p_list, d_list, f_list, params_0=None, ftol=1e-5, maxfev=2000) -> np.ndarray:
     """Get fitting params."""
     # Curve fitting inputs.
     x_data = np.array([
@@ -217,11 +326,16 @@ def get_fit_params(p_list, d_list, f_list, params_0=None) -> np.ndarray:
 
     # Target outputs.
     y_data = f_list
-
+ 
     # Curve fit.
+    lower_bound = 0
+    if params_0[0] < lower_bound:
+        params_0[0] = np.random.uniform(lower_bound, 0.5)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        params_opt, _ = curve_fit(fit_function, x_data, y_data, p0=params_0)
+        params_opt, _ = curve_fit(fit_function, x_data, y_data, jac=grad_fit_function, method='trf', p0=params_0, ftol=ftol, maxfev=maxfev,
+                                  bounds=([lower_bound] + [-np.inf]*4, [0.5] + [np.inf]*4))
+        
     return params_opt
 
 
@@ -231,6 +345,9 @@ def fit_fss_params(
     p_right_val: float,
     p_nearest: float,
     n_bs: int = 100,
+    ftol_est: float = 1e-5,
+    ftol_std: float = 1e-5,
+    maxfev: int = 2000
 ) -> Tuple[np.ndarray, np.ndarray, pd.DataFrame]:
     """Get optimized parameters and data table."""
     # Truncate error probability between values.
@@ -249,12 +366,13 @@ def fit_fss_params(
     f_0 = df_trunc[df_trunc['probability'] == p_nearest]['p_est'].mean()
     if pd.isna(f_0):
         f_0 = df_trunc['p_est'].mean()
-    params_0 = [p_nearest, 0.5, f_0, 1, 1]
+    params_0 = [p_nearest, 2, f_0, 1, 1]
 
     try:
-        params_opt = get_fit_params(p_list, d_list, f_list, params_0=params_0)
-    except RuntimeError:
+        params_opt = get_fit_params(p_list, d_list, f_list, params_0=params_0, ftol=ftol_est, maxfev=maxfev)
+    except RuntimeError as err:
         print('fitting failed')
+        print(err)
         params_opt = np.array([np.nan]*5)
 
     df_trunc['rescaled_p'] = rescale_prob([p_list, d_list], *params_opt)
@@ -269,6 +387,8 @@ def fit_fss_params(
         for i in range(df_trunc.shape[0]):
             n_trials = int(df_trunc['n_trials'].iloc[i])
             n_fail = int(df_trunc['n_fail'].iloc[i])
+            if n_fail == 0:
+                n_fail = 1
             f_list_bs.append(
                 rng.beta(n_fail, n_trials - n_fail)
             )
@@ -276,7 +396,7 @@ def fit_fss_params(
 
         try:
             params_bs_list.append(
-                get_fit_params(p_list, d_list, f_bs, params_0=params_opt)
+                get_fit_params(p_list, d_list, f_bs, params_0=params_opt, ftol=ftol_std, maxfev=maxfev)
             )
         except RuntimeError:
             print('bootstrap fitting failed')
@@ -319,7 +439,7 @@ def get_error_model_df(results_df):
     return error_model_df
 
 
-def get_thresholds_df(results_df):
+def get_thresholds_df(results_df, ftol_est=1e-5, ftol_std=1e-5, maxfev=2000):
     thresholds_df = get_error_model_df(results_df)
     p_th_sd = []
     p_th_nearest = []
@@ -350,7 +470,8 @@ def get_thresholds_df(results_df):
 
         # Finite-size scaling fitting.
         params_opt, params_bs, df_trunc = fit_fss_params(
-            df_filt, p_left_val, p_right_val, p_th_nearest_val
+            df_filt, p_left_val, p_right_val, p_th_nearest_val,
+            ftol_est=ftol_est, ftol_std=ftol_std, maxfev=maxfev
         )
         fss_params.append(params_opt)
 

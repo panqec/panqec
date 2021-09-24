@@ -130,18 +130,25 @@ def send_correction():
     else:
         error_model = PauliErrorModel(rx, ry, rz)
 
-    if decoder_name == 'bp':
+    if decoder_name == 'bp-osd':
         decoder = BeliefPropagationOSDDecoder(error_model, p,
                                               max_bp_iter=max_bp_iter,
                                               deformed=deformed)
-    else:
+    elif decoder_name == 'bp-osd-2':
+        decoder = BeliefPropagationOSDDecoder(error_model, p,
+                                              max_bp_iter=max_bp_iter,
+                                              deformed=deformed,
+                                              joschka=True)
+    elif decoder_name == 'sweepmatch':
         if deformed:
             decoder = DeformedSweepMatchDecoder(error_model, p)
         else:
             decoder = SweepMatchDecoder()
+    else:
+        raise ValueError('Decoder not recognized')
 
     correction = decoder.decode(code, syndrome)
-    
+
     correction_x = correction[:n_qubits]
     correction_z = correction[n_qubits:]
 

@@ -368,7 +368,7 @@ function buildGUI() {
     errorModelFolder.add(buttons, 'addErrors').name('▶ Add errors (r)');
 
     const decoderFolder = gui.addFolder('Decoder')
-    decoderFolder.add(params, 'decoder', {'Belief Propagation': 'bp', 'SweepMatch': 'sweepmatch'}).name('Decoder');
+    decoderFolder.add(params, 'decoder', {'Belief Propagation': 'bp-osd', 'SweepMatch': 'sweepmatch'}).name('Decoder');
     decoderFolder.add(params, 'max_bp_iter', 1, 100, 1).name('Max iterations BP');
     decoderFolder.add(buttons, 'decode').name("▶ Decode (d)");
 }

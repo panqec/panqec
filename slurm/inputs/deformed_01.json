@@ -10,7 +10,7 @@
         {"L_x": 8},
         {"L_x": 10}
       ]
-    },
+      },
     "noise": {
       "model": "DeformedPauliErrorModel",
       "parameters": [

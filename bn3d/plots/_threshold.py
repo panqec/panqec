@@ -5,15 +5,17 @@ Routines for extracting plotting threshold.
     Eric Huang
 """
 import re
+import os
 import numpy as np
 import pandas as pd
 from ._hashing_bound import project_triangle, get_hashing_bound
 from ..analysis import quadratic
 
 
-def detailed_plot(plt, results_df, error_model, x_limits=None):
+def detailed_plot(plt, results_df, error_model, x_limits=None, save_folder=None):
     """Plot routine on loop."""
     df = results_df.copy()
+    df.sort_values('probability', inplace=True)
     fig, axes = plt.subplots(ncols=3, figsize=(12, 4))
     plot_labels = [
         (0, 'p_est', 'p_se', error_model),
@@ -22,9 +24,10 @@ def detailed_plot(plt, results_df, error_model, x_limits=None):
     ]
     if x_limits is None:
         x_limits = [(0, 0.5), (0, 0.5), (0, 0.5)]
+
     for (i_ax, prob, prob_se, title) in plot_labels:
         ax = axes[i_ax]
-        for code_size in df['size'].unique():
+        for code_size in np.sort(df['size'].unique()):
             df_filtered = df[
                 (df['size'] == code_size) & (df['error_model'] == error_model)
             ]
@@ -36,20 +39,27 @@ def detailed_plot(plt, results_df, error_model, x_limits=None):
                 linestyle='-',
                 marker='.',
             )
-        ax.set_yscale('log')
+        # ax.set_yscale('log')
         ax.set_xlim(x_limits[i_ax])
         ax.set_ylim(1e-2, 1e0)
         ax.set_title(title)
+        ax.locator_params(axis='x', nbins=6)
+
         ax.set_xlabel('Physical Error Rate')
-        ax.legend()
+        ax.legend(loc='best')
     axes[0].set_ylabel('Logical Error Rate')
+
+    if save_folder:
+        filename = os.path.join(save_folder, results_df['label'][0])
+        plt.savefig(f'{filename}.png')
 
 
 def update_plot(plt, results_df, error_model):
     """Plot routine on loop."""
     df = results_df.copy()
+    df.sort_values('probability', inplace=True)
 
-    for code_size in df['size'].unique():
+    for code_size in np.sort(df['size'].unique()):
         df_filtered = df[
             (df['size'] == code_size) & (df['error_model'] == error_model)
         ]
@@ -121,6 +131,15 @@ def get_error_model_format(error_model: str, eta=None) -> str:
     else:
         fmt += r' $\eta={}$'.format(eta)
     return fmt
+
+
+def plot_threshold_nearest(plt, p_th_nearest):
+    plt.axvline(
+        p_th_nearest, color='green', linestyle='-.',
+        label=r'$p_{\mathrm{th}}=(%.2f)\%%$' % (
+            100*p_th_nearest
+        )
+    )
 
 
 def plot_threshold_fss(
@@ -201,8 +220,9 @@ def plot_threshold_vs_bias(
     hashing=True,
     png=None,
 ):
+    cmap = plt.get_cmap("tab10")
+    colors = [cmap(3), cmap(0), cmap(2)]
     p_th_key = 'p_th_fss'
-    p_th_se_key = 'p_th_fss_se'
     if labels is None:
         labels = [
             r'${}$ bias'.format(eta_key[-1].upper())
@@ -216,12 +236,10 @@ def plot_threshold_vs_bias(
             error_model_df[eta_key] >= 0.5
         ].sort_values(by=eta_key)
         p_th_inf = df_filt[df_filt[eta_key] == np.inf][p_th_key].iloc[0]
-        plt.errorbar(
+        plt.plot(
             df_filt[eta_key], df_filt[p_th_key],
-            yerr=df_filt[p_th_se_key],
             linestyle=main_linestyle,
             color=color,
-            capsize=5,
             label=label,
             marker=marker
         )
@@ -303,6 +321,7 @@ def plot_thresholds_on_triangle(
     plt, error_model_df, title='Thresholds',
     colors=['r', 'b', 'g']
 ):
+    label_threshold = 'p_th_fss'
     eta_keys = ['eta_x', 'eta_z', 'eta_y']
     markers = ['x', 'o', '^']
     label_offsets = [(0, 0.1), (0.2, 0), (0, 0.1)]
@@ -314,7 +333,7 @@ def plot_thresholds_on_triangle(
 
     p_th_dep = error_model_df[
         error_model_df['eta_z'] == 0.5
-    ].iloc[0]['p_th_sd']
+    ].iloc[0][label_threshold]
     plt.text(0.1, 0, f'{p_th_dep:.2f}', ha='center')
 
     for eta_key, color, marker, offset in zip(
@@ -331,7 +350,7 @@ def plot_thresholds_on_triangle(
         plt.text(
             *np.array(project_triangle(df_filt.iloc[-1]['noise_direction']))
             + offset,
-            '{:.2f}'.format(df_filt.iloc[-1]['p_th_sd']),
+            '{:.2f}'.format(df_filt.iloc[-1][label_threshold]),
             color=color, ha='center',
             fontsize=16
         )
@@ -361,7 +380,8 @@ def plot_combined_threshold_vs_bias(plt, Line2D, thresholds_df, pdf=None):
     ]
     plot_threshold_vs_bias(
         plt, Line2D, thres_df_filt,
-        labels=['X deformed', 'Z deformed', 'Y deformed']
+        labels=['Z deformed', 'X deformed'],
+        hashing=False
     )
     thres_df_filt = thresholds_df[
         ~thresholds_df['error_model'].str.contains('Deformed')
@@ -370,8 +390,7 @@ def plot_combined_threshold_vs_bias(plt, Line2D, thresholds_df, pdf=None):
         plt, Line2D, thres_df_filt,
         eta_keys=['eta_x', 'eta_z'],
         colors=['#ff9999', '#9999ff'],
-        labels=['X undef.', 'Z undef.'],
-        markers=['', '', ''],
+        labels=['Z undeformed', 'X undeformed'],
         main_linestyle='--',
         hashing=False
     )
@@ -411,6 +430,9 @@ def plot_crossing_collapse(
         plot_threshold_fss(
             plt, df_no_trunc, row['p_th_fss'], row['p_th_fss_left'],
             row['p_th_fss_right'], row['p_th_fss_se']
+        )
+        plot_threshold_nearest(
+            plt, row['p_th_nearest']
         )
         plt.title(None)
         plt.ylabel(r'$p_{\mathrm{fail}}$')

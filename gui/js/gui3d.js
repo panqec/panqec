@@ -30,7 +30,7 @@ const params = {
     errorProbability: 0.1,
     L: 4,
     deformed: false,
-    decoder: 'bp',
+    decoder: 'bp-osd-2',
     max_bp_iter: 10,
     errorModel: 'Depolarizing',
     codeName: 'cubic'
@@ -723,7 +723,7 @@ function buildGUI() {
     errorModelFolder.add(buttons, 'addErrors').name('▶ Add errors (r)');
 
     const decoderFolder = gui.addFolder('Decoder')
-    decoderFolder.add(params, 'decoder', {'Belief Propagation': 'bp', 'SweepMatch': 'sweepmatch'}).name('Decoder');
+    decoderFolder.add(params, 'decoder', {'BP-OSD': 'bp-osd', 'BP-OSD-2': 'bp-osd-2', 'SweepMatch': 'sweepmatch'}).name('Decoder');
     decoderFolder.add(params, 'max_bp_iter', 1, 100, 1).name('Max iterations BP');
     decoderFolder.add(buttons, 'decode').name("▶ Decode (d)");
 }

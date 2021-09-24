@@ -3,6 +3,7 @@ import itertools
 from qecsim.model import Decoder, StabilizerCode, ErrorModel
 from typing import Tuple, List
 import numpy.ma as ma
+from bposd import bposd_decoder
 
 
 def get_rref_mod2(
@@ -218,12 +219,17 @@ class BeliefPropagationOSDDecoder(Decoder):
     def __init__(self, error_model: ErrorModel,
                  probability: float,
                  max_bp_iter: int = 10,
-                 deformed: bool = False):
+                 deformed: bool = False,
+                 joschka: bool = False):
         super().__init__()
         self._error_model = error_model
         self._probability = probability
         self._deformed = deformed
         self._max_bp_iter = max_bp_iter
+        self._joschka = joschka
+
+        self._x_decoder = dict()
+        self._z_decoder = dict()
 
     def get_probabilities(
         self, code: StabilizerCode
@@ -254,6 +260,7 @@ class BeliefPropagationOSDDecoder(Decoder):
 
         return probabilities_x.flatten(), probabilities_z.flatten()
 
+    # @profile
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
@@ -274,19 +281,48 @@ class BeliefPropagationOSDDecoder(Decoder):
         syndrome_z = syndrome[:len(Hz)]
         syndrome_x = syndrome[len(Hz):]
 
-        # H_z = code.stabilizers[:n_vertices, n_qubits:]
-        # H_x = code.stabilizers[n_vertices:, :n_qubits]
-        # syndrome_z = syndrome[:n_vertices]
-        # syndrome_x = syndrome[n_vertices:]
-
         probabilities_x, probabilities_z = self.get_probabilities(code)
 
-        x_correction = bp_osd_decoder(
-            Hx, syndrome_x, probabilities_x, max_bp_iter=self._max_bp_iter
-        )
-        z_correction = bp_osd_decoder(
-            Hz, syndrome_z, probabilities_z, max_bp_iter=self._max_bp_iter
-        )
+        if self._joschka:
+            if code.label in self._x_decoder.keys():
+                x_decoder = self._x_decoder[code.label]
+                z_decoder = self._z_decoder[code.label]
+            else:
+                z_decoder = bposd_decoder(
+                    Hz,
+                    error_rate=0.05,
+                    channel_probs=probabilities_z,
+                    max_iter=self._max_bp_iter,  # the maximum number of iterations for BP)
+                    bp_method="ms",
+                    ms_scaling_factor=0,  # min sum scaling factor. If set to zero the variable scaling factor method is used
+                    osd_method="osd_cs",  # Choose from:  1) "osd_e", "osd_cs", "osd0"
+                    osd_order=7  # the osd search depth
+                )
+                x_decoder = bposd_decoder(
+                    Hx,
+                    error_rate=0.05,
+                    channel_probs=probabilities_x,
+                    max_iter=self._max_bp_iter,  # the maximum number of iterations for BP)
+                    bp_method="ms",
+                    ms_scaling_factor=0,  # min sum scaling factor. If set to zero the variable scaling factor method is used
+                    osd_method="osd_cs",  # Choose from:  1) "osd_e", "osd_cs", "osd0"
+                    osd_order=7  # the osd search depth
+                )
+                self._x_decoder[code.label] = x_decoder
+                self._z_decoder[code.label] = z_decoder
+
+            z_decoder.decode(syndrome_z)
+            x_decoder.decode(syndrome_x)
+
+            z_correction = z_decoder.osdw_decoding
+            x_correction = x_decoder.osdw_decoding
+        else:
+            x_correction = bp_osd_decoder(
+                Hx, syndrome_x, probabilities_x, max_bp_iter=self._max_bp_iter
+            )
+            z_correction = bp_osd_decoder(
+                Hz, syndrome_z, probabilities_z, max_bp_iter=self._max_bp_iter
+            )
 
         correction = np.concatenate([x_correction, z_correction])
         correction = correction.astype(int)
@@ -309,6 +345,6 @@ if __name__ == "__main__":
     errors = error_model.generate(code, probability)
     syndrome = pt.bsp(errors, code.stabilizers.T)
 
-    decoder = BeliefPropagationOSDDecoder(error_model, probability)
+    decoder = BeliefPropagationOSDDecoder(error_model, probability, joschka=True)
 
     correction = decoder.decode(code, syndrome)

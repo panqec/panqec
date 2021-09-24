@@ -137,11 +137,21 @@ def generate_input(input_dir, decoder):
                         if deformed:
                             decoder_model = "Deformed" + decoder_model
                         decoder_dict = {"model": decoder_model}
-                    else:
+                    elif decoder == "bp-osd":
                         decoder_model = "BeliefPropagationOSDDecoder"
-                        decoder_parameters = {'deformed': deformed}
+                        decoder_parameters = {'deformed': deformed,
+                                              'max_bp_iter': 10}
                         decoder_dict = {"model": decoder_model,
                                         "parameters": decoder_parameters}
+                    elif decoder == "bp-osd-2":
+                        decoder_model = "BeliefPropagationOSDDecoder"
+                        decoder_parameters = {'deformed': deformed,
+                                              'joschka': True,
+                                              'max_bp_iter': 10}
+                        decoder_dict = {"model": decoder_model,
+                                        "parameters": decoder_parameters}
+                    else:
+                        raise ValueError("Decoder not recognized")
 
                     ranges_dict = {"label": label,
                                    "code": code_dict,
