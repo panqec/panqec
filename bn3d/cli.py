@@ -87,7 +87,7 @@ def ls(model_type=None):
 @click.command()
 @click.option('-i', '--input_dir', required=True, type=str)
 @click.option('-d', '--decoder', required=True, type=click.Choice(
-    ['bp', 'sweepmatch'],
+    ['bp-osd', 'bp-osd-2', 'sweepmatch'],
     case_sensitive=False
 ))
 def generate_input(input_dir, decoder):
