@@ -2,7 +2,7 @@
 Base classes for statistical mechanics simulations.
 """
 
-from typing import Tuple, List, Optional, Any
+from typing import Tuple, List, Optional, Any, Dict
 from abc import ABCMeta, abstractmethod
 import numpy as np
 
@@ -91,8 +91,12 @@ class SpinModel(metaclass=ABCMeta):
         for observable in self.observables:
             observable.record(self)
 
-    def sample(self, sweeps: int):
+    def sample(self, sweeps: int) -> dict:
         """Run MCMC sampling for given number of sweeps."""
+        stats = {
+            'acceptance': 0,
+            'total': 0,
+        }
         for t in range(sweeps):
             for i_update in range(self.moves_per_sweep):
                 move = self.random_move()
@@ -101,7 +105,10 @@ class SpinModel(metaclass=ABCMeta):
                     > self.delta_energy(move)
                 ):
                     self.update(move)
+                    stats['acceptance'] += 1
+                stats['total'] += 1
             self.observe()
+        return stats
 
 
 class Observable(metaclass=ABCMeta):
@@ -123,19 +130,34 @@ class Observable(metaclass=ABCMeta):
     def evaluate(self, spin_model: SpinModel):
         """Evaluate the observable for given spin model."""
 
-    @abstractmethod
-    def summary(self) -> dict:
-        """Get summary of results as dictionary."""
-
     def record(self, spin_model: SpinModel):
         """Evaluate the observable for given spin model and record it."""
         value = self.evaluate(spin_model)
         self.total += value
         self.count += 1
 
+    def summary(self) -> Dict:
+        return {
+            'total': self.total,
+            'count': self.count,
+        }
+
+
+class ScalarObservable(Observable):
+
+    total: float
+    count: int
+
+    def reset(self):
+        self.total = 0.0
+        self.count = 0
+
 
 class Ensemble(metaclass=ABCMeta):
     """Ensemble of MCMC chains running spin model to extracts observables."""
+
+    total: Any
+    count: int
 
     def __init__(self):
         pass

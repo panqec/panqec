@@ -1,5 +1,5 @@
-from typing import Tuple, List, Optional, Dict
-from .model import SpinModel, Observable
+from typing import Tuple, Optional
+from .model import SpinModel, ScalarObservable
 import numpy as np
 
 
@@ -27,7 +27,11 @@ class RandomBondIsingModel2D(SpinModel):
         self.rng = np.random.default_rng()
         self.temperature = 1.0
         self.moves_per_sweep = self.n_spins
-        self.observables = []
+        self.observables = [
+            Magnetization(),
+            Susceptibility0(),
+            Susceptibilitykmin(),
+        ]
 
     @property
     def n_spins(self) -> int:
@@ -94,25 +98,42 @@ class RandomBondIsingModel2D(SpinModel):
         self.spins[move] *= -1
 
 
-class Magnetization(Observable):
-    label: str = ''
-    total: float
-    count: int
+class Magnetization(ScalarObservable):
+    label: str = 'Magnetization'
 
     def __init__(self):
-        self.label = 'Magnetization'
         self.reset()
 
     def evaluate(self, spin_model) -> float:
         value = float(np.mean(spin_model.spins))
         return value
 
-    def reset(self):
-        self.total = 0.0
-        self.count = 0
 
-    def summary(self) -> Dict:
-        return {
-            'total': self.total,
-            'count': self.count,
-        }
+class Susceptibility0(ScalarObservable):
+    label: str = 'Susceptibility0'
+
+    def __init__(self):
+        self.reset()
+
+    def evaluate(self, spin_model) -> float:
+        value = float(np.abs(np.sum(spin_model.spins))**2/spin_model.n_spins)
+        return value
+
+
+class Susceptibilitykmin(ScalarObservable):
+    label: str = 'Susceptibilitykmin'
+
+    def __init__(self):
+        self.reset()
+
+    def evaluate(self, spin_model) -> float:
+        axis = int(np.argmax(spin_model.spin_shape))
+        k_min = np.zeros(len(spin_model.spin_shape))
+        k_min[axis] = 2*np.pi/spin_model.spin_shape[axis]
+        positions = np.indices(spin_model.spin_shape)
+        phases = np.exp(1j*np.tensordot(k_min, positions, axes=(0, 0)))
+        value = float(
+            np.abs(np.sum(spin_model.spins*phases))**2
+            / spin_model.n_spins
+        )
+        return value
