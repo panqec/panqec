@@ -23,5 +23,6 @@
 - [ ] `SpinModel` class
     - [ ] `energy_diff`
 - [ ] `Observable` class
-- [ ] `MCSampler` class
+- [ ] `Controller` class
 - [ ] Convergence test - 3 error bars per tau window
+- [ ] Be able to save and load existing MC chains
