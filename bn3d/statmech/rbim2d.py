@@ -1,5 +1,5 @@
 from typing import Tuple, Optional
-from .model import SpinModel, ScalarObservable
+from .model import SpinModel, ScalarObservable, DisorderModel
 import numpy as np
 
 
@@ -137,3 +137,22 @@ class Susceptibilitykmin(ScalarObservable):
             / spin_model.n_spins
         )
         return value
+
+
+class Rbim2DIidDisorder(DisorderModel):
+
+    rng: np.random.Generator
+
+    def __init__(self, rng: np.random.Generator = None):
+        if rng is not None:
+            self.rng = rng
+        else:
+            self.rng = np.random.default_rng()
+
+    def generate(self, model_params, disorder_params):
+        L_x = model_params['L_x']
+        L_y = model_params['L_y']
+        p = disorder_params['p']
+        disorder = np.ones((2, L_x, L_y), dtype=int)
+        disorder[np.random.rand(2, L_x, L_y) < p] = -1
+        return disorder
