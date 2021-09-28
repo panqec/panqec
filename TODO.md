@@ -20,9 +20,9 @@
 - [x] implement it
 
 ### Stat mech
-- [ ] `SpinModel` class
-    - [ ] `energy_diff`
-- [ ] `Observable` class
-- [ ] `Controller` class
-- [ ] Convergence test - 3 error bars per tau window
+- [x] `SpinModel` class
+    - [x] `energy_diff`
+- [x] `Observable` class
+- [x] `Controller` class
+- [x] Convergence test - 3 error bars per tau window
 - [ ] Be able to save and load existing MC chains
