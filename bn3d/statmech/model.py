@@ -4,6 +4,7 @@ Base classes for statistical mechanics simulations.
 
 from typing import Tuple, List, Optional, Any, Dict
 from abc import ABCMeta, abstractmethod
+import time
 import numpy as np
 
 
@@ -93,10 +94,11 @@ class SpinModel(metaclass=ABCMeta):
 
     def sample(self, sweeps: int) -> dict:
         """Run MCMC sampling for given number of sweeps."""
-        stats = {
+        stats: Dict[str, Any] = {
             'acceptance': 0,
             'total': 0,
         }
+        stats['start_time'] = time.time()
         for t in range(sweeps):
             for i_update in range(self.moves_per_sweep):
                 move = self.random_move()
@@ -108,6 +110,7 @@ class SpinModel(metaclass=ABCMeta):
                     stats['acceptance'] += 1
                 stats['total'] += 1
             self.observe()
+        stats['run_time'] = time.time() - stats['start_time']
         return stats
 
 
@@ -151,6 +154,14 @@ class ScalarObservable(Observable):
     def reset(self):
         self.total = 0.0
         self.count = 0
+
+
+class DisorderModel(metaclass=ABCMeta):
+    """Disorder generator representing a noise model."""
+
+    @abstractmethod
+    def generate(self, model_params, disorder_params) -> np.ndarray:
+        """Generate a disorder configuration."""
 
 
 class Ensemble(metaclass=ABCMeta):
