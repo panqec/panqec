@@ -162,28 +162,3 @@ class DisorderModel(metaclass=ABCMeta):
     @abstractmethod
     def generate(self, model_params, disorder_params) -> np.ndarray:
         """Generate a disorder configuration."""
-
-
-class Ensemble(metaclass=ABCMeta):
-    """Ensemble of MCMC chains running spin model to extracts observables."""
-
-    total: Any
-    count: int
-
-    def __init__(self):
-        pass
-
-    @property
-    @abstractmethod
-    def n_chains(self) -> int:
-        """Number of MCMC chains."""
-
-    @property
-    @abstractmethod
-    def spin_models(self) -> List[SpinModel]:
-        """The spin model being sampled."""
-
-    @property
-    @abstractmethod
-    def observables(self) -> List[Observable]:
-        """Observables to sample."""
