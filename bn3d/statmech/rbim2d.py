@@ -1,4 +1,4 @@
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict, Any
 from .model import SpinModel, ScalarObservable, DisorderModel
 import numpy as np
 
@@ -7,6 +7,7 @@ class RandomBondIsingModel2D(SpinModel):
     """Random Bond Ising Model in 2D."""
 
     label: str = ''
+    parameters: Dict[str, Any] = {}
     spin_shape: Tuple[int, int] = (0, 0)
     bond_shape: Tuple[int, int, int] = (0, 0, 0)
     disorder: np.ndarray = np.array([])
@@ -18,6 +19,10 @@ class RandomBondIsingModel2D(SpinModel):
     observables: list = []
 
     def __init__(self, L_x: int, L_y: int):
+        self.parameters = {
+            'L_x': L_x,
+            'L_y': L_y,
+        }
         self.label = f'RandomBondIsingModel2D {L_x}x{L_y}'
         self.spin_shape = (L_x, L_y)
         self.bond_shape = (2, L_x, L_y)

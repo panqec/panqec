@@ -1,3 +1,4 @@
+import json
 import pytest
 import numpy as np
 from bn3d.statmech.rbim2d import RandomBondIsingModel2D
@@ -49,3 +50,21 @@ class TestRBIM2DNoDisorder:
         spins_1 = model.spins.copy()
         assert np.any(spins_0 != spins_1)
         assert spins_0[move] == -spins_1[move]
+
+    def test_to_json(self, model):
+        model.init_spins()
+        data = model.to_json()
+        data_str = json.dumps(data)
+        data_reread = json.loads(data_str)
+
+        old_stats = model.sample(1)
+
+        new_model = RandomBondIsingModel2D(self.L_x, self.L_y)
+        new_model.load_json(data_reread)
+
+        new_stats = new_model.sample(1)
+
+        # Check that output is exactly reproduced.
+        assert old_stats['total'] == new_stats['total']
+        assert old_stats['acceptance'] == new_stats['acceptance']
+        assert np.all(model.spins == new_model.spins)

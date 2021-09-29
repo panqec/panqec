@@ -13,6 +13,11 @@ class SpinModel(metaclass=ABCMeta):
 
     @property
     @abstractmethod
+    def parameters(self) -> Dict[str, Any]:
+        """Parameters used to create object."""
+
+    @property
+    @abstractmethod
     def spin_shape(self) -> Tuple[int, ...]:
         """Shape of spin array."""
 
@@ -57,6 +62,10 @@ class SpinModel(metaclass=ABCMeta):
         """Coupling coefficients of the model."""
 
     @abstractmethod
+    def init_spins(self, spins: Optional[np.ndarray] = None):
+        """Initialize the spins. Random if None given."""
+
+    @abstractmethod
     def init_disorder(self, disorder: Optional[np.ndarray] = None):
         """Initialize the disorder."""
 
@@ -92,6 +101,30 @@ class SpinModel(metaclass=ABCMeta):
         for observable in self.observables:
             observable.record(self)
 
+    def to_json(self) -> Dict[str, Any]:
+        """Save to file."""
+        data: Dict = {
+            'label': self.label,
+            'parameters': self.parameters,
+            'spins': self.spins.tolist(),
+            'disorder': self.disorder.tolist(),
+            'rng': self.rng.__getstate__(),
+            'temperature': self.temperature,
+            'moves_per_sweep': self.moves_per_sweep,
+            'observables': [
+                observable.to_json()
+                for observable in self.observables
+            ],
+        }
+        return data
+
+    def load_json(self, data: Dict[str, Any]):
+        self.init_spins(np.array(data['spins']))
+        self.init_disorder(np.array(data['disorder']))
+        self.rng.__setstate__(data['rng'])
+        self.temperature = self.temperature
+        self.moves_per_sweep = data['moves_per_sweep']
+
     def sample(self, sweeps: int) -> dict:
         """Run MCMC sampling for given number of sweeps."""
         stats: Dict[str, Any] = {
@@ -126,7 +159,7 @@ class Observable(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def label(self):
+    def label(self) -> str:
         """Label for observable."""
 
     @abstractmethod
@@ -144,6 +177,11 @@ class Observable(metaclass=ABCMeta):
             'total': self.total,
             'count': self.count,
         }
+
+    def to_json(self) -> Dict[str, Any]:
+        summary = self.summary()
+        summary['label'] = self.label
+        return summary
 
 
 class ScalarObservable(Observable):
