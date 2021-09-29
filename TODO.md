@@ -26,3 +26,4 @@
 - [x] `Controller` class
 - [x] Convergence test - 3 error bars per tau window
 - [ ] Be able to save and load existing MC chains
+- [ ] zip compression of json files managed by DataManager
