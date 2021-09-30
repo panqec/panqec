@@ -11,6 +11,10 @@ import numpy as np
 class SpinModel(metaclass=ABCMeta):
     """Disordered Classical spin model."""
 
+    temperature: float
+    moves_per_sweep: int
+    sweep_stats: Dict[str, Any]
+
     @property
     @abstractmethod
     def parameters(self) -> Dict[str, Any]:
@@ -33,18 +37,8 @@ class SpinModel(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def moves_per_sweep(self) -> int:
-        """Number of MCMC moves to test per sweep."""
-
-    @property
-    @abstractmethod
     def n_bonds(self) -> int:
         """Number of bonds."""
-
-    @property
-    @abstractmethod
-    def temperature(self) -> float:
-        """Temperature of system in natural units."""
 
     @property
     @abstractmethod
@@ -144,6 +138,7 @@ class SpinModel(metaclass=ABCMeta):
                 stats['total'] += 1
             self.observe()
         stats['run_time'] = time.time() - stats['start_time']
+        self.sweep_stats = stats
         return stats
 
 

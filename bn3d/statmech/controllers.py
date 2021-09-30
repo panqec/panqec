@@ -9,7 +9,11 @@ from ..utils import hash_json
 
 
 class DataManager:
-    """Manager for data file system."""
+    """Manager for data file system.
+
+    Kind of like a database, but maybe in the future we should use a real
+    database like sqlite.
+    """
 
     data_dir: str = ''
     subdirs: Dict[str, str] = {}
@@ -21,7 +25,7 @@ class DataManager:
     def _make_directories(self):
         """Make subdirectories if they don't exist."""
         os.makedirs(self.data_dir, exist_ok=True)
-        subdir_names = ['inputs', 'results', 'chains']
+        subdir_names = ['inputs', 'results', 'models', 'runs']
         for name in subdir_names:
             self.subdirs[name] = os.path.join(self.data_dir, name)
             os.makedirs(self.subdirs[name], exist_ok=True)
@@ -47,6 +51,8 @@ class DataManager:
             name = 'results_{}_seed{}_tau{}.json'.format(
                 data['hash'], data['seed'], data['tau']
             )
+        elif subdir == 'models':
+            name = 'model_{}.json'.format(data['hash'])
         return name
 
     def get_path(self, subdir: str, data: dict) -> str:
@@ -119,12 +125,13 @@ class SimpleController:
             def progress(x):
                 return x
 
-        iterates = list(zip(self.hashes, self.models))
-        for key, model in progress(iterates):
-            for tau in range(max_tau + 1):
+        for tau in range(max_tau + 1):
+            iterates = list(zip(self.hashes, self.models))
+            for input_hash, model in progress(iterates):
+
                 seed = 0
                 results = {
-                    'hash': key,
+                    'hash': input_hash,
                     'seed': seed,
                     'tau': tau,
                     'observables': dict()
@@ -138,6 +145,13 @@ class SimpleController:
                     results['observables'][observable.label] = (
                         observable.summary()
                     )
+
+                # Get a hash of the model and save it.
+                model_json = model.to_json()
+                results['model'] = hash_json(model_json)
+                self.data_manager.save('models', model_json)
+
+                # Save the results.
                 self.data_manager.save('results', results)
 
     def get_summary(self) -> List[dict]:
