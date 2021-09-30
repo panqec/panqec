@@ -18,6 +18,8 @@
 
 ### Finite-size scaling
 - [x] implement it
+- [ ] Fit $D L^(1/\mu)$ term for finite-size scaling
+- [ ] Minimal example of how to use
 
 ### Stat mech
 - [x] `SpinModel` class
@@ -37,3 +39,7 @@
 - [ ] Julia wrapper
 - [ ] Optional C++ extension
 - [ ] Script for array jobs on slurm
+- [ ] Figures in inkscape
+- [ ] p = 0 case
+- [ ] p > 0 case
+- [ ] finite bias case
