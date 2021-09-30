@@ -19,7 +19,7 @@
 ### Finite-size scaling
 - [x] implement it
 - [ ] Fit $D L^(1/\mu)$ term for finite-size scaling
-- [ ] Minimal example of how to use
+- [x] Minimal example of how to use
 
 ### Stat mech
 - [x] `SpinModel` class
