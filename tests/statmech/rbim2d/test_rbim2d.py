@@ -51,7 +51,7 @@ class TestRBIM2DNoDisorder:
         assert np.any(spins_0 != spins_1)
         assert spins_0[move] == -spins_1[move]
 
-    def test_to_json(self, model):
+    def test_to_json_and_load_json(self, model):
         model.init_spins()
         data = model.to_json()
         data_str = json.dumps(data)

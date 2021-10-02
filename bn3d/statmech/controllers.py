@@ -1,5 +1,8 @@
 import os
-from typing import List, Dict, Union
+import re
+from typing import List, Dict, Union, Any
+import time
+import uuid
 import json
 from glob import glob
 import numpy as np
@@ -30,11 +33,12 @@ class DataManager:
             self.subdirs[name] = os.path.join(self.data_dir, name)
             os.makedirs(self.subdirs[name], exist_ok=True)
 
-    def load(self, subdir: str) -> List[dict]:
-        """Find all saved json files and all load the data within."""
+    def load(self, subdir: str, filters: Dict[str, Any] = {}) -> List[dict]:
+        """Load saved data into list of dicts with optional filter."""
         file_paths = glob(
             os.path.join(self.subdirs[subdir], '*.json')
         )
+        file_paths = self.filter_files(subdir, filters)
         data_list: List[dict] = []
         for file_name in file_paths:
             with open(file_name) as f:
@@ -42,7 +46,7 @@ class DataManager:
                 data_list.append(entry)
         return data_list
 
-    def get_name(self, subdir, data: dict) -> str:
+    def get_name(self, subdir: str, data: dict) -> str:
         """Unified enforcement of data file naming standard."""
         name = 'Untitled.json'
         if subdir == 'inputs':
@@ -53,7 +57,45 @@ class DataManager:
             )
         elif subdir == 'models':
             name = 'model_{}.json'.format(data['hash'])
+        elif subdir == 'runs':
+            name = 'run_{}_seed{}_tau{}.json'.format(
+                data['hash'], data['seed'], data['tau']
+            )
         return name
+
+    def get_params(self, subdir: str, name: str) -> Dict[str, Any]:
+        params: Dict[str, Any] = {}
+        if subdir == 'inputs':
+            match = re.search(r'input_([0-9a-f]+).json', name)
+            if match:
+                params = {
+                    'hash': str(match.group(1)),
+                }
+        elif subdir == 'results':
+            match = re.search(
+                r'results_([0-9a-f]+)_seed(\d+)_tau(\d+).json', name
+            )
+            if match:
+                params = {
+                    'hash': str(match.group(1)),
+                    'seed': int(match.group(2)),
+                    'tau': int(match.group(3)),
+                }
+        elif subdir == 'models':
+            match = re.search(r'model_([0-9a-f]+).json', name)
+            if match:
+                params = {
+                    'hash': str(match.group(1)),
+                }
+        elif subdir == 'runs':
+            match = re.search(r'run_([0-9a-f]+)_seed(\d+)_tau(\d+).json', name)
+            if match:
+                params = {
+                    'hash': str(match.group(1)),
+                    'seed': int(match.group(2)),
+                    'tau': int(match.group(3)),
+                }
+        return params
 
     def get_path(self, subdir: str, data: dict) -> str:
         """Get path to file storing data."""
@@ -81,10 +123,36 @@ class DataManager:
             with open(file_path, 'w') as f:
                 json.dump(entry, f, sort_keys=True, indent=2)
 
+    def filter_files(self, subdir: str, filters: Dict[str, Any]) -> List[str]:
+        """Get list of file paths matching filter criterion."""
+        file_paths = glob(os.path.join(self.subdirs[subdir], '*.json'))
+        filtered_paths = []
+        for file_path in file_paths:
+            matches_filter = True
+            file_name = os.path.split(file_path)[-1]
+            file_params = self.get_params(subdir, file_name)
+            if any(
+                key not in file_params.keys()
+                or file_params[key] != filters[key]
+                for key in filters.keys()
+            ):
+                matches_filter = False
+
+            if matches_filter:
+                filtered_paths.append(file_path)
+        return filtered_paths
+
+    def remove(self, subdir: str, filters: Dict[str, Any]):
+        files = self.filter_files(subdir, filters)
+        if subdir == 'runs':
+            for file_name in files:
+                os.remove(file_name)
+
 
 class SimpleController:
     """Simple controller for running many chains."""
 
+    uuid: str = ''
     hashes: List[str] = []
     models: List[SpinModel] = []
     results: List[dict] = []
@@ -93,6 +161,7 @@ class SimpleController:
     data_manager: DataManager
 
     def __init__(self, data_dir: str):
+        self.uuid = uuid.uuid4().hex
         self.data_manager = DataManager(data_dir)
         self.hashes = []
         self.models = []
@@ -119,43 +188,101 @@ class SimpleController:
             self.hashes.append(entry['hash'])
             self.models.append(model)
 
+    def single_run(
+        self, model: SpinModel, input_hash: str, seed: int, tau: int
+    ):
+        """Single run of MCMC on given spin model.
+        """
+        results = {
+            'hash': input_hash,
+            'seed': seed,
+            'tau': tau
+        }
+        observables_results: Dict[str, dict] = dict()
+        n_sweeps = 2**tau
+        for observable in model.observables:
+            observable.reset()
+
+        # Data to save in runs folder to let everyone else know
+        # that this controller is about to start running a sample.
+        run_data = {
+            'hash': input_hash,
+            'seed': seed,
+            'tau': tau,
+            'controller': self.uuid,
+            'pid': os.getpid(),
+            'start': time.time(),
+        }
+        self.data_manager.save('runs', run_data)
+
+        # Do the MCMC sampling and obtain sweep stats.
+        results['sweep_stats'] = model.sample(n_sweeps)
+
+        results['spins'] = model.spins.tolist()
+        for observable in model.observables:
+            observables_results[observable.label] = (
+                observable.summary()
+            )
+        results['observables'] = observables_results
+
+        # Get a hash of the model and save it.
+        model_json = model.to_json()
+        model_hash = hash_json(model_json)
+        model_json['hash'] = model_hash
+        results['model'] = model_hash
+        self.data_manager.save('models', model_json)
+
+        # Save the results.
+        self.data_manager.save('results', results)
+
+        # Remove the run record in the runs folder so others know
+        # the run has been completed.
+        self.data_manager.remove('runs', {
+            'hash': input_hash,
+            'seed': seed,
+            'tau': tau
+        })
+
     def run(self, max_tau, progress=None):
         """Run all models up to given tau."""
         if progress is None:
             def progress(x):
                 return x
+        seed = 0
 
         for tau in range(max_tau + 1):
             iterates = list(zip(self.hashes, self.models))
             for input_hash, model in progress(iterates):
 
-                seed = 0
-                results = {
+                # Find existing models and results before running.
+                existing_results = self.data_manager.load('results', {
                     'hash': input_hash,
                     'seed': seed,
                     'tau': tau,
-                    'observables': dict()
-                }
-                n_sweeps = 2**tau
-                for observable in model.observables:
-                    observable.reset()
-                results['sweep_stats'] = model.sample(n_sweeps)
-                results['spins'] = model.spins.tolist()
-                for observable in model.observables:
-                    results['observables'][observable.label] = (
-                        observable.summary()
-                    )
+                })
 
-                # Get a hash of the model and save it.
-                model_json = model.to_json()
-                model_hash = hash_json(model_json)
-                model_json['hash'] = model_hash
-                results['model'] = model_hash
-                self.data_manager.save('models', model_json)
+                # Only proceed if there are no existing results.
+                if len(existing_results) == 0:
 
-                # Save the results.
-                self.data_manager.save('results', results)
+                    # Load the model state from the last tau if available.
+                    if tau > 0:
+                        previous_results = self.data_manager.load('results', {
+                            'hash': input_hash,
+                            'seed': seed,
+                            'tau': tau - 1,
+                        })
+                        if previous_results:
+                            last_run = previous_results[0]
+                            model_hash = last_run['model']
+                            model_json = self.data_manager.load('models', {
+                                'hash': model_hash,
+                            })[0]
+                            model.load_json(model_json)
+
+                    # Perform a single run.
+                    self.single_run(model, input_hash, seed, tau)
 
     def get_summary(self) -> List[dict]:
+        """Get list of all results."""
         summary = self.data_manager.load('results')
         return summary
