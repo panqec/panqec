@@ -148,7 +148,9 @@ class SimpleController:
 
                 # Get a hash of the model and save it.
                 model_json = model.to_json()
-                results['model'] = hash_json(model_json)
+                model_hash = hash_json(model_json)
+                model_json['hash'] = model_hash
+                results['model'] = model_hash
                 self.data_manager.save('models', model_json)
 
                 # Save the results.
