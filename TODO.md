@@ -29,7 +29,7 @@
 - [x] Convergence test - 3 error bars per tau window
 - [x] Be able to save and load existing MC chains
 - [x] Fix slowness by avoiding reading all files
-- [ ] Compute time estimation
+- [x] Compute time estimation
 - [ ] Parallelize running for Controller
 - [ ] Wilson loop observable
 - [x] Error bars for correlation length

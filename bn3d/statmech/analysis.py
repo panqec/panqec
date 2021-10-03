@@ -30,6 +30,7 @@ class SimpleAnalysis:
         self.combine_results()
         self.estimate_observables()
         self.estimate_correlation_length()
+        self.calculate_run_time_stats()
 
     def combine_results(self):
         """Combine all raw results in as single DataFrame."""
@@ -87,10 +88,8 @@ class SimpleAnalysis:
             ], axis=1)
         self.estimates = estimates.reset_index()
 
-    def estimate_correlation_length(self, n_resamp: int = 100):
+    def estimate_correlation_length(self, n_resamp: int = 10):
 
-        # Generator for bootstrapping.
-        bs_rng = np.random.default_rng(0)
         estimates = self.estimates
         k_min = 2*np.pi/estimates[['L_x', 'L_y']].max(axis=1)
         estimates['CorrelationLength_estimate'] = 1/(
@@ -100,7 +99,12 @@ class SimpleAnalysis:
             / estimates['Susceptibilitykmin_estimate']
             - 1
         ))
+
+        # Calculate uncertainty by bootstrapping.
         uncertainty = np.zeros(estimates.shape[0])
+
+        # Generator for bootstrapping.
+        bs_rng = np.random.default_rng(0)
 
         for i_row, row in self.estimates.iterrows():
             parameters = row[self.independent_variables].drop('tau')
@@ -139,3 +143,55 @@ class SimpleAnalysis:
             uncertainty[i_row] = resampled_correlation_lengths.std()
 
         estimates['CorrelationLength_uncertainty'] = uncertainty
+
+    def calculate_run_time_stats(self):
+        """Calculate run time stats."""
+        self.run_time_df = self.inputs_df.merge(
+            self.results_df
+        )[self.independent_variables + ['spin_model', 'run_time']]
+
+        rtgroup = self.run_time_df.groupby(
+            self.independent_variables + ['spin_model']
+        )['run_time']
+        self.run_time_stats = pd.DataFrame({
+            'count': rtgroup.count(),
+            'mean_time': rtgroup.mean(),
+            'max_time': rtgroup.max(),
+            'total_time': rtgroup.sum(),
+        }).reset_index()
+
+        self.run_time_constants = dict()
+        for spin_model in self.run_time_stats['spin_model'].unique():
+            run_times = self.run_time_stats[
+                self.run_time_stats['spin_model'] == spin_model
+            ]
+            self.run_time_constants[spin_model] = np.sum(
+                run_times['total_time']
+            )/np.sum(
+                count_updates(spin_model, run_times)*run_times['count']
+            )
+
+    def estimate_run_time(
+        self, inputs: List[dict], max_tau: int, n_disorder: int
+    ) -> float:
+        """Estimate run time in seconds for a list of proposed inputs."""
+        total_time = 0
+        for entry in inputs:
+            constant = self.run_time_constants[entry['spin_model']]
+            params = dict(entry['spin_model_params'])
+
+            # Add 1 because $\sum_{i=0}^{n} 2^i = 2^{n+1} - 1$.
+            params['tau'] = max_tau + 1
+
+            # The number of disorders is the count.
+            params['count'] = n_disorder
+            entry_time = constant*count_updates(entry['spin_model'], params)
+            total_time += entry_time
+        return total_time
+
+
+def count_updates(spin_model, params):
+    if spin_model == 'RandomBondIsingModel2D':
+        return params['L_x']*params['L_y']*2**params['tau']
+    else:
+        return 1
