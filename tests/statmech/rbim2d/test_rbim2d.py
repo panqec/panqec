@@ -1,7 +1,7 @@
 import json
 import pytest
 import numpy as np
-from bn3d.statmech.rbim2d import RandomBondIsingModel2D
+from bn3d.statmech.rbim2d import RandomBondIsingModel2D, Rbim2DIidDisorder
 
 
 class TestRBIM2DNoDisorder:
@@ -68,3 +68,28 @@ class TestRBIM2DNoDisorder:
         assert old_stats['total'] == new_stats['total']
         assert old_stats['acceptance'] == new_stats['acceptance']
         assert np.all(model.spins == new_model.spins)
+
+
+class TestRbim2DIidDisorder:
+
+    def test_disorder_reproducible_seed(self):
+        seed = 0
+        spin_model_params = {'L_x': 5, 'L_y': 6}
+        disorder_params = {'p': 0.4}
+
+        # Generate some disorder configuration using the seed.
+        rng = np.random.default_rng(seed)
+        disorder_model = Rbim2DIidDisorder(rng)
+        disorder_1 = disorder_model.generate(
+            spin_model_params, disorder_params
+        )
+
+        # Do it again.
+        rng = np.random.default_rng(seed)
+        disorder_model = Rbim2DIidDisorder(rng)
+        disorder_2 = disorder_model.generate(
+            spin_model_params, disorder_params
+        )
+
+        # Make sure they're the same.
+        assert np.all(disorder_1 == disorder_2)

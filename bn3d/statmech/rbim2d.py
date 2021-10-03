@@ -159,5 +159,5 @@ class Rbim2DIidDisorder(DisorderModel):
         L_y = model_params['L_y']
         p = disorder_params['p']
         disorder = np.ones((2, L_x, L_y), dtype=int)
-        disorder[np.random.rand(2, L_x, L_y) < p] = -1
+        disorder[self.rng.random((2, L_x, L_y)) < p] = -1
         return disorder
