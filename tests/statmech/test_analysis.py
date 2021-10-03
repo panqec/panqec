@@ -28,3 +28,17 @@ def test_analyse(analysis):
         'CorrelationLength_uncertainty',
     ])
     assert expected_columns.issubset(analysis.estimates.columns)
+
+
+def test_estimate_run_time(analysis):
+    analysis.analyse()
+    estimated_time = analysis.estimate_run_time(
+        inputs=analysis.data_manager.load('inputs'),
+        max_tau=analysis.results_df['tau'].max(),
+        n_disorder=analysis.run_time_stats['count'].max()
+    )
+    actual_time = analysis.run_time_stats['total_time'].sum()
+
+    # Estimate should be within 50% of the actual.
+    relative_difference = abs(estimated_time - actual_time)/actual_time
+    assert relative_difference < 0.5
