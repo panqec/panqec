@@ -27,15 +27,15 @@
 - [x] `Observable` class
 - [x] `Controller` class
 - [x] Convergence test - 3 error bars per tau window
-- [ ] Be able to save and load existing MC chains
+- [x] Be able to save and load existing MC chains
 - [x] Fix slowness by avoiding reading all files
-- [ ] zip compression of json files managed by DataManager
 - [ ] Compute time estimation
 - [ ] Parallelize running for Controller
 - [ ] Wilson loop observable
-- [ ] Error bars for correlation length
+- [x] Error bars for correlation length
 - [ ] CLI command to generate and run
-- [ ] Separate results viewer notebook/web app
+- [ ] zip compression of json files managed by DataManager
+- [x] Separate results viewer notebook/web app
 - [ ] Z2GaugeModel2D
 - [ ] Z2GaugeModel3D
 - [ ] Julia wrapper

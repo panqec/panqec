@@ -39,6 +39,7 @@ class DataManager:
 
     def _make_directories(self):
         """Make subdirectories if they don't exist."""
+        self.subdirs = dict()
         os.makedirs(self.data_dir, exist_ok=True)
         subdir_names = ['inputs', 'results', 'models', 'runs']
         for name in subdir_names:
@@ -91,6 +92,7 @@ class DataManager:
                     'tau': int(match.group(3)),
                 }
         elif subdir == 'models':
+            print(name)
             match = re.search(r'model_([0-9a-f]+).json', name)
             if match:
                 params = {
