@@ -28,8 +28,9 @@
 - [x] `Controller` class
 - [x] Convergence test - 3 error bars per tau window
 - [ ] Be able to save and load existing MC chains
-- [ ] Fix slowness by avoiding reading all files
+- [x] Fix slowness by avoiding reading all files
 - [ ] zip compression of json files managed by DataManager
+- [ ] Compute time estimation
 - [ ] Parallelize running for Controller
 - [ ] Wilson loop observable
 - [ ] Error bars for correlation length

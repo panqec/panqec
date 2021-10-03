@@ -1,6 +1,13 @@
+"""
+Classes for controlling MCMC chains in parallel and
+managing the data produced.
+
+:Author:
+    Eric Huang
+"""
 import os
 import re
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Union, Any, Optional
 import time
 import uuid
 import json
@@ -14,10 +21,15 @@ from ..utils import hash_json
 class DataManager:
     """Manager for data file system.
 
-    Kind of like a database, but maybe in the future we should use a real
-    database like sqlite.
+    Kind of like a database, allows one to query json files (rows)
+    with attributes (columns)
+    stored in folders (tables)
+    In the future we should use a real database like sqlite via an ORM like
+    SQLAlchemy but for now this file-based storage is what we've got to still
+    work with the clusters.
     """
 
+    UNTITLED: str = 'Untitled.json'
     data_dir: str = ''
     subdirs: Dict[str, str] = {}
 
@@ -35,9 +47,6 @@ class DataManager:
 
     def load(self, subdir: str, filters: Dict[str, Any] = {}) -> List[dict]:
         """Load saved data into list of dicts with optional filter."""
-        file_paths = glob(
-            os.path.join(self.subdirs[subdir], '*.json')
-        )
         file_paths = self.filter_files(subdir, filters)
         data_list: List[dict] = []
         for file_name in file_paths:
@@ -48,7 +57,7 @@ class DataManager:
 
     def get_name(self, subdir: str, data: dict) -> str:
         """Unified enforcement of data file naming standard."""
-        name = 'Untitled.json'
+        name = self.UNTITLED
         if subdir == 'inputs':
             name = 'input_{}.json'.format(data['hash'])
         elif subdir == 'results':
@@ -125,24 +134,41 @@ class DataManager:
 
     def filter_files(self, subdir: str, filters: Dict[str, Any]) -> List[str]:
         """Get list of file paths matching filter criterion."""
-        file_paths = glob(os.path.join(self.subdirs[subdir], '*.json'))
-        filtered_paths = []
-        for file_path in file_paths:
-            matches_filter = True
-            file_name = os.path.split(file_path)[-1]
-            file_params = self.get_params(subdir, file_name)
-            if any(
-                key not in file_params.keys()
-                or file_params[key] != filters[key]
-                for key in filters.keys()
-            ):
-                matches_filter = False
 
-            if matches_filter:
-                filtered_paths.append(file_path)
+        # Try to see if expected path exists.
+        expected_path: Optional[str] = None
+        try:
+            expected_path = self.get_path(subdir, filters)
+            if expected_path == self.UNTITLED:
+                expected_path = None
+        except KeyError:
+            expected_path = None
+
+        # Return the list with path if expected path exists.
+        if expected_path is not None and os.path.isfile(expected_path):
+            filtered_paths = [expected_path]
+
+        # Otherwise go looking through the entire subdirectory.
+        else:
+            file_paths = glob(os.path.join(self.subdirs[subdir], '*.json'))
+            filtered_paths = []
+            for file_path in file_paths:
+                matches_filter = True
+                file_name = os.path.split(file_path)[-1]
+                file_params = self.get_params(subdir, file_name)
+                if any(
+                    key not in file_params.keys()
+                    or file_params[key] != filters[key]
+                    for key in filters.keys()
+                ):
+                    matches_filter = False
+
+                if matches_filter:
+                    filtered_paths.append(file_path)
         return filtered_paths
 
     def remove(self, subdir: str, filters: Dict[str, Any]):
+        """Delete entries satisfying filter criterion."""
         files = self.filter_files(subdir, filters)
         if subdir == 'runs':
             for file_name in files:
