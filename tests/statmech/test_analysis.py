@@ -27,6 +27,7 @@ def test_analyse(analysis):
         'CorrelationLength_estimate',
         'CorrelationLength_uncertainty',
     ])
+    assert analysis.estimates.shape[0] == 2
     assert expected_columns.issubset(analysis.estimates.columns)
 
 

@@ -71,7 +71,7 @@ class TestDataManager:
             'seed': 0,
             'tau': 5,
         })
-        assert name == 'results_0123456789abcdef_seed0_tau5.json'
+        assert name == 'results_tau5_0123456789abcdef_seed0.json'
 
     def test_get_name_inputs(self, data_manager):
         name = data_manager.get_name('inputs', {
