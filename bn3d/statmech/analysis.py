@@ -12,6 +12,7 @@ from .controllers import DataManager
 
 
 class SimpleAnalysis:
+    """Wrapper for a simple analysis."""
 
     data_dir: str
     data_manager: DataManager
@@ -26,6 +27,7 @@ class SimpleAnalysis:
         self.data_manager = DataManager(data_dir)
 
     def analyse(self):
+        """Perform the analysis."""
         self.combine_inputs()
         self.combine_results()
         self.estimate_observables()
@@ -89,6 +91,7 @@ class SimpleAnalysis:
         self.estimates = estimates.reset_index()
 
     def estimate_correlation_length(self, n_resamp: int = 10):
+        """Estimate the correlation length."""
 
         estimates = self.estimates
         k_min = 2*np.pi/estimates[['L_x', 'L_y']].max(axis=1)
@@ -190,7 +193,8 @@ class SimpleAnalysis:
         return total_time
 
 
-def count_updates(spin_model, params):
+def count_updates(spin_model: str, params) -> float:
+    """Number of count updates."""
     if spin_model == 'RandomBondIsingModel2D':
         return params['L_x']*params['L_y']*2**params['tau']
     else:

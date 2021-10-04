@@ -41,7 +41,7 @@ class DataManager:
         """Make subdirectories if they don't exist."""
         self.subdirs = dict()
         os.makedirs(self.data_dir, exist_ok=True)
-        subdir_names = ['inputs', 'results', 'models', 'runs']
+        subdir_names = ['inputs', 'results', 'models', 'queue', 'runs']
         for name in subdir_names:
             self.subdirs[name] = os.path.join(self.data_dir, name)
             os.makedirs(self.subdirs[name], exist_ok=True)
@@ -56,6 +56,11 @@ class DataManager:
                 data_list.append(entry)
         return data_list
 
+    def count(self, subdir: str) -> int:
+        """Count the number of files stored."""
+        dir_path = self.subdirs[subdir]
+        return len(os.listdir(dir_path))
+
     def get_name(self, subdir: str, data: dict) -> str:
         """Unified enforcement of data file naming standard."""
         name = self.UNTITLED
@@ -69,6 +74,10 @@ class DataManager:
             name = 'model_{}.json'.format(data['hash'])
         elif subdir == 'runs':
             name = 'run_{}_seed{}_tau{}.json'.format(
+                data['hash'], data['seed'], data['tau']
+            )
+        elif subdir == 'queue':
+            name = 'task_{}_seed{}_tau{}.json'.format(
                 data['hash'], data['seed'], data['tau']
             )
         return name
@@ -92,7 +101,6 @@ class DataManager:
                     'tau': int(match.group(3)),
                 }
         elif subdir == 'models':
-            print(name)
             match = re.search(r'model_([0-9a-f]+).json', name)
             if match:
                 params = {
@@ -100,6 +108,16 @@ class DataManager:
                 }
         elif subdir == 'runs':
             match = re.search(r'run_([0-9a-f]+)_seed(\d+)_tau(\d+).json', name)
+            if match:
+                params = {
+                    'hash': str(match.group(1)),
+                    'seed': int(match.group(2)),
+                    'tau': int(match.group(3)),
+                }
+        elif subdir == 'queue':
+            match = re.search(
+                r'task_([0-9a-f]+)_seed(\d+)_tau(\d+).json', name
+            )
             if match:
                 params = {
                     'hash': str(match.group(1)),
@@ -292,6 +310,9 @@ class SimpleController:
                 # Only proceed if there are no existing results.
                 if len(existing_results) == 0:
 
+                    # Whether the run for the previous tau has been done.
+                    last_run_done = False
+
                     # Load the model state from the last tau if available.
                     if tau > 0:
                         previous_results = self.data_manager.load('results', {
@@ -306,9 +327,24 @@ class SimpleController:
                                 'hash': model_hash,
                             })[0]
                             model.load_json(model_json)
+                            last_run_done = True
 
-                    # Perform a single run.
-                    self.single_run(model, input_hash, seed, tau)
+                    # Only proceed if run for previous tau complete or is the
+                    # first run.
+                    if last_run_done or tau == 0:
+
+                        # Perform a single run.
+                        self.single_run(model, input_hash, seed, tau)
+
+                    else:
+
+                        print('Missing file {}'.format(
+                            self.data_manager.get_name('results', {
+                                'hash': input_hash,
+                                'seed': seed,
+                                'tau': tau - 1
+                            })[0]
+                        ))
 
     def get_summary(self) -> List[dict]:
         """Get list of all results."""
