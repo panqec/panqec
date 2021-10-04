@@ -45,3 +45,6 @@
 - [ ] p = 0 case
 - [ ] p > 0 case
 - [ ] finite bias case
+
+### Fault-tolerant thresholds 3D
+-[ ] Deformed Y noise fault-tolerant threshold 3D
