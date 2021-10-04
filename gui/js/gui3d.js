@@ -5,13 +5,11 @@ import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat
 
 // Constants
 
-const PI = Math.PI;
 const KEY_CODE = {'d': 68, 'r': 82, 'backspace': 8, 'o': 79}
 
 const X_AXIS = 1;
 const Y_AXIS = 2;
 const Z_AXIS = 0;
-const AXES = [X_AXIS, Y_AXIS, Z_AXIS];
 const X_ERROR = 0;
 const Z_ERROR = 1;
 const COLOR = {vertex: 0xf2f28c, face: 0xf2f28c, edge: 0xffbcbc, 
@@ -53,6 +51,46 @@ let triangles = Array();
 
 init();
 animate();
+
+function buildScene(scene, raycaster, mouse, renderer, effect) {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x444488);
+
+    let camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+    camera.position.z = 6;
+    camera.position.y = 3;
+    camera.position.x = 3;
+
+    let dirLight1 = new THREE.DirectionalLight( 0xffffff );
+    dirLight1.position.set( 1, 1, 1 );
+    scene.add( dirLight1 );
+
+    const dirLight2 = new THREE.DirectionalLight( 0x002288 );
+    dirLight2.position.set( - 1, - 1, - 1 );
+    scene.add( dirLight2 );
+
+    const dirLight3 = new THREE.DirectionalLight( 0x002288 );
+    dirLight3.position.set(4, 4, 4);
+    scene.add( dirLight3 );
+
+    const ambientLight = new THREE.AmbientLight( 0x222222 );
+    scene.add( ambientLight );
+
+    raycaster = new THREE.Raycaster();
+    mouse = new THREE.Vector2();
+
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    effect = new OutlineEffect(renderer);
+    
+    controls = new OrbitControls(camera, renderer.domElement);
+
+    document.addEventListener("keydown", onDocumentKeyDown, false);
+    document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+    window.addEventListener('resize', onWindowResize, false);
+}
 
 function getIndexQubit(axis, x, y, z) {
     let Lx = params.L;
@@ -279,18 +317,27 @@ function deactivateTriangle(triangle) {
     triangle.material.transparent = true;
 }
 
-
-async function buildCode() {
-    let stabilizers = await getStabilizerMatrices();
-    Hx = stabilizers['Hx'];
-    Hz = stabilizers['Hz'];
-    var logical_xs = stabilizers['logical_xs']
-    var logical_zs = stabilizers['logical_zs']
-
+function buildCubicCode(Hx, Hz) {
     qubits = Array(Hx[0].length);
 
     vertices = Array(Hx.length);
     faces = Array(Hz.length)
+
+    for(let x=0; x < params.L; x++) {
+        for(let y=0; y < params.L; y++) {
+            for(let z=0; z < params.L; z++) {
+                for (let axis=0; axis < 3; axis++) {
+                    buildEdge(axis, x, y, z);
+                    buildFace(axis, x, y, z);
+                }
+                buildVertex(x, y, z);
+            }
+        }
+    }
+}
+
+function buildRhombicCode(Hx, Hz) {
+    qubits = Array(Hx[0].length);
 
     triangles = Array(Hx.length)
     cubes = Array(Hz.length)
@@ -301,30 +348,49 @@ async function buildCode() {
                 for (let axis=0; axis < 3; axis++) {
                     buildEdge(axis, x, y, z);
                 }
-                if (params.codeName == 'cubic') {
-                    buildVertex(x, y, z);
-
-                    for (let axis=0; axis < 3; axis++) {
-                        buildFace(axis, x, y, z);
-                    }
+                for (let axis=0; axis < 4; axis++) {
+                    buildTriangle(axis, x, y, z);
                 }
-                else if (params.codeName == 'rhombic') {
-                    buildCube(x, y, z);
+                buildCube(x, y, z);
+            }
+        }
 
-                    for (let axis=0; axis < 4; axis++) {
-                        buildTriangle(axis, x, y, z);
-                    }
+    }
+}
+
+function buildRotatedCode(Hx, Hz) {
+    qubits = Array(Hx[0].length);
+
+    vertices = Array(Hx.length);
+    faces = Array(Hz.length)
+
+    for(let x=0; x < params.L; x++) {
+        for(let y=0; y < params.L; y++) {
+            for(let z=0; z < params.L; z++) {
+                for (let axis=0; axis < 2; axis++) {
+                    buildEdge(axis, x, y, z);
+                    buildFace(axis, x, y, z);
                 }
-
+                buildVertex(x, y, z);
             }
         }
     }
+}
 
-    // qubits.forEach((q, i) => {
-    //     if (logical_zs[2][i]) {
-    //         insertError(q, Z_ERROR);
-    //     }
-    // });
+async function buildCode() {
+    let stabilizers = await getStabilizerMatrices();
+    Hx = stabilizers['Hx'];
+    Hz = stabilizers['Hz'];
+
+    if (params.codeName == 'cubic') {
+        buildCubicCode(Hx, Hz);
+    }
+    else if (params.codeName == 'rhombic') {
+        buildRhombicCode(Hx, Hz)
+    }
+    else if (params.codeName == 'rotated') {
+        buildRotatedCode(Hx, Hz)
+    }
 }
 
 function changeOpacity() {
@@ -536,12 +602,12 @@ function buildFace(axis, x, y, z) {
     if (axis == X_AXIS) {
         face.position.x += SIZE.lengthEdge / 2;
         face.position.z += SIZE.lengthEdge / 2;
-        face.rotateX(PI / 2)
+        face.rotateX(Math.PI / 2)
     }
     else if (axis == Z_AXIS) {
         face.position.z += SIZE.lengthEdge / 2
         face.position.y += SIZE.lengthEdge / 2
-        face.rotateY(PI / 2)
+        face.rotateY(Math.PI / 2)
     }
 
     let index = getIndexFace(axis, x, y, z);
@@ -615,11 +681,11 @@ function buildEdge(axis, x, y, z) {
         edge.position.y += SIZE.lengthEdge / 2
     }
     if (axis == Y_AXIS) {
-        edge.rotateX(PI / 2)
+        edge.rotateX(Math.PI / 2)
         edge.position.z += SIZE.lengthEdge / 2
     }
     else if (axis == Z_AXIS) {
-        edge.rotateZ(PI / 2)
+        edge.rotateZ(Math.PI / 2)
         edge.position.x += SIZE.lengthEdge / 2
     }
 
@@ -660,11 +726,11 @@ function buildEdge(axis, x, y, z) {
     //         text.position.y -= SIZE.lengthEdge / 2
     //     }
     //     if (axis == Y_AXIS) {
-    //         text.rotateX(PI / 2)
+    //         text.rotateX(Math.PI / 2)
     //         text.position.z -= SIZE.lengthEdge / 2
     //     }
     //     else if (axis == Z_AXIS) {
-    //         text.rotateZ(PI / 2)
+    //         text.rotateZ(Math.PI / 2)
     //         text.position.x -= SIZE.lengthEdge / 2
     //     }
 
@@ -713,7 +779,7 @@ async function getRandomErrors() {
 function buildGUI() {
     gui = new GUI();
     const codeFolder = gui.addFolder('Code')
-    codeFolder.add(params, 'codeName', {'Cubic': 'cubic', 'Rhombic': 'rhombic'}).name('Code type').onChange(changeLatticeSize);
+    codeFolder.add(params, 'codeName', {'Cubic': 'cubic', 'Rhombic': 'rhombic', 'Rotated': 'rotated'}).name('Code type').onChange(changeLatticeSize);
     codeFolder.add(params, 'L', {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
 
     const errorModelFolder = gui.addFolder('Error Model')
@@ -775,54 +841,12 @@ function buildReturnArrow() {
 
 
 function init() {
-    // Display instructions
     buildInstructions();
     buildReturnArrow();
-
-
-    // Create scene
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color( 0x444488 );
-
-    camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-    camera.position.z = 6;
-    camera.position.y = 3;
-    camera.position.x = 3;
-
-    const dirLight1 = new THREE.DirectionalLight( 0xffffff );
-    dirLight1.position.set( 1, 1, 1 );
-    scene.add( dirLight1 );
-
-    const dirLight2 = new THREE.DirectionalLight( 0x002288 );
-    dirLight2.position.set( - 1, - 1, - 1 );
-    scene.add( dirLight2 );
-
-    const dirLight3 = new THREE.DirectionalLight( 0x002288 );
-    dirLight3.position.set(4, 4, 4);
-    scene.add( dirLight3 );
-
-    const ambientLight = new THREE.AmbientLight( 0x222222 );
-    scene.add( ambientLight );
-
-    raycaster = new THREE.Raycaster();
-    mouse = new THREE.Vector2();
-
-    renderer = new THREE.WebGLRenderer();
-    renderer.setSize( window.innerWidth, window.innerHeight );
-    document.body.appendChild( renderer.domElement );
-
-    effect = new OutlineEffect(renderer);
-    // effect = renderer;
-    
-    controls = new OrbitControls( camera, renderer.domElement );
+    buildScene();
+    buildGUI();
 
     buildCode();
-
-    document.addEventListener("keydown", onDocumentKeyDown, false);
-    document.addEventListener( 'mousedown', onDocumentMouseDown, false );
-    window.addEventListener('resize', onWindowResize, false);
-
-    buildGUI()
 
     controls.update();
 }

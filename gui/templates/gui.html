@@ -11,7 +11,7 @@
     {% if request.path == url_for('send_index_2d') %}
         <script type="module" src="js/gui2d.js"></script>
     {% elif request.path == url_for('send_index_3d') %}
-        <script type="module" src="js/gui3d.js"></script>
+        <script type="module" src="js/main.js"></script>
     {% else %}
         <b>Problem: {{ request.path }}</b>
     {% endif %}
