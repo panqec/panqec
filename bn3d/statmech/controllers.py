@@ -67,17 +67,17 @@ class DataManager:
         if subdir == 'inputs':
             name = 'input_{}.json'.format(data['hash'])
         elif subdir == 'results':
-            name = 'results_{}_seed{}_tau{}.json'.format(
-                data['hash'], data['seed'], data['tau']
+            name = 'results_tau{}_{}_seed{}.json'.format(
+                data['tau'], data['hash'], data['seed']
             )
         elif subdir == 'models':
             name = 'model_{}.json'.format(data['hash'])
         elif subdir == 'runs':
-            name = 'run_{}_seed{}_tau{}.json'.format(
-                data['hash'], data['seed'], data['tau']
+            name = 'results_tau{}_{}_seed{}.json'.format(
+                data['tau'], data['hash'], data['seed']
             )
         elif subdir == 'queue':
-            name = 'task_{}_seed{}_tau{}.json'.format(
+            name = 'queue_tau{}_{}_seed{}.json'.format(
                 data['hash'], data['seed'], data['tau']
             )
         return name
@@ -92,13 +92,13 @@ class DataManager:
                 }
         elif subdir == 'results':
             match = re.search(
-                r'results_([0-9a-f]+)_seed(\d+)_tau(\d+).json', name
+                r'results_tau(\d+)_([0-9a-f]+)_seed(\d+).json', name
             )
             if match:
                 params = {
-                    'hash': str(match.group(1)),
-                    'seed': int(match.group(2)),
-                    'tau': int(match.group(3)),
+                    'tau': int(match.group(1)),
+                    'hash': str(match.group(2)),
+                    'seed': int(match.group(3)),
                 }
         elif subdir == 'models':
             match = re.search(r'model_([0-9a-f]+).json', name)
@@ -110,19 +110,19 @@ class DataManager:
             match = re.search(r'run_([0-9a-f]+)_seed(\d+)_tau(\d+).json', name)
             if match:
                 params = {
-                    'hash': str(match.group(1)),
-                    'seed': int(match.group(2)),
-                    'tau': int(match.group(3)),
+                    'tau': int(match.group(1)),
+                    'hash': str(match.group(2)),
+                    'seed': int(match.group(3)),
                 }
         elif subdir == 'queue':
             match = re.search(
-                r'task_([0-9a-f]+)_seed(\d+)_tau(\d+).json', name
+                r'task_tau(\d+)_([0-9a-f]+)_seed(\d+).json', name
             )
             if match:
                 params = {
-                    'hash': str(match.group(1)),
-                    'seed': int(match.group(2)),
-                    'tau': int(match.group(3)),
+                    'tau': int(match.group(1)),
+                    'hash': str(match.group(2)),
+                    'seed': int(match.group(3)),
                 }
         return params
 
