@@ -16,6 +16,6 @@ date
 module purge
 module load python/3.8
 source venv/bin/activate
-python3 run_statmech.py "temp/statmech/test_$SLURM_ARRAY_TASK_ID"
+python3 scripts/run_statmech.py "temp/statmech/test_$SLURM_ARRAY_TASK_ID"
 
 date
