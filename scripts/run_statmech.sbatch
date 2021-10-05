@@ -6,7 +6,7 @@
 #SBATCH --job-name=stat_mech-array
 #SBATCH --array=1-3
 #SBATCH -p defq
-#SBATCH --output=/home/ehuang1/bn3d/sbatch/out/%j.out
+#SBATCH --output=/home/ehuang1/bn3d/slurm/out/statmech/%j.out
 set -euxo pipefail
 
 pwd
