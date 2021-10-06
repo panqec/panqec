@@ -212,6 +212,13 @@ mechanics models which have a correspondence with quantum error correcting
 codes on lattices.
 They are implemented in an object-oriented manner.
 
+The main annoyance with running things on clusters is that things get killed
+and we have to start over again.
+It takes a long time for MC chains to equilibrate.
+Hence, there should be a way to save chains when then equilibrate and run them
+later to get finer data.
+Analysis should be aggregated at the end.
+
 # Run the 3D GUI
 To run the 3D GUI, after you have activated the environment, run
 ```

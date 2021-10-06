@@ -18,10 +18,28 @@
 
 ### Finite-size scaling
 - [x] implement it
+- [ ] Fit $D L^(1/\mu)$ term for finite-size scaling
+- [ ] Minimal example of how to use
 
 ### Stat mech
-- [ ] `SpinModel` class
-    - [ ] `energy_diff`
-- [ ] `Observable` class
-- [ ] `MCSampler` class
-- [ ] Convergence test - 3 error bars per tau window
+- [x] `SpinModel` class
+    - [x] `energy_diff`
+- [x] `Observable` class
+- [x] `Controller` class
+- [x] Convergence test - 3 error bars per tau window
+- [ ] Be able to save and load existing MC chains
+- [ ] zip compression of json files managed by DataManager
+- [ ] Parallelize running for Controller
+- [ ] Wilson loop observable
+- [ ] Error bars for correlation length
+- [ ] CLI command to generate and run
+- [ ] Separate results viewer notebook/web app
+- [ ] Z2GaugeModel2D
+- [ ] Z2GaugeModel3D
+- [ ] Julia wrapper
+- [ ] Optional C++ extension
+- [ ] Script for array jobs on slurm
+- [ ] Figures in inkscape
+- [ ] p = 0 case
+- [ ] p > 0 case
+- [ ] finite bias case
