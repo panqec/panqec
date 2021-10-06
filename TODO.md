@@ -30,7 +30,7 @@
 - [x] Be able to save and load existing MC chains
 - [x] Fix slowness by avoiding reading all files
 - [x] Compute time estimation
-- [ ] Parallelize running for Controller
+- [ ] Parallelize running for Controller (queue is unnecessary!)
 - [ ] Wilson loop observable
 - [x] Error bars for correlation length
 - [ ] CLI command to generate and run

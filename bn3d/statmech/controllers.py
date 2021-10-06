@@ -32,6 +32,7 @@ class DataManager:
     UNTITLED: str = 'Untitled.json'
     data_dir: str = ''
     subdirs: Dict[str, str] = {}
+    _queue_order: list = []
 
     def __init__(self, data_dir: str):
         self.data_dir = data_dir
@@ -45,6 +46,48 @@ class DataManager:
         for name in subdir_names:
             self.subdirs[name] = os.path.join(self.data_dir, name)
             os.makedirs(self.subdirs[name], exist_ok=True)
+
+    def is_empty(self, subdir: str) -> bool:
+        """Returns True if subdir is empty."""
+        if any(os.scandir(self.subdirs[subdir])):
+            return False
+        else:
+            return True
+
+    def pop_next(self, subdir: str) -> Optional[Dict[str, Any]]:
+        """Get and remove the next entry, None if empty."""
+        if self.is_empty(subdir):
+            return None
+        else:
+
+            # Make use of the cached queue.
+            if subdir == 'queue':
+
+                # Keep looking through cached file list until a file that
+                # exists is found.
+                file_path = ''
+                while not os.path.isfile(file_path):
+                    try:
+                        file_path = self._queue_order.pop(0)
+
+                    # No files left to pop.
+                    except IndexError:
+                        return None
+
+                if file_path == '':
+                    return None
+            else:
+                # File iterator object to get next file.
+                files = os.scandir(self.subdirs[subdir])
+                file_path = next(files).path
+
+            # Open and load the file contents.
+            with open(file_path) as f:
+                entry = json.load(f)
+
+            # Delete the file.
+            os.remove(file_path)
+            return entry
 
     def load(self, subdir: str, filters: Dict[str, Any] = {}) -> List[dict]:
         """Load saved data into list of dicts with optional filter."""
@@ -107,7 +150,7 @@ class DataManager:
                     'hash': str(match.group(1)),
                 }
         elif subdir == 'runs':
-            match = re.search(r'run_([0-9a-f]+)_seed(\d+)_tau(\d+).json', name)
+            match = re.search(r'run_tau(\d+)_([0-9a-f]+)_seed(\d+).json', name)
             if match:
                 params = {
                     'tau': int(match.group(1)),
@@ -141,6 +184,9 @@ class DataManager:
         else:
             entries = [data]
 
+        if subdir == 'queue':
+            self._queue_order = []
+
         for entry in entries:
 
             # Add hash to input disorder object if it doesn't have one.
@@ -151,6 +197,9 @@ class DataManager:
             file_path = self.get_path(subdir, entry)
             with open(file_path, 'w') as f:
                 json.dump(entry, f, sort_keys=True, indent=2)
+
+            if subdir == 'queue':
+                self._queue_order.append(file_path)
 
     def filter_files(self, subdir: str, filters: Dict[str, Any]) -> List[str]:
         """Get list of file paths matching filter criterion."""
@@ -199,9 +248,6 @@ class SimpleController:
     """Simple controller for running many chains."""
 
     uuid: str = ''
-    hashes: List[str] = []
-    models: List[SpinModel] = []
-    results: List[dict] = []
     data_dir: str = ''
     subdirs: Dict[str, str] = {}
     data_manager: DataManager
@@ -209,43 +255,54 @@ class SimpleController:
     def __init__(self, data_dir: str):
         self.uuid = uuid.uuid4().hex
         self.data_manager = DataManager(data_dir)
-        self.hashes = []
-        self.models = []
 
-        inputs = self.data_manager.load('inputs')
-        self.init_models(inputs)
+    def make_queue(self, inputs: list, max_tau: int):
+        """Create tasks for each input."""
+        seed = 0
+        for tau in range(max_tau + 1):
+            for entry in inputs:
+                input_hash = hash_json(entry)
+                self.data_manager.save('queue', {
+                    'hash': input_hash,
+                    'seed': seed,
+                    'tau': tau,
+                })
 
-    def run_models(self, tau: int):
-        """Run models for 2^(tau - 1) sweeps."""
-        for model in self.models:
-            model.sample(2**(tau - 1))
-
-    def init_models(self, inputs: list):
-        """Instantiate SpinModel objects for each input."""
-        self.data_manager.save('inputs', inputs)
-        for entry in inputs:
-            spin_model_class = SPIN_MODELS[entry['spin_model']]
-            if isinstance(entry['spin_model_params'], dict):
-                model = spin_model_class(**entry['spin_model_params'])
-            else:
-                model = spin_model_class(*entry['spin_model_params'])
-            model.init_disorder(np.array(entry['disorder']))
-            model.temperature = entry['temperature']
-            self.hashes.append(entry['hash'])
-            self.models.append(model)
+    def new_model(self, entry: dict) -> SpinModel:
+        """Instantiate model given input dict."""
+        spin_model_class = SPIN_MODELS[entry['spin_model']]
+        if isinstance(entry['spin_model_params'], dict):
+            model = spin_model_class(**entry['spin_model_params'])
+        else:
+            model = spin_model_class(*entry['spin_model_params'])
+        model.init_disorder(np.array(entry['disorder']))
+        model.temperature = entry['temperature']
+        return model
 
     def single_run(
-        self, model: SpinModel, input_hash: str, seed: int, tau: int
+        self, input_hash: str, seed: int, tau: int,
+        previous_model: Optional[Dict[str, Any]] = None
     ):
         """Single run of MCMC on given spin model.
         """
+
+        # Create a new SpinModel object.
+        input_entry = self.data_manager.load('inputs', {
+            'hash': input_hash,
+        })[0]
+        model = self.new_model(input_entry)
+
+        # Load the previous model state from json if given.
+        if previous_model is not None:
+            model.load_json(previous_model)
+
+        # Prepare data structures for storing results.
         results = {
             'hash': input_hash,
             'seed': seed,
             'tau': tau
         }
         observables_results: Dict[str, dict] = dict()
-        n_sweeps = 2**tau
         for observable in model.observables:
             observable.reset()
 
@@ -262,8 +319,10 @@ class SimpleController:
         self.data_manager.save('runs', run_data)
 
         # Do the MCMC sampling and obtain sweep stats.
+        n_sweeps = 2**tau
         results['sweep_stats'] = model.sample(n_sweeps)
 
+        # Store results in memory.
         results['spins'] = model.spins.tolist()
         for observable in model.observables:
             observables_results[observable.label] = (
@@ -278,7 +337,7 @@ class SimpleController:
         results['model'] = model_hash
         self.data_manager.save('models', model_json)
 
-        # Save the results.
+        # Save the results to disk.
         self.data_manager.save('results', results)
 
         # Remove the run record in the runs folder so others know
@@ -289,62 +348,75 @@ class SimpleController:
             'tau': tau
         })
 
-    def run(self, max_tau, progress=None):
-        """Run all models up to given tau."""
+    def run(self, progress=None):
+        """Run all models up until there are none left to run."""
         if progress is None:
             def progress(x):
                 return x
         seed = 0
 
-        for tau in range(max_tau + 1):
-            iterates = list(zip(self.hashes, self.models))
-            for input_hash, model in progress(iterates):
+        while not self.data_manager.is_empty('queue'):
 
-                # Find existing models and results before running.
-                existing_results = self.data_manager.load('results', {
-                    'hash': input_hash,
-                    'seed': seed,
-                    'tau': tau,
-                })
+            # Get and remove the next task in the queue.
+            task = self.data_manager.pop_next('queue')
+            tau = task['tau']
+            seed = task['seed']
+            input_hash = task['hash']
 
-                # Only proceed if there are no existing results.
-                if len(existing_results) == 0:
+            # Find existing models and results before running.
+            existing_results = self.data_manager.load('results', {
+                'hash': input_hash,
+                'seed': seed,
+                'tau': tau,
+            })
 
-                    # Whether the run for the previous tau has been done.
-                    last_run_done = False
+            # Only proceed if there are no existing results.
+            if len(existing_results) == 0:
 
-                    # Load the model state from the last tau if available.
-                    if tau > 0:
-                        previous_results = self.data_manager.load('results', {
+                # Whether the run for the previous tau has been done
+                # or tau == 0, in which case it still counts as done.
+                last_run_done = False
+
+                # Load the model state from the last tau if available.
+                previous_model = None
+                if tau == 0:
+                    last_run_done = True
+                else:
+                    previous_results = self.data_manager.load('results', {
+                        'hash': input_hash,
+                        'seed': seed,
+                        'tau': tau - 1,
+                    })
+                    if previous_results:
+                        last_run = previous_results[0]
+                        last_model_hash = last_run['model']
+                        previous_model = self.data_manager.load('models', {
+                            'hash': last_model_hash,
+                        })[0]
+                        last_run_done = True
+
+                # Only proceed if run for previous tau complete or is the
+                # first run.
+                if last_run_done:
+
+                    # Perform a single run.
+                    self.single_run(
+                        input_hash, seed, tau, previous_model=previous_model
+                    )
+
+                else:
+
+                    # Return it back into the queue if last done was not done,
+                    # because we cannot proceed.
+                    # Perhaps later on it will be ready.
+                    self.data_manager.save('queue', task)
+                    print('Missing file {}'.format(
+                        self.data_manager.get_name('results', {
                             'hash': input_hash,
                             'seed': seed,
-                            'tau': tau - 1,
-                        })
-                        if previous_results:
-                            last_run = previous_results[0]
-                            model_hash = last_run['model']
-                            model_json = self.data_manager.load('models', {
-                                'hash': model_hash,
-                            })[0]
-                            model.load_json(model_json)
-                            last_run_done = True
-
-                    # Only proceed if run for previous tau complete or is the
-                    # first run.
-                    if last_run_done or tau == 0:
-
-                        # Perform a single run.
-                        self.single_run(model, input_hash, seed, tau)
-
-                    else:
-
-                        print('Missing file {}'.format(
-                            self.data_manager.get_name('results', {
-                                'hash': input_hash,
-                                'seed': seed,
-                                'tau': tau - 1
-                            })[0]
-                        ))
+                            'tau': tau - 1
+                        })[0]
+                    ))
 
     def get_summary(self) -> List[dict]:
         """Get list of all results."""
