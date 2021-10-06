@@ -32,7 +32,6 @@ class DataManager:
     UNTITLED: str = 'Untitled.json'
     data_dir: str = ''
     subdirs: Dict[str, str] = {}
-    _queue_order: list = []
 
     def __init__(self, data_dir: str):
         self.data_dir = data_dir
@@ -42,7 +41,7 @@ class DataManager:
         """Make subdirectories if they don't exist."""
         self.subdirs = dict()
         os.makedirs(self.data_dir, exist_ok=True)
-        subdir_names = ['inputs', 'results', 'models', 'queue', 'runs']
+        subdir_names = ['inputs', 'results', 'models', 'runs']
         for name in subdir_names:
             self.subdirs[name] = os.path.join(self.data_dir, name)
             os.makedirs(self.subdirs[name], exist_ok=True)
@@ -53,41 +52,6 @@ class DataManager:
             return False
         else:
             return True
-
-    def pop_next(self, subdir: str) -> Optional[Dict[str, Any]]:
-        """Get and remove the next entry, None if empty."""
-        if self.is_empty(subdir):
-            return None
-        else:
-
-            # Make use of the cached queue.
-            if subdir == 'queue':
-
-                # Keep looking through cached file list until a file that
-                # exists is found.
-                file_path = ''
-                while not os.path.isfile(file_path):
-                    try:
-                        file_path = self._queue_order.pop(0)
-
-                    # No files left to pop.
-                    except IndexError:
-                        return None
-
-                if file_path == '':
-                    return None
-            else:
-                # File iterator object to get next file.
-                files = os.scandir(self.subdirs[subdir])
-                file_path = next(files).path
-
-            # Open and load the file contents.
-            with open(file_path) as f:
-                entry = json.load(f)
-
-            # Delete the file.
-            os.remove(file_path)
-            return entry
 
     def load(self, subdir: str, filters: Dict[str, Any] = {}) -> List[dict]:
         """Load saved data into list of dicts with optional filter."""
@@ -118,10 +82,6 @@ class DataManager:
         elif subdir == 'runs':
             name = 'results_tau{}_{}_seed{}.json'.format(
                 data['tau'], data['hash'], data['seed']
-            )
-        elif subdir == 'queue':
-            name = 'queue_tau{}_{}_seed{}.json'.format(
-                data['hash'], data['seed'], data['tau']
             )
         return name
 
@@ -157,16 +117,6 @@ class DataManager:
                     'hash': str(match.group(2)),
                     'seed': int(match.group(3)),
                 }
-        elif subdir == 'queue':
-            match = re.search(
-                r'task_tau(\d+)_([0-9a-f]+)_seed(\d+).json', name
-            )
-            if match:
-                params = {
-                    'tau': int(match.group(1)),
-                    'hash': str(match.group(2)),
-                    'seed': int(match.group(3)),
-                }
         return params
 
     def get_path(self, subdir: str, data: dict) -> str:
@@ -184,9 +134,6 @@ class DataManager:
         else:
             entries = [data]
 
-        if subdir == 'queue':
-            self._queue_order = []
-
         for entry in entries:
 
             # Add hash to input disorder object if it doesn't have one.
@@ -197,9 +144,6 @@ class DataManager:
             file_path = self.get_path(subdir, entry)
             with open(file_path, 'w') as f:
                 json.dump(entry, f, sort_keys=True, indent=2)
-
-            if subdir == 'queue':
-                self._queue_order.append(file_path)
 
     def filter_files(self, subdir: str, filters: Dict[str, Any]) -> List[str]:
         """Get list of file paths matching filter criterion."""
@@ -255,18 +199,6 @@ class SimpleController:
     def __init__(self, data_dir: str):
         self.uuid = uuid.uuid4().hex
         self.data_manager = DataManager(data_dir)
-
-    def make_queue(self, inputs: list, max_tau: int):
-        """Create tasks for each input."""
-        seed = 0
-        for tau in range(max_tau + 1):
-            for entry in inputs:
-                input_hash = hash_json(entry)
-                self.data_manager.save('queue', {
-                    'hash': input_hash,
-                    'seed': seed,
-                    'tau': tau,
-                })
 
     def new_model(self, entry: dict) -> SpinModel:
         """Instantiate model given input dict."""
@@ -348,17 +280,30 @@ class SimpleController:
             'tau': tau
         })
 
-    def run(self, progress=None):
+    def run(self, max_tau: int, progress=None):
         """Run all models up until there are none left to run."""
         if progress is None:
             def progress(x):
                 return x
         seed = 0
 
-        while not self.data_manager.is_empty('queue'):
+        # Load all the inputs and runs.
+        all_inputs = self.data_manager.load('inputs')
 
-            # Get and remove the next task in the queue.
-            task = self.data_manager.pop_next('queue')
+        # Create a task queue.
+        remaining_tasks = []
+        for tau in range(max_tau + 1):
+            for entry in all_inputs:
+                remaining_tasks.append({
+                    'hash': entry['hash'],
+                    'seed': seed,
+                    'tau': tau,
+                })
+
+        while remaining_tasks:
+
+            # Get and unqueue the first task in the queue.
+            task = remaining_tasks.pop(0)
             tau = task['tau']
             seed = task['seed']
             input_hash = task['hash']
@@ -371,13 +316,13 @@ class SimpleController:
             })
 
             # Only proceed if there are no existing results.
-            if len(existing_results) == 0:
+            if not existing_results:
 
-                # Whether the run for the previous tau has been done
+                # Determine whether run for tau - 1 completed
                 # or tau == 0, in which case it still counts as done.
                 last_run_done = False
 
-                # Load the model state from the last tau if available.
+                # Also load the model state from the last tau if available.
                 previous_model = None
                 if tau == 0:
                     last_run_done = True
@@ -395,30 +340,32 @@ class SimpleController:
                         })[0]
                         last_run_done = True
 
-                # Only proceed if run for previous tau complete or is the
-                # first run.
+                # Only proceed if run for previous tau completed or
+                # if current run is the first (tau = 0)
                 if last_run_done:
 
-                    # Perform a single run.
-                    self.single_run(
-                        input_hash, seed, tau, previous_model=previous_model
-                    )
+                    # Check if run is currently running already by another
+                    # process.
+                    currently_running = bool(self.data_manager.load('runs', {
+                        'hash': input_hash,
+                        'seed': seed,
+                        'tau': tau,
+                    }))
 
+                    # Perform a single run currently running elsewhere.
+                    if not currently_running:
+                        self.single_run(
+                            input_hash, seed, tau,
+                            previous_model=previous_model
+                        )
+
+                # If last run is not done yet,
+                # perhaps later on it will be ready,
+                # so let's kick it to the end the queue.
                 else:
+                    remaining_tasks.append(task)
 
-                    # Return it back into the queue if last done was not done,
-                    # because we cannot proceed.
-                    # Perhaps later on it will be ready.
-                    self.data_manager.save('queue', task)
-                    print('Missing file {}'.format(
-                        self.data_manager.get_name('results', {
-                            'hash': input_hash,
-                            'seed': seed,
-                            'tau': tau - 1
-                        })[0]
-                    ))
-
-    def get_summary(self) -> List[dict]:
+    def get_results(self) -> List[dict]:
         """Get list of all results."""
         summary = self.data_manager.load('results')
         return summary

@@ -24,9 +24,9 @@ class TestSimpleController:
 
     def test_integration(self, controller, inputs):
         max_tau = 5
-        controller.make_queue(inputs, max_tau=max_tau)
+        controller.data_manager.save('inputs', inputs)
         controller.run(max_tau)
-        summary = controller.get_summary()
+        summary = controller.get_results()
         assert len(summary) == len(inputs)*(max_tau + 1)
 
 
