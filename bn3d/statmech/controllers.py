@@ -193,8 +193,6 @@ class SimpleController:
     """
 
     uuid: str = ''
-    data_dir: str = ''
-    subdirs: Dict[str, str] = {}
     data_manager: DataManager
 
     def __init__(self, data_dir: str):
@@ -272,19 +270,31 @@ class SimpleController:
         results['model'] = model_hash
         self.data_manager.save('models', model_json)
 
-        # Save the results to disk.
-        self.data_manager.save('results', results)
-
         # Remove the run record in the runs folder so others know
         # the run has been completed.
-        self.data_manager.remove('runs', {
-            'hash': input_hash,
-            'seed': seed,
-            'tau': tau
-        })
+        try:
+            self.data_manager.remove('runs', {
+                'hash': input_hash,
+                'seed': seed,
+                'tau': tau
+            })
 
-    def run(self, max_tau: int, progress=None):
+            # Save the results to disk.
+            if not self.data_manager.load('results', results):
+                self.data_manager.save('results', results)
+
+        except FileNotFoundError:
+            print('Too late!')
+
+    def run(self, max_tau: Optional[int] = None, progress=None):
         """Run all models up until there are none left to run."""
+        max_tau_map = None
+        if max_tau is None:
+            info_json = os.path.join(self.data_manager.data_dir, 'info.json')
+            with open(info_json) as f:
+                max_tau_map = json.load(f)['max_tau']
+            max_tau = max(max_tau_map.values())
+
         if progress is None:
             def progress(x):
                 return x
@@ -297,11 +307,15 @@ class SimpleController:
         remaining_tasks = []
         for tau in range(max_tau + 1):
             for entry in all_inputs:
-                remaining_tasks.append({
+                task = {
                     'hash': entry['hash'],
                     'seed': seed,
                     'tau': tau,
-                })
+                }
+                if max_tau_map is None:
+                    remaining_tasks.append(task)
+                elif tau <= max_tau:
+                    remaining_tasks.append(task)
 
         while remaining_tasks:
 

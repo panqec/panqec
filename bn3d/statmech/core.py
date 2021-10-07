@@ -1,16 +1,20 @@
 import os
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 import json
 from itertools import product
 from pprint import pprint
 import numpy as np
-from .controllers import DataManager
+from .controllers import DataManager, SimpleController
 from .config import DISORDER_MODELS
+from ..utils import hash_json
 
 
-def generate_input_entries(ranges) -> List[Dict[str, Any]]:
+def generate_input_entries(
+    ranges: List[Dict[str, Any]]
+) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
     """Generate inputs and disorders from range spec"""
     entries = []
+    max_tau_dict = dict()
     for spec in ranges:
         iterates = product(
             spec['spin_model_params'], spec['disorder_params']
@@ -33,10 +37,11 @@ def generate_input_entries(ranges) -> List[Dict[str, Any]]:
                         'disorder': disorder.tolist()
                     }
                     entries.append(entry)
-    return entries
+                    max_tau_dict[hash_json(entry)] = spec['max_tau']
+    return entries, max_tau_dict
 
 
-def generate_inputs(data_dir):
+def generate_inputs(data_dir: str):
     """Generate inputs using the targets.json file."""
     targets_json = os.path.join(data_dir, 'targets.json')
     with open(targets_json) as f:
@@ -45,10 +50,18 @@ def generate_inputs(data_dir):
     print(f'Generating inputs and disorder configs from {targets_json}')
     pprint(targets)
 
-    inputs = generate_input_entries(targets['ranges'])
+    inputs, max_tau_dict = generate_input_entries(targets['ranges'])
     data_manager = DataManager(data_dir)
     data_manager.save('inputs', inputs)
 
+    info_json = {
+        'max_tau': max_tau_dict,
+    }
+    with open(os.path.join(data_dir, 'info.json'), 'w') as f:
+        json.dump(info_json, f)
+
 
 def start_sampling(data_dir):
-    print(f'Starting to sample up to in {data_dir}')
+    print(f'Starting to sample up in {data_dir}')
+    controller = SimpleController(data_dir)
+    controller.run()

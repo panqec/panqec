@@ -2,6 +2,7 @@ from multiprocessing import Pool, cpu_count
 import click
 from .controllers import DataManager
 from .core import start_sampling, generate_inputs
+from .config import SPIN_MODELS, DISORDER_MODELS
 
 
 @click.group(invoke_without_command=True)
@@ -47,6 +48,12 @@ def generate(data_dir):
 @click.command()
 def models():
     """List available models."""
+    print('Spin models')
+    for spin_model in SPIN_MODELS:
+        print(f'  {spin_model}')
+    print('Disorder models')
+    for disorder_model in DISORDER_MODELS:
+        print(f'  {disorder_model}')
 
 
 statmech.add_command(status)

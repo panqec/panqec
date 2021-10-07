@@ -23,6 +23,7 @@ def test_generate_inputs(data_dir):
     data_manager = DataManager(data_dir)
     inputs = data_manager.load('inputs')
     assert len(inputs) == 1*2*3*4
+    assert os.path.isfile(os.path.join(data_dir, 'info.json'))
 
 
 def test_start_sampling(data_dir):
