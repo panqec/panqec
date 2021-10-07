@@ -5,7 +5,7 @@ import { AbstractCode } from './base.js';
 export {ToricCode3D};
 
 class ToricCode3D extends AbstractCode {
-    constructor(L, Hx, Hz, scene) {
+    constructor(L, Hx, Hz, indices, scene) {
         super(L, Hx, Hz, scene);
 
         this.vertices = [];

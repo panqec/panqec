@@ -5,7 +5,7 @@ import { AbstractCode } from './base.js';
 export {RhombicCode};
 
 class RhombicCode extends AbstractCode {
-    constructor(L, Hx, Hz, scene) {
+    constructor(L, Hx, Hz, indices, scene) {
         super(L, Hx, Hz, scene);
 
         this.cubes = [];
@@ -47,9 +47,6 @@ class RhombicCode extends AbstractCode {
     }
 
     toggleCube(cube, activate) {
-        if (activate) {
-            console.log('Toggle cube')
-        }
         cube.isActivated = activate;
         cube.material.opacity = activate ? this.MAX_OPACITY : this.currentOpacity;
         let color = activate ? this.COLOR.activatedCube : this.COLOR.deactivatedCube;

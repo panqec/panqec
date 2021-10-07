@@ -5,6 +5,8 @@ import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat
 
 import { ToricCode3D } from './codes/toric3d.js';
 import { RhombicCode } from './codes/rhombic.js';
+import { RotatedCode3D } from './codes/rotated3d.js';
+
 
 const MIN_OPACITY = 0.1;
 const MAX_OPACITY = 0.6;
@@ -12,12 +14,12 @@ const MAX_OPACITY = 0.6;
 const params = {
     opacity: MAX_OPACITY,
     errorProbability: 0.1,
-    L: 4,
+    L: 2,
     deformed: false,
-    decoder: 'bp-osd-2',
+    decoder: 'bp-osd',
     max_bp_iter: 10,
     errorModel: 'Depolarizing',
-    codeName: 'rhombic'
+    codeName: 'rotated'
 };
 
 const buttons = {
@@ -49,12 +51,22 @@ function buildScene() {
     scene.background = new THREE.Color(0x444488);
 
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-    camera.position.z = 6;
-    camera.position.y = 3;
-    camera.position.x = 3;
+    let radius = 4;
+    let theta = 3 + 1.4;
+    let phi = Math.PI/2;
+    camera.position.z = radius * Math.cos(theta);
+    camera.position.y = radius * Math.sin(phi) * Math.sin(theta);
+    camera.position.x = radius * Math.cos(phi) * Math.sin(theta);
+    // camera.position.set(6, 3, 3)
+
+    // camera.lookAt(100, 0, 0);
+
+    // camera.rotation.z += Math.PI/4;
+
+    // camera.up = new THREE.Vector3(1, -1, 1);
 
     let dirLight1 = new THREE.DirectionalLight( 0xffffff );
-    dirLight1.position.set( 1, 1, 1 );
+    dirLight1.position.set( radius * Math.cos(theta), radius * Math.sin(phi) * Math.sin(theta), radius * Math.cos(phi) * Math.sin(theta));
     scene.add( dirLight1 );
 
     const dirLight2 = new THREE.DirectionalLight( 0x002288 );
@@ -78,6 +90,8 @@ function buildScene() {
     effect = new OutlineEffect(renderer);
     
     controls = new OrbitControls( camera, renderer.domElement );
+    controls.maxPolarAngle = THREE.Math.degToRad(270);
+
 
     controls.update();
 
@@ -90,13 +104,14 @@ async function buildCode() {
     let stabilizers = await getStabilizerMatrices();
     let Hx = stabilizers['Hx'];
     let Hz = stabilizers['Hz'];
+    let indices = stabilizers['indices'];
     let L = params.L;
 
     let codeClass = {'cubic': ToricCode3D,
-                     'rhombic': RhombicCode}
-                    //  'rotated': RotatedCode3D}
+                     'rhombic': RhombicCode,
+                     'rotated': RotatedCode3D}
 
-    code = new codeClass[params.codeName](L, Hx, Hz, scene);
+    code = new codeClass[params.codeName](L, Hx, Hz, indices, scene);
     code.build();
 }
 
@@ -208,7 +223,7 @@ function onDocumentMouseDown(event) {
         mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 
         raycaster.setFromCamera(mouse, camera);
-        
+                
         intersects = raycaster.intersectObjects(code.qubits);
         if (intersects.length == 0) return;
         

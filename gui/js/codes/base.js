@@ -1,4 +1,4 @@
-export {AbstractCode};
+export {AbstractCode, stringToArray};
 
 class AbstractCode {
     constructor(L, Hx, Hz, scene) {
@@ -13,7 +13,7 @@ class AbstractCode {
         
         this.stabilizers = {'X': [], 'Z': []};
         this.toggleStabFn = {'X': 0, 'Z': 0};
-        this.qubits = [];
+        this.qubits = new Array(Hx[0].length);
     }
 
     updateStabilizers() {
@@ -67,4 +67,8 @@ class AbstractCode {
     
         this.updateStabilizers();
     }
+}
+
+function stringToArray(a) {
+    return a.replace("[", "").replace("]", "").split(", ").map(Number)
 }

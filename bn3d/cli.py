@@ -114,10 +114,8 @@ def generate_input(input_dir, decoder):
                         "ToricCode3D" if code == 'cubic' else "RhombicCode"
                     )
                     code_parameters = [
-                        {"L_x": 4},
-                        {"L_x": 6},
-                        {"L_x": 8},
-                        {"L_x": 10},
+                        {"L_x": L, "L_y": L+1, "L_z": L}
+                        for L in [4, 6, 8, 10]
                     ]
                     code_dict = {
                         "model": code_model,

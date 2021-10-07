@@ -1,7 +1,7 @@
 import numpy as np
 
-from flask import Flask, send_from_directory, request, json, redirect, render_template
-from bn3d.tc3d import ToricCode3D, SweepMatchDecoder
+from flask import Flask, send_from_directory, request, json, render_template
+from bn3d.tc3d import ToricCode3D, RotatedCode3D, SweepMatchDecoder
 from qecsim.models.toric import ToricCode
 from bn3d.rhombic import RhombicCode
 from bn3d.bp_os_decoder import BeliefPropagationOSDDecoder
@@ -54,6 +54,8 @@ def send_stabilizer_matrix():
     L = request.json['L']
     code_name = request.json['code_name']
 
+    indices = {}
+
     if code_name == 'toric2d':
         code = ToricCode(L, L)
 
@@ -88,9 +90,26 @@ def send_stabilizer_matrix():
         Hz = code.stabilizers[:n_cubes, :n_qubits]
         Hx = code.stabilizers[n_cubes:, n_qubits:]
 
-    return json.dumps({'Hx': Hx.tolist(), 'Hz': Hz.tolist(),
-                       'logical_xs': code.logical_xs[:, :n_qubits].tolist(),
-                       'logical_zs': code.logical_zs[:, n_qubits:].tolist()})
+    elif code_name == 'rotated':
+        code = RotatedCode3D(L, L, L)
+
+        Hz = code.Hz
+        Hx = code.Hx
+
+        qubit_index = code.qubit_index
+        qubit_index = {str(list(coord)): i for coord, i in qubit_index.items()}
+
+        vertex_index = code.vertex_index
+        vertex_index = {str(list(coord)): i for coord, i in vertex_index.items()}
+
+        face_index = code.face_index
+        face_index = {str(list(coord)): i for coord, i in face_index.items()}
+
+        indices = {'qubit': qubit_index, 'vertex': vertex_index, 'face': face_index}
+
+    return json.dumps({'Hx': Hx.tolist(),
+                       'Hz': Hz.tolist(),
+                       'indices': indices})
 
 
 @app.route('/decode', methods=['POST'])
@@ -111,6 +130,8 @@ def send_correction():
         code = ToricCode3D(L, L, L)
     elif code_name == 'rhombic':
         code = RhombicCode(L, L, L)
+    elif code_name == 'rotated':
+        code = RotatedCode3D(L, L, L)
     else:
         raise ValueError('Code not recognized')
 

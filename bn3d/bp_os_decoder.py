@@ -230,7 +230,7 @@ class BeliefPropagationOSDDecoder(Decoder):
 
         self._x_decoder = dict()
         self._z_decoder = dict()
-
+        
     def get_probabilities(
         self, code: StabilizerCode
     ) -> Tuple[np.ndarray, np.ndarray]:
