@@ -189,7 +189,8 @@ class DataManager:
 
 
 class SimpleController:
-    """Simple controller for running many chains."""
+    """Simple controller for running many chains.
+    """
 
     uuid: str = ''
     data_dir: str = ''
@@ -239,7 +240,8 @@ class SimpleController:
             observable.reset()
 
         # Data to save in runs folder to let everyone else know
-        # that this controller is about to start running a sample.
+        # that this controller is about to start running a sample
+        # and no one else should attempt this.
         run_data = {
             'hash': input_hash,
             'seed': seed,
@@ -352,7 +354,7 @@ class SimpleController:
                         'tau': tau,
                     }))
 
-                    # Perform a single run currently running elsewhere.
+                    # Perform a single run if not currently running elsewhere.
                     if not currently_running:
                         self.single_run(
                             input_hash, seed, tau,

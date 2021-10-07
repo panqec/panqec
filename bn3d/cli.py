@@ -14,6 +14,7 @@ from .slurm import (
 from bn3d.plots._hashing_bound import (
     generate_points_triangle
 )
+from .statmech.cli import statmech
 
 
 @click.group(invoke_without_command=True)
@@ -236,3 +237,4 @@ cli.add_command(run)
 cli.add_command(ls)
 cli.add_command(slurm)
 cli.add_command(generate_input)
+cli.add_command(statmech)
