@@ -1,5 +1,7 @@
+from multiprocessing import Pool, cpu_count
 import click
 from .controllers import DataManager
+from .core import start_sampling, generate_inputs
 
 
 @click.group(invoke_without_command=True)
@@ -23,14 +25,23 @@ def status(data_dir):
 
 @click.command()
 @click.argument('data_dir', required=True)
-def sample(data_dir, max_tau):
+def sample(data_dir):
     """Perform MCMC runs.."""
+    n_workers = cpu_count()
+    arguments = [
+        data_dir
+        for i_worker in range(n_workers)
+    ]
+    print(f'Sampling over {n_workers} CPUs')
+    with Pool() as pool:
+        pool.map(start_sampling, arguments)
 
 
 @click.command()
 @click.argument('data_dir', required=True)
 def generate(data_dir):
     """Generate inputs for MCMC."""
+    generate_inputs(data_dir)
 
 
 @click.command()

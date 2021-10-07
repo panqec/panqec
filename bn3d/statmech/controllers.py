@@ -224,6 +224,7 @@ class SimpleController:
             'hash': input_hash,
         })[0]
         model = self.new_model(input_entry)
+        model.seed_rng(seed)
 
         # Load the previous model state from json if given.
         if previous_model is not None:

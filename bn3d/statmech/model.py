@@ -85,6 +85,9 @@ class SpinModel(metaclass=ABCMeta):
     def rng(self) -> np.random.Generator:
         """Random number generator."""
 
+    def seed_rng(self, seed):
+        self.rng = np.random.default_rng(seed)
+
     @property
     @abstractmethod
     def observables(self) -> List:
