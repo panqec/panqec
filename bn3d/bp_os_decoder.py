@@ -234,6 +234,7 @@ class BeliefPropagationOSDDecoder(Decoder):
     def get_probabilities(
         self, code: StabilizerCode
     ) -> Tuple[np.ndarray, np.ndarray]:
+        
         r_x, r_y, r_z = self._error_model.direction
         p_X, p_Y, p_Z = np.array([r_x, r_y, r_z])*self._probability
 

@@ -14,11 +14,11 @@ const MAX_OPACITY = 0.6;
 const params = {
     opacity: MAX_OPACITY,
     errorProbability: 0.1,
-    L: 2,
-    deformed: false,
+    L: 3,
+    deformed: true,
     decoder: 'bp-osd',
     max_bp_iter: 10,
-    errorModel: 'Depolarizing',
+    errorModel: 'Pure Z',
     codeName: 'rotated'
 };
 

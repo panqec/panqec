@@ -177,6 +177,30 @@ class Rotated3DPauli:
         """
         return self._code
 
+    def operator(self, coord):
+        """
+        Returns the operator on the site identified by the coordinates.
+        Notes:
+        * coord is in the format (x, y, z).
+        :param coord: Coordinate identifying a site in the format (x, y, z).
+        :type  coord: 3-tuple of int
+        :return: Pauli operator. One of 'I', 'X', 'Y', 'Z'.
+        :rtype: str
+        """
+        # extract binary x and z
+        index = self.code.qubit_index[coord]
+        x = self._xs[index]
+        z = self._zs[index]
+        # return Pauli
+        if x == 1 and z == 1:
+            return 'Y'
+        if x == 1:
+            return 'X'
+        if z == 1:
+            return 'Z'
+        else:
+            return 'I'
+
     def copy(self):
         """
         Returns a copy of this Pauli that references the same code but is backed by a copy of the bsf.

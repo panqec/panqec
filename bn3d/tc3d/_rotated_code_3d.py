@@ -55,7 +55,7 @@ class RotatedCode3D(StabilizerCode):
 
     @property
     def label(self) -> str:
-        return 'Rotated Toric {}x{}x{}'.format(*self.size)
+        return 'Rotated {}x{}x{}'.format(*self.size)
 
     @property
     def stabilizers(self) -> np.ndarray:

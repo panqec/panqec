@@ -197,41 +197,5 @@ class RotatedCode3D extends AbstractCode {
             let [x, y, z] = stringToArray(coord)
             this.buildFace(x, y, z)
         }
-
-        // Horizontal qubits
-        // for(let x=1; x < 4*this.L; x+=2) {
-        //     for(let y=1; y < 4*this.L; y+=2) {
-        //         for(let z=1; z < 2*this.L; z+=2) {
-        //             this.buildEdge(x, y, z);
-        //         }
-        //     }
-        // }
-        // for(let x=2; x < 4*this.L; x+=2) {
-        //     for(let y=0; y < 4*this.L+1; y+=2) {
-        //         for(let z=2; z < 2*this.L; z+=2) {
-        //             if ((x + y) % 4 == 2) {
-        //                 this.buildEdge(x, y, z);
-        //             }
-        //         }
-        //     }
-        // }
-        // for(let x=0; x < 2*this.L; x++) {
-        //     for(let y=1; y < 2*this.L; y+=2) {
-        //         for(let z=0; z < 2*this.L+1; z++) {
-        //             if (!(z > this.L && x == 2*this.L - 2)) {
-        //                 this.buildEdge(x, y, z);
-        //             }
-        //         }
-        //     }
-        // }
-        // for(let x=0; x < 2*this.L; x++) {
-        //     for(let y=0; y < 2*this.L; y++) {
-        //         for(let z=0; z < 2*this.L+1; z++) {
-        //             if (!(z > this.L && x == 2*this.L - 2)) {
-        //                 this.buildVertex(x, y, z);
-        //             }
-        //         }
-        //     }
-        // }
     }
 }

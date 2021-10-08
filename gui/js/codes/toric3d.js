@@ -1,6 +1,6 @@
 import * as THREE from 'https://cdn.skypack.dev/three@v0.130.1';
 
-import { AbstractCode } from './base.js';
+import { AbstractCode, stringToArray } from './base.js';
 
 export {ToricCode3D};
 
@@ -10,6 +10,10 @@ class ToricCode3D extends AbstractCode {
 
         this.vertices = [];
         this.faces = [];
+
+        this.qubitIndex = indices['qubit'];
+        this.vertexIndex = indices['vertex'];
+        this.faceIndex = indices['face'];
 
         this.stabilizers['X'] = this.vertices;
         this.stabilizers['Z'] = this.faces;
@@ -28,21 +32,18 @@ class ToricCode3D extends AbstractCode {
     }
 
     getIndexQubit(axis, x, y, z) {
-        let L = this.L;
-
-        return axis*L**3 + x*L**2 + y*L + z;
+        let key = `[${axis}, ${x}, ${y}, ${z}]`;
+        return this.qubitIndex[key];
     }
 
     getIndexFace(axis, x, y, z) {
-        let L = this.L;
-    
-        return axis*L**3 + x*L**2 + y*L + z;
+        let key = `[${axis}, ${x}, ${y}, ${z}]`;
+        return this.faceIndex[key];
     }
  
     getIndexVertex(x, y, z) {
-        let L = this.L;
-    
-        return x*L**2 + y*L + z;
+        let key = `[${x}, ${y}, ${z}]`;
+        return this.vertexIndex[key];
     }
 
     toggleVertex(vertex, activate) {
@@ -166,16 +167,17 @@ class ToricCode3D extends AbstractCode {
     }
 
     build() {
-        for(let x=0; x < this.L; x++) {
-            for(let y=0; y < this.L; y++) {
-                for(let z=0; z < this.L; z++) {
-                    for (let axis=0; axis < 3; axis++) {
-                        this.buildEdge(axis, x, y, z);
-                        this.buildFace(axis, x, y, z);
-                    }
-                    this.buildVertex(x, y, z);
-                }
-            }
+        for (const [coord, index] of Object.entries(this.qubitIndex)) {
+            let [axis, x, y, z] = stringToArray(coord)
+            this.buildEdge(axis, x, y, z)
+        }
+        for (const [coord, index] of Object.entries(this.vertexIndex)) {
+            let [x, y, z] = stringToArray(coord)
+            this.buildVertex(x, y, z)
+        }
+        for (const [coord, index] of Object.entries(this.faceIndex)) {
+            let [axis, x, y, z] = stringToArray(coord)
+            this.buildFace(axis, x, y, z)
         }
     }
 }

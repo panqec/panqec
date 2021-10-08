@@ -6,7 +6,7 @@ from qecsim.models.toric import ToricCode
 from bn3d.rhombic import RhombicCode
 from bn3d.bp_os_decoder import BeliefPropagationOSDDecoder
 from bn3d.noise import PauliErrorModel
-from bn3d.deform import DeformedPauliErrorModel, DeformedSweepMatchDecoder
+from bn3d.deform import DeformedPauliErrorModel, DeformedRotatedPauliErrorModel, DeformedSweepMatchDecoder
 
 import webbrowser
 from threading import Timer
@@ -77,6 +77,17 @@ def send_stabilizer_matrix():
 
         Hz = code.stabilizers[:n_faces, :n_qubits]
         Hx = code.stabilizers[n_faces:, n_qubits:]
+        
+        qubit_index = code.qubit_index
+        qubit_index = {str(list(coord)): i for coord, i in qubit_index.items()}
+
+        vertex_index = code.vertex_index
+        vertex_index = {str(list(coord)): i for coord, i in vertex_index.items()}
+
+        face_index = code.face_index
+        face_index = {str(list(coord)): i for coord, i in face_index.items()}
+
+        indices = {'qubit': qubit_index, 'vertex': vertex_index, 'face': face_index}
 
     elif code_name == 'rhombic':
         code = RhombicCode(L, L, L)
@@ -89,6 +100,17 @@ def send_stabilizer_matrix():
 
         Hz = code.stabilizers[:n_cubes, :n_qubits]
         Hx = code.stabilizers[n_cubes:, n_qubits:]
+        
+        qubit_index = code.qubit_index
+        qubit_index = {str(list(coord)): i for coord, i in qubit_index.items()}
+
+        triangle_index = code.triangle_index
+        triangle_index = {str(list(coord)): i for coord, i in triangle_index.items()}
+
+        cube_index = code.cube_index
+        cube_index = {str(list(coord)): i for coord, i in cube_index.items()}
+
+        indices = {'qubit': qubit_index, 'triangle': triangle_index, 'cube': cube_index}
 
     elif code_name == 'rotated':
         code = RotatedCode3D(L, L, L)
@@ -191,6 +213,8 @@ def send_random_errors():
         code = ToricCode3D(L, L, L)
     elif code_name == 'rhombic':
         code = RhombicCode(L, L, L)
+    elif code_name == 'rotated':
+        code = RotatedCode3D(L, L, L)
     else:
         raise ValueError('Code not recognized')
 
@@ -204,7 +228,10 @@ def send_random_errors():
         raise ValueError('Error model not recognized')
 
     if deformed:
-        error_model = DeformedPauliErrorModel(rx, ry, rz)
+        if code_name == 'rotated':
+            error_model = DeformedRotatedPauliErrorModel(rx, ry, rz)
+        else:
+            error_model = DeformedPauliErrorModel(rx, ry, rz)
     else:
         error_model = PauliErrorModel(rx, ry, rz)
     errors = error_model.generate(code, p)

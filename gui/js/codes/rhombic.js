@@ -1,6 +1,6 @@
 import * as THREE from 'https://cdn.skypack.dev/three@v0.130.1';
 
-import { AbstractCode } from './base.js';
+import { AbstractCode, stringToArray } from './base.js';
 
 export {RhombicCode};
 
@@ -10,6 +10,10 @@ class RhombicCode extends AbstractCode {
 
         this.cubes = [];
         this.triangles = [];
+
+        this.qubitIndex = indices['qubit'];
+        this.triangleIndex = indices['triangle'];
+        this.cubeIndex = indices['cube'];
 
         this.stabilizers['X'] = this.triangles;
         this.stabilizers['Z'] = this.cubes;
@@ -29,21 +33,18 @@ class RhombicCode extends AbstractCode {
     }
 
     getIndexQubit(axis, x, y, z) {
-        let L = this.L;
-
-        return axis*L**3 + x*L**2 + y*L + z;
+        let key = `[${axis}, ${x}, ${y}, ${z}]`;
+        return this.qubitIndex[key];
     }
 
-    getIndexCube(x, y, z) {
-        let L = this.L;
-    
-        return Math.floor((x*L**2 + y*L + z) / 2);
-    }
-    
     getIndexTriangle(axis, x, y, z) {
-        let L = this.L;
-    
-        return axis*L**3 + x*L**2 + y*L + z;
+        let key = `[${axis}, ${x}, ${y}, ${z}]`;
+        return this.triangleIndex[key];
+    }
+ 
+    getIndexCube(x, y, z) {
+        let key = `[${x}, ${y}, ${z}]`;
+        return this.cubeIndex[key];
     }
 
     toggleCube(cube, activate) {
@@ -242,18 +243,17 @@ class RhombicCode extends AbstractCode {
 
 
     build() {
-        for(let x=0; x < this.L; x++) {
-            for(let y=0; y < this.L; y++) {
-                for(let z=0; z < this.L; z++) {
-                    for (let axis=0; axis < 3; axis++) {
-                        this.buildEdge(axis, x, y, z);
-                    }
-                    for (let axis=0; axis < 4; axis++) {
-                        this.buildTriangle(axis, x, y, z);
-                    }
-                    this.buildCube(x, y, z);
-                }
-            }
+        for (const [coord, index] of Object.entries(this.qubitIndex)) {
+            let [axis, x, y, z] = stringToArray(coord)
+            this.buildEdge(axis, x, y, z)
+        }
+        for (const [coord, index] of Object.entries(this.cubeIndex)) {
+            let [x, y, z] = stringToArray(coord)
+            this.buildCube(x, y, z)
+        }
+        for (const [coord, index] of Object.entries(this.triangleIndex)) {
+            let [axis, x, y, z] = stringToArray(coord)
+            this.buildTriangle(axis, x, y, z)
         }
     }
 }

@@ -1,5 +1,5 @@
 import itertools
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict
 import numpy as np
 from qecsim.model import StabilizerCode
 from ._toric_3d_pauli import Toric3DPauli
@@ -9,6 +9,10 @@ from ..bpauli import bcommute
 class ToricCode3D(StabilizerCode):
 
     _shape: Tuple[int, int, int, int]
+    _size: Tuple[int, int, int]
+    _qubit_index: Dict[Tuple[int, int, int, int], int]
+    _vertex_index: Dict[Tuple[int, int, int], int]
+    _face_index: Dict[Tuple[int, int, int, int], int]
     X_AXIS: int = 0
     Y_AXIS: int = 1
     Z_AXIS: int = 2
@@ -28,12 +32,28 @@ class ToricCode3D(StabilizerCode):
         if L_z is None:
             L_z = L_x
         self._shape = (3, L_x, L_y, L_z)
+        self._size = (L_x, L_y, L_z)
+        self._qubit_index = self._create_qubit_indices()
+        self._vertex_index = self._create_vertex_indices()
+        self._face_index = self._create_face_indices()
 
     # StabilizerCode interface methods.
 
     @property
     def n_k_d(self) -> Tuple[int, int, int]:
         return (np.product(self.shape), 3, min(self.size))
+
+    @property
+    def qubit_index(self) -> Dict[Tuple[int, int, int], int]:
+        return self._qubit_index
+
+    @property
+    def vertex_index(self) -> Dict[Tuple[int, int, int], int]:
+        return self._vertex_index
+
+    @property
+    def face_index(self) -> Dict[Tuple[int, int, int], int]:
+        return self._face_index
 
     @property
     def label(self) -> str:
@@ -134,27 +154,48 @@ class ToricCode3D(StabilizerCode):
         """Shape of lattice for each qubit."""
         return self._shape
 
-    # TODO: ToricCode3D specific methods.
+    def _create_qubit_indices(self):
+        ranges = [range(length) for length in self.shape]
+        coordinates = [(axis, x, y, z) for axis, x, y, z in itertools.product(*ranges)]
+
+        coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
+
+        return coord_to_index
+
+    def _create_vertex_indices(self):
+        ranges = [range(length) for length in self.size]
+        coordinates = [(x, y, z) for x, y, z in itertools.product(*ranges)]
+
+        coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
+
+        return coord_to_index
+
+    def _create_face_indices(self):
+        ranges = [range(length) for length in self.shape]
+        coordinates = [(axis, x, y, z) for axis, x, y, z in itertools.product(*ranges)]
+
+        coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
+
+        return coord_to_index
+
     def get_vertex_Z_stabilizers(self) -> np.ndarray:
         vertex_stabilizers = []
-        ranges = [range(length) for length in self.size]
 
-        # Z operators for each vertex for each position.
-        for L_x, L_y, L_z in itertools.product(*ranges):
+        for (x, y, z) in self.vertex_index.keys():
             operator = Toric3DPauli(self)
-            operator.vertex('Z', (L_x, L_y, L_z))
+            operator.vertex('Z', (x, y, z))
             vertex_stabilizers.append(operator.to_bsf())
+
         return np.array(vertex_stabilizers, dtype=np.uint)
 
     def get_face_X_stabilizers(self) -> np.ndarray:
         face_stabilizers = []
-        ranges = [range(length) for length in self.shape]
 
-        # X operators for each normal direction and for each face position.
-        for normal, L_x, L_y, L_z in itertools.product(*ranges):
+        for (axis, x, y, z) in self.face_index.keys():
             operator = Toric3DPauli(self)
-            operator.face('X', normal, (L_x, L_y, L_z))
+            operator.face('Z', axis, (x, y, z))
             face_stabilizers.append(operator.to_bsf())
+
         return np.array(face_stabilizers, dtype=np.uint)
 
     def measure_syndrome(self, error: Toric3DPauli) -> np.ndarray:
