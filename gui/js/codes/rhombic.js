@@ -216,29 +216,27 @@ class RhombicCode extends AbstractCode {
     }
     
     buildCube(x, y, z) {
-        if ((x + y + z) % 2 == 1) {
-            const L = this.SIZE.lengthEdge - 0.3
-            const geometry = new THREE.BoxBufferGeometry(L, L, L);
-            const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedCube, opacity: this.currentOpacity, transparent: true});
-            const cube = new THREE.Mesh(geometry, material);
-    
-            var geo = new THREE.EdgesGeometry( cube.geometry );
-            var mat = new THREE.LineBasicMaterial( { color: 0x000000, linewidth: 2, opacity: this.currentOpacity, transparent: true } );
-            var wireframe = new THREE.LineSegments( geo, mat );
-            wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
-            cube.add(wireframe);
-    
-            cube.position.x = x + this.SIZE.lengthEdge / 2;
-            cube.position.y = y + this.SIZE.lengthEdge / 2;
-            cube.position.z = z + this.SIZE.lengthEdge / 2;
-    
-            let index = this.getIndexCube(x, y, z);
-            cube.index = index;
-            cube.isActivated = false;
-            this.cubes[index] = cube;
-    
-            this.scene.add(cube);
-        }
+        const L = this.SIZE.lengthEdge - 0.3
+        const geometry = new THREE.BoxBufferGeometry(L, L, L);
+        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedCube, opacity: this.currentOpacity, transparent: true});
+        const cube = new THREE.Mesh(geometry, material);
+
+        var geo = new THREE.EdgesGeometry( cube.geometry );
+        var mat = new THREE.LineBasicMaterial( { color: 0x000000, linewidth: 2, opacity: this.currentOpacity, transparent: true } );
+        var wireframe = new THREE.LineSegments( geo, mat );
+        wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
+        cube.add(wireframe);
+
+        cube.position.x = x + this.SIZE.lengthEdge / 2;
+        cube.position.y = y + this.SIZE.lengthEdge / 2;
+        cube.position.z = z + this.SIZE.lengthEdge / 2;
+
+        let index = this.getIndexCube(x, y, z);
+        cube.index = index;
+        cube.isActivated = false;
+        this.cubes[index] = cube;
+
+        this.scene.add(cube);
     }
 
 

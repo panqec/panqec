@@ -193,7 +193,7 @@ class ToricCode3D(StabilizerCode):
 
         for (axis, x, y, z) in self.face_index.keys():
             operator = Toric3DPauli(self)
-            operator.face('Z', axis, (x, y, z))
+            operator.face('X', axis, (x, y, z))
             face_stabilizers.append(operator.to_bsf())
 
         return np.array(face_stabilizers, dtype=np.uint)

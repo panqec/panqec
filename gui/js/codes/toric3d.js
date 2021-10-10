@@ -8,6 +8,8 @@ class ToricCode3D extends AbstractCode {
     constructor(L, Hx, Hz, indices, scene) {
         super(L, Hx, Hz, scene);
 
+        console.log(Hz)
+
         this.vertices = [];
         this.faces = [];
 

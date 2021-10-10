@@ -70,13 +70,8 @@ def send_stabilizer_matrix():
     elif code_name == 'cubic':
         code = ToricCode3D(L, L, L)
 
-        n_qubits = code.n_k_d[0]
-        n_stabilizers = code.stabilizers.shape[0]
-        n_vertices = int(np.product(code.size))
-        n_faces = n_stabilizers - n_vertices
-
-        Hz = code.stabilizers[:n_faces, :n_qubits]
-        Hx = code.stabilizers[n_faces:, n_qubits:]
+        Hz = code.Hz
+        Hx = code.Hx
         
         qubit_index = code.qubit_index
         qubit_index = {str(list(coord)): i for coord, i in qubit_index.items()}
@@ -169,7 +164,10 @@ def send_correction():
         raise ValueError('Error model not recognized')
 
     if deformed:
-        error_model = DeformedPauliErrorModel(rx, ry, rz)
+        if code_name == 'rotated':
+            error_model = DeformedRotatedPauliErrorModel(rx, ry, rz)
+        else:
+            error_model = DeformedPauliErrorModel(rx, ry, rz)
     else:
         error_model = PauliErrorModel(rx, ry, rz)
 

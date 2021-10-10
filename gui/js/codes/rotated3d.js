@@ -159,21 +159,6 @@ class RotatedCode3D extends AbstractCode {
             }
         }
     
-        // if (axis == this.Y_AXIS) {
-        //     face.position.x += this.SIZE.lengthEdge / 2;
-        //     face.position.y += this.SIZE.lengthEdge / 2;
-        // }
-        // if (axis == this.X_AXIS) {
-        //     face.position.x += this.SIZE.lengthEdge / 2;
-        //     face.position.z += this.SIZE.lengthEdge / 2;
-        //     face.rotateX(Math.PI / 2)
-        // }
-        // else if (axis == this.Z_AXIS) {
-        //     face.position.z += this.SIZE.lengthEdge / 2
-        //     face.position.y += this.SIZE.lengthEdge / 2
-        //     face.rotateY(Math.PI / 2)
-        // }
-    
         let index = this.getIndexFace(x, y, z);
     
         face.index = index;

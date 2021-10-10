@@ -182,7 +182,7 @@ def bp_decoder(H: np.ndarray,
         # -------- Data to parity --------
 
         # Sum messages at each data bit
-        sum_messages_data = np.sum(message_p2d, axis=0)
+        sum_messages_data = np.sum(message_p2d, axis=0) + eps
 
         # For each edge, get the sum around the data bit, excluding that edge
         message_d2p[edges_p2d[1], edges_p2d[0]] = (
@@ -230,36 +230,41 @@ class BeliefPropagationOSDDecoder(Decoder):
 
         self._x_decoder = dict()
         self._z_decoder = dict()
-        
+
     def get_probabilities(
         self, code: StabilizerCode
     ) -> Tuple[np.ndarray, np.ndarray]:
-        
-        r_x, r_y, r_z = self._error_model.direction
-        p_X, p_Y, p_Z = np.array([r_x, r_y, r_z])*self._probability
 
-        p_regular_x = p_X + p_Y
-        p_regular_z = p_Z + p_Y
-        p_deformed_x = p_Z + p_Y
-        p_deformed_z = p_X + p_Y
+        pi, px, py, pz = self._error_model.probability_distribution(code, self._probability)
 
-        if hasattr(code, 'X_AXIS'):
-            deformed_edge = code.X_AXIS
-        else:
-            deformed_edge = 0
+        probabilities_x = px + py
+        probabilities_z = pz + py
 
-        probabilities_x = np.ones(code.shape, dtype=float)*p_regular_x
-        probabilities_z = np.ones(code.shape, dtype=float)*p_regular_z
+        # r_x, r_y, r_z = self._error_model.direction
+        # p_X, p_Y, p_Z = np.array([r_x, r_y, r_z])*self._probability
 
-        if self._deformed:
-            # The weights on the deformed edge are different
-            ranges = [range(length) for length in code.shape]
-            for coord in itertools.product(*ranges):
-                if coord[0] == deformed_edge:
-                    probabilities_x[coord] = p_deformed_x
-                    probabilities_z[coord] = p_deformed_z
+        # p_regular_x = p_X + p_Y
+        # p_regular_z = p_Z + p_Y
+        # p_deformed_x = p_Z + p_Y
+        # p_deformed_z = p_X + p_Y
 
-        return probabilities_x.flatten(), probabilities_z.flatten()
+        # if hasattr(code, 'X_AXIS'):
+        #     deformed_edge = code.X_AXIS
+        # else:
+        #     deformed_edge = 0
+
+        # probabilities_x = p_regular_x * np.ones(code.n_k_d[0], dtype=float)
+        # probabilities_z = p_regular_z * np.ones(code.n_k_d[0], dtype=float)
+
+        # if self._deformed:
+        #     # The weights on the deformed edge are different
+        #     ranges = [range(length) for length in code.shape]
+        #     for coord in itertools.product(*ranges):
+        #         if coord[0] == deformed_edge:
+        #             probabilities_x[coord] = p_deformed_x
+        #             probabilities_z[coord] = p_deformed_z
+
+        return probabilities_x, probabilities_z
 
     # @profile
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
