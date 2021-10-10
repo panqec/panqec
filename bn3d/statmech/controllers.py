@@ -11,6 +11,7 @@ from typing import List, Dict, Union, Any, Optional
 import time
 import uuid
 import json
+from json.decoder import JSONDecodeError
 from glob import glob
 import numpy as np
 from .model import SpinModel
@@ -58,9 +59,16 @@ class DataManager:
         file_paths = self.filter_files(subdir, filters)
         data_list: List[dict] = []
         for file_name in file_paths:
-            with open(file_name) as f:
-                entry = json.load(f)
-                data_list.append(entry)
+            try:
+                with open(file_name) as f:
+                    entry = json.load(f)
+                    data_list.append(entry)
+            except JSONDecodeError:
+                try:
+                    os.remove(file_name)
+                    print(f'Removed corrupted file {file_name}')
+                except FileNotFoundError:
+                    pass
         return data_list
 
     def count(self, subdir: str) -> int:
@@ -194,9 +202,11 @@ class SimpleController:
 
     uuid: str = ''
     data_manager: DataManager
+    task_filter: Optional[List[str]] = None
 
     def __init__(self, data_dir: str):
         self.uuid = uuid.uuid4().hex
+        self.task_filter = None
         self.data_manager = DataManager(data_dir)
 
     def new_model(self, entry: dict) -> SpinModel:
@@ -286,6 +296,9 @@ class SimpleController:
         except FileNotFoundError:
             print('Too late!')
 
+    def use_filter(self, input_hashes):
+        self.task_filter = input_hashes
+
     def run(self, max_tau: Optional[int] = None, progress=None):
         """Run all models up until there are none left to run."""
         max_tau_map = None
@@ -312,10 +325,14 @@ class SimpleController:
                     'seed': seed,
                     'tau': tau,
                 }
-                if max_tau_map is None:
-                    remaining_tasks.append(task)
-                elif tau <= max_tau:
-                    remaining_tasks.append(task)
+                if (
+                    self.task_filter is None or
+                    entry['hash'] in self.task_filter
+                ):
+                    if max_tau_map is None:
+                        remaining_tasks.append(task)
+                    elif tau <= max_tau:
+                        remaining_tasks.append(task)
 
         while remaining_tasks:
 

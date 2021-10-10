@@ -30,10 +30,10 @@
 - [x] Be able to save and load existing MC chains
 - [x] Fix slowness by avoiding reading all files
 - [x] Compute time estimation
-- [ ] Parallelize running for Controller (queue is unnecessary!)
+- [x] Parallelize running for Controller (distribute tasks among jobs and cores)
 - [ ] Wilson loop observable
 - [x] Error bars for correlation length
-- [ ] CLI command to generate and run
+- [x] CLI command to generate and run
 - [ ] zip compression of json files managed by DataManager
 - [x] Separate results viewer notebook/web app
 - [ ] Z2GaugeModel2D

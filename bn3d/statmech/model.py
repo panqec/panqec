@@ -149,6 +149,8 @@ class Observable(metaclass=ABCMeta):
     """Observable for a spin model."""
 
     total: Any
+    total_2: Any
+    total_4: Any
     count: int
 
     @abstractmethod
@@ -168,11 +170,15 @@ class Observable(metaclass=ABCMeta):
         """Evaluate the observable for given spin model and record it."""
         value = self.evaluate(spin_model)
         self.total += value
+        self.total_2 += value**2
+        self.total_4 += value**4
         self.count += 1
 
     def summary(self) -> Dict:
         return {
             'total': self.total,
+            'total_2': self.total_2,
+            'total_4': self.total_4,
             'count': self.count,
         }
 
@@ -185,10 +191,14 @@ class Observable(metaclass=ABCMeta):
 class ScalarObservable(Observable):
 
     total: float
+    total_2: float
+    total_4: float
     count: int
 
     def reset(self):
         self.total = 0.0
+        self.total_2 = 0.0
+        self.total_4 = 0.0
         self.count = 0
 
 

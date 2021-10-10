@@ -56,7 +56,7 @@ class SimpleAnalysis:
         """Combine all input files in a single DataFrame."""
         inputs_df = pd.DataFrame(self.data_manager.load('inputs'))
         inputs_df = inputs_df.drop('disorder', axis=1)
-        for k in ['disorder_params', 'spin_model_params']:
+        for k in ['disorder_model_params', 'spin_model_params']:
             inputs_df = pd.concat([
                 inputs_df[k].apply(pd.Series),
                 inputs_df.drop(k, axis=1)
@@ -83,11 +83,15 @@ class SimpleAnalysis:
                     f'{label}_uncertainty': df.groupby(
                         self.independent_variables
                     )[label].std(),
-                    f'{label}_n_disorders': df.groupby(
-                        self.independent_variables
-                    )[label].count(),
                 })
             ], axis=1)
+        estimates = pd.concat([
+            estimates, pd.DataFrame({
+                'n_disorder': df.groupby(
+                    self.independent_variables
+                )[self.observable_names[0]].count(),
+            })
+        ], axis=1)
         self.estimates = estimates.reset_index()
 
     def estimate_correlation_length(self, n_resamp: int = 10):
@@ -122,6 +126,7 @@ class SimpleAnalysis:
                 self.results_df['hash'].isin(hashes)
                 & (self.results_df['tau'] == row['tau'])
             ].set_index('hash')
+            hashes = filtered_results.index.unique()
 
             resampled_correlation_lengths = np.zeros(n_resamp)
 

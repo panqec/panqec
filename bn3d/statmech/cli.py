@@ -1,7 +1,11 @@
+import os
+import json
 from multiprocessing import Pool, cpu_count
 import click
+import pandas as pd
+from .analysis import SimpleAnalysis
 from .controllers import DataManager
-from .core import start_sampling, generate_inputs
+from .core import start_sampling, generate_inputs, filter_input_hashes
 from .config import SPIN_MODELS, DISORDER_MODELS
 
 
@@ -23,19 +27,56 @@ def status(data_dir):
     for subdir in dm.subdirs.keys():
         print('{}: {} files'.format(subdir, dm.count(subdir)))
 
+    info_json = os.path.join(data_dir, 'info.json')
+    if os.path.isfile(info_json):
+        with open(info_json) as f:
+            info_dict = json.load(f)
+    analysis = SimpleAnalysis(data_dir)
+    analysis.analyse()
+
+    # Estimated time assuming all inputs are run to the same max_tau and
+    # the highest n_disorder, which may be an overestimate.
+    estimated_time = pd.to_timedelta(
+        analysis.estimate_run_time(
+            dm.load('inputs'),
+            max(info_dict['max_tau'].values()),
+            max(info_dict['i_disorder'].values()) + 1,
+        ),
+        unit='s'
+    )
+    actual_time = pd.to_timedelta(
+        analysis.run_time_stats['total_time'].sum(),
+        unit='s'
+    )
+    print(f'Estimated CPU time {estimated_time}')
+    print(f'Actual CPU time {actual_time}')
+    progress = float(
+        100*actual_time.total_seconds()/estimated_time.total_seconds()
+    )
+    print(f'Progress {progress:.2f}%')
+
 
 @click.command()
 @click.argument('data_dir', required=True)
-def sample(data_dir):
+@click.option('--n_jobs', default=1, type=click.INT, show_default=True)
+def sample(data_dir, n_jobs):
     """Perform MCMC runs.."""
-    n_workers = cpu_count()
-    arguments = [
-        data_dir
-        for i_worker in range(n_workers)
-    ]
-    print(f'Sampling over {n_workers} CPUs')
+
+    # If running as array job slurm, determine what the task ID is.
+    i_job = int(os.getenv('SLURM_ARRAY_TASK_ID', default=1))
+    i_job = i_job - 1
+
+    n_cpu = cpu_count()
+    arguments = []
+    for i_process in range(n_cpu):
+        input_hashes = filter_input_hashes(
+            data_dir, i_process, n_cpu, i_job, n_jobs
+        )
+        arguments.append((data_dir, input_hashes))
+
+    print(f'Sampling over {n_cpu} CPUs for array job {i_job} out of {n_jobs}')
     with Pool() as pool:
-        pool.map(start_sampling, arguments)
+        pool.starmap(start_sampling, arguments)
 
 
 @click.command()

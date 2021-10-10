@@ -11,10 +11,13 @@ from ..utils import hash_json
 
 def generate_input_entries(
     ranges: List[Dict[str, Any]]
-) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
+) -> Tuple[List[Dict[str, Any]], Dict]:
     """Generate inputs and disorders from range spec"""
     entries = []
-    max_tau_dict = dict()
+    info_dict: Dict = {
+        'max_tau': {},
+        'i_disorder': {},
+    }
     for spec in ranges:
         iterates = product(
             spec['spin_model_params'], spec['disorder_params']
@@ -37,8 +40,10 @@ def generate_input_entries(
                         'disorder': disorder.tolist()
                     }
                     entries.append(entry)
-                    max_tau_dict[hash_json(entry)] = spec['max_tau']
-    return entries, max_tau_dict
+                    hash_key = hash_json(entry)
+                    info_dict['max_tau'][hash_key] = spec['max_tau']
+                    info_dict['i_disorder'][hash_key] = i_disorder
+    return entries, info_dict
 
 
 def generate_inputs(data_dir: str):
@@ -50,18 +55,35 @@ def generate_inputs(data_dir: str):
     print(f'Generating inputs and disorder configs from {targets_json}')
     pprint(targets)
 
-    inputs, max_tau_dict = generate_input_entries(targets['ranges'])
+    inputs, info_dict = generate_input_entries(targets['ranges'])
     data_manager = DataManager(data_dir)
     data_manager.save('inputs', inputs)
 
-    info_json = {
-        'max_tau': max_tau_dict,
-    }
     with open(os.path.join(data_dir, 'info.json'), 'w') as f:
-        json.dump(info_json, f)
+        json.dump(info_dict, f)
+    print(f'Saved {len(inputs)} disorder')
 
 
-def start_sampling(data_dir):
+def start_sampling(data_dir, input_hashes=None):
     print(f'Starting to sample up in {data_dir}')
     controller = SimpleController(data_dir)
+    controller.use_filter(input_hashes)
     controller.run()
+
+
+def filter_input_hashes(
+    data_dir: str, i_process: int, n_processes: int, i_job: int, n_jobs: int
+) -> List[str]:
+    """Get list of filtered input hashes assigned to worker."""
+    info_json = os.path.join(data_dir, 'info.json')
+    with open(info_json) as f:
+        info_dict = json.load(f)
+
+    # Filter the hashes by converting the hex string to int and doing modulo
+    # arithmetic so each worker gets roughly the same number of tasks.
+    filtered_hashes: List[str] = [
+        hash_key for hash_key in info_dict['i_disorder'].keys()
+        if i_process*n_jobs + i_job
+        == int(hash_key, 16) % (n_jobs*n_processes)
+    ]
+    return filtered_hashes
