@@ -102,7 +102,7 @@ class SimpleAnalysis:
         estimates['CorrelationLength_estimate'] = 1/(
             2*np.sin(k_min/2)
         )*np.sqrt(
-            estimates['Susceptibility0_estimate']
+            estimates['Susceptibility0_estimate'].astype(complex)
             / estimates['Susceptibilitykmin_estimate']
             - 1
         )
@@ -128,7 +128,7 @@ class SimpleAnalysis:
             ].set_index('hash')
             hashes = filtered_results.index.unique()
 
-            resampled_correlation_lengths = np.zeros(n_resamp)
+            resampled_correlation_lengths = np.zeros(n_resamp, dtype=complex)
 
             # Perform resampling n_resamp times and calculate correlation
             # length using resampled results.
@@ -143,7 +143,7 @@ class SimpleAnalysis:
                 resampled_correlation_lengths[i_resamp] = 1/(
                     2*np.sin(k_min[i_row]/2)
                 )*np.sqrt(
-                    susceptibility0_disorder_mean
+                    susceptibility0_disorder_mean.astype(complex)
                     / susceptibilitykmin_disorder_mean
                     - 1
                 )
