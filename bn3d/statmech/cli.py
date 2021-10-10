@@ -1,8 +1,11 @@
 import os
 import json
+import datetime
+import time
 from multiprocessing import Pool, cpu_count
 import click
 import pandas as pd
+import psutil
 from .analysis import SimpleAnalysis
 from .controllers import DataManager
 from .core import start_sampling, generate_inputs, filter_input_hashes
@@ -77,6 +80,12 @@ def sample(data_dir, n_jobs):
     print(f'Sampling over {n_cpu} CPUs for array job {i_job} out of {n_jobs}')
     with Pool() as pool:
         pool.starmap(start_sampling, arguments)
+
+    print('CPU usage')
+    while True:
+        print(datetime.datetime.now())
+        print(psutil.cpu_percent(percpu=True))
+        time.sleep(60)
 
 
 @click.command()
