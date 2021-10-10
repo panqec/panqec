@@ -101,11 +101,11 @@ class SimpleAnalysis:
         k_min = 2*np.pi/estimates[['L_x', 'L_y']].max(axis=1)
         estimates['CorrelationLength_estimate'] = 1/(
             2*np.sin(k_min/2)
-        )*np.sqrt(np.abs(
+        )*np.sqrt(
             estimates['Susceptibility0_estimate']
             / estimates['Susceptibilitykmin_estimate']
             - 1
-        ))
+        )
 
         # Calculate uncertainty by bootstrapping.
         uncertainty = np.zeros(estimates.shape[0])
@@ -142,11 +142,11 @@ class SimpleAnalysis:
                 ]['Susceptibilitykmin'].mean()
                 resampled_correlation_lengths[i_resamp] = 1/(
                     2*np.sin(k_min[i_row]/2)
-                )*np.sqrt(np.abs(
+                )*np.sqrt(
                     susceptibility0_disorder_mean
                     / susceptibilitykmin_disorder_mean
                     - 1
-                ))
+                )
 
             uncertainty[i_row] = resampled_correlation_lengths.std()
 
