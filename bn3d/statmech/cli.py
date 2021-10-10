@@ -22,6 +22,19 @@ def statmech(ctx):
 
 @click.command()
 @click.argument('data_dir', required=True)
+def analyse(data_dir):
+    """Perform data analysis to extract useful stats."""
+
+    print('Analysing {data_dir}')
+    analysis = SimpleAnalysis(data_dir)
+    analysis.analyse()
+    estimates = analysis.estimates
+    estimates_pkl = os.path.join(data_dir, 'estimates.json')
+    estimates.to_pickle(estimates_pkl)
+
+
+@click.command()
+@click.argument('data_dir', required=True)
 def status(data_dir):
     """Show the status of running jobs."""
     print(f'Showing statmech status in {data_dir}')
