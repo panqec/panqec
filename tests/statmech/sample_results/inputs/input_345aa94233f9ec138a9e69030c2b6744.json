@@ -166,7 +166,7 @@
     ]
   ],
   "disorder_model": "Rbim2DIidDisorder",
-  "disorder_params": {
+  "disorder_model_params": {
     "p": 0.05
   },
   "hash": "345aa94233f9ec138a9e69030c2b6744",

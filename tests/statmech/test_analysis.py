@@ -19,13 +19,11 @@ def analysis(tmpdir):
 def test_analyse(analysis):
     analysis.analyse()
     expected_columns = set([
-        'L_x', 'L_y', 'p', 'temperature', 'tau', 'Magnetization_estimate',
-        'Magnetization_uncertainty', 'Magnetization_n_disorders',
+        'L_x', 'L_y', 'p', 'temperature', 'tau', 'n_disorder',
+        'Magnetization_estimate', 'Magnetization_uncertainty',
         'Susceptibility0_estimate', 'Susceptibility0_uncertainty',
-        'Susceptibility0_n_disorders', 'Susceptibilitykmin_estimate',
-        'Susceptibilitykmin_uncertainty', 'Susceptibilitykmin_n_disorders',
-        'CorrelationLength_estimate',
-        'CorrelationLength_uncertainty',
+        'Susceptibilitykmin_estimate', 'Susceptibilitykmin_uncertainty',
+        'CorrelationLength_estimate', 'CorrelationLength_uncertainty',
     ])
     assert analysis.estimates.shape[0] == 2
     assert expected_columns.issubset(analysis.estimates.columns)
