@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH -N 1
-#SBATCH -t 0-8:00
+#SBATCH -t 0-10:00
 #SBATCH --cpus-per-task=1
 #SBATCH --exclusive
-#SBATCH --job-name=stat_mech-array
-#SBATCH --array=1-3
+#SBATCH --job-name=smt4
+#SBATCH --array=1-5
 #SBATCH -p defq
 #SBATCH --output=/home/ehuang1/bn3d/slurm/out/statmech/%j.out
 set -euxo pipefail
@@ -16,6 +16,7 @@ date
 module purge
 module load python/3.8
 source venv/bin/activate
-python3 scripts/run_statmech.py "temp/statmech/test_$SLURM_ARRAY_TASK_ID"
+echo "$SLURM_ARRAY_TASK_ID"
+bn3d statmech sample --n_jobs 5 temp/statmech/test_4
 
 date
