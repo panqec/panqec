@@ -35,7 +35,9 @@ def status(data_dir):
         with open(info_json) as f:
             info_dict = json.load(f)
     analysis = SimpleAnalysis(data_dir)
-    analysis.analyse()
+    analysis.combine_inputs()
+    analysis.combine_results()
+    analysis.calculate_run_time_stats()
 
     # Estimated time assuming all inputs are run to the same max_tau and
     # the highest n_disorder, which may be an overestimate.
@@ -78,14 +80,17 @@ def sample(data_dir, n_jobs):
         arguments.append((data_dir, input_hashes))
 
     print(f'Sampling over {n_cpu} CPUs for array job {i_job} out of {n_jobs}')
-    with Pool() as pool:
-        pool.starmap(start_sampling, arguments)
+    pool = Pool()
+    async_result = pool.starmap_async(start_sampling, arguments)
+    pool.close()
 
-    print('CPU usage')
-    while True:
+    while not async_result.ready():
+        print('CPU usage')
         print(datetime.datetime.now())
         print(psutil.cpu_percent(percpu=True))
-        time.sleep(60)
+        time.sleep(5)
+
+    pool.join()
 
 
 @click.command()
