@@ -1,9 +1,12 @@
 import os
 from typing import List, Dict, Any, Tuple
 import json
+import time
+import datetime
 from itertools import product
 from pprint import pprint
 import numpy as np
+import psutil
 from .controllers import DataManager, SimpleController
 from .config import DISORDER_MODELS
 from ..utils import hash_json
@@ -64,7 +67,7 @@ def generate_inputs(data_dir: str):
     print(f'Saved {len(inputs)} disorder')
 
 
-def start_sampling(data_dir, input_hashes=None):
+def start_sampling(data_dir, input_hashes=None) -> int:
     print(f'Starting to sample in {data_dir}')
     controller = SimpleController(data_dir)
     if input_hashes:
@@ -72,6 +75,7 @@ def start_sampling(data_dir, input_hashes=None):
     controller.use_filter(input_hashes)
     controller.run()
     print('Runs complete')
+    return 0
 
 
 def filter_input_hashes(
@@ -90,3 +94,13 @@ def filter_input_hashes(
         == int(hash_key, 16) % (n_jobs*n_processes)
     ]
     return filtered_hashes
+
+
+def monitor_usage(interval: float = 60):
+    while True:
+        cpu_usage = psutil.cpu_percent(percpu=True)
+        mean_cpu_usage = np.mean(cpu_usage)
+        n_cores = len(cpu_usage)
+        time_now = datetime.datetime.now()
+        print(f'{time_now} CPU usage {mean_cpu_usage:.2f}% ({n_cores} cores)')
+        time.sleep(interval)

@@ -1,15 +1,13 @@
 import os
 import json
-import datetime
-import time
 from multiprocessing import Pool, cpu_count
 import click
-import numpy as np
 import pandas as pd
-import psutil
 from .analysis import SimpleAnalysis
 from .controllers import DataManager
-from .core import start_sampling, generate_inputs, filter_input_hashes
+from .core import (
+    start_sampling, generate_inputs, filter_input_hashes, monitor_usage
+)
 from .config import SPIN_MODELS, DISORDER_MODELS
 
 
@@ -94,20 +92,13 @@ def sample(data_dir, n_jobs):
         arguments.append((data_dir, input_hashes))
 
     print(f'Sampling over {n_cpu} CPUs for array job {i_job} out of {n_jobs}')
-    pool = Pool()
-    async_result = pool.starmap_async(start_sampling, arguments)
+    pool = Pool(processes=n_cpu + 1)
+    monitor_result = pool.map_async(monitor_usage, [10])
+    sampler_result = pool.starmap_async(start_sampling, arguments)
     pool.close()
-    async_result.get()
 
-    while not async_result.ready():
-        cpu_usage = psutil.cpu_percent(percpu=True)
-        mean_cpu_usage = np.mean(cpu_usage)
-        print(f'CPU usage {mean_cpu_usage:.2f}')
-        print(datetime.datetime.now())
-        print(cpu_usage)
-        time.sleep(5)
-
-    pool.join()
+    monitor_result.get()
+    sampler_result.get()
 
 
 @click.command()
