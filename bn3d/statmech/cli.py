@@ -27,9 +27,25 @@ def analyse(data_dir):
     print(f'Analysing {data_dir}')
     analysis = SimpleAnalysis(data_dir)
     analysis.analyse()
-    estimates = analysis.estimates
-    estimates_pkl = os.path.join(data_dir, 'estimates.pkl')
-    estimates.to_pickle(estimates_pkl)
+
+    analysis_dir = os.path.join(data_dir, 'analysis')
+    os.makedirs(analysis_dir, exist_ok=True)
+
+    estimates_pkl = os.path.join(analysis_dir, 'estimates.pkl')
+    results_pkl = os.path.join(analysis_dir, 'results.pkl')
+    inputs_pkl = os.path.join(analysis_dir, 'inputs.pkl')
+    analysis_json = os.path.join(analysis_dir, 'analysis.json')
+
+    analysis.estimates.to_pickle(estimates_pkl)
+    analysis.results_df.to_pickle(results_pkl)
+    analysis.inputs_df.to_pickle(inputs_pkl)
+
+    with open(analysis_json, 'w') as f:
+        json.dump({
+            'observable_names': analysis.observable_names,
+            'independent_variables': analysis.independent_variables,
+            'run_time_constants': analysis.run_time_constants,
+        }, f, sort_keys=True, indent=2)
 
 
 @click.command()
@@ -125,3 +141,4 @@ statmech.add_command(status)
 statmech.add_command(sample)
 statmech.add_command(generate)
 statmech.add_command(models)
+statmech.add_command(analyse)

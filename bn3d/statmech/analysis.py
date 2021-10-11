@@ -21,6 +21,7 @@ class SimpleAnalysis:
     results_df: pd.DataFrame
     inputs_df: pd.DataFrame
     estimates: pd.DataFrame
+    run_time_constants: dict
 
     def __init__(self, data_dir):
         self.data_dir = data_dir
@@ -28,10 +29,15 @@ class SimpleAnalysis:
 
     def analyse(self):
         """Perform the analysis."""
+        print('Combining inputs')
         self.combine_inputs()
+        print('Combining results')
         self.combine_results()
+        print('Estimating observables')
         self.estimate_observables()
+        print('Estimating correlation length')
         self.estimate_correlation_length()
+        print('Calculating runtime stats')
         self.calculate_run_time_stats()
 
     def combine_results(self):
