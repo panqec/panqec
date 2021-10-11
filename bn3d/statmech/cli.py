@@ -25,11 +25,11 @@ def statmech(ctx):
 def analyse(data_dir):
     """Perform data analysis to extract useful stats."""
 
-    print('Analysing {data_dir}')
+    print(f'Analysing {data_dir}')
     analysis = SimpleAnalysis(data_dir)
     analysis.analyse()
     estimates = analysis.estimates
-    estimates_pkl = os.path.join(data_dir, 'estimates.json')
+    estimates_pkl = os.path.join(data_dir, 'estimates.pkl')
     estimates.to_pickle(estimates_pkl)
 
 
