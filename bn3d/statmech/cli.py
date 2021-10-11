@@ -4,6 +4,7 @@ import datetime
 import time
 from multiprocessing import Pool, cpu_count
 import click
+import numpy as np
 import pandas as pd
 import psutil
 from .analysis import SimpleAnalysis
@@ -96,11 +97,14 @@ def sample(data_dir, n_jobs):
     pool = Pool()
     async_result = pool.starmap_async(start_sampling, arguments)
     pool.close()
+    async_result.get()
 
     while not async_result.ready():
-        print('CPU usage')
+        cpu_usage = psutil.cpu_percent(percpu=True)
+        mean_cpu_usage = np.mean(cpu_usage)
+        print(f'CPU usage {mean_cpu_usage:.2f}')
         print(datetime.datetime.now())
-        print(psutil.cpu_percent(percpu=True))
+        print(cpu_usage)
         time.sleep(5)
 
     pool.join()

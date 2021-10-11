@@ -67,8 +67,11 @@ def generate_inputs(data_dir: str):
 def start_sampling(data_dir, input_hashes=None):
     print(f'Starting to sample in {data_dir}')
     controller = SimpleController(data_dir)
+    if input_hashes:
+        print(f'Filtering over {len(input_hashes)} inputs')
     controller.use_filter(input_hashes)
     controller.run()
+    print('Runs complete')
 
 
 def filter_input_hashes(
