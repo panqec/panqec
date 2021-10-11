@@ -93,7 +93,9 @@ def sample(data_dir, n_jobs):
 
     print(f'Sampling over {n_cpu} CPUs for array job {i_job} out of {n_jobs}')
     pool = Pool(processes=n_cpu + 1)
-    monitor_result = pool.map_async(monitor_usage, [10])
+    monitor_result = pool.starmap_async(
+        monitor_usage, [(data_dir, i_job, n_jobs, 10)]
+    )
     sampler_result = pool.starmap_async(start_sampling, arguments)
     pool.close()
 

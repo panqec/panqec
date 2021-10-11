@@ -96,11 +96,23 @@ def filter_input_hashes(
     return filtered_hashes
 
 
-def monitor_usage(interval: float = 60):
+def monitor_usage(data_dir, i_job: int, n_jobs: int, interval: float = 60):
+    os.makedirs(os.path.join(data_dir, 'logs'), exist_ok=True)
+    ppid = os.getppid()
+    log_file = os.path.join(data_dir, 'logs', f'{ppid}.txt')
+    if not os.path.isfile(log_file):
+        with open(log_file, 'w') as f:
+            f.write(f'Log file for {ppid}\n')
     while True:
         cpu_usage = psutil.cpu_percent(percpu=True)
         mean_cpu_usage = np.mean(cpu_usage)
         n_cores = len(cpu_usage)
         time_now = datetime.datetime.now()
-        print(f'{time_now} CPU usage {mean_cpu_usage:.2f}% ({n_cores} cores)')
+        message = (
+            f'{time_now} CPU usage {mean_cpu_usage:.2f}% '
+            f'({n_cores} cores)'
+        )
+        print(message, flush=True)
+        with open(log_file, 'a') as f:
+            f.write(message + '\n')
         time.sleep(interval)
