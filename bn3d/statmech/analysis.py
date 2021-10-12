@@ -4,7 +4,8 @@ Classes for analysis of data produced by MCMC.
 :Author:
     Eric Huang
 """
-
+import os
+import json
 from typing import List
 import numpy as np
 import pandas as pd
@@ -210,3 +211,28 @@ def count_updates(spin_model: str, params) -> float:
         return params['L_x']*params['L_y']*2**params['tau']
     else:
         return 1
+
+
+def load_analysis(data_dir):
+    """Load an analysis that had already been finished and saved."""
+    analysis_dir = os.path.join(data_dir, 'analysis')
+
+    analysis = SimpleAnalysis(data_dir)
+
+    analysis_json = os.path.join(analysis_dir, 'analysis.json')
+
+    with open(analysis_json) as f:
+        analysis_attr = json.load(f)
+    analysis.observable_names = analysis_attr['observable_names']
+    analysis.independent_variables = analysis_attr['independent_variables']
+    analysis.run_time_constants = analysis_attr['run_time_constants']
+
+    estimates_pkl = os.path.join(analysis_dir, 'estimates.pkl')
+    results_pkl = os.path.join(analysis_dir, 'results.pkl')
+    inputs_pkl = os.path.join(analysis_dir, 'inputs.pkl')
+    analysis_json = os.path.join(analysis_dir, 'analysis.json')
+
+    analysis.estimates = pd.read_pickle(estimates_pkl)
+    analysis.results_df = pd.read_pickle(results_pkl)
+    analysis.inputs_df = pd.read_pickle(inputs_pkl)
+    return analysis

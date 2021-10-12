@@ -68,6 +68,7 @@ def generate_inputs(data_dir: str):
 
 
 def start_sampling(data_dir, input_hashes=None) -> int:
+    """Start MCMC sampling in given dir on list of input hashes."""
     print(f'Starting to sample in {data_dir}')
     controller = SimpleController(data_dir)
     if input_hashes:
@@ -97,6 +98,7 @@ def filter_input_hashes(
 
 
 def monitor_usage(data_dir, i_job: int, n_jobs: int, interval: float = 60):
+    """Continously monitor CPU usage."""
     os.makedirs(os.path.join(data_dir, 'logs'), exist_ok=True)
     ppid = os.getppid()
     log_file = os.path.join(data_dir, 'logs', f'{ppid}.txt')
