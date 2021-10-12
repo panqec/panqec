@@ -1,5 +1,6 @@
 import os
 import json
+from glob import glob
 from multiprocessing import Pool, cpu_count
 import click
 import pandas as pd
@@ -127,6 +128,26 @@ def generate(data_dir):
 
 
 @click.command()
+@click.argument('data_dir', required=True)
+def clear(data_dir):
+    """Clear inputs and results."""
+    subdirs = ['inputs', 'results', 'models', 'runs', 'logs']
+    file_path_list = []
+    for subdir in subdirs:
+        file_path_list += glob(os.path.join(data_dir, 'inputs', '*'))
+
+    loose_files = ['info.json', 'estimates.pkl']
+    for file_name in loose_files:
+        file_path = os.path.join(data_dir, file_name)
+        if os.path.isfile(file_path):
+            file_path_list.append(file_path)
+
+    if click.confirm(f'Delete {len(file_path_list)} files?', default=False):
+        for file_path in file_path_list:
+            os.remove(file_path)
+
+
+@click.command()
 def models():
     """List available models."""
     print('Spin models')
@@ -142,3 +163,4 @@ statmech.add_command(sample)
 statmech.add_command(generate)
 statmech.add_command(models)
 statmech.add_command(analyse)
+statmech.add_command(clear)
