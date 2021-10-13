@@ -6,6 +6,7 @@ import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat
 import { ToricCode3D } from './codes/toric3d.js';
 import { RhombicCode } from './codes/rhombic.js';
 import { RotatedCode3D } from './codes/rotated3d.js';
+import { RotatedToricCode3D } from './codes/rotatedToric3d.js';
 
 
 const MIN_OPACITY = 0.1;
@@ -15,11 +16,11 @@ const params = {
     opacity: MAX_OPACITY,
     errorProbability: 0.1,
     L: 2,
-    deformed: true,
-    decoder: 'bp-osd',
+    deformation: "XZZX",
+    decoder: 'bp-osd-2',
     max_bp_iter: 10,
     errorModel: 'Pure Z',
-    codeName: 'rotated'
+    codeName: 'rotated-toric'
 };
 
 const buttons = {
@@ -105,14 +106,20 @@ async function buildCode() {
     let Hx = stabilizers['Hx'];
     let Hz = stabilizers['Hz'];
     let indices = stabilizers['indices'];
-    let L = params.L;
+    let logical_z = stabilizers['logical_z'];
+    let logical_x = stabilizers['logical_x'];
+    let Lx = params.L+1;
+    let Ly = params.L;
+    let Lz = params.L;
 
     let codeClass = {'cubic': ToricCode3D,
                      'rhombic': RhombicCode,
-                     'rotated': RotatedCode3D}
+                     'rotated': RotatedCode3D,
+                     'rotated-toric': RotatedToricCode3D}
 
-    code = new codeClass[params.codeName](L, Hx, Hz, indices, scene);
+    code = new codeClass[params.codeName](Lx, Ly, Lz, Hx, Hz, indices, scene);
     code.build();
+    code.displayLogical(logical_z, 'Z', 0);
 }
 
 function changeLatticeSize() {
@@ -143,7 +150,9 @@ async function getStabilizerMatrices() {
           },
         method: 'POST',
         body: JSON.stringify({
-            'L': params.L,
+            'Lx': params.L+1,
+            'Ly': params.L,
+            'Lz': params.L,
             'code_name': params.codeName
         })
     });
@@ -156,13 +165,13 @@ async function getStabilizerMatrices() {
 function buildGUI() {
     gui = new GUI();
     const codeFolder = gui.addFolder('Code')
-    codeFolder.add(params, 'codeName', {'Cubic': 'cubic', 'Rhombic': 'rhombic', 'Rotated': 'rotated'}).name('Code type').onChange(changeLatticeSize);
+    codeFolder.add(params, 'codeName', {'Cubic': 'cubic', 'Rhombic': 'rhombic', 'Rotated': 'rotated', 'Rotated Toric': 'rotated-toric'}).name('Code type').onChange(changeLatticeSize);
     codeFolder.add(params, 'L', {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
 
     const errorModelFolder = gui.addFolder('Error Model')
     errorModelFolder.add(params, 'errorModel', {'Pure X': 'Pure X', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}).name('Model');
     errorModelFolder.add(params, 'errorProbability', 0, 0.5).name('Probability');
-    errorModelFolder.add(params, 'deformed').name('Deformed');
+    errorModelFolder.add(params, 'deformation', {'None': 'None', 'XZZX': 'XZZX', 'XY': 'XY'}).name('Deformation');
     errorModelFolder.add(buttons, 'addErrors').name('▶ Add errors (r)');
 
     const decoderFolder = gui.addFolder('Decoder')
@@ -247,11 +256,13 @@ async function getCorrection(syndrome) {
           },
         method: 'POST',
         body: JSON.stringify({
-            'L': params.L,
+            'Lx': params.L+1,
+            'Ly': params.L,
+            'Lz': params.L,
             'p': params.errorProbability,
             'max_bp_iter': params.max_bp_iter,
             'syndrome': syndrome,
-            'deformed': params.deformed,
+            'deformation': params.deformation,
             'decoder': params.decoder,
             'error_model': params.errorModel,
             'code_name': params.codeName
@@ -270,9 +281,11 @@ async function getRandomErrors() {
           },
         method: 'POST',
         body: JSON.stringify({
-            'L': params.L,
+            'Lx': params.L+1,
+            'Ly': params.L,
+            'Lz': params.L,
             'p': params.errorProbability,
-            'deformed': params.deformed,
+            'deformation': params.deformation,
             'error_model': params.errorModel,
             'code_name': params.codeName
         })

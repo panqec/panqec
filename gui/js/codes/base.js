@@ -1,8 +1,7 @@
 export {AbstractCode, stringToArray};
 
 class AbstractCode {
-    constructor(L, Hx, Hz, scene) {
-        this.L = L;
+    constructor(Hx, Hz, scene) {
         this.H = {'X': Hx, 'Z': Hz};
         this.scene = scene;
 
@@ -66,6 +65,14 @@ class AbstractCode {
         }
     
         this.updateStabilizers();
+    }
+
+    displayLogical(logical, pauli, indexLogical=0) {
+        for(let i=0; i < logical[indexLogical].length; i++) {
+            if (logical[indexLogical][i]) {
+                this.insertError(this.qubits[i], pauli)
+            }
+        }
     }
 }
 

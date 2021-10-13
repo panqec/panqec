@@ -1,5 +1,5 @@
-from ._deformed_pauli_error_model import DeformedPauliErrorModel
-from ._deformed_rotated_pauli_error_model import DeformedRotatedPauliErrorModel # noqa
+from ._deformed_xzzx_error_model import DeformedXZZXErrorModel
+from ._deformed_xy_error_model import DeformedXYErrorModel # noqa
 from ._deformed_decoder import (  # noqa
     DeformedSweepMatchDecoder, DeformedSweepDecoder3D,
     DeformedToric3DPymatchingDecoder

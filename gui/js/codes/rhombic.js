@@ -5,8 +5,12 @@ import { AbstractCode, stringToArray } from './base.js';
 export {RhombicCode};
 
 class RhombicCode extends AbstractCode {
-    constructor(L, Hx, Hz, indices, scene) {
-        super(L, Hx, Hz, scene);
+    constructor(Lx, Ly, Lz, Hx, Hz, indices, scene) {
+        super(Hx, Hz, scene);
+
+        this.Lx = Lx;
+        this.Ly = Ly;
+        this.Lz = Lz;
 
         this.cubes = [];
         this.triangles = [];

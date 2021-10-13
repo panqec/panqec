@@ -214,17 +214,15 @@ def bp_osd_decoder(
 
 
 class BeliefPropagationOSDDecoder(Decoder):
-    label = 'Toric 2D Belief Propagation + OSD decoder'
+    label = 'BP-OSD decoder'
 
     def __init__(self, error_model: ErrorModel,
                  probability: float,
                  max_bp_iter: int = 10,
-                 deformed: bool = False,
-                 joschka: bool = False):
+                 joschka: bool = True):
         super().__init__()
         self._error_model = error_model
         self._probability = probability
-        self._deformed = deformed
         self._max_bp_iter = max_bp_iter
         self._joschka = joschka
 
@@ -237,34 +235,37 @@ class BeliefPropagationOSDDecoder(Decoder):
 
         pi, px, py, pz = self._error_model.probability_distribution(code, self._probability)
 
-        probabilities_x = px + py
-        probabilities_z = pz + py
+        return pi, px, py, pz
 
-        # r_x, r_y, r_z = self._error_model.direction
-        # p_X, p_Y, p_Z = np.array([r_x, r_y, r_z])*self._probability
+    def update_probabilities(self, correction: np.ndarray,
+                             px: np.ndarray, py: np.ndarray, pz: np.ndarray,
+                             direction: str = "x->z") -> np.ndarray:
+        """Update X probabilities once a Z correction has been applied"""
 
-        # p_regular_x = p_X + p_Y
-        # p_regular_z = p_Z + p_Y
-        # p_deformed_x = p_Z + p_Y
-        # p_deformed_z = p_X + p_Y
+        n_qubits = len(correction)
 
-        # if hasattr(code, 'X_AXIS'):
-        #     deformed_edge = code.X_AXIS
-        # else:
-        #     deformed_edge = 0
+        new_probs = np.zeros(n_qubits)
 
-        # probabilities_x = p_regular_x * np.ones(code.n_k_d[0], dtype=float)
-        # probabilities_z = p_regular_z * np.ones(code.n_k_d[0], dtype=float)
+        if direction == "z->x":
+            for i in range(n_qubits):
+                if correction[i] == 1:
+                    if pz[i] + py[i] != 0:
+                        new_probs[i] = py[i] / (pz[i] + py[i])
+                else:
+                    new_probs[i] = px[i] / (1 - pz[i] - py[i])
 
-        # if self._deformed:
-        #     # The weights on the deformed edge are different
-        #     ranges = [range(length) for length in code.shape]
-        #     for coord in itertools.product(*ranges):
-        #         if coord[0] == deformed_edge:
-        #             probabilities_x[coord] = p_deformed_x
-        #             probabilities_z[coord] = p_deformed_z
+        elif direction == "x->z":
+            for i in range(n_qubits):
+                if correction[i] == 1:
+                    if px[i] + py[i] != 0:
+                        new_probs[i] = py[i] / (px[i] + py[i])
+                else:
+                    new_probs[i] = pz[i] / (1 - px[i] - py[i])
 
-        return probabilities_x, probabilities_z
+        else:
+            raise ValueError(f"Unrecognized direction {direction} when updating probabilities")
+
+        return new_probs
 
     # @profile
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
@@ -281,14 +282,17 @@ class BeliefPropagationOSDDecoder(Decoder):
 
             Hz = code.stabilizers[:n_faces, n_qubits:]
             Hx = code.stabilizers[n_faces:, :n_qubits]
-
+            
         syndrome = np.array(syndrome, dtype=int)
 
         syndrome_z = syndrome[:len(Hz)]
         syndrome_x = syndrome[len(Hz):]
 
-        probabilities_x, probabilities_z = self.get_probabilities(code)
+        pi, px, py, pz = self.get_probabilities(code)
 
+        probabilities_x = px + py
+        probabilities_z = pz + py
+        
         if self._joschka:
             if code.label in self._x_decoder.keys():
                 x_decoder = self._x_decoder[code.label]
@@ -304,12 +308,13 @@ class BeliefPropagationOSDDecoder(Decoder):
                     osd_method="osd_cs",  # Choose from:  1) "osd_e", "osd_cs", "osd0"
                     osd_order=7  # the osd search depth
                 )
+
                 x_decoder = bposd_decoder(
                     Hx,
                     error_rate=0.05,
                     channel_probs=probabilities_x,
                     max_iter=self._max_bp_iter,  # the maximum number of iterations for BP)
-                    bp_method="ms",
+                    bp_method="msl",
                     ms_scaling_factor=0,  # min sum scaling factor. If set to zero the variable scaling factor method is used
                     osd_method="osd_cs",  # Choose from:  1) "osd_e", "osd_cs", "osd0"
                     osd_order=7  # the osd search depth
@@ -318,18 +323,31 @@ class BeliefPropagationOSDDecoder(Decoder):
                 self._z_decoder[code.label] = z_decoder
 
             z_decoder.decode(syndrome_z)
-            x_decoder.decode(syndrome_x)
-
             z_correction = z_decoder.osdw_decoding
+
+            new_x_probs = self.update_probabilities(z_correction, px, py, pz, direction="z->x")
+            x_decoder.update_channel_probs(new_x_probs)
+            x_decoder.decode(syndrome_x)
             x_correction = x_decoder.osdw_decoding
+            
+            # new_z_probs = self.update_probabilities(x_correction, px, py, pz, direction="x->z")
+            # z_decoder.update_channel_probs(new_z_probs)
+            # z_decoder.decode(syndrome_z)
+            # z_correction = z_decoder.osdw_decoding
+            
+            # new_x_probs = self.update_probabilities(z_correction, px, py, pz, direction="x->z")
+            # x_decoder.update_channel_probs(new_x_probs)
+            # x_decoder.decode(syndrome_x)
+            # x_correction = x_decoder.osdw_decoding
         else:
-            x_correction = bp_osd_decoder(
-                Hx, syndrome_x, probabilities_x, max_bp_iter=self._max_bp_iter
-            )
             z_correction = bp_osd_decoder(
                 Hz, syndrome_z, probabilities_z, max_bp_iter=self._max_bp_iter
             )
-
+            new_x_probs = self.update_probabilities(z_correction, px, py, pz)
+            x_correction = bp_osd_decoder(
+                Hx, syndrome_x, new_x_probs, max_bp_iter=self._max_bp_iter
+            )
+            
         correction = np.concatenate([x_correction, z_correction])
         correction = correction.astype(int)
 

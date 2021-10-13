@@ -5,8 +5,12 @@ import { AbstractCode, stringToArray } from './base.js';
 export {RotatedCode3D};
 
 class RotatedCode3D extends AbstractCode {
-    constructor(L, Hx, Hz, indices, scene) {
-        super(L, Hx, Hz, scene);
+    constructor(Lx, Ly, Lz, Hx, Hz, indices, scene) {
+        super(Hx, Hz, scene);
+
+        this.Lx = Lx;
+        this.Ly = Ly;
+        this.Lz = Lz;
 
         this.vertices = new Array(Hx.length);
         this.faces = new Array(Hz.length);

@@ -5,7 +5,7 @@ from qecsim.model import StabilizerCode
 from ..noise import PauliErrorModel
 
 
-class DeformedPauliErrorModel(PauliErrorModel):
+class DeformedXZZXErrorModel(PauliErrorModel):
     """Pauli error model with qubits deformed."""
 
     # _undeformed_model: PauliErrorModel
@@ -15,7 +15,7 @@ class DeformedPauliErrorModel(PauliErrorModel):
 
     @property
     def label(self) -> str:
-        return 'Deformed Pauli X{}Y{}Z{}'.format(*self.direction)
+        return 'Deformed XZZX Pauli X{}Y{}Z{}'.format(*self.direction)
 
     @functools.lru_cache()
     def probability_distribution(self, code: StabilizerCode, probability: float) -> Tuple:
@@ -32,11 +32,17 @@ class DeformedPauliErrorModel(PauliErrorModel):
     def _get_deformation_indices(self, code: StabilizerCode):
         is_deformed = [False for _ in range(code.n_k_d[0])]
 
-        deformed_edge = code.X_AXIS
+        if "Rotated" in code.label:
+            for coord, index in code.qubit_index.items():
+                x, y, z = coord
+                if z % 2 == 1:
+                    is_deformed[index] = True
+        else:
+            deformed_edge = code.X_AXIS
 
-        for axis, x, y, z in code.qubit_index.keys():
-            if axis == deformed_edge:
-                index = code.qubit_index[(axis, x, y, z)]
-                is_deformed[index] = True
+            for axis, x, y, z in code.qubit_index.keys():
+                if axis == deformed_edge:
+                    index = code.qubit_index[(axis, x, y, z)]
+                    is_deformed[index] = True
 
         return is_deformed

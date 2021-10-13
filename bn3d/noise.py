@@ -28,7 +28,7 @@ class PauliErrorModel(SimpleErrorModel):
                 f'Noise direction ({r_x}, {r_y}, {r_z}) does not sum to 1.0'
             )
         self._direction = r_x, r_y, r_z
-        
+
     @property
     def direction(self):
         return self._direction
@@ -41,7 +41,7 @@ class PauliErrorModel(SimpleErrorModel):
         rng = np.random.default_rng() if rng is None else rng
         n_qubits = code.n_k_d[0]
         p_i, p_x, p_y, p_z = self.probability_distribution(code, probability)
-         
+
         error_pauli = ''.join([rng.choice(
             ('I', 'X', 'Y', 'Z'),
             p=[p_i[i], p_x[i], p_y[i], p_z[i]]

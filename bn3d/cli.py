@@ -12,7 +12,7 @@ from .slurm import (
     clear_out_folder, clear_sbatch_folder
 )
 from bn3d.plots._hashing_bound import (
-    generate_points_triangle
+    generate_points_triangle, get_direction_from_z_bias_ratio
 )
 
 
@@ -86,83 +86,81 @@ def ls(model_type=None):
 
 @click.command()
 @click.option('-i', '--input_dir', required=True, type=str)
-@click.option('-d', '--decoder', required=True, type=click.Choice(
-    ['bp-osd', 'bp-osd-2', 'sweepmatch'],
-    case_sensitive=False
-))
-def generate_input(input_dir, decoder):
+@click.option('-l', '--lattice', required=True,
+              type=click.Choice(['rotated', 'kitaev']))
+@click.option('-b', '--boundary', required=True,
+              type=click.Choice(['toric', 'planar']))
+@click.option('-d', '--deformation', required=True,
+              type=click.Choice(['none', 'xzzx', 'xy']))
+def generate_input(input_dir, lattice, boundary, deformation):
     """Generate the json files of every experiments"""
 
-    codes = ["cubic"]
+    if lattice == 'kitaev' and boundary == 'planar':
+        raise NotImplementedError("Kitaev planar lattice not implemented")
+
     delta = 0.005
     probabilities = np.arange(0, 0.5+delta, delta).tolist()
-    directions = generate_points_triangle()
-    for code in codes:
-        for deformed in [True, False]:
-            for direction in directions:
-                for p in probabilities:
-                    label = "deformed" if deformed else "regular"
-                    label += f"-{code}"
-                    label += f"-{decoder}"
-                    label += (
-                        f"-{direction['r_x']:.2f}-{direction['r_y']:.2f}"
-                        f"-{direction['r_z']:.2f}"
-                    )
-                    label += f"-p-{p:.3f}"
+    bias_ratios = [0.5, 1, 3, 10, 30, 100, np.inf]
+    for eta in bias_ratios:
+        direction = get_direction_from_z_bias_ratio(eta)
+        for p in probabilities:
+            label = "regular" if deformation == "none" else deformation
+            label += f"-{lattice}"
+            label += f"-{boundary}"
+            if eta == np.inf:
+                label += "-bias-inf"
+            else:
+                label += f"-bias-{eta:.2f}"
+            label += f"-p-{p:.3f}"
 
-                    code_model = (
-                        "ToricCode3D" if code == 'cubic' else "RhombicCode"
-                    )
-                    code_parameters = [
-                        {"L_x": L, "L_y": L+1, "L_z": L}
-                        for L in [4, 6, 8, 10]
-                    ]
-                    code_dict = {
-                        "model": code_model,
-                        "parameters": code_parameters
-                    }
+            code_model = ''
+            if lattice == 'rotated':
+                code_model += 'Rotated'
+            if boundary == 'toric':
+                code_model += 'Toric'
+            code_model += 'Code3D'
 
-                    noise_model = "Deformed" if deformed else ""
-                    noise_model += "PauliErrorModel"
-                    noise_parameters = direction
-                    noise_dict = {
-                        "model": noise_model,
-                        "parameters": noise_parameters
-                    }
+            code_parameters = [
+                {"L_x": L, "L_y": L+1, "L_z": L+1}
+                for L in [3, 4, 5, 6, 7]
+            ]
+            code_dict = {
+                "model": code_model,
+                "parameters": code_parameters
+            }
 
-                    if decoder == "sweepmatch":
-                        decoder_model = "SweepMatchDecoder"
-                        if deformed:
-                            decoder_model = "Deformed" + decoder_model
-                        decoder_dict = {"model": decoder_model}
-                    elif decoder == "bp-osd":
-                        decoder_model = "BeliefPropagationOSDDecoder"
-                        decoder_parameters = {'deformed': deformed,
-                                              'max_bp_iter': 10}
-                        decoder_dict = {"model": decoder_model,
-                                        "parameters": decoder_parameters}
-                    elif decoder == "bp-osd-2":
-                        decoder_model = "BeliefPropagationOSDDecoder"
-                        decoder_parameters = {'deformed': deformed,
-                                              'joschka': True,
-                                              'max_bp_iter': 10}
-                        decoder_dict = {"model": decoder_model,
-                                        "parameters": decoder_parameters}
-                    else:
-                        raise ValueError("Decoder not recognized")
+            if deformation == "none":
+                noise_model = "PauliErrorModel"
+            elif deformation == "xzzx":
+                noise_model = 'DeformedXZZXErrorModel'
+            elif deformation == "xy":
+                noise_model = 'DeformedXYErrorModel'
 
-                    ranges_dict = {"label": label,
-                                   "code": code_dict,
-                                   "noise": noise_dict,
-                                   "decoder": decoder_dict,
-                                   "probability": [p]}
+            noise_parameters = direction
+            noise_dict = {
+                "model": noise_model,
+                "parameters": noise_parameters
+            }
 
-                    json_dict = {"comments": "",
-                                 "ranges": ranges_dict}
+            decoder_model = "BeliefPropagationOSDDecoder"
+            decoder_parameters = {'joschka': True,
+                                  'max_bp_iter': 10}
 
-                    filename = os.path.join(input_dir, f'{label}.json')
-                    with open(filename, 'w') as json_file:
-                        json.dump(json_dict, json_file, indent=4)
+            decoder_dict = {"model": decoder_model,
+                            "parameters": decoder_parameters}
+
+            ranges_dict = {"label": label,
+                           "code": code_dict,
+                           "noise": noise_dict,
+                           "decoder": decoder_dict,
+                           "probability": [p]}
+
+            json_dict = {"comments": "",
+                         "ranges": ranges_dict}
+
+            filename = os.path.join(input_dir, f'{label}.json')
+            with open(filename, 'w') as json_file:
+                json.dump(json_dict, json_file, indent=4)
 
 
 @click.group(invoke_without_command=True)

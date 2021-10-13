@@ -1,11 +1,11 @@
 from typing import Tuple, Optional, Dict
 import numpy as np
 from qecsim.model import StabilizerCode
-from ._rotated_3d_pauli import Rotated3DPauli
+from ._rotated_toric_3d_pauli import RotatedToric3DPauli
 from bn3d.bpauli import bcommute
 
 
-class RotatedCode3D(StabilizerCode):
+class RotatedToricCode3D(StabilizerCode):
 
     _size: Tuple[int, int, int]
     _qubit_index: Dict[Tuple[int, int, int], int]
@@ -38,7 +38,7 @@ class RotatedCode3D(StabilizerCode):
     def n_k_d(self) -> Tuple[int, int, int]:
         Lx, Ly, Lz = self.size
         n_horizontals = 4*np.product(self.size)
-        n_verticals = 2*Lx*Ly*(Lz-1)
+        n_verticals = (2*Lx*Ly)*Lz
         return (n_horizontals + n_verticals, -1, -1)
 
     @property
@@ -55,7 +55,7 @@ class RotatedCode3D(StabilizerCode):
 
     @property
     def label(self) -> str:
-        return 'Rotated {}x{}x{}'.format(*self.size)
+        return 'Rotated Toric {}x{}x{}'.format(*self.size)
 
     @property
     def stabilizers(self) -> np.ndarray:
@@ -85,15 +85,22 @@ class RotatedCode3D(StabilizerCode):
         """Get the unique logical X operator."""
 
         if self._logical_xs.size == 0:
-            L_x, L_y, L_z = self.size
+            Lx, Ly, Lz = self.size
             logicals = []
 
-            # X operators along x edges in x direction.
-            logical = Rotated3DPauli(self)
-
-            logical.site('X', (1, 1, 1))
-            for x in range(3, 4 * L_x, 2):
-                logical.site('X', (x, x - 2, 1))
+            logical = RotatedToric3DPauli(self)
+            for y in range(1, 4*Ly, 2):
+                logical.site('X', (1, y, 1))
+            logicals.append(logical.to_bsf())
+            
+            logical = RotatedToric3DPauli(self)
+            for x in range(1, 4*Lx, 2):
+                logical.site('X', (x, 1, 1))
+            logicals.append(logical.to_bsf())
+            
+            logical = RotatedToric3DPauli(self)
+            for z in range(0, 2*Lz, 2):
+                logical.site('X', (2, 0, z))
             logicals.append(logical.to_bsf())
 
             self._logical_xs = np.array(logicals, dtype=np.uint)
@@ -104,18 +111,30 @@ class RotatedCode3D(StabilizerCode):
     def logical_zs(self) -> np.ndarray:
         """Get the unique logical Z operator."""
         if self._logical_zs.size == 0:
-            L_x, L_y, L_z = self.size
+            Lx, Ly, Lz = self.size
             logicals = []
 
             # Z operators on x edges forming surface normal to x (yz plane).
-            logical = Rotated3DPauli(self)
-            for z in range(1, 2*L_z, 2):
-                for x in range(1, 4*L_x, 2):
-                    logical.site('Z', (x, x, z))
+            logical = RotatedToric3DPauli(self)
+            for (x, y, z) in self.qubit_index.keys():
+                if z % 2 == 1 and (x + y) % 4 == 2:
+                    logical.site('Z', (x, y, z))
             logicals.append(logical.to_bsf())
             
-        self._logical_zs = np.array(logicals, dtype=np.uint)
+            logical = RotatedToric3DPauli(self)
+            for (x, y, z) in self.qubit_index.keys():
+                if z % 2 == 1 and (x + y) % 4 == 0:
+                    logical.site('Z', (x, y, z))
+            logicals.append(logical.to_bsf())
             
+            logical = RotatedToric3DPauli(self)
+            for (x, y, z) in self.qubit_index.keys():
+                if z == 0:
+                    logical.site('Z', (x, y, z))
+            logicals.append(logical.to_bsf())
+
+            self._logical_zs = np.array(logicals, dtype=np.uint)
+
         return self._logical_zs
 
     @property
@@ -135,9 +154,9 @@ class RotatedCode3D(StabilizerCode):
                     coordinates.append((x, y, z))
 
         # Vertical
-        for x in range(2, 4*Lx, 2):
-            for y in range(0, 4*Ly+1, 2):
-                for z in range(2, 2*Lz, 2):
+        for x in range(0, 4*Lx-1, 2):
+            for y in range(0, 4*Ly-1, 2):
+                for z in range(0, 2*Lz, 2):
                     if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
 
@@ -151,8 +170,8 @@ class RotatedCode3D(StabilizerCode):
         coordinates = []
 
         for z in range(1, 2*Lz, 2):
-            for x in range(2, 4*Lx, 2):
-                for y in range(0, 4*Ly+1, 2):
+            for x in range(0, 4*Lx, 2):
+                for y in range(0, 4*Ly, 2):
                     if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
 
@@ -166,17 +185,17 @@ class RotatedCode3D(StabilizerCode):
         coordinates = []
 
         # Horizontal faces
-        for x in range(0, 4*Lx+1, 2):
-            for y in range(2, 4*Ly, 2):
+        for x in range(0, 4*Lx, 2):
+            for y in range(0, 4*Ly-1, 2):
                 for z in range(1, 2*Lz, 2):
                     if (x + y) % 4 == 0:
                         coordinates.append((x, y, z))
         # Vertical faces
-        for x in range(3, 4*Lx-1, 2):
+        for x in range(1, 4*Lx, 2):
             for y in range(1, 4*Ly, 2):
-                for z in range(2, 2*Lz, 2):
+                for z in range(0, 2*Lz, 2):
                     coordinates.append((x, y, z))
-
+                    
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 
         return coord_to_index
@@ -185,7 +204,7 @@ class RotatedCode3D(StabilizerCode):
         vertex_stabilizers = []
 
         for (x, y, z) in self.vertex_index.keys():
-            operator = Rotated3DPauli(self)
+            operator = RotatedToric3DPauli(self)
             operator.vertex('Z', (x, y, z))
             vertex_stabilizers.append(operator.to_bsf())
 
@@ -195,18 +214,18 @@ class RotatedCode3D(StabilizerCode):
         face_stabilizers = []
 
         for (x, y, z) in self.face_index.keys():
-            operator = Rotated3DPauli(self)
+            operator = RotatedToric3DPauli(self)
             operator.face('X', (x, y, z))
             face_stabilizers.append(operator.to_bsf())
 
         return np.array(face_stabilizers, dtype=np.uint)
 
-    def measure_syndrome(self, error: Rotated3DPauli) -> np.ndarray:
+    def measure_syndrome(self, error: RotatedToric3DPauli) -> np.ndarray:
         """Perfectly measure syndromes given Pauli error."""
         return bcommute(self.stabilizers, error.to_bsf())
 
 
 if __name__ == "__main__":
-    code = RotatedCode3D(2)
+    code = RotatedToricCode3D(2)
 
     print("Vertices", code.face_index)
