@@ -5,9 +5,9 @@ from multiprocessing import Pool, cpu_count
 import click
 import pandas as pd
 from .analysis import SimpleAnalysis
-from .controllers import DataManager
+from .controllers import DataManager, DumbController
 from .core import (
-    start_sampling, generate_inputs, filter_input_hashes, monitor_usage
+    start_sampling, generate_inputs, filter_input_hashes, monitor_usage,
 )
 from .config import SPIN_MODELS, DISORDER_MODELS
 
@@ -91,10 +91,27 @@ def status(data_dir):
 
 
 @click.command()
+@click.argument('input_json', required=True)
+def sample(input_json):
+    """Perform single MCMC run."""
+
+    # Make sure the file exists.
+    assert os.path.isfile(input_json)
+    data_dir = os.path.dirname(os.path.dirname(input_json))
+
+    # Ensure the info.json file exists which tells it how many tau to run.
+    assert os.path.exists(os.path.join(data_dir, 'info.json'))
+
+    # Run just that single input.
+    controller = DumbController(input_json)
+    controller.run_all()
+
+
+@click.command()
 @click.argument('data_dir', required=True)
 @click.option('--n_jobs', default=1, type=click.INT, show_default=True)
-def sample(data_dir, n_jobs):
-    """Perform MCMC runs.."""
+def sample_parallel(data_dir, n_jobs):
+    """Perform MCMC runs in parallel."""
 
     # If running as array job slurm, determine what the task ID is.
     i_job = int(os.getenv('SLURM_ARRAY_TASK_ID', default=1))
@@ -160,6 +177,7 @@ def models():
 
 statmech.add_command(status)
 statmech.add_command(sample)
+statmech.add_command(sample_parallel)
 statmech.add_command(generate)
 statmech.add_command(models)
 statmech.add_command(analyse)

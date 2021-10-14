@@ -403,3 +403,63 @@ class SimpleController:
         """Get list of all results."""
         summary = self.data_manager.load('results')
         return summary
+
+
+class DumbController(SimpleController):
+    """Just run a single input file."""
+
+    input_json: str = ''
+    input_hash: str = ''
+
+    def __init__(self, input_json: str):
+        self.uuid = uuid.uuid4().hex
+        self.task_filter = None
+        self.input_json = input_json
+        data_dir = os.path.dirname(os.path.dirname(input_json))
+        self.data_manager = DataManager(data_dir)
+
+        # Load the hash key.
+        with open(input_json) as f:
+            self.input_hash = json.load(f)['hash']
+
+    def run_all(self):
+        """Run for all tau."""
+
+        # Get the max tau
+        info_json = os.path.join(self.data_manager.data_dir, 'info.json')
+        with open(info_json) as f:
+            max_tau_map = json.load(f)['max_tau']
+        max_tau = max(max_tau_map.values())
+
+        # Dumb choice for now.
+        seed = 0
+
+        for tau in range(max_tau + 1):
+            print(f'Sampling {self.input_hash} for tau={tau}')
+
+            # Find existing models and results before running.
+            existing_results = self.data_manager.load('results', {
+                'hash': self.input_hash,
+                'seed': seed,
+                'tau': tau,
+            })
+
+            # Only proceed if there are no existing results.
+            if not existing_results:
+
+                # Load the model state from the last tau.
+                previous_model = None
+                if tau != 0:
+                    previous_results = self.data_manager.load('results', {
+                        'hash': self.input_hash,
+                        'seed': seed,
+                        'tau': tau - 1,
+                    })
+                    if previous_results:
+                        previous_model = self.data_manager.load('models', {
+                            'hash': previous_results[0]['model'],
+                        })[0]
+
+                self.single_run(
+                    self.input_hash, seed, tau, previous_model
+                )
