@@ -156,7 +156,9 @@ class ToricCode3D(StabilizerCode):
 
     def _create_qubit_indices(self):
         ranges = [range(length) for length in self.shape]
-        coordinates = [(axis, x, y, z) for axis, x, y, z in itertools.product(*ranges)]
+        coordinates = [
+            (axis, x, y, z) for axis, x, y, z in itertools.product(*ranges)
+        ]
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 
@@ -172,7 +174,9 @@ class ToricCode3D(StabilizerCode):
 
     def _create_face_indices(self):
         ranges = [range(length) for length in self.shape]
-        coordinates = [(axis, x, y, z) for axis, x, y, z in itertools.product(*ranges)]
+        coordinates = [
+            (axis, x, y, z) for axis, x, y, z in itertools.product(*ranges)
+        ]
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 

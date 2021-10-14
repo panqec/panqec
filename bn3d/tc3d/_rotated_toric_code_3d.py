@@ -92,12 +92,12 @@ class RotatedToricCode3D(StabilizerCode):
             for y in range(1, 4*Ly, 2):
                 logical.site('X', (1, y, 1))
             logicals.append(logical.to_bsf())
-            
+
             logical = RotatedToric3DPauli(self)
             for x in range(1, 4*Lx, 2):
                 logical.site('X', (x, 1, 1))
             logicals.append(logical.to_bsf())
-            
+
             logical = RotatedToric3DPauli(self)
             for z in range(0, 2*Lz, 2):
                 logical.site('X', (2, 0, z))
@@ -120,13 +120,13 @@ class RotatedToricCode3D(StabilizerCode):
                 if z % 2 == 1 and (x + y) % 4 == 2:
                     logical.site('Z', (x, y, z))
             logicals.append(logical.to_bsf())
-            
+
             logical = RotatedToric3DPauli(self)
             for (x, y, z) in self.qubit_index.keys():
                 if z % 2 == 1 and (x + y) % 4 == 0:
                     logical.site('Z', (x, y, z))
             logicals.append(logical.to_bsf())
-            
+
             logical = RotatedToric3DPauli(self)
             for (x, y, z) in self.qubit_index.keys():
                 if z == 0:
@@ -195,7 +195,7 @@ class RotatedToricCode3D(StabilizerCode):
             for y in range(1, 4*Ly, 2):
                 for z in range(0, 2*Lz, 2):
                     coordinates.append((x, y, z))
-                    
+
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 
         return coord_to_index

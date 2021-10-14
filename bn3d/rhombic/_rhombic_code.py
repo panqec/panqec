@@ -43,7 +43,7 @@ class RhombicCode(StabilizerCode):
     @property
     def n_k_d(self) -> Tuple[int, int, int]:
         return (np.product(self.shape), 3, min(self.size))
-    
+
     @property
     def qubit_index(self) -> Dict[Tuple[int, int, int, int], int]:
         return self._qubit_index
@@ -51,7 +51,7 @@ class RhombicCode(StabilizerCode):
     @property
     def triangle_index(self) -> Dict[Tuple[int, int, int, int], int]:
         return self._triangle_index
-    
+
     @property
     def cube_index(self) -> Dict[Tuple[int, int, int], int]:
         return self._cube_index
@@ -160,7 +160,9 @@ class RhombicCode(StabilizerCode):
 
     def _create_qubit_indices(self):
         ranges = [range(length) for length in self.shape]
-        coordinates = [(axis, x, y, z) for axis, x, y, z in itertools.product(*ranges)]
+        coordinates = [
+            (axis, x, y, z) for axis, x, y, z in itertools.product(*ranges)
+        ]
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 
@@ -168,7 +170,9 @@ class RhombicCode(StabilizerCode):
 
     def _create_triangle_indices(self):
         ranges = [range(length) for length in (4,) + self.size]
-        coordinates = [(axis, x, y, z) for axis, x, y, z in itertools.product(*ranges)]
+        coordinates = [
+            (axis, x, y, z) for axis, x, y, z in itertools.product(*ranges)
+        ]
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 

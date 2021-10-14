@@ -23,14 +23,19 @@ class RotatedToric3DPauli:
             self._xs = np.zeros(n_qubits, dtype=int)
             self._zs = np.zeros(n_qubits, dtype=int)
         else:
-            assert len(bsf) == 2 * n_qubits, 'BSF {} has incompatible length'.format(bsf)
-            assert np.array_equal(bsf % 2, bsf), 'BSF {} is not in binary form'.format(bsf)
+            assert len(bsf) == 2 * n_qubits, \
+                'BSF {} has incompatible length'.format(bsf)
+            assert np.array_equal(bsf % 2, bsf), \
+                'BSF {} is not in binary form'.format(bsf)
             # initialise lattices for X and Z operators from bsf
             self._xs, self._zs = np.hsplit(bsf, 2)  # split out Xs and Zs
 
     def get_index(self, coordinate):
         if coordinate not in self.code.qubit_index.keys():
-            raise ValueError(f"Incorrect qubit coordinate {coordinate} given when constructing the operator")
+            raise ValueError(
+                f"Incorrect qubit coordinate {coordinate} given when "
+                "constructing the operator"
+            )
         return self.code.qubit_index[coordinate]
 
     def site(self, operator, *indices):
@@ -38,10 +43,12 @@ class RotatedToric3DPauli:
         Apply the operator to site identified by the index.
         Notes:
         * Index is in the format (x, y).
-        * Index is modulo lattice dimensions, i.e. on a (2, 2) lattice, (2, -1) indexes the same site as (0, 1).
+        * Index is modulo lattice dimensions, i.e. on a (2, 2) lattice, (2, -1)
+        indexes the same site as (0, 1).
         :param operator: Pauli operator. One of 'I', 'X', 'Y', 'Z'.
         :type operator: str
-        :param indices: Any number of indices identifying sites in the format (x, y).
+        :param indices: Any number of indices identifying sites in the format
+        (x, y).
         :type indices: Any number of 2-tuple of int
         :return: self (to allow chaining)
         :rtype: RotatedToricPauli
@@ -133,24 +140,40 @@ class RotatedToric3DPauli:
 
         # Horizontal face
         if z % 2 == 1:
-            self.site(operator, ((x - 1) % (4*Lx), (y - 1) % (4*Ly), z % (2*Lz)))
-            self.site(operator, ((x + 1) % (4*Lx), (y + 1) % (4*Ly), z % (2*Lz)))
-            self.site(operator, ((x - 1) % (4*Lx), (y + 1) % (4*Ly), z % (2*Lz)))
-            self.site(operator, ((x + 1) % (4*Lx), (y - 1) % (4*Ly), z % (2*Lz)))
+            self.site(
+                operator, ((x - 1) % (4*Lx), (y - 1) % (4*Ly), z % (2*Lz))
+            )
+            self.site(
+                operator, ((x + 1) % (4*Lx), (y + 1) % (4*Ly), z % (2*Lz))
+            )
+            self.site(
+                operator, ((x - 1) % (4*Lx), (y + 1) % (4*Ly), z % (2*Lz))
+            )
+            self.site(
+                operator, ((x + 1) % (4*Lx), (y - 1) % (4*Ly), z % (2*Lz))
+            )
 
         # Vertical face (axis /)
         elif (x + y) % 4 == 0:
             self.site(operator, (x % (4*Lx), y % (4*Ly), (z - 1) % (2*Lz)))
             self.site(operator, (x % (4*Lx), y % (4*Ly), (z + 1) % (2*Lz)))
-            self.site(operator, ((x - 1) % (4*Lx), (y - 1) % (4*Ly), z % (2*Lz)))
-            self.site(operator, ((x + 1) % (4*Lx), (y + 1) % (4*Ly), z % (2*Lz)))
+            self.site(
+                operator, ((x - 1) % (4*Lx), (y - 1) % (4*Ly), z % (2*Lz))
+            )
+            self.site(
+                operator, ((x + 1) % (4*Lx), (y + 1) % (4*Ly), z % (2*Lz))
+            )
 
         # Vertical face (axis \)
         elif (x + y) % 4 == 2:
             self.site(operator, (x % (4*Lx), y % (4*Ly), (z - 1) % (2*Lz)))
             self.site(operator, (x % (4*Lx), y % (4*Ly), (z + 1) % (2*Lz)))
-            self.site(operator, ((x - 1) % (4*Lx), (y + 1) % (4*Ly), z % (2*Lz)))
-            self.site(operator, ((x + 1) % (4*Lx), (y - 1) % (4*Ly), z % (2*Lz)))
+            self.site(
+                operator, ((x - 1) % (4*Lx), (y + 1) % (4*Ly), z % (2*Lz))
+            )
+            self.site(
+                operator, ((x + 1) % (4*Lx), (y - 1) % (4*Ly), z % (2*Lz))
+            )
 
         else:
             raise ValueError(f"Invalid coordinate {location} for a face")
@@ -189,7 +212,8 @@ class RotatedToric3DPauli:
 
     def copy(self):
         """
-        Returns a copy of this Pauli that references the same code but is backed by a copy of the bsf.
+        Returns a copy of this Pauli that references the same code but is
+        backed by a copy of the bsf.
         :return: A copy of this Pauli.
         :rtype: ToricPauli
         """
@@ -197,15 +221,20 @@ class RotatedToric3DPauli:
 
     def __eq__(self, other):
         if type(other) is type(self):
-            return np.array_equal(self._xs, other._xs) and np.array_equal(self._zs, other._zs)
+            return np.array_equal(self._xs, other._xs) and np.array_equal(
+                self._zs, other._zs
+            )
         return NotImplemented
 
     def __repr__(self):
-        return '{}({!r}, {!r})'.format(type(self).__name__, self.code, self.to_bsf())
+        return '{}({!r}, {!r})'.format(
+            type(self).__name__, self.code, self.to_bsf()
+        )
 
     def __str__(self):
         """
-        ASCII art style lattice showing primal lattice lines and Pauli operators.
+        ASCII art style lattice showing primal lattice lines and Pauli
+        operators.
         :return: Informal string representation.
         :rtype: str
         """
@@ -215,7 +244,8 @@ class RotatedToric3DPauli:
         """
         Binary symplectic representation of Pauli.
         Notes:
-        * For performance reasons, the returned bsf is a view of this Pauli. Modifying one will modify the other.
+        * For performance reasons, the returned bsf is a view of this Pauli.
+        Modifying one will modify the other.
         :return: Binary symplectic representation of Pauli.
         :rtype: numpy.array (1d)
         """

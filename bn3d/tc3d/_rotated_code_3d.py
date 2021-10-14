@@ -113,9 +113,9 @@ class RotatedCode3D(StabilizerCode):
                 for x in range(1, 4*L_x, 2):
                     logical.site('Z', (x, x, z))
             logicals.append(logical.to_bsf())
-            
+
         self._logical_zs = np.array(logicals, dtype=np.uint)
-            
+
         return self._logical_zs
 
     @property

@@ -9,7 +9,10 @@ from dotenv import load_dotenv
 from qecsim.models.basic import FiveQubitCode
 from qecsim.models.toric import ToricCode
 from qecsim.models.generic import NaiveDecoder
-from .tc3d import ToricCode3D, Toric3DPymatchingDecoder, SweepMatchDecoder, RotatedCode3D, RotatedToricCode3D
+from .tc3d import (
+    ToricCode3D, Toric3DPymatchingDecoder, SweepMatchDecoder, RotatedCode3D,
+    RotatedToricCode3D
+)
 from .rhombic import RhombicCode
 from .bp_os_decoder import BeliefPropagationOSDDecoder
 from .tc2d import Toric2DPymatchingDecoder

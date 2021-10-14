@@ -50,7 +50,9 @@ class PauliErrorModel(SimpleErrorModel):
         return pt.pauli_to_bsf(error_pauli)
 
     @functools.lru_cache()
-    def probability_distribution(self, code: StabilizerCode, probability: float) -> Tuple:
+    def probability_distribution(
+        self, code: StabilizerCode, probability: float
+    ) -> Tuple:
         n = code.n_k_d[0]
         r_x, r_y, r_z = self.direction
 
