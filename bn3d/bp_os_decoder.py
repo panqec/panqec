@@ -1,5 +1,5 @@
+from typing import Dict
 import numpy as np
-import itertools
 from qecsim.model import Decoder, StabilizerCode, ErrorModel
 from typing import Tuple, List
 import numpy.ma as ma
@@ -226,14 +226,16 @@ class BeliefPropagationOSDDecoder(Decoder):
         self._max_bp_iter = max_bp_iter
         self._joschka = joschka
 
-        self._x_decoder = dict()
-        self._z_decoder = dict()
+        self._x_decoder: Dict = dict()
+        self._z_decoder: Dict = dict()
 
     def get_probabilities(
         self, code: StabilizerCode
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
 
-        pi, px, py, pz = self._error_model.probability_distribution(code, self._probability)
+        pi, px, py, pz = self._error_model.probability_distribution(
+            code, self._probability
+        )
 
         return pi, px, py, pz
 
@@ -263,7 +265,10 @@ class BeliefPropagationOSDDecoder(Decoder):
                     new_probs[i] = pz[i] / (1 - px[i] - py[i])
 
         else:
-            raise ValueError(f"Unrecognized direction {direction} when updating probabilities")
+            raise ValueError(
+                f"Unrecognized direction {direction} when "
+                "updating probabilities"
+            )
 
         return new_probs
 
@@ -282,7 +287,7 @@ class BeliefPropagationOSDDecoder(Decoder):
 
             Hz = code.stabilizers[:n_faces, n_qubits:]
             Hx = code.stabilizers[n_faces:, :n_qubits]
-            
+
         syndrome = np.array(syndrome, dtype=int)
 
         syndrome_z = syndrome[:len(Hz)]
@@ -292,7 +297,7 @@ class BeliefPropagationOSDDecoder(Decoder):
 
         probabilities_x = px + py
         probabilities_z = pz + py
-        
+
         if self._joschka:
             if code.label in self._x_decoder.keys():
                 x_decoder = self._x_decoder[code.label]
@@ -302,10 +307,14 @@ class BeliefPropagationOSDDecoder(Decoder):
                     Hz,
                     error_rate=0.05,
                     channel_probs=probabilities_z,
-                    max_iter=self._max_bp_iter,  # the maximum number of iterations for BP)
+                    # the maximum number of iterations for BP)
+                    max_iter=self._max_bp_iter,
                     bp_method="ms",
-                    ms_scaling_factor=0,  # min sum scaling factor. If set to zero the variable scaling factor method is used
-                    osd_method="osd_cs",  # Choose from:  1) "osd_e", "osd_cs", "osd0"
+                    # min sum scaling factor. If set to zero the variable
+                    # scaling factor method is used
+                    ms_scaling_factor=0,
+                    # Choose from:  1) "osd_e", "osd_cs", "osd0"
+                    osd_method="osd_cs",
                     osd_order=7  # the osd search depth
                 )
 
@@ -313,11 +322,16 @@ class BeliefPropagationOSDDecoder(Decoder):
                     Hx,
                     error_rate=0.05,
                     channel_probs=probabilities_x,
-                    max_iter=self._max_bp_iter,  # the maximum number of iterations for BP)
+                    # the maximum number of iterations for BP)
+                    max_iter=self._max_bp_iter,
                     bp_method="msl",
-                    ms_scaling_factor=0,  # min sum scaling factor. If set to zero the variable scaling factor method is used
-                    osd_method="osd_cs",  # Choose from:  1) "osd_e", "osd_cs", "osd0"
-                    osd_order=7  # the osd search depth
+                    # min sum scaling factor. If set to zero the variable
+                    # scaling factor method is used
+                    ms_scaling_factor=0,
+                    # Choose from:  1) "osd_e", "osd_cs", "osd0"
+                    osd_method="osd_cs",
+                    # the osd search depth
+                    osd_order=7
                 )
                 self._x_decoder[code.label] = x_decoder
                 self._z_decoder[code.label] = z_decoder
@@ -325,17 +339,23 @@ class BeliefPropagationOSDDecoder(Decoder):
             z_decoder.decode(syndrome_z)
             z_correction = z_decoder.osdw_decoding
 
-            new_x_probs = self.update_probabilities(z_correction, px, py, pz, direction="z->x")
+            new_x_probs = self.update_probabilities(
+                z_correction, px, py, pz, direction="z->x"
+            )
             x_decoder.update_channel_probs(new_x_probs)
             x_decoder.decode(syndrome_x)
             x_correction = x_decoder.osdw_decoding
-            
-            # new_z_probs = self.update_probabilities(x_correction, px, py, pz, direction="x->z")
+
+            # new_z_probs = self.update_probabilities(
+            #     x_correction, px, py, pz, direction="x->z"
+            # )
             # z_decoder.update_channel_probs(new_z_probs)
             # z_decoder.decode(syndrome_z)
             # z_correction = z_decoder.osdw_decoding
-            
-            # new_x_probs = self.update_probabilities(z_correction, px, py, pz, direction="x->z")
+
+            # new_x_probs = self.update_probabilities(
+            #     z_correction, px, py, pz, direction="x->z"
+            # )
             # x_decoder.update_channel_probs(new_x_probs)
             # x_decoder.decode(syndrome_x)
             # x_correction = x_decoder.osdw_decoding
@@ -347,7 +367,7 @@ class BeliefPropagationOSDDecoder(Decoder):
             x_correction = bp_osd_decoder(
                 Hx, syndrome_x, new_x_probs, max_bp_iter=self._max_bp_iter
             )
-            
+
         correction = np.concatenate([x_correction, z_correction])
         correction = correction.astype(int)
 
@@ -369,6 +389,8 @@ if __name__ == "__main__":
     errors = error_model.generate(code, probability)
     syndrome = pt.bsp(errors, code.stabilizers.T)
 
-    decoder = BeliefPropagationOSDDecoder(error_model, probability, joschka=True)
+    decoder = BeliefPropagationOSDDecoder(
+        error_model, probability, joschka=True
+    )
 
     correction = decoder.decode(code, syndrome)

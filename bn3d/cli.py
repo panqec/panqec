@@ -12,7 +12,7 @@ from .slurm import (
     clear_out_folder, clear_sbatch_folder
 )
 from bn3d.plots._hashing_bound import (
-    generate_points_triangle, get_direction_from_z_bias_ratio
+    get_direction_from_z_bias_ratio
 )
 from .statmech.cli import statmech
 
