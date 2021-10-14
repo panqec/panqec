@@ -8,6 +8,7 @@ managing the data produced.
 import os
 import re
 from typing import List, Dict, Union, Any, Optional
+import datetime
 import time
 import uuid
 import json
@@ -422,20 +423,71 @@ class DumbController(SimpleController):
         with open(input_json) as f:
             self.input_hash = json.load(f)['hash']
 
-    def run_all(self):
-        """Run for all tau."""
-
-        # Get the max tau
+    def get_max_tau(self) -> int:
+        """Get the max tau."""
         info_json = os.path.join(self.data_manager.data_dir, 'info.json')
         with open(info_json) as f:
             max_tau_map = json.load(f)['max_tau']
-        max_tau = max(max_tau_map.values())
+        return max_tau_map[self.input_hash]
+
+    def run_all(self):
+        """Dumb way of running to the end without saving in between."""
+        max_tau = self.get_max_tau()
+        seed = 0
+
+        # Create a new SpinModel object.
+        input_entry = self.data_manager.load('inputs', {
+            'hash': self.input_hash,
+        })[0]
+        model = self.new_model(input_entry)
+        model.seed_rng(seed)
+
+        start_time = datetime.datetime.now()
+
+        for tau in range(max_tau + 1):
+            time_now = datetime.datetime.now()
+            print(f'{time_now} sampling {self.input_hash} for tau={tau}')
+
+            # Prepare data structures for storing results.
+            results = {
+                'hash': self.input_hash,
+                'seed': seed,
+                'tau': tau
+            }
+            observables_results: Dict[str, dict] = dict()
+            for observable in model.observables:
+                observable.reset()
+
+            # Do the MCMC sampling and obtain sweep stats.
+            n_sweeps = 2**tau
+            results['sweep_stats'] = model.sample(n_sweeps)
+
+            # Store results in memory.
+            results['spins'] = model.spins.tolist()
+            for observable in model.observables:
+                observables_results[observable.label] = (
+                    observable.summary()
+                )
+            results['observables'] = observables_results
+
+            # Only save the results to disk at the end.
+            self.data_manager.save('results', results)
+
+        time_now = datetime.datetime.now()
+        run_time = time_now - start_time
+        print(f'{time_now} Done ({run_time})')
+
+    def run_safe(self):
+        """Run for all tau safely reusing data."""
+
+        max_tau = self.get_max_tau()
 
         # Dumb choice for now.
         seed = 0
 
         for tau in range(max_tau + 1):
-            print(f'Sampling {self.input_hash} for tau={tau}')
+            time_now = datetime.datetime.now()
+            print(f'{time_now} sampling {self.input_hash} for tau={tau}')
 
             # Find existing models and results before running.
             existing_results = self.data_manager.load('results', {
@@ -463,3 +515,5 @@ class DumbController(SimpleController):
                 self.single_run(
                     self.input_hash, seed, tau, previous_model
                 )
+        time_now = datetime.datetime.now()
+        print(f'{time_now} Done')
