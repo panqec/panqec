@@ -9,12 +9,13 @@ from dotenv import load_dotenv
 from qecsim.models.basic import FiveQubitCode
 from qecsim.models.toric import ToricCode
 from qecsim.models.generic import NaiveDecoder
-from .tc3d import ToricCode3D, Toric3DPymatchingDecoder, SweepMatchDecoder
+from .tc3d import ToricCode3D, Toric3DPymatchingDecoder, SweepMatchDecoder, RotatedCode3D, RotatedToricCode3D
 from .rhombic import RhombicCode
 from .bp_os_decoder import BeliefPropagationOSDDecoder
 from .tc2d import Toric2DPymatchingDecoder
 from .deform import (
-    DeformedPauliErrorModel, DeformedSweepMatchDecoder,
+    DeformedXZZXErrorModel, DeformedXYErrorModel,
+    DeformedSweepMatchDecoder,
     FoliatedMatchingDecoder, DeformedToric3DPymatchingDecoder,
 )
 from .noise import PauliErrorModel, XNoiseOnYZEdgesOnly
@@ -49,11 +50,14 @@ CODES = {
     'ToricCode': ToricCode,
     'ToricCode3D': ToricCode3D,
     'RhombicCode': RhombicCode,
+    'RotatedCode3D': RotatedCode3D,
+    'RotatedToricCode3D': RotatedToricCode3D,
     'FiveQubitCode': FiveQubitCode,
 }
 ERROR_MODELS = {
     'PauliErrorModel': PauliErrorModel,
-    'DeformedPauliErrorModel': DeformedPauliErrorModel,
+    'DeformedXZZXErrorModel': DeformedXZZXErrorModel,
+    'DeformedXYErrorModel': DeformedXYErrorModel,
     'XNoiseOnYZEdgesOnly': XNoiseOnYZEdgesOnly,
 }
 DECODERS = {

@@ -1,21 +1,16 @@
-import itertools
 from typing import Tuple, Optional, Dict
 import numpy as np
 from qecsim.model import StabilizerCode
-from ._toric_3d_pauli import Toric3DPauli
-from ..bpauli import bcommute
+from ._rotated_3d_pauli import Rotated3DPauli
+from bn3d.bpauli import bcommute
 
 
-class ToricCode3D(StabilizerCode):
+class RotatedCode3D(StabilizerCode):
 
-    _shape: Tuple[int, int, int, int]
     _size: Tuple[int, int, int]
-    _qubit_index: Dict[Tuple[int, int, int, int], int]
+    _qubit_index: Dict[Tuple[int, int, int], int]
     _vertex_index: Dict[Tuple[int, int, int], int]
-    _face_index: Dict[Tuple[int, int, int, int], int]
-    X_AXIS: int = 0
-    Y_AXIS: int = 1
-    Z_AXIS: int = 2
+    _face_index: Dict[Tuple[int, int, int], int]
     _stabilizers = np.array([])
     _Hx = np.array([])
     _Hz = np.array([])
@@ -31,7 +26,7 @@ class ToricCode3D(StabilizerCode):
             L_y = L_x
         if L_z is None:
             L_z = L_x
-        self._shape = (3, L_x, L_y, L_z)
+
         self._size = (L_x, L_y, L_z)
         self._qubit_index = self._create_qubit_indices()
         self._vertex_index = self._create_vertex_indices()
@@ -41,7 +36,10 @@ class ToricCode3D(StabilizerCode):
 
     @property
     def n_k_d(self) -> Tuple[int, int, int]:
-        return (np.product(self.shape), 3, min(self.size))
+        Lx, Ly, Lz = self.size
+        n_horizontals = 4*np.product(self.size)
+        n_verticals = 2*Lx*Ly*(Lz-1)
+        return (n_horizontals + n_verticals, -1, -1)
 
     @property
     def qubit_index(self) -> Dict[Tuple[int, int, int], int]:
@@ -57,7 +55,7 @@ class ToricCode3D(StabilizerCode):
 
     @property
     def label(self) -> str:
-        return 'Toric {}x{}x{}'.format(*self.size)
+        return 'Rotated {}x{}x{}'.format(*self.size)
 
     @property
     def stabilizers(self) -> np.ndarray:
@@ -84,28 +82,18 @@ class ToricCode3D(StabilizerCode):
 
     @property
     def logical_xs(self) -> np.ndarray:
-        """The 3 logical X operators."""
+        """Get the unique logical X operator."""
 
         if self._logical_xs.size == 0:
             L_x, L_y, L_z = self.size
             logicals = []
 
             # X operators along x edges in x direction.
-            logical = Toric3DPauli(self)
-            for x in range(L_x):
-                logical.site('X', (0, x, 0, 0))
-            logicals.append(logical.to_bsf())
+            logical = Rotated3DPauli(self)
 
-            # X operators along y edges in y direction.
-            logical = Toric3DPauli(self)
-            for y in range(L_y):
-                logical.site('X', (1, 0, y, 0))
-            logicals.append(logical.to_bsf())
-
-            # X operators along z edges in z direction
-            logical = Toric3DPauli(self)
-            for z in range(L_z):
-                logical.site('X', (2, 0, 0, z))
+            logical.site('X', (1, 1, 1))
+            for x in range(3, 4 * L_x, 2):
+                logical.site('X', (x, x - 2, 1))
             logicals.append(logical.to_bsf())
 
             self._logical_xs = np.array(logicals, dtype=np.uint)
@@ -114,65 +102,80 @@ class ToricCode3D(StabilizerCode):
 
     @property
     def logical_zs(self) -> np.ndarray:
-        """Get the 3 logical Z operators."""
+        """Get the unique logical Z operator."""
         if self._logical_zs.size == 0:
             L_x, L_y, L_z = self.size
             logicals = []
 
             # Z operators on x edges forming surface normal to x (yz plane).
-            logical = Toric3DPauli(self)
-            for y in range(L_y):
-                for z in range(L_z):
-                    logical.site('Z', (0, 0, y, z))
+            logical = Rotated3DPauli(self)
+            for z in range(1, 2*L_z, 2):
+                for x in range(1, 4*L_x, 2):
+                    logical.site('Z', (x, x, z))
             logicals.append(logical.to_bsf())
-
-            # Z operators on y edges forming surface normal to y (zx plane).
-            logical = Toric3DPauli(self)
-            for z in range(L_z):
-                for x in range(L_x):
-                    logical.site('Z', (1, x, 0, z))
-            logicals.append(logical.to_bsf())
-
-            # Z operators on z edges forming surface normal to z (xy plane).
-            logical = Toric3DPauli(self)
-            for x in range(L_x):
-                for y in range(L_y):
-                    logical.site('Z', (2, x, y, 0))
-            logicals.append(logical.to_bsf())
-
-            self._logical_zs = np.array(logicals, dtype=np.uint)
-
+            
+        self._logical_zs = np.array(logicals, dtype=np.uint)
+            
         return self._logical_zs
 
     @property
     def size(self) -> Tuple[int, int, int]:
         """Dimensions of lattice."""
-        return self._shape[1:]
-
-    @property
-    def shape(self) -> Tuple[int, int, int, int]:
-        """Shape of lattice for each qubit."""
-        return self._shape
+        return self._size
 
     def _create_qubit_indices(self):
-        ranges = [range(length) for length in self.shape]
-        coordinates = [(axis, x, y, z) for axis, x, y, z in itertools.product(*ranges)]
+        Lx, Ly, Lz = self.size
+
+        coordinates = []
+
+        # Horizontal
+        for x in range(1, 4*Lx, 2):
+            for y in range(1, 4*Ly, 2):
+                for z in range(1, 2*Lz, 2):
+                    coordinates.append((x, y, z))
+
+        # Vertical
+        for x in range(2, 4*Lx, 2):
+            for y in range(0, 4*Ly+1, 2):
+                for z in range(2, 2*Lz, 2):
+                    if (x + y) % 4 == 2:
+                        coordinates.append((x, y, z))
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 
         return coord_to_index
 
     def _create_vertex_indices(self):
-        ranges = [range(length) for length in self.size]
-        coordinates = [(x, y, z) for x, y, z in itertools.product(*ranges)]
+        Lx, Ly, Lz = self.size
+
+        coordinates = []
+
+        for z in range(1, 2*Lz, 2):
+            for x in range(2, 4*Lx, 2):
+                for y in range(0, 4*Ly+1, 2):
+                    if (x + y) % 4 == 2:
+                        coordinates.append((x, y, z))
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 
         return coord_to_index
 
     def _create_face_indices(self):
-        ranges = [range(length) for length in self.shape]
-        coordinates = [(axis, x, y, z) for axis, x, y, z in itertools.product(*ranges)]
+        Lx, Ly, Lz = self.size
+
+        coordinates = []
+
+        # Horizontal faces
+        for x in range(0, 4*Lx+1, 2):
+            for y in range(2, 4*Ly, 2):
+                for z in range(1, 2*Lz, 2):
+                    if (x + y) % 4 == 0:
+                        coordinates.append((x, y, z))
+        # Vertical faces
+        for x in range(3, 4*Lx-1, 2):
+            for y in range(1, 4*Ly, 2):
+                for z in range(2, 2*Lz, 2):
+                    coordinates.append((x, y, z))
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 
@@ -182,7 +185,7 @@ class ToricCode3D(StabilizerCode):
         vertex_stabilizers = []
 
         for (x, y, z) in self.vertex_index.keys():
-            operator = Toric3DPauli(self)
+            operator = Rotated3DPauli(self)
             operator.vertex('Z', (x, y, z))
             vertex_stabilizers.append(operator.to_bsf())
 
@@ -191,13 +194,19 @@ class ToricCode3D(StabilizerCode):
     def get_face_X_stabilizers(self) -> np.ndarray:
         face_stabilizers = []
 
-        for (axis, x, y, z) in self.face_index.keys():
-            operator = Toric3DPauli(self)
-            operator.face('X', axis, (x, y, z))
+        for (x, y, z) in self.face_index.keys():
+            operator = Rotated3DPauli(self)
+            operator.face('X', (x, y, z))
             face_stabilizers.append(operator.to_bsf())
 
         return np.array(face_stabilizers, dtype=np.uint)
 
-    def measure_syndrome(self, error: Toric3DPauli) -> np.ndarray:
+    def measure_syndrome(self, error: Rotated3DPauli) -> np.ndarray:
         """Perfectly measure syndromes given Pauli error."""
         return bcommute(self.stabilizers, error.to_bsf())
+
+
+if __name__ == "__main__":
+    code = RotatedCode3D(2)
+
+    print("Vertices", code.face_index)

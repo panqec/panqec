@@ -3,4 +3,5 @@ tqdm==4.59.0
 python-dotenv==0.17.0
 qecsim==1.0b9
 psutil==5.8.0
+bposd==0.0.5
 -e .

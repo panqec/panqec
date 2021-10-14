@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Toric Code Visualizer</title>
+
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body style="margin: 0">
+    {% if request.path == url_for('send_index_2d') %}
+        <script type="module" src="js/gui2d.js"></script>
+    {% elif request.path == url_for('send_index_3d') %}
+        <script type="module" src="js/main.js"></script>
+    {% else %}
+        <b>Problem: {{ request.path }}</b>
+    {% endif %}
+</body>
+</html>

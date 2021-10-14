@@ -1,5 +1,5 @@
 import itertools
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict
 import numpy as np
 from qecsim.model import StabilizerCode
 from ._rhombic_pauli import RhombicPauli
@@ -8,7 +8,11 @@ from ..bpauli import bcommute
 
 class RhombicCode(StabilizerCode):
 
+    _size: Tuple[int, int, int]
     _shape: Tuple[int, int, int, int]
+    _qubit_index: Dict[Tuple[int, int, int, int], int]
+    _triangle_index: Dict[Tuple[int, int, int, int], int]
+    _cube_index: Dict[Tuple[int, int, int], int]
     X_AXIS: int = 0
     Y_AXIS: int = 1
     Z_AXIS: int = 2
@@ -28,12 +32,29 @@ class RhombicCode(StabilizerCode):
         if L_z is None:
             L_z = L_x
         self._shape = (3, L_x, L_y, L_z)
+        self._size = (L_x, L_y, L_z)
+
+        self._qubit_index = self._create_qubit_indices()
+        self._triangle_index = self._create_triangle_indices()
+        self._cube_index = self._create_cube_indices()
 
     # StabilizerCode interface methods.
 
     @property
     def n_k_d(self) -> Tuple[int, int, int]:
         return (np.product(self.shape), 3, min(self.size))
+    
+    @property
+    def qubit_index(self) -> Dict[Tuple[int, int, int, int], int]:
+        return self._qubit_index
+
+    @property
+    def triangle_index(self) -> Dict[Tuple[int, int, int, int], int]:
+        return self._triangle_index
+    
+    @property
+    def cube_index(self) -> Dict[Tuple[int, int, int], int]:
+        return self._cube_index
 
     @property
     def label(self) -> str:
@@ -136,6 +157,33 @@ class RhombicCode(StabilizerCode):
     def shape(self) -> Tuple[int, int, int, int]:
         """Shape of lattice for each qubit."""
         return self._shape
+
+    def _create_qubit_indices(self):
+        ranges = [range(length) for length in self.shape]
+        coordinates = [(axis, x, y, z) for axis, x, y, z in itertools.product(*ranges)]
+
+        coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
+
+        return coord_to_index
+
+    def _create_triangle_indices(self):
+        ranges = [range(length) for length in (4,) + self.size]
+        coordinates = [(axis, x, y, z) for axis, x, y, z in itertools.product(*ranges)]
+
+        coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
+
+        return coord_to_index
+
+    def _create_cube_indices(self):
+        ranges = [range(length) for length in self.size]
+        coordinates = []
+        for x, y, z in itertools.product(*ranges):
+            if (x + y + z) % 2 == 1:
+                coordinates.append((x, y, z))
+
+        coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
+
+        return coord_to_index
 
     def get_triangle_Z_stabilizers(self) -> np.ndarray:
         triangle_stabilizers = []

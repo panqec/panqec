@@ -9,6 +9,7 @@ import functools
 import itertools
 from typing import Tuple
 import numpy as np
+from qecsim import paulitools as pt
 from qecsim.models.generic import SimpleErrorModel
 from qecsim.model import ErrorModel, StabilizerCode
 from .bpauli import barray_to_bvector, bvector_to_barray, get_bvector_index
@@ -19,26 +20,45 @@ from .utils import nested_map
 class PauliErrorModel(SimpleErrorModel):
     """Pauli channel IID noise model."""
 
-    direction: Tuple[float, float, float]
+    # direction: Tuple[float, float, float]
 
     def __init__(self, r_x, r_y, r_z):
         if not np.isclose(r_x + r_y + r_z, 1):
             raise ValueError(
                 f'Noise direction ({r_x}, {r_y}, {r_z}) does not sum to 1.0'
             )
-        self.direction = r_x, r_y, r_z
+        self._direction = r_x, r_y, r_z
+
+    @property
+    def direction(self):
+        return self._direction
 
     @property
     def label(self):
         return 'Pauli X{}Y{}Z{}'.format(*self.direction)
 
+    def generate(self, code: StabilizerCode, probability: float, rng=None):
+        rng = np.random.default_rng() if rng is None else rng
+        n_qubits = code.n_k_d[0]
+        p_i, p_x, p_y, p_z = self.probability_distribution(code, probability)
+
+        error_pauli = ''.join([rng.choice(
+            ('I', 'X', 'Y', 'Z'),
+            p=[p_i[i], p_x[i], p_y[i], p_z[i]]
+        ) for i in range(n_qubits)])
+
+        return pt.pauli_to_bsf(error_pauli)
+
     @functools.lru_cache()
-    def probability_distribution(self, probability: float) -> Tuple:
+    def probability_distribution(self, code: StabilizerCode, probability: float) -> Tuple:
+        n = code.n_k_d[0]
         r_x, r_y, r_z = self.direction
-        p_i = 1 - probability
-        p_x = r_x*probability
-        p_y = r_y*probability
-        p_z = r_z*probability
+
+        p_i = (1 - probability) * np.ones(n)
+        p_x = (r_x * probability) * np.ones(n)
+        p_y = (r_y * probability) * np.ones(n)
+        p_z = (r_z * probability) * np.ones(n)
+
         return p_i, p_x, p_y, p_z
 
 
