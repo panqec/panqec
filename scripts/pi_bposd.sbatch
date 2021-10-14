@@ -1,19 +1,20 @@
 #!/bin/bash
 #SBATCH -N 1
-#SBATCH -t 0-00:10
+#SBATCH -t 0-10:00
 #SBATCH --cpus-per-task=1
 #SBATCH --exclusive
-#SBATCH --job-name=bposd
-#SBATCH --array=1-6
-#SBATCH -p debugq
+#SBATCH --job-name=bp1
+#SBATCH --array=1-3
+#SBATCH -p defq
 #SBATCH --output=/home/ehuang1/bn3d/slurm/out/bposd/bias-10-30/%j.out
 set -euxo pipefail
 
 # Variables to change.
-n_samples=50
+trials=10000
 input_dir=temp/bposd/inputs-bias-10-30
 output_dir=temp/bposd/outputs-bias-10-30
 log_dir=temp/bposd/logs-bias-10-30
+bash_command="bn3d run -f {} -o $output_dir -t $trials"
 
 pwd
 
@@ -39,15 +40,7 @@ function filter_files() {
     done
 }
 
-filter_files | parallel --results $log_dir bn3d run -f {} -o $output_dir -t $n_samples :::
-
-# for filename in "${filtered_files[@]}"; do
-#     log_file=$(basename -- $filename)
-#     log_file="$log_dir/${log_file%.*}.txt"
-#     echo "$filename" > $log_file
-#     # bn3d run -f $filename -o $output_dir -t $n_samples &> "$log_file" &
-# done
-
-# printf '%s\n' "${filtered_files[@]}"
+# Run in parallel.
+filter_files | parallel --results $log_dir $bash_command :::
 
 date
