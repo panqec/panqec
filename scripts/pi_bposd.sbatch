@@ -1,19 +1,19 @@
 #!/bin/bash
 #SBATCH -N 1
-#SBATCH -t 0-10:00
+#SBATCH -t 0-20:00
 #SBATCH --cpus-per-task=1
 #SBATCH --exclusive
 #SBATCH --job-name=bp1
-#SBATCH --array=1-3
-#SBATCH -p defq
-#SBATCH --output=/home/ehuang1/bn3d/slurm/out/bposd/bias-10-30/%j.out
+#SBATCH --array=1-6
+#SBATCH -p debugq
+#SBATCH --output=/home/ehuang1/bn3d/slurm/out/%j.out
 set -euxo pipefail
 
 # Variables to change.
-trials=10000
-input_dir=temp/bposd/inputs-bias-10-30
-output_dir=temp/bposd/outputs-bias-10-30
-log_dir=temp/bposd/logs-bias-10-30
+trials=50
+input_dir=temp/paper/xzzx/inputs
+output_dir=temp/paper/xzzx/results
+log_dir=temp/paper/xzzx/logs
 bash_command="bn3d run -f {} -o $output_dir -t $trials"
 
 pwd
