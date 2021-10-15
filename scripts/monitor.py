@@ -17,9 +17,13 @@ def monitor_usage(log_file: str, interval: float = 10):
         mean_cpu_usage = np.mean(cpu_usage)
         n_cores = len(cpu_usage)
         time_now = datetime.datetime.now()
+        mem = psutil.virtual_memory()
+        ram_usage = mem.percent
+        ram_total = mem.total/2**30
         message = (
             f'{time_now} CPU usage {mean_cpu_usage:.2f}% '
-            f'({n_cores} cores)'
+            f'({n_cores} cores) '
+            f'RAM {ram_usage:.2f}% ({ram_total:.2f} GiB tot)'
         )
         with open(log_file, 'a') as f:
             f.write(message + '\n')
