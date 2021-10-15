@@ -96,10 +96,21 @@ def ls(model_type=None):
     '-r', '--ratio', default='equal', type=click.Choice(['equal', 'coprime']),
     show_default=True,
 )
+@click.option(
+    '-s', '--sizes', default='5,9,7,13', type=str,
+    show_default=True,
+)
 def generate_input(
-    input_dir, lattice, boundary, deformation, ratio
+    input_dir, lattice, boundary, deformation, ratio, sizes
 ):
-    """Generate the json files of every experiment."""
+    """Generate the json files of every experiment.
+
+    \b
+    Example:
+    bn3d generate-input -i /path/to/inputdir \\
+            -l rotated -b planar -r equal
+            -s 5,9,7,13
+    """
 
     if lattice == 'kitaev' and boundary == 'planar':
         raise NotImplementedError("Kitaev planar lattice not implemented")
@@ -128,7 +139,7 @@ def generate_input(
                 code_model += 'Planar'
             code_model += 'Code3D'
 
-            L_list = [5, 9, 13, 17]
+            L_list = [int(s) for s in sizes.split(',')]
             if ratio == 'coprime':
                 code_parameters = [
                     {"L_x": L, "L_y": L + 1, "L_z": L}
