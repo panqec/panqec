@@ -253,7 +253,9 @@ bn3d run -f /path/to/inputdir/xzzx-rotated-planar-bias-1.00-p-0.250.json \
 The above will run simulations for 50 trials each and save the results to the
 given output path.
 You can similarly ask for help for this command.
+If you try the above, it's likely you'll run out of memory.
 
+So you will need a cluster.
 For large-scale simulations on clusters that use job schedulers such as slurm
 or pbs, you may run many of these jobs together in parallel over many cores
 and array jobs.
