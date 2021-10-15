@@ -1,16 +1,16 @@
 #!/bin/bash
 #SBATCH -N 1
-#SBATCH -t 0-20:00
+#SBATCH -t 0-23:00
 #SBATCH --cpus-per-task=1
 #SBATCH --exclusive
 #SBATCH --job-name=bp1
 #SBATCH --array=1-6
-#SBATCH -p debugq
+#SBATCH -p defq
 #SBATCH --output=/home/ehuang1/bn3d/slurm/out/%j.out
 set -euxo pipefail
 
 # Variables to change.
-trials=50
+trials=10000
 input_dir=temp/paper/xzzx/inputs
 output_dir=temp/paper/xzzx/results
 log_dir=temp/paper/xzzx/logs
