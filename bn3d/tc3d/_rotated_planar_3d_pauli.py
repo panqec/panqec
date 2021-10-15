@@ -3,7 +3,7 @@ import numpy as np
 from qecsim.model import StabilizerCode
 
 
-class Rotated3DPauli:
+class RotatedPlanar3DPauli:
     """Pauli Operator on 3D Toric Code.
 
     Qubit sites are on edges of the lattice.
@@ -48,7 +48,7 @@ class Rotated3DPauli:
         :param indices: Any number of indices identifying sites in the format (x, y).
         :type indices: Any number of 2-tuple of int
         :return: self (to allow chaining)
-        :rtype: RotatedToricPauli
+        :rtype: RotatedPlanar3DPauli
         """
         for coord in indices:
             # flip sites

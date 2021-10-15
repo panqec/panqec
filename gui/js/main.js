@@ -5,7 +5,7 @@ import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat
 
 import { ToricCode3D } from './codes/toric3d.js';
 import { RhombicCode } from './codes/rhombic.js';
-import { RotatedCode3D } from './codes/rotated3d.js';
+import { RotatedPlanarCode3D } from './codes/rotatedPlanar3d.js';
 import { RotatedToricCode3D } from './codes/rotatedToric3d.js';
 
 
@@ -114,7 +114,7 @@ async function buildCode() {
 
     let codeClass = {'cubic': ToricCode3D,
                      'rhombic': RhombicCode,
-                     'rotated': RotatedCode3D,
+                     'rotated': RotatedPlanarCode3D,
                      'rotated-toric': RotatedToricCode3D}
 
     code = new codeClass[params.codeName](Lx, Ly, Lz, Hx, Hz, indices, scene);

@@ -1,11 +1,11 @@
 from typing import Tuple, Optional, Dict
 import numpy as np
 from qecsim.model import StabilizerCode
-from ._rotated_3d_pauli import Rotated3DPauli
+from ._rotated_planar_3d_pauli import RotatedPlanar3DPauli
 from bn3d.bpauli import bcommute
 
 
-class RotatedCode3D(StabilizerCode):
+class RotatedPlanarCode3D(StabilizerCode):
 
     _size: Tuple[int, int, int]
     _qubit_index: Dict[Tuple[int, int, int], int]
@@ -55,7 +55,7 @@ class RotatedCode3D(StabilizerCode):
 
     @property
     def label(self) -> str:
-        return 'Rotated {}x{}x{}'.format(*self.size)
+        return 'Rotated Planar {}x{}x{}'.format(*self.size)
 
     @property
     def stabilizers(self) -> np.ndarray:
@@ -89,7 +89,7 @@ class RotatedCode3D(StabilizerCode):
             logicals = []
 
             # X operators along x edges in x direction.
-            logical = Rotated3DPauli(self)
+            logical = RotatedPlanar3DPauli(self)
 
             for x in range(1, 4*Lx+2, 2):
                 logical.site('X', (x, 4*Ly + 2 - x, 1))
@@ -107,7 +107,7 @@ class RotatedCode3D(StabilizerCode):
             logicals = []
 
             # Z operators on x edges forming surface normal to x (yz plane).
-            logical = Rotated3DPauli(self)
+            logical = RotatedPlanar3DPauli(self)
             for z in range(1, 2*(Lz+1), 2):
                 for x in range(1, 4*Lx+2, 2):
                     logical.site('Z', (x, x, z))
@@ -184,7 +184,7 @@ class RotatedCode3D(StabilizerCode):
         vertex_stabilizers = []
 
         for (x, y, z) in self.vertex_index.keys():
-            operator = Rotated3DPauli(self)
+            operator = RotatedPlanar3DPauli(self)
             operator.vertex('Z', (x, y, z))
             vertex_stabilizers.append(operator.to_bsf())
 
@@ -194,18 +194,18 @@ class RotatedCode3D(StabilizerCode):
         face_stabilizers = []
 
         for (x, y, z) in self.face_index.keys():
-            operator = Rotated3DPauli(self)
+            operator = RotatedPlanar3DPauli(self)
             operator.face('X', (x, y, z))
             face_stabilizers.append(operator.to_bsf())
 
         return np.array(face_stabilizers, dtype=np.uint)
 
-    def measure_syndrome(self, error: Rotated3DPauli) -> np.ndarray:
+    def measure_syndrome(self, error: RotatedPlanar3DPauli) -> np.ndarray:
         """Perfectly measure syndromes given Pauli error."""
         return bcommute(self.stabilizers, error.to_bsf())
 
 
 if __name__ == "__main__":
-    code = RotatedCode3D(2)
+    code = RotatedPlanarCode3D(2)
 
     print("Vertices", code.face_index)

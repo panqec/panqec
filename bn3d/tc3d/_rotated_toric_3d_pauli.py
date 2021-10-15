@@ -83,7 +83,7 @@ class RotatedToric3DPauli:
         x, y, z = location
         Lx, Ly, Lz = self.code.size
 
-        if (x + y) % 4 != 2 or z % 2 == 0:
+        if (x, y, z) not in self.code.vertex_index:
             raise ValueError(f"Incorrect coordinate {location} for a vertex")
 
         # Four horizontal edges (at most)

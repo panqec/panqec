@@ -118,6 +118,8 @@ def generate_input(input_dir, lattice, boundary, deformation):
                 code_model += 'Rotated'
             if boundary == 'toric':
                 code_model += 'Toric'
+            else:
+                code_model += 'Planar'
             code_model += 'Code3D'
 
             code_parameters = [
