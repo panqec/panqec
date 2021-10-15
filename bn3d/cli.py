@@ -92,8 +92,14 @@ def ls(model_type=None):
               type=click.Choice(['toric', 'planar']))
 @click.option('-d', '--deformation', required=True,
               type=click.Choice(['none', 'xzzx', 'xy']))
-def generate_input(input_dir, lattice, boundary, deformation):
-    """Generate the json files of every experiments"""
+@click.option(
+    '-r', '--ratio', default='equal', type=click.Choice(['equal', 'coprime']),
+    show_default=True,
+)
+def generate_input(
+    input_dir, lattice, boundary, deformation, ratio
+):
+    """Generate the json files of every experiment."""
 
     if lattice == 'kitaev' and boundary == 'planar':
         raise NotImplementedError("Kitaev planar lattice not implemented")
@@ -120,10 +126,17 @@ def generate_input(input_dir, lattice, boundary, deformation):
                 code_model += 'Toric'
             code_model += 'Code3D'
 
-            code_parameters = [
-                {"L_x": L, "L_y": L+1, "L_z": L+1}
-                for L in [3, 4, 5, 6, 7, 8, 9, 10]
-            ]
+            L_list = [5, 9, 13, 17]
+            if ratio == 'coprime':
+                code_parameters = [
+                    {"L_x": L, "L_y": L + 1, "L_z": L}
+                    for L in L_list
+                ]
+            else:
+                code_parameters = [
+                    {"L_x": L, "L_y": L, "L_z": L}
+                    for L in L_list
+                ]
             code_dict = {
                 "model": code_model,
                 "parameters": code_parameters
