@@ -186,5 +186,6 @@ class RotatedToricCode3D extends AbstractCode {
             let [x, y, z] = stringToArray(coord)
             this.buildFace(x, y, z)
         }
+        console.log(this.qubits)
     }
 }

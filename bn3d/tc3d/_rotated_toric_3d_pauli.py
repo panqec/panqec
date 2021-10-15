@@ -94,14 +94,14 @@ class RotatedToric3DPauli:
             raise ValueError(f"Incorrect coordinate {location} for a vertex")
 
         # Four horizontal edges (at most)
-        self.site(operator, ((x - 1) % (4*Lx), (y - 1) % (4*Ly), z % (2*Lz)))
-        self.site(operator, ((x + 1) % (4*Lx), (y + 1) % (4*Ly), z % (2*Lz)))
-        self.site(operator, ((x - 1) % (4*Lx), (y + 1) % (4*Ly), z % (2*Lz)))
-        self.site(operator, ((x + 1) % (4*Lx), (y - 1) % (4*Ly), z % (2*Lz)))
+        self.site(operator, ((x - 1) % (4*Lx+2), (y - 1) % (4*Ly), z % (2*Lz)))
+        self.site(operator, ((x + 1) % (4*Lx+2), (y + 1) % (4*Ly), z % (2*Lz)))
+        self.site(operator, ((x - 1) % (4*Lx+2), (y + 1) % (4*Ly), z % (2*Lz)))
+        self.site(operator, ((x + 1) % (4*Lx+2), (y - 1) % (4*Ly), z % (2*Lz)))
 
         # Two vertical edges
-        self.site(operator, (x % (4*Lx), y % (4*Ly), (z - 1) % (2*Lz)))
-        self.site(operator, (x % (4*Lx), y % (4*Ly), (z + 1) % (2*Lz)))
+        self.site(operator, (x % (4*Lx+2), y % (4*Ly), (z - 1) % (2*Lz)))
+        self.site(operator, (x % (4*Lx+2), y % (4*Ly), (z + 1) % (2*Lz)))
 
     def face(self, operator: str, location: Tuple[int, int, int]):
         r"""Apply operator on sites on face normal to direction at location.
@@ -141,39 +141,35 @@ class RotatedToric3DPauli:
         # Horizontal face
         if z % 2 == 1:
             self.site(
-                operator, ((x - 1) % (4*Lx), (y - 1) % (4*Ly), z % (2*Lz))
+                operator, ((x - 1) % (4*Lx+2), (y - 1) % (4*Ly), z % (2*Lz))
             )
             self.site(
-                operator, ((x + 1) % (4*Lx), (y + 1) % (4*Ly), z % (2*Lz))
+                operator, ((x + 1) % (4*Lx+2), (y + 1) % (4*Ly), z % (2*Lz))
             )
             self.site(
-                operator, ((x - 1) % (4*Lx), (y + 1) % (4*Ly), z % (2*Lz))
+                operator, ((x - 1) % (4*Lx+2), (y + 1) % (4*Ly), z % (2*Lz))
             )
             self.site(
-                operator, ((x + 1) % (4*Lx), (y - 1) % (4*Ly), z % (2*Lz))
+                operator, ((x + 1) % (4*Lx+2), (y - 1) % (4*Ly), z % (2*Lz))
             )
 
         # Vertical face (axis /)
         elif (x + y) % 4 == 0:
-            self.site(operator, (x % (4*Lx), y % (4*Ly), (z - 1) % (2*Lz)))
-            self.site(operator, (x % (4*Lx), y % (4*Ly), (z + 1) % (2*Lz)))
-            self.site(
-                operator, ((x - 1) % (4*Lx), (y - 1) % (4*Ly), z % (2*Lz))
-            )
-            self.site(
-                operator, ((x + 1) % (4*Lx), (y + 1) % (4*Ly), z % (2*Lz))
-            )
+            self.site(operator, (x, y % (4*Ly), (z - 1) % (2*Lz)))
+            self.site(operator, (x, y % (4*Ly), (z + 1) % (2*Lz)))
+            if x - 1 > 0:
+                self.site(operator, ((x - 1), (y - 1) % (4*Ly), z % (2*Lz)))
+            if x + 1 <= 4*Lx + 1:
+                self.site(operator, ((x + 1), (y + 1) % (4*Ly), z % (2*Lz)))
 
         # Vertical face (axis \)
         elif (x + y) % 4 == 2:
-            self.site(operator, (x % (4*Lx), y % (4*Ly), (z - 1) % (2*Lz)))
-            self.site(operator, (x % (4*Lx), y % (4*Ly), (z + 1) % (2*Lz)))
-            self.site(
-                operator, ((x - 1) % (4*Lx), (y + 1) % (4*Ly), z % (2*Lz))
-            )
-            self.site(
-                operator, ((x + 1) % (4*Lx), (y - 1) % (4*Ly), z % (2*Lz))
-            )
+            self.site(operator, (x, y % (4*Ly), (z - 1) % (2*Lz)))
+            self.site(operator, (x, y % (4*Ly), (z + 1) % (2*Lz)))
+            if x - 1 > 0:
+                self.site(operator, ((x - 1), (y + 1) % (4*Ly), z % (2*Lz)))
+            if x + 1 <= 4*Lx + 1:
+                self.site(operator, ((x + 1), (y - 1) % (4*Ly), z % (2*Lz)))
 
         else:
             raise ValueError(f"Invalid coordinate {location} for a face")

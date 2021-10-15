@@ -69,7 +69,7 @@ def get_direction_from_z_bias_ratio(eta):
     rx = (1 - rz) / 2
     ry = (1 - rz) / 2
 
-    return (rx, ry, rz)
+    return {'r_x': rx, 'r_y': ry, 'r_z': rz}
 
 
 def generate_points(radials, azimuthals):
