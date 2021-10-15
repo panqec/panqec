@@ -282,7 +282,7 @@ class BeliefPropagationOSDDecoder(Decoder):
 
             Hz = code.stabilizers[:n_faces, n_qubits:]
             Hx = code.stabilizers[n_faces:, :n_qubits]
-            
+
         syndrome = np.array(syndrome, dtype=int)
 
         syndrome_z = syndrome[:len(Hz)]
@@ -292,7 +292,7 @@ class BeliefPropagationOSDDecoder(Decoder):
 
         probabilities_x = px + py
         probabilities_z = pz + py
-        
+
         if self._joschka:
             if code.label in self._x_decoder.keys():
                 x_decoder = self._x_decoder[code.label]
@@ -329,12 +329,12 @@ class BeliefPropagationOSDDecoder(Decoder):
             x_decoder.update_channel_probs(new_x_probs)
             x_decoder.decode(syndrome_x)
             x_correction = x_decoder.osdw_decoding
-            
+
             # new_z_probs = self.update_probabilities(x_correction, px, py, pz, direction="x->z")
             # z_decoder.update_channel_probs(new_z_probs)
             # z_decoder.decode(syndrome_z)
             # z_correction = z_decoder.osdw_decoding
-            
+
             # new_x_probs = self.update_probabilities(z_correction, px, py, pz, direction="x->z")
             # x_decoder.update_channel_probs(new_x_probs)
             # x_decoder.decode(syndrome_x)
@@ -347,7 +347,7 @@ class BeliefPropagationOSDDecoder(Decoder):
             x_correction = bp_osd_decoder(
                 Hx, syndrome_x, new_x_probs, max_bp_iter=self._max_bp_iter
             )
-            
+
         correction = np.concatenate([x_correction, z_correction])
         correction = correction.astype(int)
 

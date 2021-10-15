@@ -31,7 +31,7 @@ class RotatedCode3D extends AbstractCode {
                       errorX: 0xff0000, errorZ: 0x25CCF7, errorY: 0xa55eea};
 
         let length = this.SIZE.lengthEdge;
-        this.offset = {x: Math.SQRT2 * length*this.L / 2, y: Math.SQRT2 * length*this.L / 2, z: length*this.L / 2};
+        this.offset = {x: Math.SQRT2 * length*this.Lx / 2, y: Math.SQRT2 * length*this.Ly / 2, z: length*this.Lz / 2};
     }
 
     getIndexQubit(x, y, z) {
@@ -94,7 +94,6 @@ class RotatedCode3D extends AbstractCode {
         edge.position.y = (length * Math.SQRT2 / 4) * y - this.offset.y;
         edge.position.z = length * z / 2 - this.offset.z;
     
-
         if (z % 2 == 0) {
             edge.rotateX(Math.PI / 2);
         }
@@ -186,5 +185,6 @@ class RotatedCode3D extends AbstractCode {
             let [x, y, z] = stringToArray(coord)
             this.buildFace(x, y, z)
         }
+        console.log(this.qubits)
     }
 }

@@ -37,8 +37,8 @@ class RotatedCode3D(StabilizerCode):
     @property
     def n_k_d(self) -> Tuple[int, int, int]:
         Lx, Ly, Lz = self.size
-        n_horizontals = 4*np.product(self.size)
-        n_verticals = 2*Lx*Ly*(Lz-1)
+        n_horizontals = (2*Lx + 1) * (2*Ly + 1) * (Lz+1)
+        n_verticals = (Lx + 1) * 2*Ly * Lz
         return (n_horizontals + n_verticals, -1, -1)
 
     @property
@@ -85,15 +85,14 @@ class RotatedCode3D(StabilizerCode):
         """Get the unique logical X operator."""
 
         if self._logical_xs.size == 0:
-            L_x, L_y, L_z = self.size
+            Lx, Ly, Lz = self.size
             logicals = []
 
             # X operators along x edges in x direction.
             logical = Rotated3DPauli(self)
 
-            logical.site('X', (1, 1, 1))
-            for x in range(3, 4 * L_x, 2):
-                logical.site('X', (x, x - 2, 1))
+            for x in range(1, 4*Lx+2, 2):
+                logical.site('X', (x, 4*Ly + 2 - x, 1))
             logicals.append(logical.to_bsf())
 
             self._logical_xs = np.array(logicals, dtype=np.uint)
@@ -104,18 +103,18 @@ class RotatedCode3D(StabilizerCode):
     def logical_zs(self) -> np.ndarray:
         """Get the unique logical Z operator."""
         if self._logical_zs.size == 0:
-            L_x, L_y, L_z = self.size
+            Lx, L_y, Lz = self.size
             logicals = []
 
             # Z operators on x edges forming surface normal to x (yz plane).
             logical = Rotated3DPauli(self)
-            for z in range(1, 2*L_z, 2):
-                for x in range(1, 4*L_x, 2):
+            for z in range(1, 2*(Lz+1), 2):
+                for x in range(1, 4*Lx+2, 2):
                     logical.site('Z', (x, x, z))
             logicals.append(logical.to_bsf())
-            
-        self._logical_zs = np.array(logicals, dtype=np.uint)
-            
+
+            self._logical_zs = np.array(logicals, dtype=np.uint)
+
         return self._logical_zs
 
     @property
@@ -129,15 +128,15 @@ class RotatedCode3D(StabilizerCode):
         coordinates = []
 
         # Horizontal
-        for x in range(1, 4*Lx, 2):
-            for y in range(1, 4*Ly, 2):
-                for z in range(1, 2*Lz, 2):
+        for x in range(1, 4*Lx+2, 2):
+            for y in range(1, 4*Ly+2, 2):
+                for z in range(1, 2*(Lz+1), 2):
                     coordinates.append((x, y, z))
 
         # Vertical
-        for x in range(2, 4*Lx, 2):
-            for y in range(0, 4*Ly+1, 2):
-                for z in range(2, 2*Lz, 2):
+        for x in range(2, 4*Lx+1, 2):
+            for y in range(0, 4*Ly+3, 2):
+                for z in range(2, 2*(Lz+1), 2):
                     if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
 
@@ -150,9 +149,9 @@ class RotatedCode3D(StabilizerCode):
 
         coordinates = []
 
-        for z in range(1, 2*Lz, 2):
-            for x in range(2, 4*Lx, 2):
-                for y in range(0, 4*Ly+1, 2):
+        for z in range(1, 2*(Lz+1), 2):
+            for x in range(2, 4*Lx+1, 2):
+                for y in range(0, 4*Ly+3, 2):
                     if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
 
@@ -167,14 +166,14 @@ class RotatedCode3D(StabilizerCode):
 
         # Horizontal faces
         for x in range(0, 4*Lx+1, 2):
-            for y in range(2, 4*Ly, 2):
-                for z in range(1, 2*Lz, 2):
+            for y in range(2, 4*Ly+1, 2):
+                for z in range(1, 2*(Lz+1), 2):
                     if (x + y) % 4 == 0:
                         coordinates.append((x, y, z))
         # Vertical faces
-        for x in range(3, 4*Lx-1, 2):
-            for y in range(1, 4*Ly, 2):
-                for z in range(2, 2*Lz, 2):
+        for x in range(1, 4*Lx+2, 2):
+            for y in range(1, 4*Ly+2, 2):
+                for z in range(2, 2*(Lz+1), 2):
                     coordinates.append((x, y, z))
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}

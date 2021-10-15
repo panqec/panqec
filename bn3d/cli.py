@@ -122,7 +122,7 @@ def generate_input(input_dir, lattice, boundary, deformation):
 
             code_parameters = [
                 {"L_x": L, "L_y": L+1, "L_z": L+1}
-                for L in [3, 4, 5, 6, 7]
+                for L in [3, 4, 5, 6, 7, 8, 9, 10]
             ]
             code_dict = {
                 "model": code_model,
