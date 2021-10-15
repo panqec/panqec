@@ -1,7 +1,7 @@
 import numpy as np
 
 from flask import Flask, send_from_directory, request, json, render_template
-from bn3d.tc3d import ToricCode3D, RotatedCode3D, RotatedToricCode3D, SweepMatchDecoder
+from bn3d.tc3d import ToricCode3D, RotatedPlanarCode3D, RotatedToricCode3D, SweepMatchDecoder
 from qecsim.models.toric import ToricCode
 from bn3d.rhombic import RhombicCode
 from bn3d.bp_os_decoder import BeliefPropagationOSDDecoder
@@ -104,7 +104,7 @@ def send_stabilizer_matrix():
         indices = {'qubit': qubit_index, 'triangle': triangle_index, 'cube': cube_index}
 
     elif code_name == 'rotated':
-        code = RotatedCode3D(Lx, Ly, Lz)
+        code = RotatedPlanarCode3D(Lx, Ly, Lz)
 
         Hz = code.Hz
         Hx = code.Hx
@@ -169,7 +169,7 @@ def send_correction():
     elif code_name == 'rhombic':
         code = RhombicCode(Lx, Ly, Lz)
     elif code_name == 'rotated':
-        code = RotatedCode3D(Lx, Ly, Lz)
+        code = RotatedPlanarCode3D(Lx, Ly, Lz)
     elif code_name == 'rotated-toric':
         code = RotatedToricCode3D(Lx, Ly, Lz)
     else:
@@ -240,7 +240,7 @@ def send_random_errors():
     elif code_name == 'rhombic':
         code = RhombicCode(Lx, Ly, Lz)
     elif code_name == 'rotated':
-        code = RotatedCode3D(Lx, Ly, Lz)
+        code = RotatedPlanarCode3D(Lx, Ly, Lz)
     elif code_name == 'rotated-toric':
         code = RotatedToricCode3D(Lx, Ly, Lz)
     else:

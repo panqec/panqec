@@ -2,9 +2,9 @@ import * as THREE from 'https://cdn.skypack.dev/three@v0.130.1';
 
 import { AbstractCode, stringToArray } from './base.js';
 
-export {RotatedCode3D};
+export {RotatedPlanarCode3D};
 
-class RotatedCode3D extends AbstractCode {
+class RotatedPlanarCode3D extends AbstractCode {
     constructor(Lx, Ly, Lz, Hx, Hz, indices, scene) {
         super(Hx, Hz, scene);
 

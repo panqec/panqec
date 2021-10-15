@@ -124,6 +124,8 @@ def generate_input(
                 code_model += 'Rotated'
             if boundary == 'toric':
                 code_model += 'Toric'
+            else:
+                code_model += 'Planar'
             code_model += 'Code3D'
 
             L_list = [5, 9, 13, 17]

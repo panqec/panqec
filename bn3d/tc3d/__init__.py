@@ -8,9 +8,9 @@ import numpy as np
 from ..bpauli import barray_to_bvector, new_barray
 from ._toric_code_3d import ToricCode3D  # noqa
 from ._toric_3d_pauli import Toric3DPauli  # noqa
-from ._rotated_code_3d import RotatedCode3D  # noqa
+from ._rotated_planar_code_3d import RotatedPlanarCode3D  # noqa
 from ._rotated_toric_code_3d import RotatedToricCode3D  # noqa
-from ._rotated_3d_pauli import Rotated3DPauli  # noqa
+from ._rotated_planar_3d_pauli import RotatedPlanar3DPauli  # noqa
 from ._rotated_toric_3d_pauli import RotatedToric3DPauli  # noqa
 from ._pymatching_decoder import Toric3DPymatchingDecoder  # noqa
 from ._sweep_decoder_3d import SweepDecoder3D  # noqa
