@@ -215,7 +215,7 @@ They are implemented in an object-oriented manner.
 # Run the 3D GUI
 To run the 3D GUI, after you have activated the environment, run
 ```
-python3 gui3d.py
+python3 gui/gui.py
 ```
 Then open your browser and go to the link printed out in the command line.
 
