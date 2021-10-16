@@ -1,15 +1,19 @@
 import numpy as np
 
 from flask import Flask, send_from_directory, request, json, render_template
-from bn3d.tc3d import ToricCode3D, RotatedPlanarCode3D, RotatedToricCode3D, SweepMatchDecoder
+from bn3d.tc3d import (
+    ToricCode3D, RotatedPlanarCode3D, RotatedToricCode3D, SweepMatchDecoder
+)
 from qecsim.models.toric import ToricCode
 from bn3d.rhombic import RhombicCode
 from bn3d.bp_os_decoder import BeliefPropagationOSDDecoder
 from bn3d.noise import PauliErrorModel
-from bn3d.deform import DeformedXZZXErrorModel, DeformedXYErrorModel, DeformedSweepMatchDecoder
+from bn3d.deform import (
+    DeformedXZZXErrorModel, DeformedXYErrorModel, DeformedSweepMatchDecoder
+)
 
 import webbrowser
-from threading import Timer
+# from threading import Timer
 
 
 app = Flask(__name__)
@@ -59,7 +63,7 @@ def send_stabilizer_matrix():
     indices = {}
 
     if code_name == 'toric2d':
-        code = ToricCode(L, L)
+        code = ToricCode(Lx, Lx)
 
         n_qubits = code.n_k_d[0]
         n_stabilizers = code.stabilizers.shape[0]
@@ -79,12 +83,16 @@ def send_stabilizer_matrix():
         qubit_index = {str(list(coord)): i for coord, i in qubit_index.items()}
 
         vertex_index = code.vertex_index
-        vertex_index = {str(list(coord)): i for coord, i in vertex_index.items()}
+        vertex_index = {
+            str(list(coord)): i for coord, i in vertex_index.items()
+        }
 
         face_index = code.face_index
         face_index = {str(list(coord)): i for coord, i in face_index.items()}
 
-        indices = {'qubit': qubit_index, 'vertex': vertex_index, 'face': face_index}
+        indices = {
+            'qubit': qubit_index, 'vertex': vertex_index, 'face': face_index
+        }
 
     elif code_name == 'rhombic':
         code = RhombicCode(Lx, Ly, Lz)
@@ -96,12 +104,17 @@ def send_stabilizer_matrix():
         qubit_index = {str(list(coord)): i for coord, i in qubit_index.items()}
 
         triangle_index = code.triangle_index
-        triangle_index = {str(list(coord)): i for coord, i in triangle_index.items()}
+        triangle_index = {
+            str(list(coord)): i for coord, i in triangle_index.items()
+        }
 
         cube_index = code.cube_index
         cube_index = {str(list(coord)): i for coord, i in cube_index.items()}
 
-        indices = {'qubit': qubit_index, 'triangle': triangle_index, 'cube': cube_index}
+        indices = {
+            'qubit': qubit_index, 'triangle': triangle_index,
+            'cube': cube_index
+        }
 
     elif code_name == 'rotated':
         code = RotatedPlanarCode3D(Lx, Ly, Lz)
@@ -113,12 +126,16 @@ def send_stabilizer_matrix():
         qubit_index = {str(list(coord)): i for coord, i in qubit_index.items()}
 
         vertex_index = code.vertex_index
-        vertex_index = {str(list(coord)): i for coord, i in vertex_index.items()}
+        vertex_index = {
+            str(list(coord)): i for coord, i in vertex_index.items()
+        }
 
         face_index = code.face_index
         face_index = {str(list(coord)): i for coord, i in face_index.items()}
 
-        indices = {'qubit': qubit_index, 'vertex': vertex_index, 'face': face_index}
+        indices = {
+            'qubit': qubit_index, 'vertex': vertex_index, 'face': face_index
+        }
 
     elif code_name == 'rotated-toric':
         code = RotatedToricCode3D(Lx, Ly, Lz)
@@ -130,12 +147,16 @@ def send_stabilizer_matrix():
         qubit_index = {str(list(coord)): i for coord, i in qubit_index.items()}
 
         vertex_index = code.vertex_index
-        vertex_index = {str(list(coord)): i for coord, i in vertex_index.items()}
+        vertex_index = {
+            str(list(coord)): i for coord, i in vertex_index.items()
+        }
 
         face_index = code.face_index
         face_index = {str(list(coord)): i for coord, i in face_index.items()}
 
-        indices = {'qubit': qubit_index, 'vertex': vertex_index, 'face': face_index}
+        indices = {
+            'qubit': qubit_index, 'vertex': vertex_index, 'face': face_index
+        }
 
     n_qubits = code.n_k_d[0]
     logical_z = code.logical_zs
