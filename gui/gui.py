@@ -2,8 +2,9 @@ import numpy as np
 
 from flask import Flask, send_from_directory, request, json, render_template
 from bn3d.tc3d import (
-    ToricCode3D, RotatedPlanarCode3D, RotatedToricCode3D, SweepMatchDecoder
+    ToricCode3D, RotatedPlanarCode3D, RotatedToricCode3D, SweepMatchDecoder,
 )
+from bn3d.tc2d import Toric2DPymatchingDecoder
 from qecsim.models.toric import ToricCode
 from bn3d.rhombic import RhombicCode
 from bn3d.bp_os_decoder import BeliefPropagationOSDDecoder
@@ -57,7 +58,8 @@ def send_js(path):
 def send_stabilizer_matrix():
     Lx = request.json['Lx']
     Ly = request.json['Ly']
-    Lz = request.json['Lz']
+    if 'Lz' in request.json:
+        Lz = request.json['Lz']
     code_name = request.json['code_name']
 
     indices = {}
@@ -175,7 +177,8 @@ def send_correction():
     syndrome = np.array(content['syndrome'])
     Lx = content['Lx']
     Ly = content['Ly']
-    Lz = content['Lz']
+    if 'Lz' in content:
+        Lz = content['Lz']
     p = content['p']
     deformation = content['deformation']
     max_bp_iter = content['max_bp_iter']
@@ -223,6 +226,8 @@ def send_correction():
         decoder = BeliefPropagationOSDDecoder(error_model, p,
                                               max_bp_iter=max_bp_iter,
                                               joschka=True)
+    elif decoder_name == 'matching':
+        decoder = Toric2DPymatchingDecoder()
     elif decoder_name == 'sweepmatch':
         if deformation == "XZZX":
             decoder = DeformedSweepMatchDecoder(error_model, p)
@@ -233,7 +238,7 @@ def send_correction():
         else:
             raise ValueError("Deformation not recognized")
     else:
-        raise ValueError('Decoder not recognized')
+        raise ValueError(f'Decoder {decoder} not recognized')
 
     correction = decoder.decode(code, syndrome)
 
@@ -248,7 +253,8 @@ def send_random_errors():
     content = request.json
     Lx = content['Lx']
     Ly = content['Ly']
-    Lz = content['Lz']
+    if 'Lz' in content:
+        Lz = content['Lz']
     p = content['p']
     deformation = content['deformation']
     error_model_name = content['error_model']
