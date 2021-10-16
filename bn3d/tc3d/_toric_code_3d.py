@@ -44,7 +44,7 @@ class ToricCode3D(StabilizerCode):
         return (np.product(self.shape), 3, min(self.size))
 
     @property
-    def qubit_index(self) -> Dict[Tuple[int, int, int], int]:
+    def qubit_index(self) -> Dict[Tuple[int, int, int, int], int]:
         return self._qubit_index
 
     @property
@@ -52,7 +52,7 @@ class ToricCode3D(StabilizerCode):
         return self._vertex_index
 
     @property
-    def face_index(self) -> Dict[Tuple[int, int, int], int]:
+    def face_index(self) -> Dict[Tuple[int, int, int, int], int]:
         return self._face_index
 
     @property
