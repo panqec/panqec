@@ -16,17 +16,21 @@ output_dir=temp/paper/xzzx/results
 log_dir=temp/paper/xzzx/logs
 bash_command="bn3d run -f {} -o $output_dir -t $trials"
 
+# Print out the current working directory.
 pwd
 
+# Load python and activate the python virtual environment.
 module purge
 module load python/3.8
 source venv/bin/activate
 
+# Print out the environmental variables and the time.
 printenv
 date
 n_tasks=$SLURM_ARRAY_TASK_COUNT
 i_task=$SLURM_ARRAY_TASK_ID
 
+# Run a CPU and RAM usage logging script in the background.
 python scripts/monitor.py "$log_dir/usage_${SLURM_JOB_ID}_${i_task}.txt" &
 
 # Function that prints out filtered functions.
@@ -43,4 +47,5 @@ function filter_files() {
 # Run in parallel.
 filter_files | parallel --results $log_dir $bash_command :::
 
+# Print out the date when done.
 date

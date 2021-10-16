@@ -7,7 +7,15 @@ import psutil
 
 
 def monitor_usage(log_file: str, interval: float = 10):
-    """Continously monitor CPU usage."""
+    """Continously monitor CPU usage by logging to file at intervals.
+
+    Parameters
+    ----------
+    log_file : str
+        Path to log file where messages are saved.
+    interval : int
+        Interval at which to check usage, in seconds.
+    """
     ppid = os.getppid()
     if not os.path.isfile(log_file):
         with open(log_file, 'w') as f:
