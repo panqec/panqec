@@ -324,7 +324,7 @@ class BatchSimulation():
 
 
 def _parse_parameters_range(parameters):
-    parameters_range = [[]]
+    parameters_range = [{}]
     if len(parameters) > 0:
         if isinstance(parameters, list):
             parameters_range = parameters
