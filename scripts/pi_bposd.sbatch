@@ -11,9 +11,10 @@ set -euxo pipefail
 
 # Variables to change.
 trials=10000
-input_dir=temp/paper/xzzx/inputs
-output_dir=temp/paper/xzzx/results
-log_dir=temp/paper/xzzx/logs
+data_dir=temp/paper/xzzx
+input_dir="$data_dir/inputs"
+output_dir="$data_dir/results"
+log_dir="$data_dir/logs"
 bash_command="bn3d run -f {} -o $output_dir -t $trials"
 
 # Print out the current working directory.
@@ -23,6 +24,10 @@ pwd
 module purge
 module load python/3.8
 source venv/bin/activate
+
+# Create the subdirectories
+mkdir -p output_dir
+mkdir -p log_dir
 
 # Print out the environmental variables and the time.
 printenv
