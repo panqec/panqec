@@ -167,3 +167,24 @@ def get_deformed_weights(
                 weights[index] = deformed_weight
 
     return weights
+
+
+def get_direction_from_bias_ratio(pauli: str, eta) -> dict:
+    """Get noise params given Pauli and bias."""
+
+    if eta == np.inf:
+        r_bias = 1.
+    else:
+        r_bias = eta / (1 + eta)
+    r_other = (1 - r_bias) / 2
+
+    params: dict = {}
+
+    if pauli == 'Z':
+        params = {'r_x': r_other, 'r_y': r_other, 'r_z': r_bias}
+    elif pauli == 'X':
+        params = {'r_x': r_bias, 'r_y': r_other, 'r_z': r_other}
+    elif pauli == 'Y':
+        params = {'r_x': r_other, 'r_y': r_bias, 'r_z': r_other}
+
+    return params
