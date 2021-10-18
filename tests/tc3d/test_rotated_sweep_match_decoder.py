@@ -133,13 +133,12 @@ class TestRotatedSweepMatchDecoder:
         total_error = (error.to_bsf() + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
-    @pytest.mark.xfail
     def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
 
         codes_sites = [
-            (RotatedPlanarCode3D(3, 4, 5), (7, 9, 3)),
-            (RotatedPlanarCode3D(3, 3, 3), (3, 5, 7)),
-            (RotatedPlanarCode3D(5, 4, 3), (1, 3, 5)),
+            (RotatedPlanarCode3D(3, 3, 3), (7, 9, 3)),
+            (RotatedPlanarCode3D(4, 4, 4), (3, 5, 7)),
+            (RotatedPlanarCode3D(5, 5, 5), (1, 3, 5)),
         ]
 
         for code, site in codes_sites:

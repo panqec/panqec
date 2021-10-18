@@ -10,11 +10,11 @@ class RotatedSweepDecoder3D(Decoder):
 
     label = 'Rotated Code 3D Sweep Decoder'
     _rng: np.random.Generator
-    max_sweep_factor: int
+    max_rounds: int
 
     def __init__(self, seed: int = 0, max_sweep_factor: int = 4):
         self._rng = np.random.default_rng(seed)
-        self.max_sweep_factor = max_sweep_factor
+        self.max_rounds = max_sweep_factor
 
     def get_full_size(self, code) -> Tuple[int, ...]:
         all_index = np.array(
@@ -41,7 +41,7 @@ class RotatedSweepDecoder3D(Decoder):
         """Get Z corrections given measured syndrome."""
 
         # Maximum number of times to sweep before giving up.
-        max_sweeps = self.max_sweep_factor*int(max(code.size))
+        largest_size = int(max(code.size))
 
         # The syndromes represented as an array of 0s and 1s.
         signs = self.get_initial_state(code, syndrome)
@@ -56,17 +56,20 @@ class RotatedSweepDecoder3D(Decoder):
             (-1, 0, 1), (-1, 0, -1),
             (0, -1, 1), (0, -1, -1),
         ]
-        for sweep_direction in sweep_directions:
 
-            # Initialize the number of sweeps.
-            i_sweep = 0
+        i_round = 0
+        while any(signs.values()) and i_round < self.max_rounds:
+            for sweep_direction in sweep_directions:
 
-            # Keep sweeping until there are no syndromes.
-            while any(signs.values()) and i_sweep < max_sweeps:
-                signs = self.sweep_move(
-                    signs, correction, sweep_direction, code
-                )
-                i_sweep += 1
+                # Initialize the number of sweeps.
+                i_sweep = 0
+
+                # Keep sweeping until there are no syndromes.
+                while any(signs.values()) and i_sweep < largest_size:
+                    signs = self.sweep_move(
+                        signs, correction, sweep_direction, code
+                    )
+                    i_sweep += 1
 
         return correction.to_bsf()
 
@@ -126,12 +129,10 @@ class RotatedSweepDecoder3D(Decoder):
 
         flip_locations = []
 
-        dx, dy, dz = sweep_direction
-
-        # Sweep through every edge.
+        # Apply sweep rule on every vertex.
         for vertex in code.vertex_index.keys():
 
-            # Get the faces and edges in the sweep direction.
+            # Get neighbouring faces and edges in the sweep direction.
             x_face, y_face, z_face = self.get_sweep_faces(
                 vertex, sweep_direction, code
             )
