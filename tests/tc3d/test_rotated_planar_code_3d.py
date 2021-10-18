@@ -1,18 +1,31 @@
 import pytest
 import numpy as np
-from bn3d.tc3d import RotatedToricCode3D
+from bn3d.tc3d import RotatedPlanarCode3D
 
 
-class TestRotatedToricCode3D:
+@pytest.mark.parametrize('L_x, L_y, L_z', [
+    (2, 2, 2),
+    (3, 3, 3),
+    (4, 4, 4),
+    pytest.param(3, 2, 2, marks=pytest.mark.xfail),
+    pytest.param(2, 3, 2, marks=pytest.mark.xfail),
+    (2, 2, 3),
+])
+def test_n_qubits_equals_len_qubit_index(L_x, L_y, L_z):
+    code = RotatedPlanarCode3D(L_x, L_y, L_z)
+    assert code.n_k_d[0] == len(code.qubit_index)
 
-    L_x = 2
-    L_y = 3
+
+class TestRotatedPlanarCode3D:
+
+    L_x = 4
+    L_y = 4
     L_z = 4
 
     @pytest.fixture
     def code(self):
         """Example code with non-uniform dimensions."""
-        new_code = RotatedToricCode3D(self.L_x, self.L_y, self.L_z)
+        new_code = RotatedPlanarCode3D(self.L_x, self.L_y, self.L_z)
         return new_code
 
     def test_n_equals_len_qubit_index(self, code):

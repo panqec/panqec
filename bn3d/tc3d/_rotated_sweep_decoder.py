@@ -14,7 +14,6 @@ class RotatedSweepDecoder3D(SweepDecoder3D):
 
     def get_sign_array(self, code: RotatedPlanarCode3D, syndrome: np.ndarray):
         signs = np.zeros(code.full_size, dtype=int)
-        # TODO
         return signs
 
     def decode(

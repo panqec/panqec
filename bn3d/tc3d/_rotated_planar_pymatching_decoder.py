@@ -40,10 +40,7 @@ class RotatedPlanarPymatchingDecoder(Toric3DPymatchingDecoder):
         X face stabiziliers syndromes are discarded for this decoder.
         """
         n_faces = self._n_faces[code.label]
-        n_qubits = self._n_qubits[code.label]
-        vertex_syndromes = full_syndrome[
-            n_faces:n_faces + n_qubits
-        ]
+        vertex_syndromes = full_syndrome[n_faces:]
         return vertex_syndromes
 
     def decode(self, code: ToricCode3D, syndrome: np.ndarray) -> np.ndarray:
