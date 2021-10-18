@@ -12,7 +12,7 @@ class RotatedSweepDecoder3D(Decoder):
     _rng: np.random.Generator
     max_rounds: int
 
-    def __init__(self, seed: int = 0, max_rounds: int = 8):
+    def __init__(self, seed: int = 0, max_rounds: int = 2):
         self._rng = np.random.default_rng(seed)
         self.max_rounds = max_rounds
 
@@ -66,7 +66,7 @@ class RotatedSweepDecoder3D(Decoder):
                 i_sweep = 0
 
                 # Keep sweeping until there are no syndromes.
-                while any(signs.values()) and i_sweep < 2*largest_size:
+                while any(signs.values()) and i_sweep < largest_size + 2:
                     signs = self.sweep_move(
                         signs, correction, sweep_direction, code
                     )
