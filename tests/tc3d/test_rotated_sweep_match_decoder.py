@@ -50,6 +50,29 @@ class TestRotatedSweepMatchDecoder:
         total_error = (error.to_bsf() + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
+    @pytest.mark.parametrize('sweep_direction, diffs', [
+        [(+1, 0, +1), [(+1, +1, +1), (+1, -1, +1), (+2, 0, 0)]],
+        [(+1, 0, -1), [(+1, +1, -1), (+1, -1, -1), (+2, 0, 0)]],
+        [(0, +1, +1), [(+1, +1, +1), (-1, +1, +1), (0, +2, 0)]],
+        [(0, +1, -1), [(+1, +1, -1), (-1, +1, -1), (0, +2, 0)]],
+        [(-1, 0, +1), [(-1, -1, +1), (-1, +1, +1), (-2, 0, 0)]],
+        [(-1, 0, -1), [(-1, -1, -1), (-1, +1, -1), (-2, 0, 0)]],
+        [(0, -1, +1), [(-1, -1, +1), (+1, -1, +1), (0, -2, 0)]],
+        [(0, -1, -1), [(-1, -1, -1), (+1, -1, -1), (0, -2, 0)]],
+    ])
+    def test_get_sweep_faces(self, sweep_direction, diffs, decoder, code):
+        vertex = (0, 0, 0)
+        expected_x_face, expected_y_face, expected_z_face = [
+            tuple(np.array(vertex) + np.array(diff))
+            for diff in diffs
+        ]
+        x_face, y_face, z_face = decoder._sweeper.get_sweep_faces(
+            vertex, sweep_direction, code
+        )
+        assert x_face == expected_x_face
+        assert y_face == expected_y_face
+        assert z_face == expected_z_face
+
     @pytest.mark.parametrize(
         'paulis_locations',
         [

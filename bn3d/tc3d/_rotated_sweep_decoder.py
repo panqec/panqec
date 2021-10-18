@@ -72,20 +72,36 @@ class RotatedSweepDecoder3D(Decoder):
 
     def get_sweep_faces(self, vertex, sweep_direction, code):
         """Get the coordinates of neighbouring faces in sweep direction."""
-        # TODO
         x, y, z = vertex
-        x_face = (x + 1, y + 1, z + 1)
-        y_face = (x + 1, y - 1, z + 1)
-        z_face = (x + 2, y, z)
+        s_x, s_y, s_z = sweep_direction
+
+        # (s_x, s_y) in [(1, 0), (0, 1)]
+        if s_x + s_y > 0:
+            x_face = (x + 1, y + 1, z + 1*s_z)
+
+        # (s_x, s_y) in [(-1, 0), (0, -1)]
+        else:
+            x_face = (x - 1, y - 1, z + 1*s_z)
+
+        # (s_x, s_y) in [(1, 0), (0, -1)]
+        if s_x - s_y > 0:
+            y_face = (x + 1, y - 1, z + 1*s_z)
+
+        # (s_x, s_y) in [(-1, 0), (0, 1)]
+        else:
+            y_face = (x - 1, y + 1, z + 1*s_z)
+
+        z_face = (x + 2*s_x, y + 2*s_y, z)
         return x_face, y_face, z_face
 
     def get_sweep_edges(self, vertex, sweep_direction, code):
         """Get coordinates of neighbouring edges in sweep direction."""
         # TODO
         x, y, z = vertex
+        s_x, s_y, s_z = sweep_direction
         x_edge = (x + 1, y - 1, z)
         y_edge = (x + 1, y + 1, z)
-        z_edge = (x, y, z + 1)
+        z_edge = (x, y, z + 1*s_z)
         return x_edge, y_edge, z_edge
 
     def get_default_direction(self):
