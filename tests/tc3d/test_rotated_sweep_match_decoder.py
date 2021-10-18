@@ -62,15 +62,15 @@ class TestRotatedSweepMatchDecoder:
             [('Z', (1, 1, 1)), ('Z', (1, 3, 1))],
             [('Z', (1, 1, 1)), ('Z', (3, 1, 1))],
             [('Z', (2, 0, 2)), ('Z', (2, 0, 4))],
-            [('X', (1, 1, 1)), ('X', (1, 3, 1))],
-            [('X', (1, 1, 1)), ('X', (3, 1, 1))],
-            [('X', (2, 0, 2)), ('X', (2, 0, 4))],
+            [('Y', (1, 1, 1)), ('Y', (1, 3, 1))],
+            [('Y', (1, 1, 1)), ('Y', (3, 1, 1))],
+            [('Y', (2, 0, 2)), ('Y', (2, 0, 4))],
         ],
         ids=[
             'X_bulk', 'Z_bulk', 'Y_bulk',
             'X_boundary_x', 'X_boundary_y', 'X_boundary_z',
             'Z_boundary_x', 'Z_boundary_y', 'Z_boundary_z',
-            'X_boundary_x', 'X_boundary_y', 'X_boundary_z',
+            'Y_boundary_x', 'Y_boundary_y', 'Y_boundary_z',
         ]
     )
     def test_decode_many_errors(self, decoder, code, paulis_locations):
