@@ -81,6 +81,7 @@ class TestDeformedXZZXErrorModel:
         assert error_model.label == 'Deformed XZZX Pauli X1Y0Z0'
 
 
+# TODO get this to work with Arthur's deform conventions
 @pytest.mark.skip
 class TestDeformOperator:
 

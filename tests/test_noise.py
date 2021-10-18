@@ -3,7 +3,8 @@ import itertools
 import pytest
 from qecsim.paulitools import bsf_to_pauli, bsf_wt
 from bn3d.noise import (
-    generate_pauli_noise, deform_operator, get_deformed_weights
+    generate_pauli_noise, deform_operator, get_deformed_weights,
+    get_direction_from_bias_ratio
 )
 from bn3d.bpauli import get_bvector_index
 from bn3d.noise import PauliErrorModel, XNoiseOnYZEdgesOnly
@@ -297,3 +298,21 @@ class TestXNoiseOnYZEdgesOnly:
             assert pauli.operator((2, x, y, z)) == 'X', (
                 'All z edges should have X'
             )
+
+
+@pytest.mark.parametrize('pauli,bias,expected', [
+    ('X', 0.5, (1/3, 1/3, 1/3)),
+    ('Y', 0.5, (1/3, 1/3, 1/3)),
+    ('Z', 0.5, (1/3, 1/3, 1/3)),
+    ('X', np.inf, (1, 0, 0)),
+    ('Y', np.inf, (0, 1, 0)),
+    ('Z', np.inf, (0, 0, 1)),
+    ('X', 1, (0.5, 0.25, 0.25)),
+    ('Y', 1, (0.25, 0.5, 0.25)),
+    ('Z', 1, (0.25, 0.25, 0.5)),
+])
+def test_get_direction_from_bias_ratio(pauli, bias, expected):
+    expected_params = dict(zip(['r_x', 'r_y', 'r_z'], expected))
+    params = get_direction_from_bias_ratio(pauli, bias)
+    for key in expected_params.keys():
+        assert np.isclose(params[key], expected_params[key])

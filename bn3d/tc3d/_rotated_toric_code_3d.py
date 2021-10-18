@@ -37,7 +37,7 @@ class RotatedToricCode3D(StabilizerCode):
     @property
     def n_k_d(self) -> Tuple[int, int, int]:
         Lx, Ly, Lz = self.size
-        n_horizontals = 4*np.product(self.size)
+        n_horizontals = 2*Ly*(2*Lx + 1)*Lz
         n_verticals = (2*Lx*Ly)*Lz
         return (n_horizontals + n_verticals, -1, -1)
 
@@ -148,14 +148,14 @@ class RotatedToricCode3D(StabilizerCode):
         coordinates = []
 
         # Horizontal
-        for x in range(1, 4*Lx, 2):
+        for x in range(1, 4*Lx+2, 2):
             for y in range(1, 4*Ly, 2):
                 for z in range(1, 2*Lz, 2):
                     coordinates.append((x, y, z))
 
         # Vertical
-        for x in range(0, 4*Lx-1, 2):
-            for y in range(0, 4*Ly-1, 2):
+        for x in range(2, 4*Lx+2, 2):
+            for y in range(0, 4*Ly, 2):
                 for z in range(0, 2*Lz, 2):
                     if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
@@ -170,7 +170,7 @@ class RotatedToricCode3D(StabilizerCode):
         coordinates = []
 
         for z in range(1, 2*Lz, 2):
-            for x in range(0, 4*Lx, 2):
+            for x in range(2, 4*Lx+1, 2):
                 for y in range(0, 4*Ly, 2):
                     if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
@@ -185,13 +185,13 @@ class RotatedToricCode3D(StabilizerCode):
         coordinates = []
 
         # Horizontal faces
-        for x in range(0, 4*Lx, 2):
+        for x in range(0, 4*Lx+3, 2):
             for y in range(0, 4*Ly-1, 2):
                 for z in range(1, 2*Lz, 2):
                     if (x + y) % 4 == 0:
                         coordinates.append((x, y, z))
         # Vertical faces
-        for x in range(1, 4*Lx, 2):
+        for x in range(1, 4*Lx+2, 2):
             for y in range(1, 4*Ly, 2):
                 for z in range(0, 2*Lz, 2):
                     coordinates.append((x, y, z))

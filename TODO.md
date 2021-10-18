@@ -14,7 +14,7 @@
 - [x] Get simulations running on slurm
 
 ### Sweep decoder
-- [ ] investigate why thresholds
+- [x] investigate why thresholds
 
 ### Finite-size scaling
 - [x] implement it
@@ -46,5 +46,19 @@
 - [ ] p > 0 case
 - [ ] finite bias case
 
-### Fault-tolerant thresholds 3D
+### Paper
+- [ ] AP Numerics What are rough estimates for thresholds with BP+OSD?
+- [ ] EH Numerics Generate inputs and commands for AD to run script cluster
+- [ ] AP Table 1 check size formulae correct
+- [ ] EH Fig change colours and labels back to CSS
+- [ ] EH Fig Add rotated coordinate axes for 3D and 2D
+- [ ] EH Fig Shaded transparent circle on qubit to show deformation
+- [ ] AP Plots Thresholds estimates and thresholds from data?
+- [ ] AP Plots Subtreshold scaling plots 100,000 trials, fix p vary L log scale
+- [ ] EH Numerics 100 values of p in 0.005 increments too much, only need a 16
+  data points near estimated threshold.
+- [ ] AP fill in Table 2 thresholds
+- [ ] EH Fig Show 2 layers only (low priority)
+
+### Post-QIP
 -[ ] Deformed Y noise fault-tolerant threshold 3D

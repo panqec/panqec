@@ -5,7 +5,7 @@ import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat
 
 import { ToricCode3D } from './codes/toric3d.js';
 import { RhombicCode } from './codes/rhombic.js';
-import { RotatedCode3D } from './codes/rotated3d.js';
+import { RotatedPlanarCode3D } from './codes/rotatedPlanar3d.js';
 import { RotatedToricCode3D } from './codes/rotatedToric3d.js';
 
 
@@ -16,7 +16,7 @@ const params = {
     opacity: MAX_OPACITY,
     errorProbability: 0.1,
     L: 2,
-    deformation: "XZZX",
+    deformation: "None",
     decoder: 'bp-osd-2',
     max_bp_iter: 10,
     errorModel: 'Pure Z',
@@ -108,18 +108,18 @@ async function buildCode() {
     let indices = stabilizers['indices'];
     let logical_z = stabilizers['logical_z'];
     let logical_x = stabilizers['logical_x'];
-    let Lx = params.L+1;
+    let Lx = params.L;
     let Ly = params.L;
     let Lz = params.L;
 
     let codeClass = {'cubic': ToricCode3D,
                      'rhombic': RhombicCode,
-                     'rotated': RotatedCode3D,
+                     'rotated': RotatedPlanarCode3D,
                      'rotated-toric': RotatedToricCode3D}
 
     code = new codeClass[params.codeName](Lx, Ly, Lz, Hx, Hz, indices, scene);
     code.build();
-    code.displayLogical(logical_z, 'Z', 0);
+    // code.displayLogical(logical_x, 'X', 0);
 }
 
 function changeLatticeSize() {
@@ -150,7 +150,7 @@ async function getStabilizerMatrices() {
           },
         method: 'POST',
         body: JSON.stringify({
-            'Lx': params.L+1,
+            'Lx': params.L,
             'Ly': params.L,
             'Lz': params.L,
             'code_name': params.codeName
@@ -166,7 +166,7 @@ function buildGUI() {
     gui = new GUI();
     const codeFolder = gui.addFolder('Code')
     codeFolder.add(params, 'codeName', {'Cubic': 'cubic', 'Rhombic': 'rhombic', 'Rotated': 'rotated', 'Rotated Toric': 'rotated-toric'}).name('Code type').onChange(changeLatticeSize);
-    codeFolder.add(params, 'L', {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
+    codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
 
     const errorModelFolder = gui.addFolder('Error Model')
     errorModelFolder.add(params, 'errorModel', {'Pure X': 'Pure X', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}).name('Model');
@@ -256,7 +256,7 @@ async function getCorrection(syndrome) {
           },
         method: 'POST',
         body: JSON.stringify({
-            'Lx': params.L+1,
+            'Lx': params.L,
             'Ly': params.L,
             'Lz': params.L,
             'p': params.errorProbability,
@@ -281,7 +281,7 @@ async function getRandomErrors() {
           },
         method: 'POST',
         body: JSON.stringify({
-            'Lx': params.L+1,
+            'Lx': params.L,
             'Ly': params.L,
             'Lz': params.L,
             'p': params.errorProbability,

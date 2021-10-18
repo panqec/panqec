@@ -3,7 +3,7 @@ import numpy as np
 from qecsim.model import StabilizerCode
 
 
-class Rotated3DPauli:
+class RotatedPlanar3DPauli:
     """Pauli Operator on 3D Toric Code.
 
     Qubit sites are on edges of the lattice.
@@ -55,7 +55,7 @@ class Rotated3DPauli:
         (x, y).
         :type indices: Any number of 2-tuple of int
         :return: self (to allow chaining)
-        :rtype: RotatedToricPauli
+        :rtype: RotatedPlanar3DPauli
         """
         for coord in indices:
             # flip sites
@@ -100,11 +100,11 @@ class Rotated3DPauli:
         # Four horizontal edges (at most)
         if x - 1 >= 0 and y - 1 >= 0:
             self.site(operator, (x - 1, y - 1, z))
-        if x + 1 <= 4*Lx and y + 1 <= 4*Ly:
+        if x + 1 <= 4*Lx+1 and y + 1 <= 4*Ly+2:
             self.site(operator, (x + 1, y + 1, z))
-        if x - 1 > 0 and y + 1 <= 4*Ly:
+        if x - 1 > 0 and y + 1 <= 4*Ly+2:
             self.site(operator, (x - 1, y + 1, z))
-        if x + 1 <= 4*Lx and y - 1 >= 0:
+        if x + 1 <= 4*Lx+1 and y - 1 >= 0:
             self.site(operator, (x + 1, y - 1, z))
 
         # Two vertical edges
@@ -152,26 +152,30 @@ class Rotated3DPauli:
         if z % 2 == 1:
             if x - 1 >= 0 and y - 1 >= 0:
                 self.site(operator, (x - 1, y - 1, z))
-            if x + 1 <= 4*Lx and y + 1 <= 4*Ly:
+            if x + 1 <= 4*Lx+1 and y + 1 <= 4*Ly+2:
                 self.site(operator, (x + 1, y + 1, z))
-            if x - 1 > 0 and y + 1 <= 4*Ly:
+            if x - 1 > 0 and y + 1 <= 4*Ly+2:
                 self.site(operator, (x - 1, y + 1, z))
-            if x + 1 <= 4*Lx and y - 1 >= 0:
+            if x + 1 <= 4*Lx+1 and y - 1 >= 0:
                 self.site(operator, (x + 1, y - 1, z))
 
         # Vertical face (axis /)
         elif (x + y) % 4 == 0:
             self.site(operator, (x, y, z - 1))
             self.site(operator, (x, y, z + 1))
-            self.site(operator, (x - 1, y - 1, z))
-            self.site(operator, (x + 1, y + 1, z))
+            if x - 1 > 0 and y - 1 >= 0:
+                self.site(operator, (x - 1, y - 1, z))
+            if x + 1 <= 4*Lx+1 and y + 1 <= 4*Ly+2:
+                self.site(operator, (x + 1, y + 1, z))
 
         # Vertical face (axis \)
         elif (x + y) % 4 == 2:
             self.site(operator, (x, y, z - 1))
             self.site(operator, (x, y, z + 1))
-            self.site(operator, (x - 1, y + 1, z))
-            self.site(operator, (x + 1, y - 1, z))
+            if x - 1 > 0 and y + 1 <= 4*Ly+2:
+                self.site(operator, (x - 1, y + 1, z))
+            if x + 1 <= 4*Lx+1 and y - 1 >= 0:
+                self.site(operator, (x + 1, y - 1, z))
 
         else:
             raise ValueError(f"Invalid coordinate {location} for a face")
