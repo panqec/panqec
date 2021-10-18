@@ -111,12 +111,14 @@ class TestRotatedSweepMatchDecoder:
             [('Y', (1, 1, 1)), ('Y', (1, 3, 1))],
             [('Y', (1, 1, 1)), ('Y', (3, 1, 1))],
             [('Y', (2, 0, 2)), ('Y', (2, 0, 4))],
+            [('Z', (1, 1, 1))],
         ],
         ids=[
             'X_bulk', 'Z_bulk', 'Y_bulk',
             'X_boundary_x', 'X_boundary_y', 'X_boundary_z',
             'Z_boundary_x', 'Z_boundary_y', 'Z_boundary_z',
             'Y_boundary_x', 'Y_boundary_y', 'Y_boundary_z',
+            'Z_corner'
         ]
     )
     def test_decode_many_errors(self, decoder, code, paulis_locations):
@@ -132,6 +134,24 @@ class TestRotatedSweepMatchDecoder:
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
+
+    def test_undecodable_error(self, decoder, code):
+        locations = [
+            (x, y, z) for x, y, z in code.qubit_index
+        ]
+        assert len(locations) > 0
+        error = RotatedPlanar3DPauli(code)
+        for location in locations:
+            assert location in code.qubit_index.keys()
+            error.site('Z', location)
+        assert bsf_wt(error.to_bsf()) == len(locations)
+
+        syndrome = code.measure_syndrome(error)
+        assert np.any(syndrome != 0)
+
+        correction = decoder.decode(code, syndrome)
+        total_error = (error.to_bsf() + correction) % 2
+        assert np.any(total_error)
 
     def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
 
