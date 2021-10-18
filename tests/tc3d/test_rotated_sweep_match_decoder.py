@@ -73,6 +73,29 @@ class TestRotatedSweepMatchDecoder:
         assert y_face == expected_y_face
         assert z_face == expected_z_face
 
+    @pytest.mark.parametrize('sweep_direction, diffs', [
+        [(+1, 0, +1), [(+1, -1, 0), (+1, +1, 0), (0, 0, +1)]],
+        [(+1, 0, -1), [(+1, -1, 0), (+1, +1, 0), (0, 0, -1)]],
+        [(0, +1, +1), [(-1, +1, 0), (+1, +1, 0), (0, 0, +1)]],
+        [(0, +1, -1), [(-1, +1, 0), (+1, +1, 0), (0, 0, -1)]],
+        [(-1, 0, +1), [(-1, +1, 0), (-1, -1, 0), (0, 0, +1)]],
+        [(-1, 0, -1), [(-1, +1, 0), (-1, -1, 0), (0, 0, -1)]],
+        [(0, -1, +1), [(+1, -1, 0), (-1, -1, 0), (0, 0, +1)]],
+        [(0, -1, -1), [(+1, -1, 0), (-1, -1, 0), (0, 0, -1)]],
+    ])
+    def test_get_sweep_edges(self, sweep_direction, diffs, decoder, code):
+        vertex = (0, 0, 0)
+        expected_x_edge, expected_y_edge, expected_z_edge = [
+            tuple(np.array(vertex) + np.array(diff))
+            for diff in diffs
+        ]
+        x_edge, y_edge, z_edge = decoder._sweeper.get_sweep_edges(
+            vertex, sweep_direction, code
+        )
+        assert x_edge == expected_x_edge
+        assert y_edge == expected_y_edge
+        assert z_edge == expected_z_edge
+
     @pytest.mark.parametrize(
         'paulis_locations',
         [
