@@ -11,9 +11,7 @@ from .slurm import (
     generate_sbatch, get_status, generate_sbatch_nist, count_input_runs,
     clear_out_folder, clear_sbatch_folder
 )
-from bn3d.plots._hashing_bound import (
-    get_direction_from_z_bias_ratio
-)
+from .noise import get_direction_from_bias_ratio
 
 
 @click.group(invoke_without_command=True)
@@ -105,8 +103,12 @@ def ls(model_type=None):
     '-s', '--sizes', default='5,9,7,13', type=str,
     show_default=True,
 )
+@click.option(
+    '--bias', default='Z', type=click.Choice(['X', 'Y', 'Z']),
+    show_default=True,
+)
 def generate_input(
-    input_dir, lattice, boundary, deformation, ratio, sizes, decoder
+    input_dir, lattice, boundary, deformation, ratio, sizes, decoder, bias
 ):
     """Generate the json files of every experiment.
 
@@ -124,7 +126,7 @@ def generate_input(
     probabilities = np.arange(0, 0.5+delta, delta).tolist()
     bias_ratios = [0.5, 1, 3, 10, 30, 100, np.inf]
     for eta in bias_ratios:
-        direction = get_direction_from_z_bias_ratio(eta)
+        direction = get_direction_from_bias_ratio(bias, eta)
         for p in probabilities:
             label = "regular" if deformation == "none" else deformation
             label += f"-{lattice}"

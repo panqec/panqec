@@ -237,7 +237,8 @@ This is not as well-developed as the 3D GUI.
 To generate the input files in an inputs directory, run the following command
 ```
 bn3d generate-input -i /path/to/inputdir \
-        -l rotated -b planar -d xzzx -r equal
+        -l rotated -b planar -d xzzx -r equal \
+        --decoder BeliefPropagationOSDDecoder --bias Z
 ```
 The input `.json` files will be generated and saved to the given directory,
 which you can check by opening some of them and inspecting them.
