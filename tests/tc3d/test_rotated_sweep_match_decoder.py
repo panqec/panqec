@@ -1,4 +1,3 @@
-import itertools
 import pytest
 import numpy as np
 from qecsim.paulitools import bsf_wt

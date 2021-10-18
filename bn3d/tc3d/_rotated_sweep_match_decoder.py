@@ -1,14 +1,14 @@
 from ._rotated_sweep_decoder import RotatedSweepDecoder3D
-from ._pymatching_decoder import Toric3DPymatchingDecoder
 from ._sweep_match_decoder import SweepMatchDecoder
+from ._rotated_planar_pymatching_decoder import RotatedPlanarPymatchingDecoder
 
 
 class RotatedSweepMatchDecoder(SweepMatchDecoder):
 
     label = 'Rotated Planar Code 3D Sweep Pymatching Decoder'
     _sweeper: RotatedSweepDecoder3D
-    _matcher: Toric3DPymatchingDecoder
+    _matcher: RotatedPlanarPymatchingDecoder
 
     def __init__(self):
         self._sweeper = RotatedSweepDecoder3D()
-        self._matcher = Toric3DPymatchingDecoder()
+        self._matcher = RotatedPlanarPymatchingDecoder()

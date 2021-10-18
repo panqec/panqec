@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 from bn3d.tc3d import RotatedToricCode3D
 
 
@@ -98,3 +99,8 @@ class TestRotatedToricCode3D:
                 else:
                     assert x % 4 == 2
                     assert y % 4 == 0
+
+    def test_each_qubit_contained_in_1_or_2_check_operators(self, code):
+        H = code.Hx
+        assert np.all(H.sum(axis=0) > 0)
+        assert np.all(H.sum(axis=0) <= 2)
