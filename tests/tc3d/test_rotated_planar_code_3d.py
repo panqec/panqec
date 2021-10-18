@@ -3,6 +3,7 @@ import numpy as np
 from bn3d.tc3d import RotatedPlanarCode3D
 
 
+# TODO fix n_k_d for unequal sizes
 @pytest.mark.parametrize('L_x, L_y, L_z', [
     (2, 2, 2),
     (3, 3, 3),

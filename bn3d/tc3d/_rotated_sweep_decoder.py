@@ -1,19 +1,38 @@
-import itertools
+from typing import Tuple, Dict
 import numpy as np
-from ._sweep_decoder_3d import SweepDecoder3D
+from qecsim.model import Decoder
 from ._rotated_planar_code_3d import RotatedPlanarCode3D
 from ._rotated_planar_3d_pauli import RotatedPlanar3DPauli
+Indexer = Dict[Tuple[int, int, int], int]
 
 
-class RotatedSweepDecoder3D(SweepDecoder3D):
+class RotatedSweepDecoder3D(Decoder):
 
     label = 'Rotated Code 3D Sweep Decoder'
+    _rng: np.random.Generator
+    max_sweep_factor: int
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, seed: int = 0, max_sweep_factor: int = 4):
+        self._rng = np.random.default_rng(seed)
+        self.max_sweep_factor = max_sweep_factor
 
-    def get_sign_array(self, code: RotatedPlanarCode3D, syndrome: np.ndarray):
-        signs = np.zeros(code.full_size, dtype=int)
+    def get_full_size(self, code) -> Tuple[int, ...]:
+        all_index = np.array(
+            list(code.qubit_index.keys())
+            + list(code.vertex_index.keys())
+            + list(code.face_index.keys())
+        )
+        return tuple(all_index.max(axis=0))
+
+    def get_initial_state(
+        self, code: RotatedPlanarCode3D, syndrome: np.ndarray
+    ) -> Indexer:
+        """Get initial cellular automaton state from syndrome."""
+        n_faces = len(code.face_index)
+        face_syndromes = syndrome[:n_faces]
+        signs = dict()
+        for face, index in code.face_index.items():
+            signs[face] = int(face_syndromes[index])
         return signs
 
     def decode(
@@ -25,51 +44,152 @@ class RotatedSweepDecoder3D(SweepDecoder3D):
         max_sweeps = self.max_sweep_factor*int(max(code.size))
 
         # The syndromes represented as an array of 0s and 1s.
-        signs = self.get_sign_array(code, syndrome)
+        signs = self.get_initial_state(code, syndrome)
 
         # Keep track of the correction needed.
         correction = RotatedPlanar3DPauli(code)
 
-        # Initialize the number of sweeps.
-        i_sweep = 0
+        # Sweep directions to take
+        sweep_directions = [
+            (1, 0, 1), (1, 0, -1),
+            (0, 1, 1), (0, 1, -1),
+            (-1, 0, 1), (-1, 0, -1),
+            (0, -1, 1), (0, -1, -1),
+        ]
+        for sweep_direction in sweep_directions:
 
-        # Keep sweeping until there are no syndromes.
-        while np.any(signs) and i_sweep < max_sweeps:
-            signs = self.sweep_move(signs, correction)
-            i_sweep += 1
+            # Initialize the number of sweeps.
+            i_sweep = 0
+
+            # Keep sweeping until there are no syndromes.
+            while any(signs.values()) and i_sweep < max_sweeps:
+                signs = self.sweep_move(
+                    signs, correction, sweep_direction, code
+                )
+                i_sweep += 1
 
         return correction.to_bsf()
 
+    def get_sweep_faces(self, vertex, sweep_direction, code):
+        """Get the coordinates of neighbouring faces in sweep direction."""
+        # TODO
+        x, y, z = vertex
+        x_face = (x + 1, y + 1, z + 1)
+        y_face = (x + 1, y - 1, z + 1)
+        z_face = (x + 2, y, z)
+        return x_face, y_face, z_face
+
+    def get_sweep_edges(self, vertex, sweep_direction, code):
+        """Get coordinates of neighbouring edges in sweep direction."""
+        # TODO
+        x, y, z = vertex
+        x_edge = (x + 1, y - 1, z)
+        y_edge = (x + 1, y + 1, z)
+        z_edge = (x, y, z + 1)
+        return x_edge, y_edge, z_edge
+
+    def get_default_direction(self):
+        """The default direction when all faces are excited."""
+        direction = int(self._rng.choice([0, 1, 2], size=1))
+        return direction
+
     def sweep_move(
-        self, signs: np.ndarray, correction: RotatedPlanar3DPauli
-    ) -> np.ndarray:
-        """Apply the sweep move once."""
+        self, signs: Indexer, correction: RotatedPlanar3DPauli,
+        sweep_direction: Tuple[int, int, int], code: RotatedPlanarCode3D
+    ) -> Indexer:
+        """Apply the sweep move once along a particular direciton."""
 
-        new_signs = signs.copy()
-
-        ranges = [range(length) for length in signs.shape[1:]]
         flip_locations = []
 
+        dx, dy, dz = sweep_direction
+
         # Sweep through every edge.
-        for x, y, z in itertools.product(*ranges):
+        for vertex in code.vertex_index.keys():
 
-            # Get the syndromes on each face in sweep direction.
-            x_face = signs[0, x, y, z]
-            y_face = signs[1, x, y, z]
-            z_face = signs[2, x, y, z]
+            # Get the faces and edges in the sweep direction.
+            x_face, y_face, z_face = self.get_sweep_faces(
+                vertex, sweep_direction, code
+            )
+            x_edge, y_edge, z_edge = self.get_sweep_edges(
+                vertex, sweep_direction, code
+            )
 
-            if x_face and y_face and z_face:
-                direction = self.get_default_direction()
-                flip_locations.append((direction, x, y, z))
-            elif y_face and z_face:
-                flip_locations.append((0, x, y, z))
-            elif x_face and z_face:
-                flip_locations.append((1, x, y, z))
-            elif x_face and y_face:
-                flip_locations.append((2, x, y, z))
+            # Check faces and edges are in lattice before proceeding.
+            all_faces_valid = all(
+                face in code.face_index
+                for face in [x_face, y_face, z_face]
+            )
+            all_edges_valid = all(
+                edge in code.qubit_index
+                for edge in [x_edge, y_edge, z_edge]
+            )
+            if all_faces_valid and all_edges_valid:
 
+                if signs[x_face] and signs[y_face] and signs[z_face]:
+                    direction = self.get_default_direction()
+                    flip_edge = {0: x_edge, 1: y_edge, 2: z_edge}[direction]
+                    flip_locations.append(flip_edge)
+                elif signs[y_face] and signs[z_face]:
+                    flip_locations.append(x_edge)
+                elif signs[x_face] and signs[z_face]:
+                    flip_locations.append(y_edge)
+                elif signs[x_face] and signs[y_face]:
+                    flip_locations.append(z_edge)
+
+        new_signs = signs.copy()
         for location in flip_locations:
-            self.flip_edge(location, new_signs)
+            self.flip_edge(location, new_signs, code)
             correction.site('Z', location)
 
         return new_signs
+
+    def flip_edge(
+        self, edge: Tuple, signs: Indexer, code: RotatedPlanarCode3D
+    ):
+        """Flip signs at index and update correction."""
+
+        x, y, z = edge
+
+        # Determine the axis the edge is parallel to.
+        if z % 2 == 0:
+            edge_direction = 'z'
+        elif x % 4 == 1:
+            if y % 4 == 1:
+                edge_direction = 'x'
+            elif y % 4 == 3:
+                edge_direction = 'y'
+        elif x % 4 == 3:
+            if y % 4 == 1:
+                edge_direction = 'y'
+            elif y % 4 == 3:
+                edge_direction = 'x'
+
+        # Get the faces adjacent to the edge.
+        if edge_direction == 'x':
+            faces = [
+                (x + 1, y + 1, z),
+                (x - 1, y - 1, z),
+                (x, y, z + 1),
+                (x, y, z - 1),
+            ]
+        elif edge_direction == 'y':
+            faces = [
+                (x + 1, y - 1, z),
+                (x - 1, y + 1, z),
+                (x, y, z + 1),
+                (x, y, z - 1),
+            ]
+        elif edge_direction == 'z':
+            faces = [
+                (x + 1, y + 1, z),
+                (x - 1, y - 1, z),
+                (x - 1, y + 1, z),
+                (x + 1, y - 1, z),
+            ]
+
+        # Only keep faces that are actually on the cut lattice.
+        faces = [face for face in faces if face in code.face_index]
+
+        # Flip the state of the faces.
+        for face in faces:
+            signs[face] = 1 - signs[face]

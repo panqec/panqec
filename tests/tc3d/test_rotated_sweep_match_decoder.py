@@ -33,7 +33,7 @@ class TestRotatedSweepMatchDecoder:
         [
             ('X', (3, 3, 1)),
             ('Z', (6, 4, 8)),
-            pytest.param('Y', (7, 9, 5), marks=pytest.mark.xfail),
+            ('Y', (7, 9, 5)),
         ]
     )
     def test_decode_single_error(self, decoder, code, pauli, location):
@@ -50,20 +50,27 @@ class TestRotatedSweepMatchDecoder:
         total_error = (error.to_bsf() + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
-    @pytest.mark.xfail
     @pytest.mark.parametrize(
         'paulis_locations',
         [
-            [
-                ('X', (3, 3, 1)),
-                ('Y', (7, 9, 5)),
-                ('Z', (6, 4, 8)),
-            ],
-            [
-                ('Y', (9, 5, 1)),
-                ('Y', (2, 12, 4)),
-                ('Y', (6, 8, 4)),
-            ],
+            [('X', (3, 3, 1)), ('X', (7, 9, 5)), ('X', (6, 4, 8))],
+            [('Z', (3, 3, 1)), ('Z', (7, 9, 5)), ('Z', (6, 4, 8))],
+            [('Y', (9, 5, 1)), ('Y', (2, 12, 4)), ('Y', (6, 8, 4))],
+            [('X', (1, 1, 1)), ('X', (1, 3, 1))],
+            [('X', (1, 1, 1)), ('X', (3, 1, 1))],
+            [('X', (2, 0, 2)), ('X', (2, 0, 4))],
+            [('Z', (1, 1, 1)), ('Z', (1, 3, 1))],
+            [('Z', (1, 1, 1)), ('Z', (3, 1, 1))],
+            [('Z', (2, 0, 2)), ('Z', (2, 0, 4))],
+            [('X', (1, 1, 1)), ('X', (1, 3, 1))],
+            [('X', (1, 1, 1)), ('X', (3, 1, 1))],
+            [('X', (2, 0, 2)), ('X', (2, 0, 4))],
+        ],
+        ids=[
+            'X_bulk', 'Z_bulk', 'Y_bulk',
+            'X_boundary_x', 'X_boundary_y', 'X_boundary_z',
+            'Z_boundary_x', 'Z_boundary_y', 'Z_boundary_z',
+            'X_boundary_x', 'X_boundary_y', 'X_boundary_z',
         ]
     )
     def test_decode_many_errors(self, decoder, code, paulis_locations):
