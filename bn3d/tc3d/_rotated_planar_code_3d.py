@@ -204,6 +204,15 @@ class RotatedPlanarCode3D(StabilizerCode):
         """Perfectly measure syndromes given Pauli error."""
         return bcommute(self.stabilizers, error.to_bsf())
 
+    @property
+    def full_size(self) -> Tuple[int, ...]:
+        all_index = np.array(
+            list(self.qubit_index.keys())
+            + list(self.vertex_index.keys())
+            + list(self.face_index.keys())
+        )
+        return tuple(all_index.max(axis=0))
+
 
 if __name__ == "__main__":
     code = RotatedPlanarCode3D(2)
