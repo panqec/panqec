@@ -163,7 +163,9 @@ def bp_decoder(H: np.ndarray,
         ]
         mask = np.ones((n_data, n_parities), dtype=bool)
         mask[argmin_abs_parity, range(n_parities)] = False
-        new_abs_message_d2p = ma.masked_array(abs_message_d2p, ~mask)
+        new_abs_message_d2p: ma.MaskedArray = ma.masked_array(
+            abs_message_d2p, ~mask
+        )
         second_min_abs_parity = np.min(new_abs_message_d2p, axis=0)
 
         # It allows to calculate the minimum excluding the edge

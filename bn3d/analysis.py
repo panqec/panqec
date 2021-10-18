@@ -345,7 +345,10 @@ def get_fit_params(
         params_opt, _ = curve_fit(
             fit_function, x_data, y_data, jac=grad_fit_function, method='trf',
             p0=params_0, ftol=ftol, maxfev=maxfev,
-            bounds=([lower_bound] + [-np.inf]*4, [0.5] + [np.inf]*4)
+            bounds=(
+                [lower_bound] + [-np.inf]*4,  # type: ignore
+                [0.5] + [np.inf]*4
+            )
         )
 
     return params_opt

@@ -26,8 +26,9 @@ let currentOpacity = MAX_OPACITY;
 
 const params = {
     errorProbability: 0.1,
-    L: 6,
-    deformed: true,
+    Lx: 6,
+    Ly: 6,
+    deformation: 'None',
     decoder: 'bp',
     max_bp_iter: 10,
     errorModel: 'Pure Z',
@@ -51,22 +52,22 @@ init();
 animate();
 
 function getIndexQubit(axis, x, y) {
-    let Lx = params.L;
-    let Ly = params.L;
+    let Lx = params.Lx;
+    let Ly = params.Ly;
 
     return axis*Lx*Ly + x*Ly + y;
 }
 
 function getIndexFace(x, y) {
-    let Lx = params.L;
-    let Ly = params.L;
+    let Lx = params.Lx;
+    let Ly = params.Ly;
 
     return x*Ly + y;
 }
 
 function getIndexVertex(x, y) {
-    let Lx = params.L;
-    let Ly = params.L;
+    let Lx = params.Lx;
+    let Ly = params.Ly;
 
     return x*Ly + y;
 }
@@ -203,8 +204,8 @@ async function buildCode() {
     vertices = Array(Hx.length);
     faces = Array(Hz.length)
 
-    for(let x=0; x < params.L; x++) {
-        for(let y=0; y < params.L; y++) {
+    for(let x=0; x < params.Lx; x++) {
+        for(let y=0; y < params.Ly; y++) {
             for (let axis=0; axis < 2; axis++) {
                 buildEdge(axis, x, y);
                 buildFace(x, y);
@@ -215,7 +216,7 @@ async function buildCode() {
 }
 
 function changeLatticeSize() {
-    params.L = parseInt(params.L)
+    params.Lx = parseInt(params.Lx)
     qubits.forEach(q => {
         q.material.dispose();
         q.geometry.dispose();
@@ -246,9 +247,9 @@ function buildFace(x, y) {
     const material = new THREE.MeshToonMaterial({color: COLOR.face, transparent: true, opacity: 0, side: THREE.DoubleSide});
     const face = new THREE.Mesh(geometry, material);
 
-    face.position.x = x + globalOffset(params.L).x;
-    face.position.y = y + globalOffset(params.L).y;
-    face.position.z = globalOffset(params.L).z;
+    face.position.x = x + globalOffset(params.Lx).x;
+    face.position.y = y + globalOffset(params.Ly).y;
+    face.position.z = globalOffset(params.Lx).z;
 
     face.position.x -= SIZE.lengthEdge / 2;
     face.position.y += SIZE.lengthEdge / 2;
@@ -269,9 +270,9 @@ function buildVertex(x, y) {
     const material = new THREE.MeshToonMaterial({color: COLOR.vertex, opacity: 0.3, transparent: true});
     const sphere = new THREE.Mesh(geometry, material);
 
-    sphere.position.x = x + globalOffset(params.L).x;
-    sphere.position.y = y + globalOffset(params.L).y;
-    sphere.position.z = globalOffset(params.L).z;
+    sphere.position.x = x + globalOffset(params.Lx).x;
+    sphere.position.y = y + globalOffset(params.Ly).y;
+    sphere.position.z = globalOffset(params.Lx).z;
 
     let index = getIndexVertex(x, y);
 
@@ -289,9 +290,9 @@ function buildEdge(axis, x, y) {
     const material = new THREE.MeshPhongMaterial({color: COLOR.edge, opacity: 0.7, transparent: true});
     const edge = new THREE.Mesh(geometry, material);
 
-    edge.position.x = x + globalOffset(params.L).x;
-    edge.position.y = y + globalOffset(params.L).y;
-    edge.position.z = globalOffset(params.L).z;
+    edge.position.x = x + globalOffset(params.Lx).x;
+    edge.position.y = y + globalOffset(params.Ly).y;
+    edge.position.z = globalOffset(params.Lx).z;
 
     if (axis == X_AXIS) {
         edge.position.x -= SIZE.lengthEdge / 2;
@@ -305,7 +306,7 @@ function buildEdge(axis, x, y) {
 
     let index;
     if (axis == Y_AXIS) {
-        index = getIndexQubit(axis, (x+1)%params.L, y)
+        index = getIndexQubit(axis, (x+1)%params.Ly, y)
     }
     else {
         index = getIndexQubit(axis, x, y)
@@ -325,7 +326,8 @@ async function getStabilizerMatrices() {
           },
         method: 'POST',
         body: JSON.stringify({
-            'L': params.L,
+            'Lx': params.Lx,
+            'Ly': params.Ly,
             'code_name': params.codeName
         })
     });
@@ -342,9 +344,10 @@ async function getRandomErrors() {
           },
         method: 'POST',
         body: JSON.stringify({
-            'L': params.L,
+            'Lx': params.Lx,
+            'Ly': params.Ly,
             'p': params.errorProbability,
-            'deformed': params.deformed,
+            'deformation': params.deformation,
             'error_model': params.errorModel,
             'code_name': params.codeName
         })
@@ -359,16 +362,22 @@ function buildGUI() {
     gui = new GUI();
     const codeFolder = gui.addFolder('Code')
     codeFolder.add(params, 'codeName', {'Toric 2D': 'toric2d'}).name('Code type').onChange(changeLatticeSize);
-    codeFolder.add(params, 'L', {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
+    codeFolder.add(params, 'Lx', {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
 
     const errorModelFolder = gui.addFolder('Error Model')
     errorModelFolder.add(params, 'errorModel', {'Pure X': 'Pure X', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}).name('Model');
     errorModelFolder.add(params, 'errorProbability', 0, 0.5).name('Probability');
-    errorModelFolder.add(params, 'deformed').name('Deformed');
+    errorModelFolder.add(params, 'deformation').name('Deformation');
     errorModelFolder.add(buttons, 'addErrors').name('▶ Add errors (r)');
 
     const decoderFolder = gui.addFolder('Decoder')
-    decoderFolder.add(params, 'decoder', {'Belief Propagation': 'bp-osd', 'SweepMatch': 'sweepmatch'}).name('Decoder');
+    decoderFolder.add(
+        params, 'decoder',
+        {
+            'Belief Propagation': 'bp-osd',
+            'SweepMatch': 'sweepmatch',
+            'Matching': 'matching',
+        }).name('Decoder');
     decoderFolder.add(params, 'max_bp_iter', 1, 100, 1).name('Max iterations BP');
     decoderFolder.add(buttons, 'decode').name("▶ Decode (d)");
 }
@@ -495,11 +504,12 @@ async function getCorrection(syndrome) {
           },
         method: 'POST',
         body: JSON.stringify({
-            'L': params.L,
+            'Lx': params.Lx,
+            'Ly': params.Ly,
             'p': params.errorProbability,
             'max_bp_iter': params.max_bp_iter,
             'syndrome': syndrome,
-            'deformed': params.deformed,
+            'deformation': params.deformation,
             'decoder': params.decoder,
             'error_model': params.errorModel,
             'code_name': params.codeName

@@ -14,7 +14,7 @@
 - [x] Get simulations running on slurm
 
 ### Sweep decoder
-- [ ] investigate why thresholds
+- [x] investigate why thresholds
 
 ### Finite-size scaling
 - [x] implement it

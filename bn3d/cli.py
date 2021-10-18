@@ -97,11 +97,16 @@ def ls(model_type=None):
     show_default=True,
 )
 @click.option(
+    '--decoder', default='BeliefPropagationOSDDecoder',
+    show_default=True,
+    type=click.Choice(DECODERS.keys())
+)
+@click.option(
     '-s', '--sizes', default='5,9,7,13', type=str,
     show_default=True,
 )
 def generate_input(
-    input_dir, lattice, boundary, deformation, ratio, sizes
+    input_dir, lattice, boundary, deformation, ratio, sizes, decoder
 ):
     """Generate the json files of every experiment.
 
@@ -168,9 +173,13 @@ def generate_input(
                 "parameters": noise_parameters
             }
 
-            decoder_model = "BeliefPropagationOSDDecoder"
-            decoder_parameters = {'joschka': True,
-                                  'max_bp_iter': 10}
+            if decoder == "BeliefPropagationOSDDecoder":
+                decoder_model = "BeliefPropagationOSDDecoder"
+                decoder_parameters = {'joschka': True,
+                                      'max_bp_iter': 10}
+            else:
+                decoder_model = decoder
+                decoder_parameters = {}
 
             decoder_dict = {"model": decoder_model,
                             "parameters": decoder_parameters}

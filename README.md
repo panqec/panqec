@@ -215,9 +215,13 @@ They are implemented in an object-oriented manner.
 # Run the 3D GUI
 To run the 3D GUI, after you have activated the environment, run
 ```
-python3 gui3d.py
+python3 gui/gui.py
 ```
 Then open your browser and go to the link printed out in the command line.
+Click on "3D Toric Code".
+
+If you find the browser non-responsive check back on what error messages are
+coming out of the command line.
 
 # Run the 2D GUI
 To run the 2D GUI, after you have activated the environment, run
