@@ -59,7 +59,7 @@ def send_stabilizer_matrix():
     indices = {}
 
     if code_name == 'toric2d':
-        code = ToricCode(L, L)
+        code = ToricCode(Lx, Ly)
 
         n_qubits = code.n_k_d[0]
         n_stabilizers = code.stabilizers.shape[0]
@@ -103,7 +103,7 @@ def send_stabilizer_matrix():
 
         indices = {'qubit': qubit_index, 'triangle': triangle_index, 'cube': cube_index}
 
-    elif code_name == 'rotated':
+    elif code_name == 'rotated-planar':
         code = RotatedPlanarCode3D(Lx, Ly, Lz)
 
         Hz = code.Hz
@@ -168,7 +168,7 @@ def send_correction():
         code = ToricCode3D(Lx, Ly, Lz)
     elif code_name == 'rhombic':
         code = RhombicCode(Lx, Ly, Lz)
-    elif code_name == 'rotated':
+    elif code_name == 'rotated-planar':
         code = RotatedPlanarCode3D(Lx, Ly, Lz)
     elif code_name == 'rotated-toric':
         code = RotatedToricCode3D(Lx, Ly, Lz)
@@ -197,7 +197,8 @@ def send_correction():
 
     if decoder_name == 'bp-osd':
         decoder = BeliefPropagationOSDDecoder(error_model, p,
-                                              max_bp_iter=max_bp_iter)
+                                              max_bp_iter=max_bp_iter,
+                                              joschka=False)
     elif decoder_name == 'bp-osd-2':
         decoder = BeliefPropagationOSDDecoder(error_model, p,
                                               max_bp_iter=max_bp_iter,
@@ -239,7 +240,7 @@ def send_random_errors():
         code = ToricCode3D(Lx, Ly, Lz)
     elif code_name == 'rhombic':
         code = RhombicCode(Lx, Ly, Lz)
-    elif code_name == 'rotated':
+    elif code_name == 'rotated-planar':
         code = RotatedPlanarCode3D(Lx, Ly, Lz)
     elif code_name == 'rotated-toric':
         code = RotatedToricCode3D(Lx, Ly, Lz)
