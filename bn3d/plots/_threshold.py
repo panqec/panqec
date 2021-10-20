@@ -12,7 +12,9 @@ from ._hashing_bound import project_triangle, get_hashing_bound
 from ..analysis import quadratic
 
 
-def detailed_plot(plt, results_df, error_model, x_limits=None, save_folder=None):
+def detailed_plot(
+    plt, results_df, error_model, x_limits=None, save_folder=None
+):
     """Plot routine on loop."""
     df = results_df.copy()
     df.sort_values('probability', inplace=True)

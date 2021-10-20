@@ -215,9 +215,13 @@ They are implemented in an object-oriented manner.
 # Run the 3D GUI
 To run the 3D GUI, after you have activated the environment, run
 ```
-python3 gui3d.py
+python3 gui/gui.py
 ```
 Then open your browser and go to the link printed out in the command line.
+Click on "3D Toric Code".
+
+If you find the browser non-responsive check back on what error messages are
+coming out of the command line.
 
 # Run the 2D GUI
 To run the 2D GUI, after you have activated the environment, run
@@ -225,3 +229,39 @@ To run the 2D GUI, after you have activated the environment, run
 python2 gui2d.py
 ```
 This is not as well-developed as the 3D GUI.
+
+
+# Reproducing results of paper
+
+## XZZX rotated surface code with BP-OSD, equal aspect, odd sizes
+To generate the input files in an inputs directory, run the following command
+```
+bn3d generate-input -i /path/to/inputdir \
+        -l rotated -b planar -d xzzx -r equal \
+        --decoder BeliefPropagationOSDDecoder --bias Z
+```
+The input `.json` files will be generated and saved to the given directory,
+which you can check by opening some of them and inspecting them.
+To understand what the above flags mean, you can always ask for help.
+```
+bn3d generate-input --help
+```
+
+Suppose you want to run one of these generated input files for 50 trials of
+sampling and say it's named `xzzx-rotated-planar-bias-1.00-p-0.250.json`.
+Then you can run.
+
+```
+bn3d run -f /path/to/inputdir/xzzx-rotated-planar-bias-1.00-p-0.250.json \
+        -t 50 -o /path/to/outputdir
+```
+The above will run simulations for 50 trials each and save the results to the
+given output path.
+You can similarly ask for help for this command.
+
+To get complete results, you will appreciate a cluster.
+For large-scale simulations on clusters that use job schedulers such as slurm
+or pbs, you may run many of these jobs together in parallel over many cores
+and array jobs.
+To see an example, see `scripts/pi_bposd.sbatch` for an example of how to run
+on slurm and `scripts/qsub.job` for example of how to run on pbs.

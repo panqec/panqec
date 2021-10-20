@@ -9,7 +9,6 @@ import os
 import warnings
 from typing import List, Optional, Tuple
 import itertools
-import datetime
 import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
@@ -262,9 +261,14 @@ def get_p_th_nearest(df_filt: pd.DataFrame) -> float:
 
     # Where the ordering changes the most.
     # orders = np.argsort(p_est_df.values, axis=1)
-    # orders = np.apply_along_axis(lambda x: 'A' if np.all(np.diff(x) < 0) else ('B' if np.all(np.diff(x) > 0) else '0'), 1, orders)
+    # orders = np.apply_along_axis(
+    #     lambda x: 'A' if np.all(np.diff(x) < 0)
+    # else ('B' if np.all(np.diff(x) > 0) else '0'), 1, orders
+    # )
 
-    # cond = np.all(np.isclose(p_est_df.values, np.zeros(p_est_df.shape[1])), axis=1)
+    # cond = np.all(
+    #     np.isclose(p_est_df.values, np.zeros(p_est_df.shape[1])), axis=1
+    # )
     # orders[cond] = 'A'
 
     # longest_A_seq = longest_sequence(orders, 'A')
@@ -274,7 +278,10 @@ def get_p_th_nearest(df_filt: pd.DataFrame) -> float:
     #     print(p_est_df.values)
     #     print(np.argsort(p_est_df.values, axis=1))
     #     print(orders)
-    #     raise RuntimeError(f"Problem with finding p_th_nearest: {longest_A_seq} > {longest_B_seq}")
+    #     raise RuntimeError(
+    #         "Problem with finding p_th_nearest: "
+    #         f"{longest_A_seq} > {longest_B_seq}"
+    #     )
 
     # p_th_nearest = p_est_df.index[(longest_B_seq[0] + longest_A_seq[1]) // 2]
 
@@ -328,7 +335,9 @@ def rescale_prob(x_data, *params):
     return x
 
 
-def get_fit_params(p_list, d_list, f_list, params_0=None, ftol=1e-5, maxfev=2000) -> np.ndarray:
+def get_fit_params(
+    p_list, d_list, f_list, params_0=None, ftol=1e-5, maxfev=2000
+) -> np.ndarray:
     """Get fitting params."""
     # Curve fitting inputs.
     x_data = np.array([
@@ -345,8 +354,14 @@ def get_fit_params(p_list, d_list, f_list, params_0=None, ftol=1e-5, maxfev=2000
         params_0[0] = np.random.uniform(lower_bound, 0.5)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        params_opt, _ = curve_fit(fit_function, x_data, y_data, jac=grad_fit_function, method='trf', p0=params_0, ftol=ftol, maxfev=maxfev,
-                                  bounds=([lower_bound] + [-np.inf]*4, [0.5] + [np.inf]*4))
+        params_opt, _ = curve_fit(
+            fit_function, x_data, y_data, jac=grad_fit_function, method='trf',
+            p0=params_0, ftol=ftol, maxfev=maxfev,
+            bounds=(
+                [lower_bound] + [-np.inf]*4,  # type: ignore
+                [0.5] + [np.inf]*4
+            )
+        )
 
     return params_opt
 
@@ -381,7 +396,10 @@ def fit_fss_params(
     params_0 = [p_nearest, 2, f_0, 1, 1]
 
     try:
-        params_opt = get_fit_params(p_list, d_list, f_list, params_0=params_0, ftol=ftol_est, maxfev=maxfev)
+        params_opt = get_fit_params(
+            p_list, d_list, f_list, params_0=params_0, ftol=ftol_est,
+            maxfev=maxfev
+        )
     except RuntimeError as err:
         print('fitting failed')
         print(err)
@@ -408,7 +426,10 @@ def fit_fss_params(
 
         try:
             params_bs_list.append(
-                get_fit_params(p_list, d_list, f_bs, params_0=params_opt, ftol=ftol_std, maxfev=maxfev)
+                get_fit_params(
+                    p_list, d_list, f_bs, params_0=params_opt, ftol=ftol_std,
+                    maxfev=maxfev
+                )
             )
         except RuntimeError:
             print('bootstrap fitting failed')

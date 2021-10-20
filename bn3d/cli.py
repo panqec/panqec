@@ -11,9 +11,7 @@ from .slurm import (
     generate_sbatch, get_status, generate_sbatch_nist, count_input_runs,
     clear_out_folder, clear_sbatch_folder
 )
-from bn3d.plots._hashing_bound import (
-    generate_points_triangle, get_direction_from_bias_ratio
-)
+from .noise import get_direction_from_bias_ratio
 
 
 @click.group(invoke_without_command=True)
@@ -92,20 +90,43 @@ def ls(model_type=None):
               type=click.Choice(['toric', 'planar']))
 @click.option('-d', '--deformation', required=True,
               type=click.Choice(['none', 'xzzx', 'xy']))
-@click.option('-B', '--bias', required=True,
-              type=click.Choice(['X', 'Z']))
-@click.option('-p', '--probabilities', required=True, type=float, nargs=3)
-def generate_input(input_dir, lattice, boundary, deformation, bias, probabilities):
-    """Generate the json files of every experiments"""
+@click.option(
+    '-r', '--ratio', default='equal', type=click.Choice(['equal', 'coprime']),
+    show_default=True,
+)
+@click.option(
+    '--decoder', default='BeliefPropagationOSDDecoder',
+    show_default=True,
+    type=click.Choice(DECODERS.keys())
+)
+@click.option(
+    '-s', '--sizes', default='5,9,7,13', type=str,
+    show_default=True,
+)
+@click.option(
+    '--bias', default='Z', type=click.Choice(['X', 'Y', 'Z']),
+    show_default=True,
+)
+def generate_input(
+    input_dir, lattice, boundary, deformation, ratio, sizes, decoder, bias
+):
+    """Generate the json files of every experiment.
+
+    \b
+    Example:
+    bn3d generate-input -i /path/to/inputdir \\
+            -l rotated -b planar -r equal
+            -s 5,9,7,13
+    """
 
     if lattice == 'kitaev' and boundary == 'planar':
         raise NotImplementedError("Kitaev planar lattice not implemented")
 
-    delta = probabilities[2]
-    probabilities = np.arange(probabilities[0], probabilities[1]+delta, delta).tolist()
+    delta = 0.005
+    probabilities = np.arange(0, 0.5+delta, delta).tolist()
     bias_ratios = [0.5, 1, 3, 10, 30, 100, np.inf]
     for eta in bias_ratios:
-        direction = get_direction_from_bias_ratio(eta, bias_type=bias)
+        direction = get_direction_from_bias_ratio(bias, eta)
         for p in probabilities:
             label = "regular" if deformation == "none" else deformation
             label += f"-{lattice}"
@@ -125,10 +146,17 @@ def generate_input(input_dir, lattice, boundary, deformation, bias, probabilitie
                 code_model += 'Planar'
             code_model += 'Code3D'
 
-            code_parameters = [
-                {"L_x": L, "L_y": L, "L_z": L}
-                for L in [2, 4, 6, 8]
-            ]
+            L_list = [int(s) for s in sizes.split(',')]
+            if ratio == 'coprime':
+                code_parameters = [
+                    {"L_x": L, "L_y": L + 1, "L_z": L}
+                    for L in L_list
+                ]
+            else:
+                code_parameters = [
+                    {"L_x": L, "L_y": L, "L_z": L}
+                    for L in L_list
+                ]
             code_dict = {
                 "model": code_model,
                 "parameters": code_parameters
@@ -147,9 +175,13 @@ def generate_input(input_dir, lattice, boundary, deformation, bias, probabilitie
                 "parameters": noise_parameters
             }
 
-            decoder_model = "BeliefPropagationOSDDecoder"
-            decoder_parameters = {'joschka': True,
-                                  'max_bp_iter': 10}
+            if decoder == "BeliefPropagationOSDDecoder":
+                decoder_model = "BeliefPropagationOSDDecoder"
+                decoder_parameters = {'joschka': True,
+                                      'max_bp_iter': 10}
+            else:
+                decoder_model = decoder
+                decoder_parameters = {}
 
             decoder_dict = {"model": decoder_model,
                             "parameters": decoder_parameters}
