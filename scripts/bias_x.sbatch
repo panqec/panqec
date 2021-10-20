@@ -3,15 +3,15 @@
 #SBATCH -t 0-20:00
 #SBATCH --cpus-per-task=1
 #SBATCH --exclusive
-#SBATCH --job-name=Xbp2
+#SBATCH --job-name=smxyxb
 #SBATCH --array=1-6
 #SBATCH -p defq
-#SBATCH --output=/home/ehuang1/bn3d/slurm/out/Xbp2/%j.out
+#SBATCH --output=/home/ehuang1/bn3d/slurm/out/%j.out
 set -euxo pipefail
 
 # Variables to change.
 trials=10000
-data_dir=temp/paper/bias_x/xzzx
+data_dir=temp/paper/sweepmatch_xy_xbias
 input_dir="$data_dir/inputs"
 output_dir="$data_dir/results"
 log_dir="$data_dir/logs"
