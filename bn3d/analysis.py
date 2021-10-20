@@ -29,19 +29,25 @@ def get_results_df_from_batch(batch_sim, batch_label):
     # )
     # print('n_trials = ', min(sim.n_results for sim in batch_sim))
     for sim, batch_result in zip(batch_sim, batch_results):
+        n_logicals = batch_result['n_k_d'][1]
+
+        # Small fix for the current situation. TO REMOVE in later versions
+        if n_logicals == -1:
+            n_logicals = 1
+
         batch_result['label'] = batch_label
         batch_result['noise_direction'] = sim.error_model.direction
         if len(sim.results['effective_error']) > 0:
             batch_result['p_x'] = np.array(
                 sim.results['effective_error']
-            )[:, :3].any(axis=1).mean()
+            )[:, :n_logicals].any(axis=1).mean()
             batch_result['p_x_se'] = np.sqrt(
                 batch_result['p_x']*(1 - batch_result['p_x'])
                 / (sim.n_results + 1)
             )
             batch_result['p_z'] = np.array(
                 sim.results['effective_error']
-            )[:, 3:].any(axis=1).mean()
+            )[:, n_logicals:].any(axis=1).mean()
             batch_result['p_z_se'] = np.sqrt(
                 batch_result['p_z']*(1 - batch_result['p_z'])
                 / (sim.n_results + 1)
@@ -91,19 +97,25 @@ def get_results_df(
         # )
         # print('n_trials = ', min(sim.n_results for sim in batch_sim))
         for sim, batch_result in zip(batch_sim, batch_results):
+            n_logicals = batch_result['n_k_d'][1]
+
+            # Small fix for the current situation. TO REMOVE in later versions
+            if n_logicals == -1:
+                n_logicals = 1
+
             batch_result['label'] = batch_label
             batch_result['noise_direction'] = sim.error_model.direction
             if len(sim.results['effective_error']) > 0:
                 batch_result['p_x'] = np.array(
                     sim.results['effective_error']
-                )[:, :3].any(axis=1).mean()
+                )[:, :n_logicals].any(axis=1).mean()
                 batch_result['p_x_se'] = np.sqrt(
                     batch_result['p_x']*(1 - batch_result['p_x'])
                     / (sim.n_results + 1)
                 )
                 batch_result['p_z'] = np.array(
                     sim.results['effective_error']
-                )[:, 3:].any(axis=1).mean()
+                )[:, n_logicals:].any(axis=1).mean()
                 batch_result['p_z_se'] = np.sqrt(
                     batch_result['p_z']*(1 - batch_result['p_z'])
                     / (sim.n_results + 1)
@@ -157,10 +169,10 @@ def get_p_th_sd_interp(
     # Local minima and local maxima indices.
     i_minima = argrelextrema(interp_std.values, np.less)[0]
     i_maxima = argrelextrema(interp_std.values, np.greater)[0]
-    
+
     if len(i_minima) == 0:
         i_minima = argrelextrema(interp_std.values, np.less_equal)[0]
-        
+
     if len(i_maxima) == 0:
         i_maxima = argrelextrema(interp_std.values, np.greater_equal)[0]
 
@@ -326,7 +338,7 @@ def get_fit_params(p_list, d_list, f_list, params_0=None, ftol=1e-5, maxfev=2000
 
     # Target outputs.
     y_data = f_list
- 
+
     # Curve fit.
     lower_bound = 0
     if params_0[0] < lower_bound:
@@ -335,7 +347,7 @@ def get_fit_params(p_list, d_list, f_list, params_0=None, ftol=1e-5, maxfev=2000
         warnings.simplefilter("ignore")
         params_opt, _ = curve_fit(fit_function, x_data, y_data, jac=grad_fit_function, method='trf', p0=params_0, ftol=ftol, maxfev=maxfev,
                                   bounds=([lower_bound] + [-np.inf]*4, [0.5] + [np.inf]*4))
-        
+
     return params_opt
 
 
