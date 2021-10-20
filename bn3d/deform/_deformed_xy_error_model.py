@@ -42,7 +42,7 @@ class DeformedXYErrorModel(PauliErrorModel):
         if "Rotated" in code.label:
             for coord, index in code.qubit_index.items():
                 x, y, z = coord
-                if z % 2 == 1:
+                if z % 2 == 0:
                     is_deformed[index] = True
         else:
             deformed_edge = code.X_AXIS
