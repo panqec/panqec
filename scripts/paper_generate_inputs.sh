@@ -15,7 +15,7 @@ setup_dir bposd_undef_xbias BeliefPropagationOSDDecoder none X
 setup_dir bposd_undef_zbias BeliefPropagationOSDDecoder none Z
 setup_dir bposd_xzzx_xbias BeliefPropagationOSDDecoder xzzx X
 setup_dir bposd_xzzx_zbias BeliefPropagationOSDDecoder xzzx Z
-setup_dir bposd_undef_xbias RotatedSweepMatchDecoder none X
-setup_dir bposd_undef_zbias RotatedSweepMatchDecoder none Z
-setup_dir bposd_xy_xbias RotatedSweepMatchDecoder xy X
-setup_dir bposd_xy_zbias RotatedSweepMatchDecoder xy Z
+setup_dir sweepmatch_undef_xbias RotatedSweepMatchDecoder none X
+setup_dir sweepmatch_undef_zbias RotatedSweepMatchDecoder none Z
+setup_dir sweepmatch_xy_xbias RotatedSweepMatchDecoder xy X
+setup_dir sweepmatch_xy_zbias RotatedSweepMatchDecoder xy Z
