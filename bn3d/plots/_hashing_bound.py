@@ -61,13 +61,20 @@ def generate_points_triangle():
     return noise_parameters
 
 
-def get_direction_from_z_bias_ratio(eta):
+def get_direction_from_bias_ratio(eta, bias_type):
     if eta == np.inf:
-        rz = 1.
+        r = 1.
     else:
-        rz = eta / (1 + eta)
-    rx = (1 - rz) / 2
-    ry = (1 - rz) / 2
+        r = eta / (1 + eta)
+
+    if bias_type == 'Z':
+        rx = (1 - r) / 2
+        ry = (1 - r) / 2
+        rz = r
+    elif bias_type == 'X':
+        rx = r
+        ry = (1 - r) / 2
+        rz = (1 - r) / 2
 
     return {'r_x': rx, 'r_y': ry, 'r_z': rz}
 
