@@ -12,7 +12,7 @@ from .slurm import (
     clear_out_folder, clear_sbatch_folder
 )
 from bn3d.plots._hashing_bound import (
-    generate_points_triangle, get_direction_from_z_bias_ratio
+    generate_points_triangle, get_direction_from_bias_ratio
 )
 
 
@@ -92,17 +92,20 @@ def ls(model_type=None):
               type=click.Choice(['toric', 'planar']))
 @click.option('-d', '--deformation', required=True,
               type=click.Choice(['none', 'xzzx', 'xy']))
-def generate_input(input_dir, lattice, boundary, deformation):
+@click.option('-B', '--bias', required=True,
+              type=click.Choice(['X', 'Z']))
+@click.option('-p', '--probabilities', required=True, type=float, nargs=3)
+def generate_input(input_dir, lattice, boundary, deformation, bias, probabilities):
     """Generate the json files of every experiments"""
 
     if lattice == 'kitaev' and boundary == 'planar':
         raise NotImplementedError("Kitaev planar lattice not implemented")
 
-    delta = 0.005
-    probabilities = np.arange(0, 0.5+delta, delta).tolist()
+    delta = probabilities[2]
+    probabilities = np.arange(probabilities[0], probabilities[1]+delta, delta).tolist()
     bias_ratios = [0.5, 1, 3, 10, 30, 100, np.inf]
     for eta in bias_ratios:
-        direction = get_direction_from_z_bias_ratio(eta)
+        direction = get_direction_from_bias_ratio(eta, bias_type=bias)
         for p in probabilities:
             label = "regular" if deformation == "none" else deformation
             label += f"-{lattice}"
@@ -123,8 +126,8 @@ def generate_input(input_dir, lattice, boundary, deformation):
             code_model += 'Code3D'
 
             code_parameters = [
-                {"L_x": L, "L_y": L+1, "L_z": L+1}
-                for L in [3, 4, 5, 6, 7, 8, 9, 10]
+                {"L_x": L, "L_y": L, "L_z": L}
+                for L in [2, 4, 6, 8]
             ]
             code_dict = {
                 "model": code_model,
