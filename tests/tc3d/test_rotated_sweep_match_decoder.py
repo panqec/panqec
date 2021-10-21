@@ -169,3 +169,40 @@ class TestRotatedSweepMatchDecoder:
             correction = decoder.decode(code, syndrome)
             total_error = (error.to_bsf() + correction) % 2
             assert np.all(bcommute(code.stabilizers, total_error) == 0)
+
+
+class TestSweepMatch2x2x2:
+    """Test cases found to be failing on the GUI."""
+
+    @pytest.fixture
+    def code(self):
+        return RotatedPlanarCode3D(2, 2, 2)
+
+    @pytest.fixture
+    def decoder(self):
+        return RotatedSweepMatchDecoder()
+
+    def test_errors_by_locations(self, code, decoder):
+        xy_locations = sorted(set([
+            (x, y) for x, y, z in code.qubit_index.keys()
+        ]))
+        xy_locations = [
+            (x, y) for x, y in xy_locations
+            if all(
+                (x, y, z) in code.qubit_index
+                for z in range(1, code.size[2]*2 + 2, 2)
+            )
+        ]
+        for x, y in xy_locations:
+            locations = [('Z', (x, y, 1)), ('Z', (x, y, 3))]
+            error = RotatedPlanar3DPauli(code)
+            for pauli, location in locations:
+                error.site(pauli, location)
+            assert bsf_wt(error.to_bsf()) == len(locations)
+
+            syndrome = code.measure_syndrome(error)
+            assert np.any(syndrome != 0)
+
+            correction = decoder.decode(code, syndrome)
+            total_error = (error.to_bsf() + correction) % 2
+            assert np.all(bcommute(code.stabilizers, total_error) == 0)
