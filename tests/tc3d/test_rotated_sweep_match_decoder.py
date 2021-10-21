@@ -171,12 +171,12 @@ class TestRotatedSweepMatchDecoder:
             assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
 
-class TestSweepMatch2x2x2:
+class TestSweepMatch1x1x1:
     """Test cases found to be failing on the GUI."""
 
     @pytest.fixture
     def code(self):
-        return RotatedPlanarCode3D(2, 2, 2)
+        return RotatedPlanarCode3D(1, 1, 1)
 
     @pytest.fixture
     def decoder(self):
