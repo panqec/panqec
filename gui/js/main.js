@@ -227,7 +227,7 @@ function buildReturnArrow() {
 }
 
 function onDocumentMouseDown(event) {
-    if (event.ctrlKey) {
+    if (event.ctrlKey || event.shiftKey) {
         mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
         mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 
@@ -238,13 +238,17 @@ function onDocumentMouseDown(event) {
         
         let selectedQubit = intersects[0].object;
         
-        switch (event.button) {
-            case 0: // left click
-                code.insertError(selectedQubit, 'X');
-                break;
-            case 2:
-                code.insertError(selectedQubit, 'Z');
-                break;
+        if (event.ctrlKey) {
+            switch (event.button) {
+                case 0: // left click
+                    code.insertError(selectedQubit, 'X');
+                    break;
+                case 2:
+                    code.insertError(selectedQubit, 'Z');
+                    break;
+            }
+        } else {
+            console.log(selectedQubit);
         }
     }
 }
