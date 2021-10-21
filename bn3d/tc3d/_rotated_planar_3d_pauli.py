@@ -148,11 +148,11 @@ class RotatedPlanar3DPauli:
         if z % 2 == 1:
             if x - 1 >= 0 and y - 1 >= 0:
                 self.site(operator, (x - 1, y - 1, z))
-            if x + 1 <= 4*Lx+1 and y + 1 <= 4*Ly+2:
+            if x + 1 <= 4*Lx+2 and y + 1 <= 4*Ly+2:
                 self.site(operator, (x + 1, y + 1, z))
             if x - 1 > 0 and y + 1 <= 4*Ly+2:
                 self.site(operator, (x - 1, y + 1, z))
-            if x + 1 <= 4*Lx+1 and y - 1 >= 0:
+            if x + 1 <= 4*Lx+2 and y - 1 >= 0:
                 self.site(operator, (x + 1, y - 1, z))
 
         # Vertical face (axis /)

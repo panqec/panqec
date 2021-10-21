@@ -165,13 +165,13 @@ class RotatedPlanarCode3D(StabilizerCode):
         coordinates = []
 
         # Horizontal faces
-        for x in range(0, 4*Lx+1, 2):
+        for x in range(0, 4*Lx+3, 2):
             for y in range(2, 4*Ly+1, 2):
                 for z in range(1, 2*(Lz+1), 2):
                     if (x + y) % 4 == 0:
                         coordinates.append((x, y, z))
         # Vertical faces
-        for x in range(1, 4*Lx+2, 2):
+        for x in range(1, 4*Lx+3, 2):
             for y in range(1, 4*Ly+2, 2):
                 for z in range(2, 2*(Lz+1), 2):
                     coordinates.append((x, y, z))
