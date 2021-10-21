@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from typing import Optional, List
 import click
 import bn3d
 from tqdm import tqdm
@@ -82,6 +82,38 @@ def ls(model_type=None):
         ]))
 
 
+def read_bias_ratios(eta_string: str) -> list:
+    """Read bias ratios from comma separated string."""
+    bias_ratios = []
+    for s in eta_string.split(','):
+        s = s.strip()
+        if s == 'inf':
+            bias_ratios.append(np.inf)
+        elif float(s) % 1 == 0:
+            bias_ratios.append(int(s))
+        else:
+            bias_ratios.append(float(s))
+    return bias_ratios
+
+
+def read_range_input(specification: str) -> List[float]:
+    """Read range input string and return list."""
+    values: List[float] = []
+    if ':' in specification:
+        parts = specification.split(':')
+        min_value = float(parts[0])
+        max_value = float(parts[1])
+        step = 0.005
+        if len(parts) == 3:
+            step = float(parts[2])
+        values = np.arange(min_value, max_value + step, step).tolist()
+    elif ',' in specification:
+        values = [float(s) for s in specification.split(',')]
+    else:
+        values = [float(specification)]
+    return values
+
+
 @click.command()
 @click.option('-i', '--input_dir', required=True, type=str)
 @click.option('-l', '--lattice', required=True,
@@ -107,8 +139,18 @@ def ls(model_type=None):
     '--bias', default='Z', type=click.Choice(['X', 'Y', 'Z']),
     show_default=True,
 )
+@click.option(
+    '--eta', default='0.5,1,3,10,30,100,inf', type=str,
+    show_default=True
+)
+@click.option(
+    '--prob', default='0:0.6:0.005', type=str,
+    help='min:max:step or single value or list of values',
+    show_default=True
+)
 def generate_input(
-    input_dir, lattice, boundary, deformation, ratio, sizes, decoder, bias
+    input_dir, lattice, boundary, deformation, ratio, sizes, decoder, bias,
+    eta, prob
 ):
     """Generate the json files of every experiment.
 
@@ -124,7 +166,8 @@ def generate_input(
 
     delta = 0.005
     probabilities = np.arange(0, 0.5+delta, delta).tolist()
-    bias_ratios = [0.5, 1, 3, 10, 30, 100, np.inf]
+    probabilities = read_range_input(prob)
+    bias_ratios = read_bias_ratios(eta)
     for eta in bias_ratios:
         direction = get_direction_from_bias_ratio(bias, eta)
         for p in probabilities:
