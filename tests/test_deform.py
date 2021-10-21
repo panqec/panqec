@@ -78,7 +78,7 @@ class TestDeformedXZZXErrorModel:
 
     def test_label(self, code):
         error_model = DeformedXZZXErrorModel(1, 0, 0)
-        assert error_model.label == 'Deformed XZZX Pauli X1Y0Z0'
+        assert error_model.label == 'Deformed XZZX Pauli X1.0000Y0.0000Z0.0000'
 
 
 # TODO get this to work with Arthur's deform conventions
