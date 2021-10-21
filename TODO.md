@@ -40,3 +40,5 @@
   data points near estimated threshold.
 - [ ] AP fill in Table 2 thresholds
 - [ ] EH Fig Show 2 layers only (low priority)
+- [x] Go beyond 0.5 error rate
+- [x] EH subthreshold simulations bias 10, 100, 1000, error rate 5% fixed
