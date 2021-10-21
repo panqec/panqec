@@ -115,38 +115,54 @@ def read_range_input(specification: str) -> List[float]:
 
 
 @click.command()
-@click.option('-i', '--input_dir', required=True, type=str)
-@click.option('-l', '--lattice', required=True,
-              type=click.Choice(['rotated', 'kitaev']))
-@click.option('-b', '--boundary', required=True,
-              type=click.Choice(['toric', 'planar']))
-@click.option('-d', '--deformation', required=True,
-              type=click.Choice(['none', 'xzzx', 'xy']))
+@click.option(
+    '-i', '--input_dir', required=True, type=str,
+    help='Directory to save input .json files'
+)
+@click.option(
+    '-l', '--lattice', required=True,
+    type=click.Choice(['rotated', 'kitaev']),
+    help='Lattice rotation'
+)
+@click.option(
+    '-b', '--boundary', required=True,
+    type=click.Choice(['toric', 'planar']),
+    help='Boundary conditions'
+)
+@click.option(
+    '-d', '--deformation', required=True,
+    type=click.Choice(['none', 'xzzx', 'xy']),
+    help='Deformation'
+)
 @click.option(
     '-r', '--ratio', default='equal', type=click.Choice(['equal', 'coprime']),
-    show_default=True,
+    show_default=True, help='Lattice aspect ratio spec'
 )
 @click.option(
     '--decoder', default='BeliefPropagationOSDDecoder',
     show_default=True,
-    type=click.Choice(DECODERS.keys())
+    type=click.Choice(DECODERS.keys()),
+    help='Decoder name'
 )
 @click.option(
     '-s', '--sizes', default='5,9,7,13', type=str,
     show_default=True,
+    help='List of sizes'
 )
 @click.option(
     '--bias', default='Z', type=click.Choice(['X', 'Y', 'Z']),
     show_default=True,
+    help='Pauli bias'
 )
 @click.option(
     '--eta', default='0.5,1,3,10,30,100,inf', type=str,
-    show_default=True
+    show_default=True,
+    help='Bias ratio'
 )
 @click.option(
     '--prob', default='0:0.6:0.005', type=str,
-    help='min:max:step or single value or list of values',
-    show_default=True
+    show_default=True,
+    help='min:max:step or single value or list of values'
 )
 def generate_input(
     input_dir, lattice, boundary, deformation, ratio, sizes, decoder, bias,
@@ -157,8 +173,10 @@ def generate_input(
     \b
     Example:
     bn3d generate-input -i /path/to/inputdir \\
-            -l rotated -b planar -r equal
-            -s 5,9,7,13
+            -l rotated -b planar -d xzzx -r equal \\
+            -s 2,4,6,8 --decoder BeliefPropagationOSDDecoder \\
+            --bias Z --eta '10,100,1000,inf' \\
+            --prob 0:0.5:0.005
     """
 
     if lattice == 'kitaev' and boundary == 'planar':
