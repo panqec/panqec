@@ -232,11 +232,16 @@ class TestSweepMatch2x2x2:
             ('Z', (3, 9, 5)), ('Z', (5, 7, 5)), ('Z', (7, 5, 5)),
             ('Z', (9, 3, 5)), ('Z', (9, 1, 5))
         ],
+        [
+            ('Z', (1, 1, 5)), ('Z', (3, 3, 5)), ('Z', (5, 5, 5)),
+            ('Z', (7, 5, 5)), ('Z', (9, 3, 5)),
+        ],
     ], ids=[
         'z_vertical',
         'up_left_horizontal_bottom',
         'up_left_horizontal_top',
-        'down_right_horizontal'
+        'down_right_horizontal',
+        'arthurs_example',
     ])
     def test_errors_spanning_boundaries(self, code, decoder, locations):
         error = RotatedPlanar3DPauli(code)
