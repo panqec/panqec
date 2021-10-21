@@ -265,3 +265,35 @@ or pbs, you may run many of these jobs together in parallel over many cores
 and array jobs.
 To see an example, see `scripts/pi_bposd.sbatch` for an example of how to run
 on slurm and `scripts/qsub.job` for example of how to run on pbs.
+
+If you are on a slurm cluster, the following might work.
+First, generate the input files and sbatch files using the script.
+
+```
+bash scripts/paper_generate_inputs.sh
+```
+
+You will see that it will create lots of files and directories in `temp/paper`
+which are all the input files.
+For example, you might find lots of files in
+```
+ls temp/paper/rot_bposd_xzzx_zbias/inputs/
+```
+The generated sbatch files are all in `temp/paper/sbatch/`.
+To submit all the jobs at once, just run
+```
+ls temp/paper/sbatch/*.sbatch | xargs -n1 sbatch
+```
+To make sure you're maximizing usage of your available resources on each node,
+You can check the CPU and RAM usage live of your running jobs using
+```
+ls temp/paper/*/logs/usage_*.txt | xargs -n1 tail | sort
+```
+You can also print out the progress bars of all runnning simulations.
+```
+ls temp/paper/*/logs/1/*/stderr | xargs -d'\n' -n1 tail -n1
+```
+You can also see the logs from each node.
+```
+cat slurm/out/*
+```
