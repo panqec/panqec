@@ -219,14 +219,14 @@ class TestSweepMatch2x2x2:
         return RotatedSweepMatchDecoder()
 
     @pytest.mark.parametrize('locations', [
-        [('Z', (1, 11, 1)), ('Z', (1, 11, 3)), ('Z', (1, 11, 5))],
+        [('Z', (1, 9, 1)), ('Z', (1, 9, 3)), ('Z', (1, 9, 5))],
         [
             ('Z', (1, 1, 1)), ('Z', (3, 3, 1)), ('Z', (5, 5, 1)),
-            ('Z', (7, 7, 1)), ('Z', (11, 11, 1))
+            ('Z', (7, 7, 1)), ('Z', (9, 9, 1))
         ],
         [
             ('Z', (1, 1, 5)), ('Z', (3, 3, 5)), ('Z', (5, 5, 5)),
-            ('Z', (7, 7, 5)), ('Z', (11, 11, 5))
+            ('Z', (7, 7, 5)), ('Z', (9, 9, 5))
         ],
         [
             ('Z', (3, 9, 5)), ('Z', (5, 7, 5)), ('Z', (7, 5, 5)),
@@ -241,6 +241,7 @@ class TestSweepMatch2x2x2:
     def test_errors_spanning_boundaries(self, code, decoder, locations):
         error = RotatedPlanar3DPauli(code)
         for pauli, location in locations:
+            assert location in code.qubit_index
             error.site(pauli, location)
         assert bsf_wt(error.to_bsf()) == len(locations)
 
