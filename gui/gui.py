@@ -2,7 +2,7 @@ import numpy as np
 
 from flask import Flask, send_from_directory, request, json, render_template
 from bn3d.tc3d import (
-    ToricCode3D, RotatedPlanarCode3D, RotatedToricCode3D, SweepMatchDecoder,
+    ToricCode3D, RotatedPlanarCode3D, RotatedToricCode3D, SweepMatchDecoder, RotatedSweepMatchDecoder
 )
 from bn3d.tc2d import Toric2DPymatchingDecoder
 from qecsim.models.toric import ToricCode
@@ -230,7 +230,9 @@ def send_correction():
     elif decoder_name == 'matching':
         decoder = Toric2DPymatchingDecoder()
     elif decoder_name == 'sweepmatch':
-        if deformation == "XZZX":
+        if "Rotated" in code.label:
+            decoder = RotatedSweepMatchDecoder()
+        elif deformation == "XZZX":
             decoder = DeformedSweepMatchDecoder(error_model, p)
         elif deformation == "None":
             decoder = SweepMatchDecoder()
