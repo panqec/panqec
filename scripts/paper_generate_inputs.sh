@@ -3,47 +3,57 @@ mkdir -p "$paper_dir"
 sbatch_dir=temp/paper/sbatch
 mkdir -p "$sbatch_dir"
 
+ratio=equal
+wall_time="0-00:30"
+queue=debugq
 
-setup_dir() {
-    local name=$1 rotation=$2 decoder=$3 deformation=$4 bias=$5 eta=$6 \
-            prob=$7 trials=$8
-    echo "$name $rotation $decoder $deformation $bias"
-    if [ $rotation = rotated ]; then
-        boundary=planar
-    else
-        boundary=toric
-    fi
-    input_dir="$paper_dir/$name/inputs"
-    mkdir -p $input_dir
-    bn3d generate-input -i $input_dir \
-        -l $rotation -b $boundary -d $deformation -r equal \
-        -s 2,4,6,8 --decoder $decoder --bias $bias \
-        --eta $eta --prob $prob
+name=sts_rot_bposd_undef_zbias
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice rotated --boundary planar --deformation none --ratio "$ratio" \
+    --sizes "2,4,6,8" --decoder BeliefPropagationOSDDecoder  --bias Z \
+    --eta "1,10,100,1000,inf" --prob "0.05"
+bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
+    --wall_time "$wall_time" --trials 100000 --split 80
 
-    walltime='0-03:00'
-    narray=6
-    queue=defq
-    sbatch_file="$sbatch_dir/$name.sbatch"
-    cp scripts/pi_template.sh "$sbatch_file"
-    sed -i -- "s/\${TRIALS}/$trials/g" "$sbatch_file"
-    sed -i -- "s/\${NAME}/$name/g" "$sbatch_file"
-    sed -i -- "s/\${TIME}/$walltime/g" "$sbatch_file"
-    sed -i -- "s/\${NARRAY}/$narray/g" "$sbatch_file"
-    sed -i -- "s/\${QUEUE}/$queue/g" "$sbatch_file"
-}
+name=sts_rot_bposd_xzzx_zbias
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice rotated --boundary planar --deformation xzzx --ratio "$ratio" \
+    --sizes "2,4,6,8" --decoder BeliefPropagationOSDDecoder  --bias Z \
+    --eta "1,10,100,1000,inf" --prob "0.05"
+bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
+    --wall_time "$wall_time" --trials 100000 --split 80
 
-setup_dir sts_rot_bposd_undef_zbias rotated BeliefPropagationOSDDecoder none Z \
-        "1,10,100,1000,inf" "0.05" 100000
-setup_dir sts_rot_bposd_xzzx_zbias rotated BeliefPropagationOSDDecoder xzzx Z \
-        "1,10,100,1000,inf" "0.05" 100000
+name=sts_rot_sweepmatch_undef_zbias
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice rotated --boundary planar --deformation none --ratio "$ratio" \
+    --sizes "2,4,6,8" --decoder RotatedSweepMatchDecoder  --bias Z \
+    --eta "1,10,100,1000,inf" --prob "0.05"
+bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
+    --wall_time "$wall_time" --trials 100000 --split 60
 
-setup_dir sts_rot_sweepmatch_undef_zbias rotated RotatedSweepMatchDecoder none Z \
-        "1,10,100,1000,inf" "0.05" 100000
-setup_dir sts_rot_sweepmatch_xy_zbias rotated RotatedSweepMatchDecoder xy Z \
-        "1,10,100,1000,inf" "0.05" 100000
+name=sts_rot_sweepmatch_xy_zbias
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice rotated --boundary planar --deformation xy --ratio "$ratio" \
+    --sizes "2,4,6,8" --decoder RotatedSweepMatchDecoder  --bias Z \
+    --eta "1,10,100,1000,inf" --prob "0.05"
+bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
+    --wall_time "$wall_time" --trials 100000 --split 60
 
-setup_dir rot_bposd_undef_zbias rotated BeliefPropagationOSDDecoder none Z \
-        "0.5,1,3" "0:0.18:0.01" 10000
+: '
+name=rot_bposd_undef_zbias 
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice rotated --boundary planar --deformation undef --ratio "$ratio" \
+    --sizes "2,4,6,8" --decoder BeliefPropagationOSDDecoder   --bias Z \
+    --eta "0.5,1,3" --prob "0:0.18:0.01"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice rotated --boundary planar --deformation undef --ratio "$ratio" \
+    --sizes "2,4,6,8" --decoder BeliefPropagationOSDDecoder   --bias Z \
+    --eta "10,30,100,inf" --prob "0.18:0.27:0.01"
+bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
+    --wall_time "$wall_time" --trials 10000 --split 10
+'
+
+: '
 setup_dir rot_bposd_undef_zbias rotated BeliefPropagationOSDDecoder none Z \
         "10,30,100,inf" "0.18:0.27:0.01" 10000
 
@@ -57,6 +67,7 @@ setup_dir rot_sweepmatch_undef_zbias rotated RotatedSweepMatchDecoder none Z \
 
 setup_dir rot_sweepmatch_xy_zbias rotated RotatedSweepMatchDecoder xy Z \
         "0.5,1,3,10,30,100,inf" "0:0.55:0.01" 10000
+'
 
 : '
 setup_dir rot_bposd_undef_xbias rotated BeliefPropagationOSDDecoder none X \
