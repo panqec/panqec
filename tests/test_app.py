@@ -6,7 +6,8 @@ from qecsim.models.basic import FiveQubitCode
 from qecsim.models.generic import NaiveDecoder
 from bn3d.noise import PauliErrorModel
 from bn3d.app import (
-    read_input_json, run_once, Simulation, expand_input_ranges, run_file
+    read_input_json, run_once, Simulation, expand_input_ranges, run_file,
+    merge_results_dicts
 )
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
@@ -114,3 +115,56 @@ def test_run_file_range_input(tmpdir):
     run_file(input_json, n_trials, output_dir=tmpdir)
     assert os.listdir(tmpdir) == ['test_range']
     assert len(os.listdir(os.path.join(tmpdir, 'test_range'))) > 0
+
+
+def test_merge_results():
+    results_dicts = [
+        {
+            'results': {
+                'effective_error': [[0, 0]],
+                'success': [True],
+                'wall_time': 0.018024
+            },
+            'inputs': {
+                'size': [2, 2, 2],
+                'code': 'Rotated Planar 2x2x2',
+                'n_k_d': [99, 1, -1],
+                'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
+                'decoder': 'BP-OSD decoder',
+                'error_probability': 0.05
+            }
+        },
+        {
+            'results': {
+                'effective_error': [[0, 1]],
+                'success': [True],
+                'wall_time': 0.017084
+            },
+            'inputs': {
+                'size': [2, 2, 2],
+                'code': 'Rotated Planar 2x2x2',
+                'n_k_d': [99, 1, -1],
+                'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
+                'decoder': 'BP-OSD decoder',
+                'error_probability': 0.05
+            }
+        }
+    ]
+    expected_merged_results = {
+        'results': {
+            'effective_error': [[0, 0], [0, 1]],
+            'success': [True, True],
+            'wall_time': 0.035108
+        },
+        'inputs': {
+            'size': [2, 2, 2],
+            'code': 'Rotated Planar 2x2x2',
+            'n_k_d': [99, 1, -1],
+            'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
+            'decoder': 'BP-OSD decoder',
+            'error_probability': 0.05
+        }
+    }
+
+    merged_results = merge_results_dicts(results_dicts)
+    assert merged_results == expected_merged_results
