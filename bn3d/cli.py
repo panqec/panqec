@@ -5,6 +5,7 @@ import bn3d
 from tqdm import tqdm
 import numpy as np
 import json
+from json.decoder import JSONDecodeError
 from .app import run_file, merge_results_dicts
 from .config import CODES, ERROR_MODELS, DECODERS, BN3D_DIR, BASE_DIR
 from .slurm import (
@@ -278,13 +279,16 @@ def slurm(ctx):
 def merge_dirs(outdir, dirs):
     """Merge result directories that had been split into outdir."""
     os.makedirs(outdir, exist_ok=True)
-    file_lists: Dict[Tuple[str, str], List[str]] = dict()
 
     if len(dirs) == 0:
-        dirs = glob(os.path.join(os.path.dirname(outdir), 'results_*'))
-        dirs = [path for path in dirs if os.path.isdir(path)]
+        results_dirs = glob(os.path.join(os.path.dirname(outdir), 'results_*'))
+        results_dirs = [path for path in results_dirs if os.path.isdir(path)]
+    else:
+        results_dirs = list(dirs)
 
-    for sep_dir in dirs:
+    print(f'Merging {len(results_dirs)} dirs into {outdir}')
+    file_lists: Dict[Tuple[str, str], List[str]] = dict()
+    for sep_dir in results_dirs:
         for sub_dir in os.listdir(sep_dir):
             for file_path in glob(os.path.join(sep_dir, sub_dir, '*.json')):
                 base_name = os.path.basename(file_path)
@@ -292,6 +296,7 @@ def merge_dirs(outdir, dirs):
                 if key not in file_lists:
                     file_lists[key] = []
                 file_lists[key].append(file_path)
+    print(len(file_lists))
 
     iterator = tqdm(file_lists.items(), total=len(file_lists))
     for (sub_dir, base_name), file_list in iterator:
@@ -300,8 +305,11 @@ def merge_dirs(outdir, dirs):
 
         results_dicts = []
         for file_path in file_list:
-            with open(file_path) as f:
-                results_dicts.append(json.load(f))
+            try:
+                with open(file_path) as f:
+                    results_dicts.append(json.load(f))
+            except JSONDecodeError:
+                print(f'Error reading {file_path}, skipping')
 
         combined_results = merge_results_dicts(results_dicts)
 
