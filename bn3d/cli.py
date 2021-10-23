@@ -279,6 +279,11 @@ def merge_dirs(outdir, dirs):
     """Merge result directories that had been split into outdir."""
     os.makedirs(outdir, exist_ok=True)
     file_lists: Dict[Tuple[str, str], List[str]] = dict()
+
+    if len(dirs) == 0:
+        dirs = glob(os.path.join(os.path.dirname(outdir), 'results_*'))
+        dirs = [path for path in dirs if os.path.isdir(path)]
+
     for sep_dir in dirs:
         for sub_dir in os.listdir(sep_dir):
             for file_path in glob(os.path.join(sep_dir, sub_dir, '*.json')):
