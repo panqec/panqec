@@ -4,16 +4,16 @@ sbatch_dir=temp/paper/sbatch
 mkdir -p "$sbatch_dir"
 
 ratio=equal
-wall_time="0-20:00"
+wall_time="0-05:00"
 queue=defq
 
 name=rot_bposd_xzzx_zbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --lattice rotated --boundary planar --deformation xzzx --ratio "$ratio" \
     --sizes "2,4,6,8,10" --decoder BeliefPropagationOSDDecoder  --bias Z \
-    --eta "40,50,60,70" --prob "0.25:0.50:0.01"
-bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 12 --queue $queue \
-    --wall_time "$wall_time" --trials 10000 $sbatch_dir/$name.sbatch
+    --eta "60,70,80" --prob "0.30:0.40:0.01"
+bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 10 --queue $queue \
+    --wall_time "$wall_time" --trials 10000 --split 10 $sbatch_dir/$name.sbatch
 
 # Subthreshold scaling.
 : '
