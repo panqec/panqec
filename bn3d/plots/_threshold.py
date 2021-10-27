@@ -131,7 +131,7 @@ def get_error_model_format(error_model: str, eta=None) -> str:
         fmt = 'Undeformed'
 
     if eta is None:
-        match = re.search(r'X(.+)Y(.+)Z(.+)', error_model)
+        match = re.search(r'Pauli X(.+)Y(.+)Z(.+)', error_model)
         if match:
             r_x = np.round(float(match.group(1)), 4)
             r_y = np.round(float(match.group(2)), 4)
