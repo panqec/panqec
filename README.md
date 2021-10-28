@@ -304,3 +304,84 @@ You can also see the logs from each node.
 ```
 cat slurm/out/*
 ```
+
+# Example of how to run statmech
+In the `temp/statmech` directory,
+create an empty directory, say `test_7` for example.
+Then create a file called `targets.json` with the following contents
+```
+{
+  "comments": "Just a single data point.",
+  "ranges": [
+    {
+      "spin_model": "RandomBondIsingModel2D",
+      "spin_model_params": [
+        {"L_x": 10, "L_y": 10},
+        {"L_x": 12, "L_y": 12},
+        {"L_x": 16, "L_y": 16}
+      ],
+      "disorder_model": "Rbim2DIidDisorder",
+      "disorder_params": [
+        {"p": 0.02}
+      ],
+      "temperature": [
+        1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4
+      ],
+      "max_tau": 10,
+      "n_disorder": 10
+    }
+  ]
+}
+```
+
+This file specifies the inputs for this run.
+Here, `max_tau=10` means each MCMC run will sample for `2^10` sweeps,
+and `n_disorder=10` means 100 disorders will be generated and saved
+into `temp/statmech/test_7`.
+
+To generate some inputs, run
+```
+bn3d statmech generate temp/statmech/test_7
+```
+
+You will notice that many `.json` files have geen generated in
+`temp/statmech/test_7/inputs`.
+Each of these contains a set of disorders,
+and is named with a hash of its contents.
+Note that `max_tau` and `n_disorder` are not in these input files.
+Instead, they are recorded in the `info.json` file.
+
+Suppose you want to sample one of these inputs and it's called
+`input_0123456890abcdef.json`.
+To do so, run
+```
+bn3d statmech sample temp/statmech/test_7/input_0123456890abcdef.json
+```
+
+You will notice that results will be saved to the `results` directory,
+one results `.json` file for each `tau`.
+You may also notice the `models` directory saving the exact states at each tau.
+
+To run all of them at once,
+just use some bash script to run the above bash command for every input json
+file.
+On PBS or slurm,
+you would write an sbatch script.
+Checkout `scripts/statmech.sbatch` for an example
+of how to parallelize to running across array jobs with many cores each.
+If running locally,
+you can use the command to run them all in parallel
+```
+bn3d statmech sample-parallel temp/statmech/test_7
+```
+You can adjust the options depending on how many cores you have.
+
+To perform the analysis,
+go to Jupyter lab and open `notebooks/13-eh-statmech_test_7.ipynb`.
+Run the notebook and you should see the plots of the observables,
+from which you should hopefully see phase transitions!
+(Although something seems wrong because it's not crossing!)
+ 
+Of course, that was rather noisy data with only 10 disorders.
+You may want to increase the `n_disorder` to 100 or 1000 to get meaningful
+plots.
