@@ -39,7 +39,7 @@ class RotatedPlanarCode3D(StabilizerCode):
         Lx, Ly, Lz = self.size
         n_horizontals = (2*Lx + 1) * (2*Ly + 1) * (Lz+1)
         n_verticals = (Lx + 1) * 2*Ly * Lz
-        return (n_horizontals + n_verticals, -1, -1)
+        return (n_horizontals + n_verticals, 1, 2*min(Lx, Ly, Lz) + 1)
 
     @property
     def qubit_index(self) -> Dict[Tuple[int, int, int], int]:
@@ -165,13 +165,13 @@ class RotatedPlanarCode3D(StabilizerCode):
         coordinates = []
 
         # Horizontal faces
-        for x in range(0, 4*Lx+1, 2):
+        for x in range(0, 4*Lx+3, 2):
             for y in range(2, 4*Ly+1, 2):
                 for z in range(1, 2*(Lz+1), 2):
                     if (x + y) % 4 == 0:
                         coordinates.append((x, y, z))
         # Vertical faces
-        for x in range(1, 4*Lx+2, 2):
+        for x in range(1, 4*Lx+3, 2):
             for y in range(1, 4*Ly+2, 2):
                 for z in range(2, 2*(Lz+1), 2):
                     coordinates.append((x, y, z))

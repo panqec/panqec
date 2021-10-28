@@ -509,3 +509,25 @@ def read_input_dict(
         batch_sim.append(parse_run(single_run))
 
     return batch_sim
+
+
+def merge_results_dicts(results_dicts: List[Dict]) -> Dict:
+    """Merge results dicts into one dict."""
+    results = {
+        'effective_error': [],
+        'success': [],
+        'wall_time': 0.0
+    }
+    inputs = results_dicts[0]['inputs']
+    for results_dict in results_dicts:
+        for key in results.keys():
+            results[key] += results_dict['results'][key]
+        assert results_dict['inputs'] == inputs, (
+            'Warning: attempting to merge results of different inputs'
+        )
+
+    merged_dict = {
+        'results': results,
+        'inputs': inputs,
+    }
+    return merged_dict

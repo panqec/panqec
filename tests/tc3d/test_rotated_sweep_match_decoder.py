@@ -169,3 +169,90 @@ class TestRotatedSweepMatchDecoder:
             correction = decoder.decode(code, syndrome)
             total_error = (error.to_bsf() + correction) % 2
             assert np.all(bcommute(code.stabilizers, total_error) == 0)
+
+
+class TestSweepMatch1x1x1:
+    """Test cases found to be failing on the GUI."""
+
+    @pytest.fixture
+    def code(self):
+        return RotatedPlanarCode3D(1, 1, 1)
+
+    @pytest.fixture
+    def decoder(self):
+        return RotatedSweepMatchDecoder()
+
+    @pytest.mark.parametrize('locations', [
+        [('Z', (1, 5, 1)), ('Z', (1, 5, 3))],
+        [('Z', (1, 1, 1)), ('Z', (3, 3, 1)), ('Z', (5, 5, 1))],
+        [('Z', (1, 1, 3)), ('Z', (3, 3, 3)), ('Z', (5, 5, 3))],
+        [('Z', (3, 5, 3)), ('Z', (5, 3, 3)), ('Z', (5, 1, 3))],
+    ], ids=[
+        'z_vertical',
+        'up_left_horizontal_bottom',
+        'up_left_horizontal_top',
+        'down_right_horizontal'
+    ])
+    def test_errors_spanning_boundaries(self, code, decoder, locations):
+        error = RotatedPlanar3DPauli(code)
+        for pauli, location in locations:
+            error.site(pauli, location)
+        assert bsf_wt(error.to_bsf()) == len(locations)
+
+        syndrome = code.measure_syndrome(error)
+        assert np.any(syndrome != 0)
+
+        correction = decoder.decode(code, syndrome)
+        total_error = (error.to_bsf() + correction) % 2
+        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+
+
+class TestSweepMatch2x2x2:
+    """Test cases found to be failing on the GUI."""
+
+    @pytest.fixture
+    def code(self):
+        return RotatedPlanarCode3D(2, 2, 2)
+
+    @pytest.fixture
+    def decoder(self):
+        return RotatedSweepMatchDecoder()
+
+    @pytest.mark.parametrize('locations', [
+        [('Z', (1, 9, 1)), ('Z', (1, 9, 3)), ('Z', (1, 9, 5))],
+        [
+            ('Z', (1, 1, 1)), ('Z', (3, 3, 1)), ('Z', (5, 5, 1)),
+            ('Z', (7, 7, 1)), ('Z', (9, 9, 1))
+        ],
+        [
+            ('Z', (1, 1, 5)), ('Z', (3, 3, 5)), ('Z', (5, 5, 5)),
+            ('Z', (7, 7, 5)), ('Z', (9, 9, 5))
+        ],
+        [
+            ('Z', (3, 9, 5)), ('Z', (5, 7, 5)), ('Z', (7, 5, 5)),
+            ('Z', (9, 3, 5)), ('Z', (9, 1, 5))
+        ],
+        [
+            ('Z', (1, 1, 5)), ('Z', (3, 3, 5)), ('Z', (5, 5, 5)),
+            ('Z', (7, 5, 5)), ('Z', (9, 3, 5)),
+        ],
+    ], ids=[
+        'z_vertical',
+        'up_left_horizontal_bottom',
+        'up_left_horizontal_top',
+        'down_right_horizontal',
+        'arthurs_example',
+    ])
+    def test_errors_spanning_boundaries(self, code, decoder, locations):
+        error = RotatedPlanar3DPauli(code)
+        for pauli, location in locations:
+            assert location in code.qubit_index
+            error.site(pauli, location)
+        assert bsf_wt(error.to_bsf()) == len(locations)
+
+        syndrome = code.measure_syndrome(error)
+        assert np.any(syndrome != 0)
+
+        correction = decoder.decode(code, syndrome)
+        total_error = (error.to_bsf() + correction) % 2
+        assert np.all(bcommute(code.stabilizers, total_error) == 0)

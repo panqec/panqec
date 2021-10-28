@@ -3,6 +3,7 @@ import numpy as np
 from flask import Flask, send_from_directory, request, json, render_template
 from bn3d.tc3d import (
     ToricCode3D, RotatedPlanarCode3D, RotatedToricCode3D, SweepMatchDecoder,
+    RotatedSweepMatchDecoder
 )
 from bn3d.tc2d import Toric2DPymatchingDecoder
 from qecsim.models.toric import ToricCode
@@ -65,7 +66,7 @@ def send_stabilizer_matrix():
     indices = {}
 
     if code_name == 'toric2d':
-        code = ToricCode(Lx, Lx)
+        code = ToricCode(Lx, Ly)
 
         n_qubits = code.n_k_d[0]
         n_stabilizers = code.stabilizers.shape[0]
@@ -118,7 +119,7 @@ def send_stabilizer_matrix():
             'cube': cube_index
         }
 
-    elif code_name == 'rotated':
+    elif code_name == 'rotated-planar':
         code = RotatedPlanarCode3D(Lx, Ly, Lz)
 
         Hz = code.Hz
@@ -174,6 +175,7 @@ def send_stabilizer_matrix():
 @app.route('/decode', methods=['POST'])
 def send_correction():
     content = request.json
+    print(json.dumps(content))
     syndrome = np.array(content['syndrome'])
     Lx = content['Lx']
     Ly = content['Ly']
@@ -192,7 +194,7 @@ def send_correction():
         code = ToricCode3D(Lx, Ly, Lz)
     elif code_name == 'rhombic':
         code = RhombicCode(Lx, Ly, Lz)
-    elif code_name == 'rotated':
+    elif code_name == 'rotated-planar':
         code = RotatedPlanarCode3D(Lx, Ly, Lz)
     elif code_name == 'rotated-toric':
         code = RotatedToricCode3D(Lx, Ly, Lz)
@@ -221,7 +223,8 @@ def send_correction():
 
     if decoder_name == 'bp-osd':
         decoder = BeliefPropagationOSDDecoder(error_model, p,
-                                              max_bp_iter=max_bp_iter)
+                                              max_bp_iter=max_bp_iter,
+                                              joschka=False)
     elif decoder_name == 'bp-osd-2':
         decoder = BeliefPropagationOSDDecoder(error_model, p,
                                               max_bp_iter=max_bp_iter,
@@ -229,7 +232,9 @@ def send_correction():
     elif decoder_name == 'matching':
         decoder = Toric2DPymatchingDecoder()
     elif decoder_name == 'sweepmatch':
-        if deformation == "XZZX":
+        if "Rotated" in code.label:
+            decoder = RotatedSweepMatchDecoder()
+        elif deformation == "XZZX":
             decoder = DeformedSweepMatchDecoder(error_model, p)
         elif deformation == "None":
             decoder = SweepMatchDecoder()
@@ -245,12 +250,14 @@ def send_correction():
     correction_x = correction[:n_qubits]
     correction_z = correction[n_qubits:]
 
+    print(json.dumps({'x': correction_x.tolist(), 'z': correction_z.tolist()}))
     return json.dumps({'x': correction_x.tolist(), 'z': correction_z.tolist()})
 
 
 @app.route('/new-errors', methods=['POST'])
 def send_random_errors():
     content = request.json
+    print(json.dumps(content))
     Lx = content['Lx']
     Ly = content['Ly']
     if 'Lz' in content:
@@ -266,7 +273,7 @@ def send_random_errors():
         code = ToricCode3D(Lx, Ly, Lz)
     elif code_name == 'rhombic':
         code = RhombicCode(Lx, Ly, Lz)
-    elif code_name == 'rotated':
+    elif code_name == 'rotated-planar':
         code = RotatedPlanarCode3D(Lx, Ly, Lz)
     elif code_name == 'rotated-toric':
         code = RotatedToricCode3D(Lx, Ly, Lz)
@@ -293,6 +300,24 @@ def send_random_errors():
 
     errors = error_model.generate(code, p)
 
+    print('Generated error')
+    print(errors)
+    n_qubits = code.n_k_d[0]
+    bsf_to_str_map = {(0, 0): 'I', (1, 0): 'X', (0, 1): 'Z', (1, 1): 'Y'}
+    error_spec = [
+        (
+            bsf_to_str_map[
+                (errors[i_qubit], errors[i_qubit + n_qubits])
+            ],
+            [
+                coords for coords, index in code.qubit_index.items()
+                if index == i_qubit
+            ][0]
+        )
+        for i_qubit in range(n_qubits)
+    ]
+    error_spec = [spec for spec in error_spec if spec[0] != 'I']
+    print(error_spec)
     return json.dumps(errors.tolist())
 
 

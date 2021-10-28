@@ -1,18 +1,20 @@
 import os
-from typing import Optional
+from typing import Optional, List, Dict, Tuple
 import click
 import bn3d
 from tqdm import tqdm
 import numpy as np
 import json
-from .app import run_file
-from .config import CODES, ERROR_MODELS, DECODERS, BN3D_DIR
+from json.decoder import JSONDecodeError
+from .app import run_file, merge_results_dicts
+from .config import CODES, ERROR_MODELS, DECODERS, BN3D_DIR, BASE_DIR
 from .slurm import (
     generate_sbatch, get_status, generate_sbatch_nist, count_input_runs,
     clear_out_folder, clear_sbatch_folder
 )
 from .statmech.cli import statmech
 from .noise import get_direction_from_bias_ratio
+from glob import glob
 
 
 @click.group(invoke_without_command=True)
@@ -83,49 +85,112 @@ def ls(model_type=None):
         ]))
 
 
+def read_bias_ratios(eta_string: str) -> list:
+    """Read bias ratios from comma separated string."""
+    bias_ratios = []
+    for s in eta_string.split(','):
+        s = s.strip()
+        if s == 'inf':
+            bias_ratios.append(np.inf)
+        elif float(s) % 1 == 0:
+            bias_ratios.append(int(s))
+        else:
+            bias_ratios.append(float(s))
+    return bias_ratios
+
+
+def read_range_input(specification: str) -> List[float]:
+    """Read range input string and return list."""
+    values: List[float] = []
+    if ':' in specification:
+        parts = specification.split(':')
+        min_value = float(parts[0])
+        max_value = float(parts[1])
+        step = 0.005
+        if len(parts) == 3:
+            step = float(parts[2])
+        values = np.arange(min_value, max_value + step, step).tolist()
+    elif ',' in specification:
+        values = [float(s) for s in specification.split(',')]
+    else:
+        values = [float(specification)]
+    return values
+
+
 @click.command()
-@click.option('-i', '--input_dir', required=True, type=str)
-@click.option('-l', '--lattice', required=True,
-              type=click.Choice(['rotated', 'kitaev']))
-@click.option('-b', '--boundary', required=True,
-              type=click.Choice(['toric', 'planar']))
-@click.option('-d', '--deformation', required=True,
-              type=click.Choice(['none', 'xzzx', 'xy']))
+@click.option(
+    '-i', '--input_dir', required=True, type=str,
+    help='Directory to save input .json files'
+)
+@click.option(
+    '-l', '--lattice', required=True,
+    type=click.Choice(['rotated', 'kitaev']),
+    help='Lattice rotation'
+)
+@click.option(
+    '-b', '--boundary', required=True,
+    type=click.Choice(['toric', 'planar']),
+    help='Boundary conditions'
+)
+@click.option(
+    '-d', '--deformation', required=True,
+    type=click.Choice(['none', 'xzzx', 'xy']),
+    help='Deformation'
+)
 @click.option(
     '-r', '--ratio', default='equal', type=click.Choice(['equal', 'coprime']),
-    show_default=True,
+    show_default=True, help='Lattice aspect ratio spec'
 )
 @click.option(
     '--decoder', default='BeliefPropagationOSDDecoder',
     show_default=True,
-    type=click.Choice(DECODERS.keys())
+    type=click.Choice(DECODERS.keys()),
+    help='Decoder name'
 )
 @click.option(
     '-s', '--sizes', default='5,9,7,13', type=str,
     show_default=True,
+    help='List of sizes'
 )
 @click.option(
     '--bias', default='Z', type=click.Choice(['X', 'Y', 'Z']),
     show_default=True,
+    help='Pauli bias'
+)
+@click.option(
+    '--eta', default='0.5,1,3,10,30,100,inf', type=str,
+    show_default=True,
+    help='Bias ratio'
+)
+@click.option(
+    '--prob', default='0:0.6:0.005', type=str,
+    show_default=True,
+    help='min:max:step or single value or list of values'
 )
 def generate_input(
-    input_dir, lattice, boundary, deformation, ratio, sizes, decoder, bias
+    input_dir, lattice, boundary, deformation, ratio, sizes, decoder, bias,
+    eta, prob
 ):
     """Generate the json files of every experiment.
 
     \b
     Example:
     bn3d generate-input -i /path/to/inputdir \\
-            -l rotated -b planar -r equal
-            -s 5,9,7,13
+            -l rotated -b planar -d xzzx -r equal \\
+            -s 2,4,6,8 --decoder BeliefPropagationOSDDecoder \\
+            --bias Z --eta '10,100,1000,inf' \\
+            --prob 0:0.5:0.005
     """
-
     if lattice == 'kitaev' and boundary == 'planar':
         raise NotImplementedError("Kitaev planar lattice not implemented")
 
+    os.makedirs(input_dir, exist_ok=True)
+
     delta = 0.005
     probabilities = np.arange(0, 0.5+delta, delta).tolist()
-    bias_ratios = [0.5, 1, 3, 10, 30, 100, np.inf]
+    probabilities = read_range_input(prob)
+    bias_ratios = read_bias_ratios(eta)
+
     for eta in bias_ratios:
         direction = get_direction_from_bias_ratio(bias, eta)
         for p in probabilities:
@@ -210,6 +275,94 @@ def slurm(ctx):
 
 
 @click.command()
+@click.option('-o', '--outdir', required=True, type=str, nargs=1)
+@click.argument('dirs', type=click.Path(exists=True), nargs=-1)
+def merge_dirs(outdir, dirs):
+    """Merge result directories that had been split into outdir."""
+    os.makedirs(outdir, exist_ok=True)
+
+    if len(dirs) == 0:
+        results_dirs = glob(os.path.join(os.path.dirname(outdir), 'results_*'))
+        results_dirs = [path for path in results_dirs if os.path.isdir(path)]
+    else:
+        results_dirs = list(dirs)
+
+    print(f'Merging {len(results_dirs)} dirs into {outdir}')
+    file_lists: Dict[Tuple[str, str], List[str]] = dict()
+    for sep_dir in results_dirs:
+        for sub_dir in os.listdir(sep_dir):
+            for file_path in glob(os.path.join(sep_dir, sub_dir, '*.json')):
+                base_name = os.path.basename(file_path)
+                key = (sub_dir, base_name)
+                if key not in file_lists:
+                    file_lists[key] = []
+                file_lists[key].append(file_path)
+    print(len(file_lists))
+
+    iterator = tqdm(file_lists.items(), total=len(file_lists))
+    for (sub_dir, base_name), file_list in iterator:
+        os.makedirs(os.path.join(outdir, sub_dir), exist_ok=True)
+        combined_file = os.path.join(outdir, sub_dir, base_name)
+
+        results_dicts = []
+        for file_path in file_list:
+            try:
+                with open(file_path) as f:
+                    results_dicts.append(json.load(f))
+            except JSONDecodeError:
+                print(f'Error reading {file_path}, skipping')
+
+        combined_results = merge_results_dicts(results_dicts)
+
+        with open(combined_file, 'w') as f:
+            json.dump(combined_results, f)
+
+
+@click.command()
+@click.argument('sbatch_file', required=True)
+@click.option('-d', '--data_dir', type=click.Path(exists=True), required=True)
+@click.option('-n', '--n_array', default=6, type=click.INT, show_default=True)
+@click.option('-q', '--queue', default='defq', type=str, show_default=True)
+@click.option(
+    '-w', '--wall_time', default='0-20:00', type=str, show_default=True
+)
+@click.option(
+    '-t', '--trials', default='0-20:00', type=str, show_default=True
+)
+@click.option(
+    '-s', '--split', default=1, type=click.INT, show_default=True
+)
+def pi_sbatch(sbatch_file, data_dir, n_array, queue, wall_time, trials, split):
+    """Generate PI-style sbatch file with parallel and array job."""
+    template_file = os.path.join(
+        os.path.dirname(BASE_DIR), 'scripts', 'pi_template.sh'
+    )
+    with open(template_file) as f:
+        text = f.read()
+
+    inputs_dir = os.path.join(data_dir, 'inputs')
+    assert os.path.isdir(inputs_dir), (
+        f'{inputs_dir} missing, please create it and generate inputs'
+    )
+    name = os.path.basename(data_dir)
+    replace_map = {
+        '${TRIALS}': trials,
+        '${DATADIR}': data_dir,
+        '${TIME}': wall_time,
+        '${NAME}': name,
+        '${NARRAY}': str(n_array),
+        '${QUEUE}': queue,
+        '${SPLIT}': str(split),
+    }
+    for template_string, value in replace_map.items():
+        text = text.replace(template_string, value)
+
+    with open(sbatch_file, 'w') as f:
+        f.write(text)
+    print(f'Wrote to {sbatch_file}')
+
+
+@click.command()
 @click.option('--n_trials', default=1000, type=click.INT, show_default=True)
 @click.option('--partition', default='defq', show_default=True)
 @click.option('--time', default='10:00:00', show_default=True)
@@ -281,3 +434,5 @@ cli.add_command(ls)
 cli.add_command(slurm)
 cli.add_command(generate_input)
 cli.add_command(statmech)
+cli.add_command(pi_sbatch)
+cli.add_command(merge_dirs)

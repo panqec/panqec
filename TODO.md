@@ -47,18 +47,20 @@
 - [ ] finite bias case
 
 ### Paper
-- [ ] AP Numerics What are rough estimates for thresholds with BP+OSD?
-- [ ] EH Numerics Generate inputs and commands for AD to run script cluster
-- [ ] AP Table 1 check size formulae correct
-- [ ] EH Fig change colours and labels back to CSS
-- [ ] EH Fig Add rotated coordinate axes for 3D and 2D
+- [x] AP Numerics What are rough estimates for thresholds with BP+OSD?
+- [x] EH Numerics Generate inputs and commands for AD to run script cluster
+- [x] AP Table 1 check size formulae correct
+- [x] EH Fig change colours and labels back to CSS
+- [x] EH Fig Add rotated coordinate axes for 3D and 2D
 - [ ] EH Fig Shaded transparent circle on qubit to show deformation
 - [ ] AP Plots Thresholds estimates and thresholds from data?
 - [ ] AP Plots Subtreshold scaling plots 100,000 trials, fix p vary L log scale
-- [ ] EH Numerics 100 values of p in 0.005 increments too much, only need a 16
+- [x] EH Numerics 100 values of p in 0.005 increments too much, only need a 16
   data points near estimated threshold.
 - [ ] AP fill in Table 2 thresholds
 - [ ] EH Fig Show 2 layers only (low priority)
 
 ### Post-QIP
--[ ] Deformed Y noise fault-tolerant threshold 3D
+- [ ] Deformed Y noise fault-tolerant threshold 3D
+- [x] Go beyond 0.5 error rate
+- [x] EH subthreshold simulations bias 10, 100, 1000, error rate 5% fixed

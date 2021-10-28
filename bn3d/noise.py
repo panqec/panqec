@@ -35,7 +35,7 @@ class PauliErrorModel(SimpleErrorModel):
 
     @property
     def label(self):
-        return 'Pauli X{}Y{}Z{}'.format(*self.direction)
+        return 'Pauli X{:.4f}Y{:.4f}Z{:.4f}'.format(*self.direction)
 
     def generate(self, code: StabilizerCode, probability: float, rng=None):
         rng = np.random.default_rng() if rng is None else rng

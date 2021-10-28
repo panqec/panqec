@@ -39,7 +39,7 @@ class RotatedToricCode3D(StabilizerCode):
         Lx, Ly, Lz = self.size
         n_horizontals = 2*Ly*(2*Lx + 1)*Lz
         n_verticals = (2*Lx*Ly)*Lz
-        return (n_horizontals + n_verticals, -1, -1)
+        return (n_horizontals + n_verticals, 3, -1)
 
     @property
     def qubit_index(self) -> Dict[Tuple[int, int, int], int]:

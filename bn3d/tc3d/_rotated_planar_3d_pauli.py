@@ -9,10 +9,6 @@ class RotatedPlanar3DPauli:
     Qubit sites are on edges of the lattice.
     """
 
-    X_AXIS = 0
-    Y_AXIS = 1
-    Z_AXIS = 2
-
     def __init__(self, code: StabilizerCode, bsf: Optional[np.ndarray] = None):
 
         # Copy needs to be made because numpy arrays are mutable.
@@ -110,7 +106,7 @@ class RotatedPlanar3DPauli:
         # Two vertical edges
         if z - 1 >= 1:
             self.site(operator, (x, y, z - 1))
-        if z + 1 < 2*Lz:
+        if z + 1 < 2*Lz+1:
             self.site(operator, (x, y, z + 1))
 
     def face(self, operator: str, location: Tuple[int, int, int]):
@@ -152,11 +148,11 @@ class RotatedPlanar3DPauli:
         if z % 2 == 1:
             if x - 1 >= 0 and y - 1 >= 0:
                 self.site(operator, (x - 1, y - 1, z))
-            if x + 1 <= 4*Lx+1 and y + 1 <= 4*Ly+2:
+            if x + 1 <= 4*Lx+2 and y + 1 <= 4*Ly+2:
                 self.site(operator, (x + 1, y + 1, z))
             if x - 1 > 0 and y + 1 <= 4*Ly+2:
                 self.site(operator, (x - 1, y + 1, z))
-            if x + 1 <= 4*Lx+1 and y - 1 >= 0:
+            if x + 1 <= 4*Lx+2 and y - 1 >= 0:
                 self.site(operator, (x + 1, y - 1, z))
 
         # Vertical face (axis /)

@@ -44,6 +44,15 @@ def detailed_plot(
         # ax.set_yscale('log')
         ax.set_xlim(x_limits[i_ax])
         ax.set_ylim(1e-2, 1e0)
+        
+        if i_ax == 0:
+            paulis = title.split("Pauli")[1]
+            pauli_x = paulis.split("X")[1].split("Y")[0][:5]
+            pauli_y = paulis.split("Y")[1].split("Z")[0][:5]
+            pauli_z = paulis.split("Z")[1][:5]
+            
+            title = title.split("Pauli")[0] + "Pauli" + " X" + pauli_x + " Y" + pauli_y + " Z" + pauli_z
+        
         ax.set_title(title)
         ax.locator_params(axis='x', nbins=6)
 
@@ -122,7 +131,7 @@ def get_error_model_format(error_model: str, eta=None) -> str:
         fmt = 'Undeformed'
 
     if eta is None:
-        match = re.search(r'X(.+)Y(.+)Z(.+)', error_model)
+        match = re.search(r'Pauli X(.+)Y(.+)Z(.+)', error_model)
         if match:
             r_x = np.round(float(match.group(1)), 4)
             r_y = np.round(float(match.group(2)), 4)

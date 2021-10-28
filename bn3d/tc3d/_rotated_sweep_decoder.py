@@ -143,15 +143,15 @@ class RotatedSweepDecoder3D(Decoder):
             )
 
             # Check faces and edges are in lattice before proceeding.
-            all_faces_valid = all(
+            faces_valid = tuple(
                 face in code.face_index
                 for face in [x_face, y_face, z_face]
             )
-            all_edges_valid = all(
+            edges_valid = tuple(
                 edge in code.qubit_index
                 for edge in [x_edge, y_edge, z_edge]
             )
-            if all_faces_valid and all_edges_valid:
+            if all(faces_valid) and all(edges_valid):
 
                 if signs[x_face] and signs[y_face] and signs[z_face]:
                     direction = self.get_default_direction()
@@ -163,6 +163,21 @@ class RotatedSweepDecoder3D(Decoder):
                     flip_locations.append(y_edge)
                 elif signs[x_face] and signs[y_face]:
                     flip_locations.append(z_edge)
+
+            # Boundary case with only 1 face and 2 edges.
+            elif sum(faces_valid) == 1 and sum(edges_valid) == 2:
+                i_face_valid = faces_valid.index(True)
+                i_edge_invalid = edges_valid.index(False)
+                i_edge_valid = edges_valid.index(True)
+
+                # Check valid face is orthogonal to missing edge.
+                if i_face_valid == i_edge_invalid:
+                    valid_face = [x_face, y_face, z_face][i_face_valid]
+                    valid_edge = [x_edge, y_edge, z_edge][i_edge_valid]
+
+                    # Flip an edge if the face has a syndrome.
+                    if signs[valid_face]:
+                        flip_locations.append(valid_edge)
 
         new_signs = signs.copy()
         for location in flip_locations:

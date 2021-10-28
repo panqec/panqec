@@ -26,7 +26,7 @@ class TestPauliNoise:
         return PauliErrorModel(0.2, 0.3, 0.5)
 
     def test_label(self, error_model):
-        assert error_model.label == 'Pauli X0.2Y0.3Z0.5'
+        assert error_model.label == 'Pauli X0.2000Y0.3000Z0.5000'
 
     def test_generate(self, code, error_model):
         probability = 0.1

@@ -15,12 +15,12 @@ const MAX_OPACITY = 0.6;
 const params = {
     opacity: MAX_OPACITY,
     errorProbability: 0.1,
-    L: 2,
+    L: 1,
     deformation: "None",
-    decoder: 'bp-osd-2',
+    decoder: 'bp-osd',
     max_bp_iter: 10,
-    errorModel: 'Pure Z',
-    codeName: 'rotated-toric'
+    errorModel: 'Depolarizing',
+    codeName: 'rotated-planar'
 };
 
 const buttons = {
@@ -114,12 +114,12 @@ async function buildCode() {
 
     let codeClass = {'cubic': ToricCode3D,
                      'rhombic': RhombicCode,
-                     'rotated': RotatedPlanarCode3D,
+                     'rotated-planar': RotatedPlanarCode3D,
                      'rotated-toric': RotatedToricCode3D}
 
     code = new codeClass[params.codeName](Lx, Ly, Lz, Hx, Hz, indices, scene);
     code.build();
-    // code.displayLogical(logical_x, 'X', 0);
+    // code.displayLogical(logical_z, 'Z', 0);
 }
 
 function changeLatticeSize() {
@@ -165,7 +165,7 @@ async function getStabilizerMatrices() {
 function buildGUI() {
     gui = new GUI();
     const codeFolder = gui.addFolder('Code')
-    codeFolder.add(params, 'codeName', {'Cubic': 'cubic', 'Rhombic': 'rhombic', 'Rotated': 'rotated', 'Rotated Toric': 'rotated-toric'}).name('Code type').onChange(changeLatticeSize);
+    codeFolder.add(params, 'codeName', {'Cubic': 'cubic', 'Rhombic': 'rhombic', 'Rotated Planar': 'rotated-planar', 'Rotated Toric': 'rotated-toric'}).name('Code type').onChange(changeLatticeSize);
     codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
 
     const errorModelFolder = gui.addFolder('Error Model')
@@ -227,7 +227,7 @@ function buildReturnArrow() {
 }
 
 function onDocumentMouseDown(event) {
-    if (event.ctrlKey) {
+    if (event.ctrlKey || event.shiftKey) {
         mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
         mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 
@@ -238,13 +238,17 @@ function onDocumentMouseDown(event) {
         
         let selectedQubit = intersects[0].object;
         
-        switch (event.button) {
-            case 0: // left click
-                code.insertError(selectedQubit, 'X');
-                break;
-            case 2:
-                code.insertError(selectedQubit, 'Z');
-                break;
+        if (event.ctrlKey) {
+            switch (event.button) {
+                case 0: // left click
+                    code.insertError(selectedQubit, 'X');
+                    break;
+                case 2:
+                    code.insertError(selectedQubit, 'Z');
+                    break;
+            }
+        } else {
+            console.log(selectedQubit);
         }
     }
 }
