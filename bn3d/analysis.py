@@ -305,6 +305,7 @@ def fit_function(x_data, *params):
     p, d = x_data
     p_th, nu, A, B, C = params
     x = (p - p_th)*d**nu
+
     return A + B*x + C*x**2
 
 
@@ -349,18 +350,11 @@ def get_fit_params(
     y_data = f_list
 
     # Curve fit.
-    lower_bound = 0
-    if params_0[0] < lower_bound:
-        params_0[0] = np.random.uniform(lower_bound, 0.5)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         params_opt, _ = curve_fit(
-            fit_function, x_data, y_data, jac=grad_fit_function, method='trf',
-            p0=params_0, ftol=ftol, maxfev=maxfev,
-            bounds=(
-                [lower_bound] + [-np.inf]*4,  # type: ignore
-                [0.5] + [np.inf]*4
-            )
+            fit_function, x_data, y_data, method='lm',
+            p0=params_0, ftol=ftol, maxfev=maxfev
         )
 
     return params_opt
