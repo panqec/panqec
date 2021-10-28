@@ -38,6 +38,8 @@ class SimpleAnalysis:
         self.estimate_observables()
         print('Estimating correlation length')
         self.estimate_correlation_length()
+        print('Estimating Binder cumulant')
+        self.estimate_binder()
         print('Calculating runtime stats')
         self.calculate_run_time_stats()
 
@@ -108,6 +110,54 @@ class SimpleAnalysis:
             })
         ], axis=1)
         self.estimates = estimates.reset_index()
+
+    def estimate_binder(self, n_resamp: int = 10):
+        """Estimate Binder cumulant."""
+        estimates = self.estimates
+        estimates['Binder_estimate'] = (
+            1 - estimates['Magnetization_4_estimate']/(
+                3*estimates['Magnetization_2_estimate']**2
+            )
+        )
+
+        # Calculate uncertainty by bootstrapping.
+        uncertainty = np.zeros(estimates.shape[0])
+
+        # Generator for bootstrapping.
+        bs_rng = np.random.default_rng(0)
+
+        for i_row, row in self.estimates.iterrows():
+            parameters = row[self.independent_variables].drop('tau')
+
+            # Hashes for disorder configurations matching row parameters.
+            hashes = self.inputs_df[
+                (self.inputs_df[parameters.index] == parameters).all(axis=1)
+            ]['hash'].values
+
+            # Raw results filtered by matching disorders and tau.
+            filtered_results = self.results_df[
+                self.results_df['hash'].isin(hashes)
+                & (self.results_df['tau'] == row['tau'])
+            ].set_index('hash')
+            hashes = filtered_results.index.unique()
+
+            resampled_binder = np.zeros(n_resamp, dtype=complex)
+
+            # Perform resampling n_resamp times and calculate correlation
+            # length using resampled results.
+            for i_resamp in range(n_resamp):
+                resampled_hashes = bs_rng.choice(hashes, size=hashes.size)
+                mag_4 = filtered_results.loc[
+                    resampled_hashes
+                ]['Magnetization_4'].mean()
+                mag_2 = filtered_results.loc[
+                    resampled_hashes
+                ]['Magnetization_2'].mean()
+                resampled_binder[i_resamp] = 1 - mag_4/(3*mag_2**2)
+
+            uncertainty[i_row] = resampled_binder.std()
+
+        estimates['Binder_uncertainty'] = uncertainty
 
     def estimate_correlation_length(self, n_resamp: int = 10):
         """Estimate the correlation length."""
