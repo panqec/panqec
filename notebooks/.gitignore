@@ -1,3 +1,4 @@
 *.ipynb
 !12-eh-generate_params.ipynb
 !11-eh-essay_figures.ipynb
+!13-eh-statmech_test_7.ipynb
