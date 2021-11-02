@@ -376,8 +376,11 @@ bn3d statmech sample-parallel temp/statmech/test_7
 ```
 You can adjust the options depending on how many cores you have.
 
-To perform the analysis,
-go to Jupyter lab and open `notebooks/13-eh-statmech_test_7.ipynb`.
+To perform the analysis, you can use the command
+```
+bn3d statmech analyse temp/statmech/test_7
+```
+To plot the results, go to Jupyter lab and open `notebooks/13-eh-statmech_test_7.ipynb`.
 Run the notebook and you should see the plots of the observables,
 from which you should hopefully see phase transitions!
 (Although something seems wrong because it's not crossing!)
