@@ -219,7 +219,6 @@ class VectorObservable(Observable):
         """Size of the vector (i.e. number of observables)"""
 
     def reset(self):
-        print(self.size)
         self.total = np.zeros(self.size)
         self.total_2 = np.zeros(self.size)
         self.total_4 = np.zeros(self.size)
