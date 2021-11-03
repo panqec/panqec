@@ -166,6 +166,10 @@ class Observable(metaclass=ABCMeta):
     def evaluate(self, spin_model: SpinModel):
         """Evaluate the observable for given spin model."""
 
+    @abstractmethod
+    def summary(self) -> Dict[str, Any]:
+        """Return result dictionary that can be encoded into JSON"""
+
     def record(self, spin_model: SpinModel):
         """Evaluate the observable for given spin model and record it."""
         value = self.evaluate(spin_model)
@@ -173,14 +177,6 @@ class Observable(metaclass=ABCMeta):
         self.total_2 += value**2
         self.total_4 += value**4
         self.count += 1
-
-    def summary(self) -> Dict:
-        return {
-            'total': self.total,
-            'total_2': self.total_2,
-            'total_4': self.total_4,
-            'count': self.count,
-        }
 
     def to_json(self) -> Dict[str, Any]:
         summary = self.summary()
@@ -201,6 +197,14 @@ class ScalarObservable(Observable):
         self.total_4 = 0.0
         self.count = 0
 
+    def summary(self):
+        return {
+            'total': self.total,
+            'total_2': self.total_2,
+            'total_4': self.total_4,
+            'count': self.count,
+        }
+
 
 class VectorObservable(Observable):
 
@@ -209,11 +213,25 @@ class VectorObservable(Observable):
     total_4: np.ndarray
     count: int
 
-    def reset(self, size):
-        self.total = np.zeros(size)
-        self.total_2 = np.zeros(size)
-        self.total_4 = np.zeros(size)
+    @property
+    @abstractmethod
+    def size(self) -> int:
+        """Size of the vector (i.e. number of observables)"""
+
+    def reset(self):
+        print(self.size)
+        self.total = np.zeros(self.size)
+        self.total_2 = np.zeros(self.size)
+        self.total_4 = np.zeros(self.size)
         self.count = 0
+
+    def summary(self):
+        return {
+            'total': self.total.tolist(),
+            'total_2': self.total_2.tolist(),
+            'total_4': self.total_4.tolist(),
+            'count': self.count,
+        }
 
 
 class DisorderModel(metaclass=ABCMeta):

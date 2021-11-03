@@ -109,17 +109,19 @@ class WilsonLoop2D(VectorObservable):
 
     def __init__(self, spin_model):
         L = min(spin_model.spin_shape)
-        n_wilson_loops = L // 2 + 1
+        self.n_wilson_loops = L // 2 + 1
 
-        self.reset(n_wilson_loops)
+        self.reset()
+
+    @property
+    def size(self):
+        return self.n_wilson_loops
 
     def evaluate(self, spin_model) -> np.ndarray:
-        L = min(spin_model.spin_shape)
-        n_wilson_loops = L // 2 + 1
-        value = np.ones(n_wilson_loops)
+        value = np.ones(self.n_wilson_loops)
         spins = spin_model.spins
 
-        for i in range(n_wilson_loops):
+        for i in range(self.n_wilson_loops):
             value[i] = value[i-1] * np.prod(spins[i, :i+1]) * np.prod(spins[:i, i])
 
         return value
