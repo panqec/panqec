@@ -1,5 +1,5 @@
 from typing import Tuple, Optional, Dict, Any
-from .model import SpinModel, ScalarObservable, DisorderModel
+from .model import SpinModel, ScalarObservable, DisorderModel, VectorObservable
 import numpy as np
 
 
@@ -36,6 +36,7 @@ class RandomBondIsingModel2D(SpinModel):
             Magnetization(),
             Susceptibility0(),
             Susceptibilitykmin(),
+            WilsonLoop2D(self),
         ]
 
     @property
@@ -101,6 +102,27 @@ class RandomBondIsingModel2D(SpinModel):
     def update(self, move):
         """Update spins with move."""
         self.spins[move] *= -1
+
+
+class WilsonLoop2D(VectorObservable):
+    label: str = 'Wilson Loop'
+
+    def __init__(self, spin_model):
+        Lx, Ly = spin_model.spin_shape
+        n_wilson_loops = min(Lx, Ly) / 2
+
+        self.reset(n_wilson_loops)
+
+    def evaluate(self, spin_model) -> np.ndarray:
+        L = min(spin_model.spin_shape)
+        n_wilson_loops = L // 2
+        value = np.ones(n_wilson_loops)
+        spins = spin_model.spins
+
+        for i in range(L//2):
+            value[i] = value[i-1] * np.prod(spins[i, :i+1]) * np.prod(spins[:i, i])
+
+        return value
 
 
 class Magnetization(ScalarObservable):

@@ -202,6 +202,20 @@ class ScalarObservable(Observable):
         self.count = 0
 
 
+class VectorObservable(Observable):
+
+    total: np.ndarray
+    total_2: np.ndarray
+    total_4: np.ndarray
+    count: int
+
+    def reset(self, size):
+        self.total = np.zeros(size)
+        self.total_2 = np.zeros(size)
+        self.total_4 = np.zeros(size)
+        self.count = 0
+
+
 class DisorderModel(metaclass=ABCMeta):
     """Disorder generator representing a noise model."""
 
