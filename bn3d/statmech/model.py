@@ -236,6 +236,14 @@ class VectorObservable(Observable):
 class DisorderModel(metaclass=ABCMeta):
     """Disorder generator representing a noise model."""
 
+    rng: np.random.Generator
+
+    def __init__(self, rng: np.random.Generator = None):
+        if rng is not None:
+            self.rng = rng
+        else:
+            self.rng = np.random.default_rng()
+
     @abstractmethod
     def generate(self, model_params, disorder_params) -> np.ndarray:
         """Generate a disorder configuration."""

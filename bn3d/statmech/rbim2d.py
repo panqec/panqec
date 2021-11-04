@@ -170,14 +170,6 @@ class Susceptibilitykmin(ScalarObservable):
 
 class Rbim2DIidDisorder(DisorderModel):
 
-    rng: np.random.Generator
-
-    def __init__(self, rng: np.random.Generator = None):
-        if rng is not None:
-            self.rng = rng
-        else:
-            self.rng = np.random.default_rng()
-
     def generate(self, model_params, disorder_params):
         L_x = model_params['L_x']
         L_y = model_params['L_y']
