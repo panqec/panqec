@@ -34,10 +34,11 @@ class TestRBIM2DNoDisorder:
 
     def test_energy_diff_all_up(self, model):
         energy_diff = model.delta_energy((0, 0))
-        assert energy_diff == -8.0
+        assert energy_diff == 8.0
 
     def test_sample_changes_spins(self, model):
-        n_sweeps = 3
+        n_sweeps = 10
+        model.init_spins()
         spins_0 = model.spins.copy()
         model.sample(n_sweeps)
         spins_1 = model.spins.copy()

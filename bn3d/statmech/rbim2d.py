@@ -79,7 +79,7 @@ class RandomBondIsingModel2D(SpinModel):
         y_m = (y - 1 + L_y) % L_y
 
         # Two-body terms
-        energy_diff -= 2*self.spins[x, y]*(
+        energy_diff = 2*self.spins[x, y]*(
             (
                 self.disorder[0, x, y]*self.couplings[0, x, y]
                 * self.spins[x_p, y]
