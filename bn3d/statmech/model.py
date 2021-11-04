@@ -73,6 +73,10 @@ class SpinModel(metaclass=ABCMeta):
         """Energy difference from apply moving."""
 
     @abstractmethod
+    def total_energy(self) -> float:
+        """Total energy of present state."""
+
+    @abstractmethod
     def random_move(self) -> Tuple:
         """Get a random move."""
 

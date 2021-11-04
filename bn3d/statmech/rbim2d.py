@@ -68,6 +68,11 @@ class RandomBondIsingModel2D(SpinModel):
         if disorder is not None:
             self.disorder = disorder
 
+    def total_energy(self) -> float:
+        """Total energy of spin state."""
+        energy = 0.0
+        return energy
+
     def delta_energy(self, site) -> float:
         """Energy difference from flipping index."""
         energy_diff = 0.0

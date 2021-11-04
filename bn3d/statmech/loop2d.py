@@ -50,6 +50,9 @@ class LoopModel2D(SpinModel):
         self.moves_per_sweep = self.n_spins
         self.observables = []
 
+    def total_energy(self):
+        return 0.0
+
     def delta_energy(self, site) -> float:
         energy = 0.0
         x, y = site

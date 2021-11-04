@@ -70,6 +70,15 @@ class TestRBIM2DNoDisorder:
         assert old_stats['acceptance'] == new_stats['acceptance']
         assert np.all(model.spins == new_model.spins)
 
+    def test_delta_energy_agrees_with_delta_energy(self, model):
+        model.init_spins()
+        initial_energy = model.total_energy()
+        move = model.random_move()
+        delta_energy = model.delta_energy(move)
+        model.update(move)
+        final_energy = model.total_energy()
+        assert delta_energy == final_energy - initial_energy
+
 
 class TestRbim2DIidDisorder:
 
