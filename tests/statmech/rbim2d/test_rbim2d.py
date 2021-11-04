@@ -1,23 +1,95 @@
+from itertools import product
 import json
 import pytest
 import numpy as np
 from bn3d.statmech.rbim2d import RandomBondIsingModel2D, Rbim2DIidDisorder
 
 
-def test_rbim2d_total_enegy():
-    L_x = 2
-    L_y = 2
-    model = RandomBondIsingModel2D(L_x, L_y)
-    model.rng = np.random.default_rng(seed=0)
-    model.init_spins()
+def assert_flip_energies_consistent(model, move, message=''):
+    initial_energy = model.total_energy()
+    delta_energy = model.delta_energy(move)
+    model.update(move)
+    final_energy = model.total_energy()
+    assert delta_energy == final_energy - initial_energy, message
 
-    for i_move in range(100):
+
+class TestRBIM2DEnergy:
+
+    @pytest.fixture(autouse=True)
+    def antiferro_2x2(self):
+        model = RandomBondIsingModel2D(2, 2)
+        model.rng = np.random.default_rng(seed=0)
+        model.init_spins(np.array([
+            [1, -1],
+            [-1, 1]
+        ]))
+        return model
+
+    def test_total_energy_2x2_random(self):
+        L_x = 2
+        L_y = 2
+        model = RandomBondIsingModel2D(L_x, L_y)
+        model.rng = np.random.default_rng(seed=0)
+        model.init_spins()
+
+        for i_move in range(100):
+            move = model.random_move()
+            assert_flip_energies_consistent(model, move)
+
+    def test_total_energy_all_up(self):
+        model = RandomBondIsingModel2D(L_x=2, L_y=3)
+        model.init_spins(np.ones(model.spin_shape, dtype=int))
+        assert model.total_energy() == -model.n_bonds
+
+    def test_total_energy_all_down(self):
+        model = RandomBondIsingModel2D(L_x=2, L_y=3)
+        model.init_spins(-np.ones(model.spin_shape, dtype=int))
+        assert model.total_energy() == -model.n_bonds
+
+    def test_total_energy_anti_ferromagnetic(self, antiferro_2x2):
+        model = antiferro_2x2
+        assert model.total_energy() == model.n_bonds
+
+    def test_flip_spins_move_by_move(self):
+        L_x, L_y = 2, 2
+        model = RandomBondIsingModel2D(L_x, L_y)
+        model.init_spins(np.ones(model.spin_shape, dtype=int))
         initial_energy = model.total_energy()
-        move = model.random_move()
-        delta_energy = model.delta_energy(move)
-        model.update(move)
+        delta_energy_list = []
+        total_energy_change_list = []
+        total_energy_list = []
+        moves = list(product(range(L_x), range(L_y)))
+        for i_move, move in enumerate(moves):
+            energy_before_move = model.total_energy()
+            delta_energy = model.delta_energy(move)
+            delta_energy_list.append(delta_energy)
+            model.update(move)
+            energy_after_move = model.total_energy()
+            total_energy_list.append(energy_after_move)
+            energy_change = energy_after_move - energy_before_move
+            total_energy_change_list.append(energy_change)
         final_energy = model.total_energy()
-        assert delta_energy == final_energy - initial_energy
+        assert final_energy == initial_energy
+        assert delta_energy_list == total_energy_change_list
+        assert initial_energy + sum(delta_energy_list) == final_energy
+
+    def test_flip_anti_ferromagnetic(self, antiferro_2x2):
+        L_x, L_y = 2, 2
+        for move in product(range(L_x), range(L_y)):
+            model = antiferro_2x2
+            assert_flip_energies_consistent(
+                model, move, message=f'Disagreement at (x, y) = {move}'
+            )
+
+    def test_flip_spins_everywhere_all_up(self):
+        L_x = 2
+        L_y = 3
+        model = RandomBondIsingModel2D(L_x, L_y)
+        for move in product(range(L_x), range(L_y)):
+            model.init_spins(np.ones(model.spin_shape, dtype=int))
+            assert_flip_energies_consistent(
+                model, move, message=f'Disagreement at (x, y) = {move}'
+            )
 
 
 class TestRBIM2DNoDisorder:
@@ -29,8 +101,8 @@ class TestRBIM2DNoDisorder:
         """An instance of a model with default."""
         model = RandomBondIsingModel2D(self.L_x, self.L_y)
         model.rng = np.random.default_rng(seed=0)
-        model.init_spins(np.ones_like(model.spins))
-        model.init_disorder(np.ones_like(model.disorder))
+        model.init_spins(np.ones_like(model.spins, dtype=int))
+        model.init_disorder(np.ones_like(model.disorder, dtype=int))
         return model
 
     def test_default_attributes(self, model):
@@ -89,12 +161,10 @@ class TestRBIM2DNoDisorder:
     def test_delta_energy_agrees_with_delta_energy(self, model):
         model.init_spins()
         for i_move in range(100):
-            initial_energy = model.total_energy()
             move = model.random_move()
-            delta_energy = model.delta_energy(move)
-            model.update(move)
-            final_energy = model.total_energy()
-            assert delta_energy == final_energy - initial_energy
+            assert_flip_energies_consistent(
+                model, move, message=f'Failed on move {i_move}'
+            )
 
 
 class TestRbim2DIidDisorder:
