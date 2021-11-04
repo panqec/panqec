@@ -4,6 +4,22 @@ import numpy as np
 from bn3d.statmech.rbim2d import RandomBondIsingModel2D, Rbim2DIidDisorder
 
 
+def test_rbim2d_total_enegy():
+    L_x = 2
+    L_y = 2
+    model = RandomBondIsingModel2D(L_x, L_y)
+    model.rng = np.random.default_rng(seed=0)
+    model.init_spins()
+
+    for i_move in range(100):
+        initial_energy = model.total_energy()
+        move = model.random_move()
+        delta_energy = model.delta_energy(move)
+        model.update(move)
+        final_energy = model.total_energy()
+        assert delta_energy == final_energy - initial_energy
+
+
 class TestRBIM2DNoDisorder:
     L_x = 4
     L_y = 5
@@ -72,12 +88,13 @@ class TestRBIM2DNoDisorder:
 
     def test_delta_energy_agrees_with_delta_energy(self, model):
         model.init_spins()
-        initial_energy = model.total_energy()
-        move = model.random_move()
-        delta_energy = model.delta_energy(move)
-        model.update(move)
-        final_energy = model.total_energy()
-        assert delta_energy == final_energy - initial_energy
+        for i_move in range(100):
+            initial_energy = model.total_energy()
+            move = model.random_move()
+            delta_energy = model.delta_energy(move)
+            model.update(move)
+            final_energy = model.total_energy()
+            assert delta_energy == final_energy - initial_energy
 
 
 class TestRbim2DIidDisorder:

@@ -76,11 +76,10 @@ class RandomBondIsingModel2D(SpinModel):
         for axis, x, y in product(range(2), range(L_x), range(L_y)):
             disorder = self.disorder[axis, x, y]
             coupling = self.couplings[axis, x, y]
+            spin_0 = self.spins[x, y]
             if axis == 0:
-                spin_0 = self.spins[x, y]
                 spin_1 = self.spins[(x + 1) % L_x, y]
             else:
-                spin_0 = self.spins[x, y]
                 spin_1 = self.spins[x, (y + 1) % L_y]
             energy -= coupling*disorder*spin_0*spin_1
         return energy
