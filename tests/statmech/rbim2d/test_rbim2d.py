@@ -211,9 +211,10 @@ class TestRbim2DIidDisorder:
         model.init_spins()
         model.init_disorder(disorder)
 
-        initial_energy = model.total_energy()
-        move = model.random_move()
-        delta_energy = model.delta_energy(move)
-        model.update(move)
-        final_energy = model.total_energy()
-        assert delta_energy == final_energy - initial_energy
+        for i_move in range(100):
+            initial_energy = model.total_energy()
+            move = model.random_move()
+            delta_energy = model.delta_energy(move)
+            model.update(move)
+            final_energy = model.total_energy()
+            assert delta_energy == final_energy - initial_energy
