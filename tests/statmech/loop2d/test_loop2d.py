@@ -2,6 +2,26 @@ import json
 import pytest
 import numpy as np
 from bn3d.statmech.loop2d import LoopModel2D
+from tests.statmech.utils import assert_flip_energies_consistent
+
+
+class TestLoopModel2DEnergy:
+
+    @pytest.fixture(autouse=True)
+    def all_up(self):
+        L_x, L_y = 2, 3
+        model = LoopModel2D(L_x, L_y)
+        assert np.all((model.spins == 1) | (model.spins == 0))
+        return model
+
+    def test_all_up_total_energy(self, all_up):
+        model = all_up
+        assert model.total_energy() == -model.n_bonds
+
+    def test_flip_one_by_one(self, all_up):
+        model = all_up
+        for move in model.spin_index:
+            assert_flip_energies_consistent(model, move)
 
 
 class TestLoopModel2D:
@@ -21,6 +41,11 @@ class TestLoopModel2D:
         assert model.temperature == 1
         assert model.n_spins == 2*self.L_x*self.L_y
         assert model.moves_per_sweep == model.n_spins
+
+    def test_spins_are_pm_one(self, model):
+        for x, y in model.spin_index:
+            spin = model.spins[x, y]
+            assert (spin == 1) or (spin == -1)
 
     def test_spins_are_on_edges(self, model):
         spin_indices = np.array(np.where(model.spins)).T

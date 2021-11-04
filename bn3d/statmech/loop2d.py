@@ -1,4 +1,5 @@
-from typing import Dict, Any, Tuple, Optional
+from typing import Dict, Any, Tuple, Optional, Iterator
+from itertools import product
 import numpy as np
 from .model import SpinModel
 
@@ -50,8 +51,35 @@ class LoopModel2D(SpinModel):
         self.moves_per_sweep = self.n_spins
         self.observables = []
 
+    @property
+    def spin_index(self) -> Iterator[Tuple[int, int]]:
+        positions = product(range(2), range(self.L_x), range(self.L_y))
+        for normal, i, j in positions:
+            if normal == 0:
+                yield (2*i, 2*j + 1)
+            else:
+                yield (2*i + 1, 2*j)
+
+    @property
+    def bond_index(self) -> Iterator[Tuple[int, int]]:
+        positions = product(range(self.L_x), range(self.L_y))
+        for i, j in positions:
+            yield (2*i, 2*j)
+
     def total_energy(self):
-        return 0.0
+        energy = 0.0
+        size_x, size_y = self.spin_shape
+
+        for x, y in self.bond_index:
+            disorder = self.disorder[x, y]
+            coupling = self.couplings[x, y]
+            spin_x1 = self.spins[x, (y + 1) % size_y]
+            spin_x0 = self.spins[x, (y - 1) % size_y]
+            spin_y1 = self.spins[(x + 1) % size_x, y]
+            spin_y0 = self.spins[(x - 1) % size_x, y]
+            energy -= coupling*disorder*spin_x1*spin_x0*spin_y1*spin_y0
+
+        return energy
 
     def delta_energy(self, site) -> float:
         energy = 0.0
