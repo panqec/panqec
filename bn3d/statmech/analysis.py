@@ -53,9 +53,13 @@ class SimpleAnalysis:
                 if k in ['hash', 'seed', 'tau']
             }
             for name, values in result['observables'].items():
-                entry[name] = values['total']/values['count']
-                entry[name + '_2'] = values['total_2']/values['count']
-                entry[name + '_4'] = values['total_4']/values['count']
+                if isinstance(values['total'], list):
+                    # TODO
+                    pass
+                else:
+                    entry[name] = values['total']/values['count']
+                    entry[name + '_2'] = values['total_2']/values['count']
+                    entry[name + '_4'] = values['total_4']/values['count']
             entry.update(result['sweep_stats'])
             entries.append(entry)
         results_df = pd.DataFrame(entries)
@@ -89,19 +93,22 @@ class SimpleAnalysis:
             labels += [name, f'{name}_2', f'{name}_4']
 
         for label in labels:
-            estimates = pd.concat([
-                estimates,
-                pd.DataFrame({
-                    f'{label}_estimate': df.groupby(
-                        self.independent_variables
-                    )[label].mean(),
-                    f'{label}_uncertainty': df.groupby(
-                        self.independent_variables
-                    )[label].std()/np.sqrt(
-                        df.groupby(self.independent_variables)[label].count()
-                    ),
-                })
-            ], axis=1)
+            if label in df.columns:
+                estimates = pd.concat([
+                    estimates,
+                    pd.DataFrame({
+                        f'{label}_estimate': df.groupby(
+                            self.independent_variables
+                        )[label].mean(),
+                        f'{label}_uncertainty': df.groupby(
+                            self.independent_variables
+                        )[label].std()/np.sqrt(
+                            df.groupby(
+                                self.independent_variables
+                            )[label].count()
+                        ),
+                    })
+                ], axis=1)
         estimates = pd.concat([
             estimates, pd.DataFrame({
                 'n_disorder': df.groupby(
