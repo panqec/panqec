@@ -1,0 +1,102 @@
+from typing import Dict, Any, Tuple, Optional
+import numpy as np
+from .model import SpinModel
+
+
+class LoopModel2D(SpinModel):
+    """Loop Model in 2D."""
+
+    label: str = ''
+    parameters: Dict[str, Any] = {}
+    spin_shape: Tuple[int, int] = (0, 0)
+    bond_shape: Tuple[int, int] = (0, 0)
+    disorder: np.ndarray = np.array([])
+    spins: np.ndarray = np.array([])
+    couplings: np.ndarray = np.array([])
+    rng: np.random.Generator = np.random.default_rng()
+    temperature: float = 1
+    moves_per_sweep: int = 1
+    observables: list = []
+
+    def __init__(self, L_x: int, L_y: int):
+        self.parameters = {
+            'L_x': L_x,
+            'L_y': L_y,
+        }
+        self.L_x = L_x
+        self.L_y = L_y
+
+        self.label = f'LoopModel2D {L_x}x{L_y}'
+        self.spin_shape = (2*L_x, 2*L_y)
+        self.bond_shape = (2*L_x, 2*L_y)
+
+        # Default spin config.
+        self.spins = np.zeros(self.spin_shape, dtype=int)
+        self.spins[::2, 1::2] = 1
+        self.spins[1::2, ::2] = 1
+
+        # Default disorder config.
+        self.disorder = np.zeros(self.bond_shape, dtype=int)
+        self.disorder[::2, ::2] = 1
+        self.disorder[::2, ::2] = 1
+
+        # Default couplings config.
+        self.couplings = np.zeros(self.bond_shape, dtype=float)
+        self.couplings[::2, ::2] = 1
+        self.couplings[::2, ::2] = 1
+
+        self.rng = np.random.default_rng()
+        self.temperature = 1.0
+        self.moves_per_sweep = self.n_spins
+        self.observables = []
+
+    def delta_energy(self, site) -> float:
+        return 0.0
+
+    @property
+    def n_bonds(self) -> int:
+        """Number of terms in the Hamiltonian whose sign can be flipped."""
+        return self.L_x*self.L_y
+
+    @property
+    def n_spins(self) -> int:
+        """Number of spins in the Hamiltonian."""
+        return 2*self.L_x*self.L_y
+
+    def init_spins(self, spins: Optional[np.ndarray] = None):
+        """Initialize the spins. Random if None given."""
+        if spins is not None:
+            self.spins = spins
+        else:
+            L_x = self.L_x
+            L_y = self.L_y
+            self.spins = np.zeros(self.spin_shape, dtype=int)
+            rand_spins_x = self.rng.integers(0, 2, size=(L_x, L_y))*2 - 1
+            rand_spins_y = self.rng.integers(0, 2, size=(L_x, L_y))*2 - 1
+
+            self.spins[::2, 1::2] = rand_spins_x
+            self.spins[1::2, ::2] = rand_spins_y
+
+    def init_disorder(self, disorder: Optional[np.ndarray] = None):
+        if disorder is not None:
+            self.disorder = disorder
+        else:
+            self.disorder = np.zeros(self.bond_shape, dtype=int)
+            self.disorder[::2, ::2] = 1
+
+    def random_move(self) -> Tuple[int, int]:
+        """Random edge to propose flipping."""
+        L_x = self.L_x
+        L_y = self.L_y
+        i = self.rng.integers(0, L_x)
+        j = self.rng.integers(0, L_y)
+        edge = self.rng.integers(0, 2)
+        if edge == 0:
+            x, y = 2*i, 2*j + 1
+        else:
+            x, y = 2*i + 1, 2*j
+        return x, y
+
+    def update(self, move):
+        """Update spins with move."""
+        self.spins[move] *= -1
