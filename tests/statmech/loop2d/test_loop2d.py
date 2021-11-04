@@ -45,9 +45,9 @@ class TestLoopModel2D:
         assert model.disorder.shape == (2*self.L_x, 2*self.L_y)
         assert model.disorder.shape == model.couplings.shape
 
-    @pytest.mark.xfail
     def test_energy_diff_all_up(self, model):
-        energy_diff = model.delta_energy((0, 0))
+        move = model.random_move()
+        energy_diff = model.delta_energy(move)
         assert energy_diff == 4
 
     def test_sample_changes_spins(self, model):

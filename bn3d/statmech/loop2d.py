@@ -51,7 +51,50 @@ class LoopModel2D(SpinModel):
         self.observables = []
 
     def delta_energy(self, site) -> float:
-        return 0.0
+        energy = 0.0
+        x, y = site
+
+        size_x, size_y = self.spin_shape
+
+        # Spin on edge normal to x
+        if (x % 2, y % 2) == (0, 1):
+            bond_v_1 = self.disorder[x, (y + 1) % size_y]
+            coupling_v_1 = self.couplings[x, (y + 1) % size_y]
+            spin_e_1x1 = self.spins[x, (y + 2) % size_y]
+            spin_e_1y1 = self.spins[(x + 1) % size_x, (y + 1) % size_y]
+            spin_e_1y0 = self.spins[(x - 1) % size_x, (y + 1) % size_y]
+
+            bond_v_0 = self.disorder[x, (y - 1) % size_y]
+            coupling_v_0 = self.couplings[x, (y - 1) % size_y]
+            spin_e_0x0 = self.spins[x, (y - 2) % size_y]
+            spin_e_0y1 = self.spins[(x + 1) % size_x, (y - 1) % size_y]
+            spin_e_0y0 = self.spins[(x - 1) % size_x, (y - 1) % size_y]
+
+            energy = 2*self.spins[x, y]*(
+                coupling_v_1*bond_v_1*spin_e_1x1*spin_e_1y0*spin_e_1y1
+                + coupling_v_0*bond_v_0*spin_e_0x0*spin_e_0y0*spin_e_0y1
+            )
+
+        # Spin on edge normal to y
+        else:
+            bond_v_1 = self.disorder[(x + 1) % size_x, y]
+            coupling_v_1 = self.couplings[(x + 1) % size_x, y]
+            spin_e_1x1 = self.spins[(x + 1) % size_x, (y + 1) % size_y]
+            spin_e_1x0 = self.spins[(x + 1) % size_x, (y - 1) % size_y]
+            spin_e_1y1 = self.spins[(x + 2) % size_x, y]
+
+            bond_v_0 = self.disorder[(x - 1) % size_x, y]
+            coupling_v_0 = self.couplings[(x - 1) % size_x, y]
+            spin_e_0x1 = self.spins[(x - 1) % size_x, (y + 1) % size_y]
+            spin_e_0x0 = self.spins[(x - 1) % size_x, (y - 1) % size_y]
+            spin_e_0y0 = self.spins[(x - 2) % size_x, y]
+
+            energy = 2*self.spins[x, y]*(
+                coupling_v_1*bond_v_1*spin_e_1x1*spin_e_1x0*spin_e_1y1
+                + coupling_v_0*bond_v_0*spin_e_0x1*spin_e_0x0*spin_e_0y0
+            )
+
+        return energy
 
     @property
     def n_bonds(self) -> int:
