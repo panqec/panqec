@@ -81,6 +81,8 @@ class TestRBIM2DNoDisorder:
 
 
 class TestRbim2DIidDisorder:
+    L_x = 5
+    L_y = 6
 
     def test_disorder_reproducible_seed(self):
         seed = 0
@@ -103,3 +105,28 @@ class TestRbim2DIidDisorder:
 
         # Make sure they're the same.
         assert np.all(disorder_1 == disorder_2)
+
+    def test_delta_energy_agrees_with_delta_energy_disordered(self):
+        seed = 0
+        spin_model_params = {'L_x': self.L_x, 'L_y': self.L_y}
+        disorder_params = {'p': 0.4}
+
+        rng = np.random.default_rng(seed)
+        disorder_model = Rbim2DIidDisorder(rng)
+
+        disorder_model = Rbim2DIidDisorder(rng)
+        disorder = disorder_model.generate(
+            spin_model_params, disorder_params
+        )
+
+        model = RandomBondIsingModel2D(self.L_x, self.L_y)
+        model.rng = rng
+        model.init_spins()
+        model.init_disorder(disorder)
+
+        initial_energy = model.total_energy()
+        move = model.random_move()
+        delta_energy = model.delta_energy(move)
+        model.update(move)
+        final_energy = model.total_energy()
+        assert delta_energy == final_energy - initial_energy
