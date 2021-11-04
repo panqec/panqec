@@ -3,14 +3,7 @@ import json
 import pytest
 import numpy as np
 from bn3d.statmech.rbim2d import RandomBondIsingModel2D, Rbim2DIidDisorder
-
-
-def assert_flip_energies_consistent(model, move, message=''):
-    initial_energy = model.total_energy()
-    delta_energy = model.delta_energy(move)
-    model.update(move)
-    final_energy = model.total_energy()
-    assert delta_energy == final_energy - initial_energy, message
+from tests.statmech.utils import assert_flip_energies_consistent
 
 
 class TestRBIM2DEnergy:
