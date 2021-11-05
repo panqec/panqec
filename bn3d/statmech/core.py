@@ -7,7 +7,7 @@ from itertools import product
 from pprint import pprint
 import numpy as np
 import psutil
-from .controllers import DataManager, SimpleController, DumbController
+from .controllers import DataManager, SimpleController
 from .config import DISORDER_MODELS
 from ..utils import hash_json
 

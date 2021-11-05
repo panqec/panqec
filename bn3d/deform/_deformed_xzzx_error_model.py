@@ -15,7 +15,9 @@ class DeformedXZZXErrorModel(PauliErrorModel):
 
     @property
     def label(self) -> str:
-        return 'Deformed XZZX Pauli X{:.4f}Y{:.4f}Z{:.4f}'.format(*self.direction)
+        return 'Deformed XZZX Pauli X{:.4f}Y{:.4f}Z{:.4f}'.format(
+            *self.direction
+        )
 
     @functools.lru_cache()
     def probability_distribution(
