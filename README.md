@@ -316,18 +316,18 @@ Then create a file called `targets.json` with the following contents
     {
       "spin_model": "RandomBondIsingModel2D",
       "spin_model_params": [
-        {"L_x": 10, "L_y": 10},
-        {"L_x": 12, "L_y": 12},
-        {"L_x": 16, "L_y": 16}
+        {"L_x": 6, "L_y": 6},
+        {"L_x": 8, "L_y": 8},
+        {"L_x": 10, "L_y": 10}
       ],
       "disorder_model": "Rbim2DIidDisorder",
       "disorder_params": [
         {"p": 0.02}
       ],
       "temperature": [
-        1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4
+        1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8
       ],
-      "max_tau": 10,
+      "max_tau": 11,
       "n_disorder": 10
     }
   ]
