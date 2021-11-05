@@ -1,7 +1,7 @@
 from typing import Dict, Any, Tuple, Optional, Iterator
 from itertools import product
 import numpy as np
-from .model import SpinModel
+from .model import SpinModel, DisorderModel
 
 
 class LoopModel2D(SpinModel):
@@ -39,11 +39,9 @@ class LoopModel2D(SpinModel):
         # Default disorder config.
         self.disorder = np.zeros(self.bond_shape, dtype=int)
         self.disorder[::2, ::2] = 1
-        self.disorder[::2, ::2] = 1
 
         # Default couplings config.
         self.couplings = np.zeros(self.bond_shape, dtype=float)
-        self.couplings[::2, ::2] = 1
         self.couplings[::2, ::2] = 1
 
         self.rng = np.random.default_rng()
@@ -174,3 +172,19 @@ class LoopModel2D(SpinModel):
     def update(self, move):
         """Update spins with move."""
         self.spins[move] *= -1
+
+
+class LoopModel2DIidDisorder(DisorderModel):
+
+    def generate(self, model_params, disorder_params):
+        L_x = model_params['L_x']
+        L_y = model_params['L_y']
+        p = disorder_params['p']
+
+        model = LoopModel2D(L_x, L_y)
+        signs = np.ones(model.n_bonds, dtype=int)
+        signs[self.rng.random(model.n_bonds) < p] = -1
+        model.disorder[::2, ::2] = signs.reshape((L_x, L_y))
+
+        disorder = model.disorder.copy()
+        return disorder
