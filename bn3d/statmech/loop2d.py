@@ -2,6 +2,7 @@ from typing import Dict, Any, Tuple, Optional, Iterator
 from itertools import product
 import numpy as np
 from .model import SpinModel, DisorderModel
+from .observables import Magnetization, Susceptibility0
 
 
 class LoopModel2D(SpinModel):
@@ -47,7 +48,10 @@ class LoopModel2D(SpinModel):
         self.rng = np.random.default_rng()
         self.temperature = 1.0
         self.moves_per_sweep = self.n_spins
-        self.observables = []
+        self.observables = [
+            Magnetization(),
+            Susceptibility0(),
+        ]
 
     @property
     def spin_index(self) -> Iterator[Tuple[int, int]]:
