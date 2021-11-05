@@ -167,7 +167,7 @@ class SimpleAnalysis:
         estimates['Binder_uncertainty'] = uncertainty
 
     def estimate_correlation_length(self, n_resamp: int = 10):
-        """Estimate the correlation length."""
+        """Estimate the correlation length and ratio."""
 
         estimates = self.estimates
         k_min = 2*np.pi/estimates[['L_x', 'L_y']].max(axis=1)
@@ -223,6 +223,15 @@ class SimpleAnalysis:
             uncertainty[i_row] = resampled_correlation_lengths.std()
 
         estimates['CorrelationLength_uncertainty'] = uncertainty
+
+        # Calculate the correlation ratio xi/L by dividing by size.
+        L_max = estimates[['L_x', 'L_y']].max(axis=1)
+        estimates['CorrelationRatio_estimate'] = (
+            estimates['CorrelationLength_estimate']/L_max
+        )
+        estimates['CorrelationRatio_uncertainty'] = (
+            estimates['CorrelationLength_uncertainty']/L_max
+        )
 
     def calculate_run_time_stats(self):
         """Calculate run time stats."""
