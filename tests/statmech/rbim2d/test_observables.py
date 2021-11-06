@@ -41,7 +41,6 @@ class TestObservables:
             wl = WilsonLoop2D(model[i])
             value_array.append(wl.evaluate(model[i]))
 
-        print(value_array[1])
         assert np.all(value_array[0] == np.array([-1, 1, 1]))
         assert np.all(value_array[1] == np.array([-1, 1, 1, 1]))
         assert np.all(value_array[2] == np.array([1]))
