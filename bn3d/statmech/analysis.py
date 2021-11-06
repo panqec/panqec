@@ -54,12 +54,13 @@ class SimpleAnalysis:
             }
             for name, values in result['observables'].items():
                 if isinstance(values['total'], list):
-                    # TODO
-                    pass
-                else:
-                    entry[name] = values['total']/values['count']
-                    entry[name + '_2'] = values['total_2']/values['count']
-                    entry[name + '_4'] = values['total_4']/values['count']
+                    values['total'] = np.array(values['total'])
+                    values['total_2'] = np.array(values['total_2'])
+                    values['total_4'] = np.array(values['total_4'])
+
+                entry[name] = values['total'] / values['count']
+                entry[name + '_2'] = values['total_2'] / values['count']
+                entry[name + '_4'] = values['total_4'] / values['count']
             entry.update(result['sweep_stats'])
             entries.append(entry)
         results_df = pd.DataFrame(entries)
@@ -99,10 +100,10 @@ class SimpleAnalysis:
                     pd.DataFrame({
                         f'{label}_estimate': df.groupby(
                             self.independent_variables
-                        )[label].mean(),
+                        )[label].apply(np.mean),
                         f'{label}_uncertainty': df.groupby(
                             self.independent_variables
-                        )[label].std()/np.sqrt(
+                        )[label].apply(lambda x: np.std(np.vstack(x.to_numpy()), axis=0)) / np.sqrt(
                             df.groupby(
                                 self.independent_variables
                             )[label].count()
