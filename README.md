@@ -336,7 +336,7 @@ Then create a file called `targets.json` with the following contents
 
 This file specifies the inputs for this run.
 Here, `max_tau=10` means each MCMC run will sample for `2^10` sweeps,
-and `n_disorder=10` means 100 disorders will be generated and saved
+and `n_disorder=10` means 10 disorders will be generated and saved
 into `temp/statmech/test_7`.
 
 To generate some inputs, run
