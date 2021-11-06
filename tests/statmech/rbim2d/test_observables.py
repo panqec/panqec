@@ -20,10 +20,10 @@ class TestObservables:
         model1 = RandomBondIsingModel2D(5, 6)
 
         model1.init_spins(np.array([[-1,  1, -1,  1,  1,  1],
-                                    [ 1, -1,  1,  1,  1,  1],
+                                    [ 1, -1,  1,  1,  1,  1],  # noqa
                                     [-1,  1, -1,  1,  1,  1],
-                                    [ 1,  1,  1,  1,  1,  1],
-                                    [ 1,  1,  1,  1,  1,  1]]))
+                                    [ 1,  1,  1,  1,  1,  1],  # noqa
+                                    [ 1,  1,  1,  1,  1,  1]]))  # noqa
         wl = WilsonLoop2D(model1)
         value_array = wl.evaluate(model1)
 

@@ -1,7 +1,7 @@
 import json
 import pytest
 import numpy as np
-from bn3d.statmech.loop2d import LoopModel2D
+from bn3d.statmech.loop2d import LoopModel2D, LoopModel2DIidDisorder
 from tests.statmech.utils import assert_flip_energies_consistent
 
 
@@ -107,3 +107,56 @@ class TestLoopModel2D:
         assert old_stats['total'] == new_stats['total']
         assert old_stats['acceptance'] == new_stats['acceptance']
         assert np.all(model.spins == new_model.spins)
+
+
+class TestLoopModel2DIidDisorder:
+    L_x = 5
+    L_y = 6
+
+    def test_disorder_reproducible_seed(self):
+        seed = 0
+        spin_model_params = {'L_x': 5, 'L_y': 6}
+        disorder_params = {'p': 0.4}
+
+        # Generate some disorder configuration using the seed.
+        rng = np.random.default_rng(seed)
+        disorder_model = LoopModel2DIidDisorder(rng)
+        disorder_1 = disorder_model.generate(
+            spin_model_params, disorder_params
+        )
+
+        # Do it again.
+        rng = np.random.default_rng(seed)
+        disorder_model = LoopModel2DIidDisorder(rng)
+        disorder_2 = disorder_model.generate(
+            spin_model_params, disorder_params
+        )
+
+        # Make sure they're the same.
+        assert np.all(disorder_1 == disorder_2)
+
+    def test_delta_energy_agrees_with_delta_energy_disordered(self):
+        seed = 0
+        spin_model_params = {'L_x': self.L_x, 'L_y': self.L_y}
+        disorder_params = {'p': 0.4}
+
+        rng = np.random.default_rng(seed)
+        disorder_model = LoopModel2DIidDisorder(rng)
+
+        disorder_model = LoopModel2DIidDisorder(rng)
+        disorder = disorder_model.generate(
+            spin_model_params, disorder_params
+        )
+
+        model = LoopModel2D(self.L_x, self.L_y)
+        model.rng = rng
+        model.init_spins()
+        model.init_disorder(disorder)
+
+        for i_move in range(100):
+            initial_energy = model.total_energy()
+            move = model.random_move()
+            delta_energy = model.delta_energy(move)
+            model.update(move)
+            final_energy = model.total_energy()
+            assert delta_energy == final_energy - initial_energy

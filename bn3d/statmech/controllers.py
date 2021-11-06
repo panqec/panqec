@@ -214,9 +214,13 @@ class SimpleController:
         """Instantiate model given input dict."""
         spin_model_class = SPIN_MODELS[entry['spin_model']]
         if isinstance(entry['spin_model_params'], dict):
-            model = spin_model_class(**entry['spin_model_params'])
+            model = spin_model_class(
+                **entry['spin_model_params']
+            )  # type:ignore
         else:
-            model = spin_model_class(*entry['spin_model_params'])
+            model = spin_model_class(
+                *entry['spin_model_params']
+            )  # type:ignore
         model.init_disorder(np.array(entry['disorder']))
         model.temperature = entry['temperature']
         return model
