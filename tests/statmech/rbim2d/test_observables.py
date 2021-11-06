@@ -17,15 +17,33 @@ class TestObservables:
         return model
 
     def test_wilson_loops(self):
-        model1 = RandomBondIsingModel2D(5, 6)
+        model = np.empty((5,), dtype="O")
+        model[0] = RandomBondIsingModel2D(5, 6)
+        model[1] = RandomBondIsingModel2D(8, 8)
+        model[2] = RandomBondIsingModel2D(1, 1)
+        model[3] = RandomBondIsingModel2D(1, 1)
+        model[4] = RandomBondIsingModel2D(2, 2)
 
-        model1.init_spins(np.array([[-1,  1, -1,  1,  1,  1],
-                                    [ 1, -1,  1,  1,  1,  1],  # noqa
-                                    [-1,  1, -1,  1,  1,  1],
-                                    [ 1,  1,  1,  1,  1,  1],  # noqa
-                                    [ 1,  1,  1,  1,  1,  1]]))  # noqa
-        wl = WilsonLoop2D(model1)
-        value_array = wl.evaluate(model1)
+        model[0].init_spins(np.array([[-1,  1, -1,  1,  1,  1],
+                                      [ 1, -1,  1,  1,  1,  1],  # noqa
+                                      [-1,  1, -1,  1,  1,  1],
+                                      [ 1,  1,  1,  1,  1,  1],  # noqa
+                                      [ 1,  1,  1,  1,  1,  1]]))  # noqa
 
-        assert value_array.shape == (3,)
-        assert np.all(value_array == np.array([-1, 1, -1]))
+        model[1].init_spins(-np.ones((8, 8)))
+        model[2].init_spins(np.array([[1]]))
+        model[3].init_spins(np.array([[-1]]))
+        model[4].init_spins(np.array([[-1, 1],
+                                      [ 1, -1]]))  # noqa
+
+        value_array = []
+        for i in range(len(model)):
+            wl = WilsonLoop2D(model[i])
+            value_array.append(wl.evaluate(model[i]))
+
+        print(value_array[1])
+        assert np.all(value_array[0] == np.array([-1, 1, 1]))
+        assert np.all(value_array[1] == np.array([-1, 1, 1, 1]))
+        assert np.all(value_array[2] == np.array([1]))
+        assert np.all(value_array[3] == np.array([-1]))
+        assert np.all(value_array[4] == np.array([-1]))

@@ -1,7 +1,6 @@
 from typing import Tuple, Optional, Dict, Any
 from itertools import product
 from .model import SpinModel, ScalarObservable, DisorderModel, VectorObservable
-from .observables import Magnetization, Susceptibility0
 import numpy as np
 
 
@@ -126,7 +125,7 @@ class WilsonLoop2D(VectorObservable):
 
     def __init__(self, spin_model):
         L = min(spin_model.spin_shape)
-        self.n_wilson_loops = L // 2 + 1
+        self.n_wilson_loops = int(np.ceil(L / 2))
 
         self.reset()
 
@@ -139,8 +138,34 @@ class WilsonLoop2D(VectorObservable):
         spins = spin_model.spins
 
         for i in range(self.n_wilson_loops):
-            value[i] = value[i-1]*np.prod(spins[i, :i+1])*np.prod(spins[:i, i])
+            bottom_row = np.prod(spins[0, :i+1])
+            top_row = np.prod(spins[i, :i+1]) if i > 0 else 1
+            left_col = np.prod(spins[1:i, 0]) if i >= 2 else 1
+            right_col = np.prod(spins[1:i, i]) if i >= 2 else 1
+            value[i] = left_col * right_col * top_row * bottom_row
 
+        return value
+
+
+class Magnetization(ScalarObservable):
+    label: str = 'Magnetization'
+
+    def __init__(self):
+        self.reset()
+
+    def evaluate(self, spin_model) -> float:
+        value = float(np.mean(spin_model.spins))
+        return value
+
+
+class Susceptibility0(ScalarObservable):
+    label: str = 'Susceptibility0'
+
+    def __init__(self):
+        self.reset()
+
+    def evaluate(self, spin_model) -> float:
+        value = float(np.abs(np.sum(spin_model.spins))**2/spin_model.n_spins)
         return value
 
 
