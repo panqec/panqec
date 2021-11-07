@@ -388,3 +388,39 @@ from which you should hopefully see phase transitions!
 Of course, that was rather noisy data with only 10 disorders.
 You may want to increase the `n_disorder` to 100 or 1000 to get meaningful
 plots.
+
+# Running 2D Repetition Code Stat Mech
+Use the following `temp/statmech/test_8/targets.json` file.
+```
+{
+  "comments": "2D Repetition Code Stat Mech.",
+  "ranges": [
+    {
+      "spin_model": "LoopModel2D",
+      "spin_model_params": [
+        {"L_x": 6, "L_y": 6},
+        {"L_x": 8, "L_y": 8},
+        {"L_x": 10, "L_y": 10}
+      ],
+      "disorder_model": "LoopModel2DIidDisorder",
+      "disorder_params": [
+        {"p": 0.10}
+      ],
+      "temperature": [
+        1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8
+      ],
+      "max_tau": 11,
+      "n_disorder": 10
+    }
+  ]
+}
+```
+
+Then run the following commands to generate,
+sample and analyse.
+
+```
+bn3d statmech generate temp/statmech/test_8
+bn3d statmech sample-parallel temp/statmech/test_8
+bn3d statmech analyse temp/statmech/test_8
+```

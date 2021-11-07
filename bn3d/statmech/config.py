@@ -1,4 +1,4 @@
-from .loop2d import LoopModel2D
+from .loop2d import LoopModel2D, LoopModel2DIidDisorder
 from .rbim2d import RandomBondIsingModel2D, Rbim2DIidDisorder
 
 
@@ -8,5 +8,6 @@ SPIN_MODELS = {
     'LoopModel2D': LoopModel2D,
 }
 DISORDER_MODELS = {
-    'Rbim2DIidDisorder': Rbim2DIidDisorder
+    'Rbim2DIidDisorder': Rbim2DIidDisorder,
+    'LoopModel2DIidDisorder': LoopModel2DIidDisorder,
 }
