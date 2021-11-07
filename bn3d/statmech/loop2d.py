@@ -2,7 +2,7 @@ from typing import Dict, Any, Tuple, Optional, Iterator
 from itertools import product
 import numpy as np
 from .model import SpinModel, DisorderModel
-from .observables import Magnetization, Susceptibility0
+from .observables import Magnetization, Susceptibility0, Susceptibilitykmin
 
 
 class LoopModel2D(SpinModel):
@@ -51,6 +51,7 @@ class LoopModel2D(SpinModel):
         self.observables = [
             Magnetization(),
             Susceptibility0(),
+            Susceptibilitykmin(),
         ]
 
     @property
