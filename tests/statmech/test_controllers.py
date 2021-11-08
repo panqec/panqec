@@ -68,7 +68,7 @@ class TestDataManager:
             'seed': 0,
             'tau': 5,
         })
-        assert name == 'results_tau5_0123456789abcdef_seed0.json'
+        assert name == 'results_tau5_0123456789abcdef_seed0.gz'
 
     def test_get_name_inputs(self, data_manager):
         name = data_manager.get_name('inputs', {
@@ -80,7 +80,7 @@ class TestDataManager:
             'spin_model_params': {'L_x': 12, 'L_y': 12},
             'temperature': 1.23,
         })
-        assert name == 'input_0123456789abcdef.json'
+        assert name == 'input_0123456789abcdef.gz'
 
     def test_load_results(self, data_manager):
         results = data_manager.load('results', {
