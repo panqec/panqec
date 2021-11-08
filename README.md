@@ -424,3 +424,4 @@ bn3d statmech generate temp/statmech/test_8
 bn3d statmech sample-parallel temp/statmech/test_8
 bn3d statmech analyse temp/statmech/test_8
 ```
+The sampling takes about 10 minutes to run on a laptop with 8 cores.
