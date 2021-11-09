@@ -110,7 +110,8 @@ def sample(input_json):
 @click.command()
 @click.argument('data_dir', required=True)
 @click.option('--n_jobs', default=1, type=click.INT, show_default=True)
-def sample_parallel(data_dir, n_jobs):
+@click.option('-m', '--monitor', default=False, is_flag=True, show_default=True)
+def sample_parallel(data_dir, n_jobs, monitor):
     """Perform MCMC runs in parallel."""
 
     # If running as array job slurm, determine what the task ID is.
@@ -127,13 +128,15 @@ def sample_parallel(data_dir, n_jobs):
 
     print(f'Sampling over {n_cpu} CPUs for array job {i_job} out of {n_jobs}')
     pool = Pool(processes=n_cpu + 1)
-    monitor_result = pool.starmap_async(
-        monitor_usage, [(data_dir, i_job, n_jobs, 10)]
-    )
+    if monitor:
+        monitor_result = pool.starmap_async(
+            monitor_usage, [(data_dir, i_job, n_jobs, 10)]
+        )
     sampler_result = pool.starmap_async(start_sampling, arguments)
     pool.close()
 
-    monitor_result.get()
+    if monitor:
+        monitor_result.get()
     sampler_result.get()
 
 
