@@ -1,7 +1,7 @@
 from typing import Dict, Any, Tuple, Optional, Iterator
 from itertools import product
 import numpy as np
-from .model import SpinModel, DisorderModel
+from .model import SpinModel, DisorderModel, VectorObservable
 from .observables import Magnetization, Susceptibility0
 
 
@@ -51,6 +51,7 @@ class LoopModel2D(SpinModel):
         self.observables = [
             Magnetization(),
             Susceptibility0(),
+            WilsonLoop2D(self)
         ]
 
     @property
@@ -176,6 +177,33 @@ class LoopModel2D(SpinModel):
     def update(self, move):
         """Update spins with move."""
         self.spins[move] *= -1
+
+
+class WilsonLoop2D(VectorObservable):
+    label: str = 'Wilson Loop'
+
+    def __init__(self, spin_model):
+        L = min(spin_model.spin_shape)
+        self.n_wilson_loops = int(np.ceil(L / 2))
+
+        self.reset()
+
+    @property
+    def size(self):
+        return self.n_wilson_loops
+
+    def evaluate(self, spin_model) -> np.ndarray:
+        value = np.ones(self.n_wilson_loops)
+        spins = spin_model.spins
+
+        for i in range(self.n_wilson_loops):
+            bottom_row = np.prod(spins[2:2*i+3:2, 1])
+            top_row = np.prod(spins[2:2*(i+1)+1:2, 2*i+3])
+            left_col = np.prod(spins[1, 2:2*i+3:2])
+            right_col = np.prod(spins[2*i+3, 2:2*i+3:2])
+            value[i] = left_col * right_col * top_row * bottom_row
+
+        return value
 
 
 class LoopModel2DIidDisorder(DisorderModel):
