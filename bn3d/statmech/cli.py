@@ -1,5 +1,6 @@
 import os
 import json
+from shutil import copyfile
 from glob import glob
 from multiprocessing import Pool, cpu_count
 import click
@@ -142,8 +143,17 @@ def sample_parallel(data_dir, n_jobs, monitor):
 
 @click.command()
 @click.argument('data_dir', required=True)
-def generate(data_dir):
+@click.option(
+    '-t', '--targets', default=None, type=click.Path(exists=True),
+    show_default=True,
+    help='targets.json file, will look for targets.json if None exists'
+)
+def generate(data_dir, targets):
     """Generate inputs for MCMC."""
+    os.makedirs(data_dir, exist_ok=True)
+    targets_json = os.path.join(data_dir, 'targets.json')
+    if targets is not None:
+        copyfile(targets, targets_json)
     generate_inputs(data_dir)
 
 

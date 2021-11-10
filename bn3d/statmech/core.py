@@ -29,7 +29,7 @@ def generate_input_entries(
         for spin_model_params, disorder_params in iterates:
             for i_disorder in range(spec['n_disorder']):
                 rng = np.random.default_rng(seed=i_disorder)
-                disorder_model = disorder_model_class(rng=rng)
+                disorder_model = disorder_model_class(rng=rng)  # type:ignore
                 disorder = disorder_model.generate(
                     spin_model_params, disorder_params
                 )
@@ -50,7 +50,7 @@ def generate_input_entries(
 
 
 def generate_inputs(data_dir: str):
-    """Generate inputs using the targets.json file."""
+    """Generate inputs using the targets.json file in given directory."""
     targets_json = os.path.join(data_dir, 'targets.json')
     with open(targets_json) as f:
         targets = json.load(f)

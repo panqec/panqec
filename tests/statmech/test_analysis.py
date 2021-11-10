@@ -1,6 +1,9 @@
 import os
 import shutil
 import pytest
+import gzip
+import json
+from glob import glob
 from bn3d.statmech.analysis import SimpleAnalysis
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -11,6 +14,22 @@ SAMPLE_DIR = os.path.join(BASE_DIR, 'sample_results')
 def analysis(tmpdir):
     data_dir = os.path.join(tmpdir, 'sample_results')
     shutil.copytree(SAMPLE_DIR, data_dir)
+    subdirs = ['inputs', 'models', 'results', 'runs']
+
+    for subdir in subdirs:
+        assert os.path.isdir(os.path.join(data_dir, subdir))
+        file_list = glob(os.path.join(data_dir, subdir, '*.json'))
+        for json_path in file_list:
+            gzip_path = os.path.splitext(json_path)[0] + '.gz'
+            with open(json_path) as f:
+                entry = json.load(f)
+            with gzip.open(gzip_path, 'w') as f:
+                f.write(
+                    json.dumps(entry, sort_keys=True, indent=2)
+                    .encode('utf-8')
+                )
+            os.remove(json_path)
+
     assert os.path.isdir(data_dir)
     an = SimpleAnalysis(data_dir)
     return an

@@ -12,6 +12,7 @@ import datetime
 import time
 import uuid
 import json
+import gzip
 from json.decoder import JSONDecodeError
 from glob import glob
 import numpy as np
@@ -31,7 +32,8 @@ class DataManager:
     work with the clusters.
     """
 
-    UNTITLED: str = 'Untitled.json'
+    UNTITLED: str = 'Untitled.gz'
+    EXT: str = 'gz'
     data_dir: str = ''
     subdirs: Dict[str, str] = {}
 
@@ -61,8 +63,8 @@ class DataManager:
         data_list: List[dict] = []
         for file_name in file_paths:
             try:
-                with open(file_name) as f:
-                    entry = json.load(f)
+                with gzip.open(file_name, 'r') as f:
+                    entry = json.loads(f.read().decode('utf-8'))
                     data_list.append(entry)
             except JSONDecodeError:
                 try:
@@ -81,30 +83,31 @@ class DataManager:
         """Unified enforcement of data file naming standard."""
         name = self.UNTITLED
         if subdir == 'inputs':
-            name = 'input_{}.json'.format(data['hash'])
+            name = 'input_{}.{}'.format(data['hash'], self.EXT)
         elif subdir == 'results':
-            name = 'results_tau{}_{}_seed{}.json'.format(
-                data['tau'], data['hash'], data['seed']
+            name = 'results_tau{}_{}_seed{}.{}'.format(
+                data['tau'], data['hash'], data['seed'], self.EXT
             )
         elif subdir == 'models':
-            name = 'model_{}.json'.format(data['hash'])
+            name = 'model_{}.{}'.format(data['hash'], self.EXT)
         elif subdir == 'runs':
-            name = 'results_tau{}_{}_seed{}.json'.format(
-                data['tau'], data['hash'], data['seed']
+            name = 'results_tau{}_{}_seed{}.{}'.format(
+                data['tau'], data['hash'], data['seed'], self.EXT
             )
         return name
 
     def get_params(self, subdir: str, name: str) -> Dict[str, Any]:
         params: Dict[str, Any] = {}
+        re_ext = re.escape(self.EXT)
         if subdir == 'inputs':
-            match = re.search(r'input_([0-9a-f]+).json', name)
+            match = re.search(r'input_([0-9a-f]+).' + re_ext, name)
             if match:
                 params = {
                     'hash': str(match.group(1)),
                 }
         elif subdir == 'results':
             match = re.search(
-                r'results_tau(\d+)_([0-9a-f]+)_seed(\d+).json', name
+                r'results_tau(\d+)_([0-9a-f]+)_seed(\d+).' + re_ext, name
             )
             if match:
                 params = {
@@ -113,13 +116,16 @@ class DataManager:
                     'seed': int(match.group(3)),
                 }
         elif subdir == 'models':
-            match = re.search(r'model_([0-9a-f]+).json', name)
+            match = re.search(r'model_([0-9a-f]+).' + re_ext, name)
             if match:
                 params = {
                     'hash': str(match.group(1)),
                 }
         elif subdir == 'runs':
-            match = re.search(r'run_tau(\d+)_([0-9a-f]+)_seed(\d+).json', name)
+            match = re.search(
+                r'run_tau(\d+)_([0-9a-f]+)_seed(\d+).' + re_ext,
+                name
+            )
             if match:
                 params = {
                     'tau': int(match.group(1)),
@@ -151,8 +157,11 @@ class DataManager:
 
             # Use the file path per naming convention.
             file_path = self.get_path(subdir, entry)
-            with open(file_path, 'w') as f:
-                json.dump(entry, f, sort_keys=True, indent=2)
+            with gzip.open(file_path, 'w') as f:
+                f.write(
+                    json.dumps(entry, sort_keys=True, indent=2)
+                    .encode('utf-8')
+                )
 
     def filter_files(self, subdir: str, filters: Dict[str, Any]) -> List[str]:
         """Get list of file paths matching filter criterion."""
@@ -172,7 +181,9 @@ class DataManager:
 
         # Otherwise go looking through the entire subdirectory.
         else:
-            file_paths = glob(os.path.join(self.subdirs[subdir], '*.json'))
+            file_paths = glob(os.path.join(
+                self.subdirs[subdir], '*.' + self.EXT
+            ))
             filtered_paths = []
             for file_path in file_paths:
                 matches_filter = True
