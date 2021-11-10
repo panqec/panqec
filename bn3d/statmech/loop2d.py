@@ -185,9 +185,9 @@ class WilsonLoop2D(VectorObservable):
     label: str = 'Wilson Loop'
 
     def __init__(self, spin_model):
-        L = min(spin_model.spin_shape)
-        self.n_wilson_loops = int(np.ceil(L / 2))
-
+        L = min(spin_model.spins.shape)
+        eps = 1e-6  # useful to round .5 to 1
+        self.n_wilson_loops = int(np.round(L / 4 + eps))
         self.reset()
 
     @property
@@ -198,9 +198,11 @@ class WilsonLoop2D(VectorObservable):
         value = np.ones(self.n_wilson_loops)
         spins = spin_model.spins
 
+        print("Shape", spins.shape) 
         for i in range(self.n_wilson_loops):
+            print(f"{i}/{self.n_wilson_loops}")
             bottom_row = np.prod(spins[2:2*i+3:2, 1])
-            top_row = np.prod(spins[2:2*(i+1)+1:2, 2*i+3])
+            top_row = np.prod(spins[2:2*i+3:2, 2*i+3])
             left_col = np.prod(spins[1, 2:2*i+3:2])
             right_col = np.prod(spins[2*i+3, 2:2*i+3:2])
             value[i] = left_col * right_col * top_row * bottom_row
