@@ -198,9 +198,7 @@ class WilsonLoop2D(VectorObservable):
         value = np.ones(self.n_wilson_loops)
         spins = spin_model.spins
 
-        print("Shape", spins.shape) 
         for i in range(self.n_wilson_loops):
-            print(f"{i}/{self.n_wilson_loops}")
             bottom_row = np.prod(spins[2:2*i+3:2, 1])
             top_row = np.prod(spins[2:2*i+3:2, 2*i+3])
             left_col = np.prod(spins[1, 2:2*i+3:2])
