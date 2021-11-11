@@ -15,6 +15,7 @@ def analysis(tmpdir):
     data_dir = os.path.join(tmpdir, 'sample_results')
     shutil.copytree(SAMPLE_DIR, data_dir)
     subdirs = ['inputs', 'models', 'results', 'runs']
+    os.makedirs(os.path.join(data_dir, 'runs'), exist_ok=True)
 
     for subdir in subdirs:
         assert os.path.isdir(os.path.join(data_dir, subdir))
