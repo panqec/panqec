@@ -6,10 +6,26 @@ Classes for analysis of data produced by MCMC.
 """
 import os
 import json
-from typing import List
+from typing import List, Callable
 import numpy as np
 import pandas as pd
 from .controllers import DataManager
+
+
+def heat_capacity(energy, energy_2, temperature):
+    r"""Heat capacity.
+
+    Using
+    $C = \frac{\langle E^2\rangle - \langle E\rangle^2}{k_B T^2}$
+    """
+    return (energy_2 - energy**2)/temperature**2
+
+
+def count_spins(row):
+    if row['spin_model'] == 'LoopModel2D':
+        return str(2*row['L_x']*row['L_y'])
+    else:
+        return row['L_x']*row['L_y']
 
 
 class SimpleAnalysis:
@@ -36,6 +52,8 @@ class SimpleAnalysis:
         self.combine_results()
         print('Estimating observables')
         self.estimate_observables()
+        print('Estimating heat capacity')
+        self.estimate_heat_capacity()
         print('Estimating correlation length')
         self.estimate_correlation_length()
         print('Estimating Binder cumulant')
@@ -79,8 +97,9 @@ class SimpleAnalysis:
             ], axis=1)
 
         self.independent_variables = list(
-            inputs_df.columns.drop(['disorder_model', 'hash', 'spin_model'])
+            inputs_df.columns.drop(['hash'])
         ) + ['tau']
+
         self.inputs_df = inputs_df
 
     def estimate_observables(self):
@@ -103,7 +122,9 @@ class SimpleAnalysis:
                         )[label].apply(np.mean),
                         f'{label}_uncertainty': df.groupby(
                             self.independent_variables
-                        )[label].apply(lambda x: np.std(np.vstack(x.to_numpy()), axis=0)) / np.sqrt(
+                        )[label].apply(
+                            lambda x: np.std(np.vstack(x.to_numpy()), axis=0)
+                        ) / np.sqrt(
                             df.groupby(
                                 self.independent_variables
                             )[label].count()
@@ -118,6 +139,74 @@ class SimpleAnalysis:
             })
         ], axis=1)
         self.estimates = estimates.reset_index()
+
+        self.estimates['n_spins'] = self.estimates.apply(count_spins, axis=1)
+
+    def bootstrap_uncertainty(
+        self, function: Callable, columns: List[str], n_resamp: int = 10
+    ):
+        """Calculate uncertainty by bootstrap resampling."""
+        estimates = self.estimates
+
+        # Calculate uncertainty by bootstrapping.
+        uncertainty = np.zeros(estimates.shape[0])
+
+        # Generator for bootstrapping.
+        bs_rng = np.random.default_rng(0)
+
+        for i_row, row in self.estimates.iterrows():
+            parameters = row[self.independent_variables].drop('tau')
+
+            # Hashes for disorder configurations matching row parameters.
+            hashes = self.inputs_df[
+                (self.inputs_df[parameters.index] == parameters).all(axis=1)
+            ]['hash'].values
+
+            # Raw results filtered by matching disorders and tau.
+            filtered_results = self.results_df[
+                self.results_df['hash'].isin(hashes)
+                & (self.results_df['tau'] == row['tau'])
+            ].set_index('hash')
+            hashes = filtered_results.index.unique()
+
+            resampled_values = np.zeros(n_resamp, dtype=complex)
+
+            # Perform resampling n_resamp times and calculate correlation
+            # length using resampled results.
+            for i_resamp in range(n_resamp):
+                resampled_hashes = bs_rng.choice(hashes, size=hashes.size)
+                resampled_results = filtered_results.loc[resampled_hashes]
+
+                variables = []
+                for label in columns:
+                    if label in filtered_results.columns:
+                        variables.append(resampled_results[label].mean())
+                    elif label in row:
+                        variables.append(row[label])
+
+                resampled_values[i_resamp] = function(*variables)
+
+            uncertainty[i_row] = resampled_values.std()
+
+        return uncertainty
+
+    def estimate_heat_capacity(self):
+        estimates = self.estimates
+        estimates['HeatCapacity_estimate'] = heat_capacity(
+            estimates['Energy_estimate'], estimates['Energy_2_estimate'],
+            estimates['temperature']
+        )
+        estimates['HeatCapacity_uncertainty'] = self.bootstrap_uncertainty(
+            heat_capacity,
+            ['Energy', 'Energy_2', 'temperature']
+        )
+
+        estimates['SpecificHeat_estimate'] = (
+            estimates['HeatCapacity_estimate']/estimates['n_spins']
+        )
+        estimates['SpecificHeat_uncertainty'] = (
+            estimates['HeatCapacity_uncertainty']/estimates['n_spins']
+        )
 
     def estimate_binder(self, n_resamp: int = 10):
         """Estimate Binder cumulant."""
@@ -238,10 +327,10 @@ class SimpleAnalysis:
         """Calculate run time stats."""
         self.run_time_df = self.inputs_df.merge(
             self.results_df
-        )[self.independent_variables + ['spin_model', 'run_time']]
+        )[self.independent_variables + ['run_time']]
 
         rtgroup = self.run_time_df.groupby(
-            self.independent_variables + ['spin_model']
+            self.independent_variables
         )['run_time']
         self.run_time_stats = pd.DataFrame({
             'count': rtgroup.count(),

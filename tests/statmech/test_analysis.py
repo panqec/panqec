@@ -40,6 +40,7 @@ def test_analyse(analysis):
     analysis.analyse()
     expected_columns = set([
         'L_x', 'L_y', 'p', 'temperature', 'tau', 'n_disorder',
+        'Energy_estimate',
         'Magnetization_estimate', 'Magnetization_uncertainty',
         'Susceptibility0_estimate', 'Susceptibility0_uncertainty',
         'Susceptibilitykmin_estimate', 'Susceptibilitykmin_uncertainty',

@@ -1,6 +1,12 @@
 {
   "hash": "345aa94233f9ec138a9e69030c2b6744",
   "observables": {
+    "Energy": {
+      "count": 256,
+      "total": -1.1,
+      "total_2": 1.5,
+      "total_4": 1.7
+    },
     "Magnetization": {
       "count": 512,
       "total": -0.40625,
