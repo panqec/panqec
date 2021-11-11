@@ -41,3 +41,13 @@ class Susceptibilitykmin(ScalarObservable):
             / spin_model.n_spins
         )
         return value
+
+
+class Energy(ScalarObservable):
+    label: str = 'Energy'
+
+    def __init__(self):
+        self.reset()
+
+    def evaluate(self, spin_model) -> float:
+        return float(spin_model.total_energy())

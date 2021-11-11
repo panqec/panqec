@@ -3,7 +3,9 @@ from itertools import product
 import numpy as np
 
 from .model import SpinModel, DisorderModel, VectorObservable
-from .observables import Magnetization, Susceptibility0, Susceptibilitykmin
+from .observables import (
+    Magnetization, Susceptibility0, Susceptibilitykmin, Energy
+)
 
 
 class LoopModel2D(SpinModel):
@@ -50,6 +52,7 @@ class LoopModel2D(SpinModel):
         self.temperature = 1.0
         self.moves_per_sweep = self.n_spins
         self.observables = [
+            Energy(),
             Magnetization(),
             Susceptibility0(),
             Susceptibilitykmin(),

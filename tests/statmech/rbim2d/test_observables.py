@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from bn3d.statmech.rbim2d import RandomBondIsingModel2D, WilsonLoop2D
+from bn3d.statmech.rbim2d import RandomBondIsingModel2D, WilsonLoop2D, Energy
 
 
 class TestObservables:
@@ -46,3 +46,8 @@ class TestObservables:
         assert np.all(value_array[2] == np.array([1]))
         assert np.all(value_array[3] == np.array([-1]))
         assert np.all(value_array[4] == np.array([-1]))
+
+    def test_energy(self):
+        model = RandomBondIsingModel2D(5, 7)
+        model.init_spins()
+        assert Energy().evaluate(model) == model.total_energy()

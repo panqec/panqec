@@ -1,7 +1,9 @@
 from typing import Tuple, Optional, Dict, Any
 from itertools import product
-from .model import SpinModel, ScalarObservable, DisorderModel, VectorObservable
-from .observables import Magnetization, Susceptibility0, Susceptibilitykmin
+from .model import SpinModel, DisorderModel, VectorObservable
+from .observables import (
+    Energy, Magnetization, Susceptibility0, Susceptibilitykmin
+)
 import numpy as np
 
 
@@ -35,6 +37,7 @@ class RandomBondIsingModel2D(SpinModel):
         self.temperature = 1.0
         self.moves_per_sweep = self.n_spins
         self.observables = [
+            Energy(),
             Magnetization(),
             Susceptibility0(),
             Susceptibilitykmin(),
