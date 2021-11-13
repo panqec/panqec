@@ -18,14 +18,33 @@
 
 ### Finite-size scaling
 - [x] implement it
+- [ ] Fit $D L^(1/\mu)$ term for finite-size scaling
+- [x] Minimal example of how to use
 
 ### Stat mech
-- [ ] `SpinModel` class
-    - [ ] `energy_diff`
-- [ ] `Observable` class
-- [ ] `MCSampler` class
-- [ ] Convergence test - 3 error bars per tau window
-
+- [x] `SpinModel` class
+    - [x] `energy_diff`
+- [x] `Observable` class
+- [x] `Controller` class
+- [x] Convergence test - 3 error bars per tau window
+- [x] Be able to save and load existing MC chains
+- [x] Fix slowness by avoiding reading all files
+- [x] Compute time estimation
+- [x] Parallelize running for Controller (distribute tasks among jobs and cores)
+- [ ] Wilson loop observable
+- [x] Error bars for correlation length
+- [x] CLI command to generate and run
+- [ ] zip compression of json files managed by DataManager
+- [x] Separate results viewer notebook/web app
+- [ ] Z2GaugeModel2D
+- [ ] Z2GaugeModel3D
+- [ ] Julia wrapper
+- [ ] Optional C++ extension
+- [ ] Script for array jobs on slurm
+- [ ] Figures in inkscape
+- [ ] p = 0 case
+- [ ] p > 0 case
+- [ ] finite bias case
 
 ### Paper
 - [x] AP Numerics What are rough estimates for thresholds with BP+OSD?
@@ -40,5 +59,8 @@
   data points near estimated threshold.
 - [ ] AP fill in Table 2 thresholds
 - [ ] EH Fig Show 2 layers only (low priority)
+
+### Post-QIP
+- [ ] Deformed Y noise fault-tolerant threshold 3D
 - [x] Go beyond 0.5 error rate
 - [x] EH subthreshold simulations bias 10, 100, 1000, error rate 5% fixed

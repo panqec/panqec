@@ -8,6 +8,7 @@ Many of these are copied from the internet.
 """
 import numpy as np
 import json
+import hashlib
 from typing import Callable
 
 
@@ -110,3 +111,13 @@ def fmt_uncertainty(x, dx, sn=None, sn_cutoff=8, unit=None):
         fmt_str += r'\ \mathrm{%s}' % unit
     fmt_str = f'${fmt_str}$'
     return fmt_str
+
+
+def hash_json(dictionary):
+    """Produce MD5 hash of dictionary"""
+    dict_no_hash = {
+        k: v for k, v in dictionary.items()
+        if k != 'hash'
+    }
+    json_string = json.dumps(dict_no_hash, sort_keys=True, indent=2)
+    return hashlib.md5(json_string.encode('utf-8')).hexdigest()

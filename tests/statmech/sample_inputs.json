@@ -1,0 +1,46 @@
+[
+  {
+    "spin_model": "RandomBondIsingModel2D",
+    "temperature": 0.5,
+    "spin_model_params": {"L_x": 4, "L_y": 4},
+    "disorder_model": "Rbim2DIidDisorder",
+    "disorder": [
+      [
+        [1, 1, -1, 1],
+        [1, 1, 1, 1],
+        [1, 1, 1, 1],
+        [1, 1, 1, 1]
+      ],
+      [
+        [1, 1, 1, 1],
+        [1, 1, 1, 1],
+        [1, 1, 1, 1],
+        [1, 1, 1, 1]
+      ]
+    ],
+    "disorder_params": {"p": 0.1}
+  },
+  {
+    "spin_model": "RandomBondIsingModel2D",
+    "temperature": 1.5,
+    "spin_model_params": {"L_x": 5, "L_y": 5},
+    "disorder_model": "Rbim2DIidDisorder",
+    "disorder": [
+      [
+        [1, -1, -1, -1, 1],
+        [1, 1, -1, 1, 1],
+        [1, -1, 1, 1, 1],
+        [1, 1, -1, 1, 1],
+        [-1, -1, -1, 1, -1]
+      ],
+      [
+        [1, 1, 1, 1, 1],
+        [1, 1, 1, -1, -1],
+        [-1, 1, 1, -1, 1],
+        [-1, 1, 1, -1, 1],
+        [1, 1, 1, 1, 1]
+      ]
+    ],
+    "disorder_params": {"p": 0.29}
+  }
+]

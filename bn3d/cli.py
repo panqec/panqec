@@ -12,6 +12,7 @@ from .slurm import (
     generate_sbatch, get_status, generate_sbatch_nist, count_input_runs,
     clear_out_folder, clear_sbatch_folder
 )
+from .statmech.cli import statmech
 from .noise import get_direction_from_bias_ratio
 from glob import glob
 
@@ -432,5 +433,6 @@ cli.add_command(run)
 cli.add_command(ls)
 cli.add_command(slurm)
 cli.add_command(generate_input)
+cli.add_command(statmech)
 cli.add_command(pi_sbatch)
 cli.add_command(merge_dirs)
