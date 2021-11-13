@@ -141,7 +141,8 @@ def get_p_th_sd_interp(
     p_min = df_filt['probability'].min()
     p_max = df_filt['probability'].max()
     if p_nearest is not None:
-        p_max = min(p_max, p_nearest*2)
+        if p_nearest > p_min:
+            p_max = min(p_max, p_nearest*2)
     p_interp = np.arange(p_min, p_max + interp_res, interp_res)
 
     # Initialize to extents by default.
@@ -208,7 +209,10 @@ def get_p_th_sd_interp(
         raise ValueError(err)
 
     # Left and right peak SD locations.
-    p_left = p_interp[i_maxima[i_maxima < i_crossover].max()]
+    if not any(i_maxima < i_crossover):
+        p_left = p_interp[i_maxima[0]]
+    else:
+        p_left = p_interp[i_maxima[i_maxima < i_crossover].max()]
     p_right = p_interp[i_maxima[i_crossover < i_maxima].min()]
 
     # Crossover is the error rate value for that point.
