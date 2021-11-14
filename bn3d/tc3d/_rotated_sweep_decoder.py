@@ -40,8 +40,8 @@ class RotatedSweepDecoder3D(Decoder):
     ) -> np.ndarray:
         """Get Z corrections given measured syndrome."""
 
-        # Maximum number of times to sweep before giving up.
-        largest_size = int(max(code.size))
+        # Maximum number of times to apply sweep rule before giving up round.
+        largest_size = 2*int(max(code.size)) + 2
 
         # The syndromes represented as an array of 0s and 1s.
         signs = self.get_initial_state(code, syndrome)
@@ -66,7 +66,7 @@ class RotatedSweepDecoder3D(Decoder):
                 i_sweep = 0
 
                 # Keep sweeping until there are no syndromes.
-                while any(signs.values()) and i_sweep < largest_size + 2:
+                while any(signs.values()) and i_sweep < largest_size:
                     signs = self.sweep_move(
                         signs, correction, sweep_direction, code
                     )
