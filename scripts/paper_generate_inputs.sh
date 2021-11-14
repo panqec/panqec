@@ -109,8 +109,8 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --eta "0.5,inf" --prob "0:0.5:0.01"
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
     --wall_time "$wall_time" --trials 10000 --split 10 $sbatch_dir/$name.sbatch
-'
 
+: '
 # Detailed run infinite Z bias
 name=det_rot_bposd_xzzx_zbias  
 bn3d generate-input -i "$paper_dir/$name/inputs" \
@@ -119,6 +119,7 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --eta "inf" --prob "0.32:0.38:0.005"
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 12 --queue $queue \
     --wall_time "$wall_time" --trials 100000 --split 25 $sbatch_dir/$name.sbatch
+'
 
 : '
 setup_dir rot_bposd_undef_xbias rotated BeliefPropagationOSDDecoder none X \
