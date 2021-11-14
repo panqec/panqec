@@ -13,6 +13,16 @@ class AbstractCode {
         this.stabilizers = {'X': [], 'Z': []};
         this.toggleStabFn = {'X': 0, 'Z': 0};
         this.qubits = new Array(Hx[0].length);
+        this.COLOR = {
+            deactivatedVertex: 0xf2f28c,
+            activatedVertex: 0xf1c232,
+            deactivatedEdge: 0xffbcbc,
+            activatedFace: 0xf1c232, 
+            errorX: 0xff0000,
+            errorZ: 0x25CCF7,
+            errorY: 0x00ff00
+            // errorY: 0xa55eea
+        };
     }
 
     updateStabilizers() {

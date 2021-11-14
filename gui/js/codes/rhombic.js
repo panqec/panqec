@@ -30,10 +30,13 @@ class RhombicCode extends AbstractCode {
         this.Z_AXIS = 0;
         
         this.SIZE = {radiusEdge: 0.05, radiusVertex: 0.1, lengthEdge: 1};
-        this.COLOR = {activatedTriangle: 0xf1c232, activatedCube: 0xf1c232,
-                      deactivatedCube: 0xf2f28c, deactivatedTriangle: 0xf2f2cc,
-                      deactivatedEdge: 0xffbcbc,
-                      errorX: 0xff0000, errorZ: 0x25CCF7, errorY: 0xa55eea};
+        this.COLOR = Object.assign(this.COLOR, {
+            activatedTriangle: 0xf1c232,
+            activatedCube: 0xf1c232,
+            deactivatedCube: 0xf2f28c,
+            deactivatedTriangle: 0xf2f2cc,
+            deactivatedEdge: 0xffbcbc,
+        });
     }
 
     getIndexQubit(axis, x, y, z) {

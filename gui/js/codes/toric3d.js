@@ -30,9 +30,6 @@ class ToricCode3D extends AbstractCode {
         this.Z_AXIS = 0;
         
         this.SIZE = {radiusEdge: 0.05, radiusVertex: 0.1, lengthEdge: 1};
-        this.COLOR = {deactivatedVertex: 0xf2f28c, activatedVertex: 0xf1c232,
-                      deactivatedEdge: 0xffbcbc, activatedFace: 0xf1c232, 
-                      errorX: 0xff0000, errorZ: 0x25CCF7, errorY: 0xa55eea};
     }
 
     getIndexQubit(axis, x, y, z) {

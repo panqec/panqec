@@ -26,9 +26,6 @@ class RotatedPlanarCode3D extends AbstractCode {
         this.toggleStabFn['Z'] = this.toggleFace;
         
         this.SIZE = {radiusEdge: 0.05, radiusVertex: 0.1, lengthEdge: 1};
-        this.COLOR = {deactivatedVertex: 0xf2f28c, activatedVertex: 0xf1c232,
-                      deactivatedEdge: 0xffbcbc, activatedFace: 0xf1c232, 
-                      errorX: 0xff0000, errorZ: 0x25CCF7, errorY: 0xa55eea};
 
         let length = this.SIZE.lengthEdge;
         this.offset = {x: Math.SQRT2 * length*this.Lx / 2, y: Math.SQRT2 * length*this.Ly / 2, z: length*this.Lz / 2};
