@@ -28,7 +28,7 @@ const buttons = {
     'addErrors': addRandomErrors
 };
 
-const KEY_CODE = {'d': 68, 'r': 82, 'backspace': 8, 'o': 79}
+const KEY_CODE = {'d': 68, 'r': 82, 'backspace': 8, 'o': 79, 'x': 88, 'z': 90}
 
 let camera, controls, scene, renderer, effect, mouse, raycaster, intersects, gui;
 let code;
@@ -118,6 +118,8 @@ async function buildCode() {
                      'rotated-toric': RotatedToricCode3D}
 
     code = new codeClass[params.codeName](Lx, Ly, Lz, Hx, Hz, indices, scene);
+    code.logical_x = logical_x;
+    code.logical_z = logical_z;
     code.build();
     // code.displayLogical(logical_z, 'Z', 0);
 }
@@ -167,17 +169,20 @@ function buildGUI() {
     const codeFolder = gui.addFolder('Code')
     codeFolder.add(params, 'codeName', {'Cubic': 'cubic', 'Rhombic': 'rhombic', 'Rotated Planar': 'rotated-planar', 'Rotated Toric': 'rotated-toric'}).name('Code type').onChange(changeLatticeSize);
     codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
+    codeFolder.open();
 
     const errorModelFolder = gui.addFolder('Error Model')
     errorModelFolder.add(params, 'errorModel', {'Pure X': 'Pure X', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}).name('Model');
     errorModelFolder.add(params, 'errorProbability', 0, 0.5).name('Probability');
     errorModelFolder.add(params, 'deformation', {'None': 'None', 'XZZX': 'XZZX', 'XY': 'XY'}).name('Deformation');
     errorModelFolder.add(buttons, 'addErrors').name('▶ Add errors (r)');
+    errorModelFolder.open();
 
     const decoderFolder = gui.addFolder('Decoder')
     decoderFolder.add(params, 'decoder', {'BP-OSD': 'bp-osd', 'BP-OSD-2': 'bp-osd-2', 'SweepMatch': 'sweepmatch'}).name('Decoder');
     decoderFolder.add(params, 'max_bp_iter', 1, 100, 1).name('Max iterations BP');
     decoderFolder.add(buttons, 'decode').name("▶ Decode (d)");
+    decoderFolder.open();
 }
 
 function toggleInstructions() {
@@ -212,6 +217,8 @@ function buildInstructions() {
         <tr><td><b>R</b></td><td>Random errors</td></tr>\
         <tr><td><b>D</b></td><td>Decode</td></tr>\
         <tr><td><b>O</b></td><td>Toggle Opacity</td></tr>\
+        <tr><td><b>Z</b></td><td>Logical Z</td></tr>\
+        <tr><td><b>X</b></td><td>Logical X</td></tr>\
         </table>\
     ";
     document.body.appendChild(instructions);
@@ -356,6 +363,14 @@ function onDocumentKeyDown(event) {
 
     else if (keyCode == KEY_CODE['o']) {
         code.changeOpacity();
+    }
+
+    else if (keyCode == KEY_CODE['x']) {
+        code.displayLogical(code.logical_x, 'X', 0);
+    }
+
+    else if (keyCode == KEY_CODE['z']) {
+        code.displayLogical(code.logical_z, 'Z', 0);
     }
 };
 
