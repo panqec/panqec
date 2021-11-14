@@ -4,8 +4,8 @@ sbatch_dir=temp/paper/sbatch
 mkdir -p "$sbatch_dir"
 
 ratio=equal
-wall_time="0-23:00"
-queue=defq
+wall_time="0-00:59"
+queue=debugq
 
 # Regime where finite-size scaling starts to break down
 : '
@@ -100,12 +100,13 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --eta "0.5,1,3,10,30,100,inf" --prob "0:0.55:0.01"
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
     --wall_time "$wall_time" --trials 10000 --split 10 $sbatch_dir/$name.sbatch
+'
 
-name=rot_sweepmatch_xy_zbias    
+name=rot_sweepmatch_xzzx_zbias    
 bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --lattice rotated --boundary planar --deformation xy --ratio "$ratio" \
+    --lattice rotated --boundary planar --deformation xzzx --ratio "$ratio" \
     --sizes "2,4,6,8" --decoder RotatedSweepMatchDecoder --bias Z \
-    --eta "0.5,1,3,10,30,100,inf" --prob "0:0.55:0.01"
+    --eta "0.5,inf" --prob "0:0.5:0.01"
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
     --wall_time "$wall_time" --trials 10000 --split 10 $sbatch_dir/$name.sbatch
 '
