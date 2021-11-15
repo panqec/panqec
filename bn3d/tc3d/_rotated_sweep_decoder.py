@@ -42,6 +42,7 @@ class RotatedSweepDecoder3D(Decoder):
 
         # Maximum number of times to apply sweep rule before giving up round.
         largest_size = 2*int(max(code.size)) + 2
+        max_sweeps = 4*largest_size
 
         # The syndromes represented as an array of 0s and 1s.
         signs = self.get_initial_state(code, syndrome)
@@ -66,7 +67,7 @@ class RotatedSweepDecoder3D(Decoder):
                 i_sweep = 0
 
                 # Keep sweeping until there are no syndromes.
-                while any(signs.values()) and i_sweep < largest_size:
+                while any(signs.values()) and i_sweep < max_sweeps:
                     signs = self.sweep_move(
                         signs, correction, sweep_direction, code
                     )
