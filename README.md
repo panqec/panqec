@@ -59,6 +59,12 @@ pytest
 ```
 If all the tests pass everything should be working as expected.
 
+There are also some more comprehensive tests which are very slow to run.
+To also run those, use
+```
+pytest --runslow
+```
+
 # Run the Demos
 If everything is working, you can run the demo notebooks in the `demo`
 directory which contains Jupyter notebooks demonstrating key milestones.

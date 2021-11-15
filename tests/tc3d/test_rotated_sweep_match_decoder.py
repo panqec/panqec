@@ -1,4 +1,5 @@
 import pytest
+from itertools import combinations
 import numpy as np
 from qecsim.paulitools import bsf_wt
 from bn3d.bpauli import bcommute
@@ -236,12 +237,32 @@ class TestSweepMatch2x2x2:
             ('Z', (1, 1, 5)), ('Z', (3, 3, 5)), ('Z', (5, 5, 5)),
             ('Z', (7, 5, 5)), ('Z', (9, 3, 5)),
         ],
+        [
+            ('Z', (1, 1, 3)), ('Z', (1, 3, 5)),
+        ],
+        [
+            ('Z', (1, 1, 5)), ('Z', (1, 3, 5)),
+        ],
+        [
+            ('Z', (1, 3, 1)), ('Z', (3, 1, 5)),
+        ],
+        [
+            ('Z', (1, 3, 1)), ('Z', (4, 2, 4)),
+        ],
+        [
+            ('Z', (1, 3, 3)), ('Z', (3, 1, 5)),
+        ],
     ], ids=[
         'z_vertical',
         'up_left_horizontal_bottom',
         'up_left_horizontal_top',
         'down_right_horizontal',
         'arthurs_example',
+        'weight_2_Z_error_1',
+        'weight_2_Z_error_2',
+        'weight_2_Z_error_3',
+        'weight_2_Z_error_4',
+        'weight_2_Z_error_5',
     ])
     def test_errors_spanning_boundaries(self, code, decoder, locations):
         error = RotatedPlanar3DPauli(code)
@@ -256,6 +277,9 @@ class TestSweepMatch2x2x2:
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
+
+        assert np.all(bcommute(code.logical_xs, total_error) == 0)
+        assert np.all(bcommute(code.logical_zs, total_error) == 0)
 
 
 class TestSweepCorners:
@@ -316,3 +340,32 @@ class TestSweepCorners:
                 uncorrectable_locations.append(location)
 
         assert len(uncorrectable_locations) == 0
+
+    @pytest.mark.slow
+    def test_all_2_qubit_errors_correctable(self, code, decoder):
+        pauli = 'Z'
+        weight = 2
+        error_locations = combinations(list(code.qubit_index), weight)
+        uncorrectable_error_locations = []
+        for locations in error_locations:
+            error = RotatedPlanar3DPauli(code)
+            for location in locations:
+                error.site(pauli, location)
+            assert bsf_wt(error.to_bsf()) == len(locations)
+
+            syndrome = code.measure_syndrome(error)
+            assert np.any(syndrome != 0)
+
+            correction = decoder.decode(code, syndrome)
+            total_error = (error.to_bsf() + correction) % 2
+            assert np.all(bcommute(code.stabilizers, total_error) == 0)
+
+            correctable = True
+            if np.any(bcommute(code.logical_xs, total_error) != 0):
+                correctable = False
+            if np.all(bcommute(code.logical_zs, total_error) != 0):
+                correctable = False
+            if not correctable:
+                uncorrectable_error_locations.append(locations)
+
+        assert len(uncorrectable_error_locations) == 0
