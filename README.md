@@ -304,6 +304,28 @@ You can also see the logs from each node.
 ```
 cat slurm/out/*
 ```
+Once the runs are complete, or even when they are are almost complete,
+you may want to merge the results directories of each directory into one
+results folder.
+You would need to do this to analyse the results if you look at a particular
+directory and notice multiple results directories like the following example:
+```
+$ ls temp/paper/rot_bposd_xzzx_zbias
+inputs  results_1  results_10  results_2  results_3  results_4  results_5
+results_6  results_7  results_8  results_9
+```
+The reason there are so many was because the job was split up between multiple
+cores in a certain way.
+To create a merged results directory, just run,
+just run
+```
+bn3d merge-dirs -o temp/paper/rot_bposd_xzzx_zbias/results
+```
+Doing so would create a directory `temp/paper/rot_bposd_xzzx_zbias/results`
+that contains all the results.
+
+You can then use the notebook `notebooks/14-eh-paper_figures.ipynb`
+to analyse the results.
 
 # Example of how to run statmech
 In the `temp/statmech` directory,
