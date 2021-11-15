@@ -269,20 +269,13 @@ class TestSweepCorners:
     def decoder(self):
         return RotatedSweepMatchDecoder()
 
-    @pytest.mark.parametrize('pauli,location', [
-        ('Z', (9, 9, 1)),
-        ('Z', (1, 1, 1)),
-        ('Z', (9, 7, 1)),
-        ('Z', (1, 3, 1)),
-        ('Z', (9, 9, 5)),
-        ('Z', (1, 1, 5)),
-        ('Z', (9, 7, 5)),
-        ('Z', (1, 3, 5)),
+    @pytest.mark.parametrize('location', [
+        (1, 3, 5), (3, 5, 5), (5, 7, 5), (7, 9, 5), (9, 9, 5)
     ])
-    def test_errors_on_corners(self, code, decoder, pauli, location):
+    def test_sweep_errors_on_extreme_layer(self, code, decoder, location):
         error = RotatedPlanar3DPauli(code)
         assert location in code.qubit_index
-        error.site(pauli, location)
+        error.site('Z', location)
         assert bsf_wt(error.to_bsf()) == 1
 
         syndrome = code.measure_syndrome(error)
