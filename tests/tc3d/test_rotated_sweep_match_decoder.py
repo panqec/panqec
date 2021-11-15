@@ -256,3 +256,66 @@ class TestSweepMatch2x2x2:
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
+
+
+class TestSweepCorners:
+    """Test 1-qubit errors on corners fully correctable."""
+
+    @pytest.fixture
+    def code(self):
+        return RotatedPlanarCode3D(2, 2, 2)
+
+    @pytest.fixture
+    def decoder(self):
+        return RotatedSweepMatchDecoder()
+
+    @pytest.mark.parametrize('pauli,location', [
+        ('Z', (9, 9, 1)),
+        ('Z', (1, 1, 1)),
+        ('Z', (9, 7, 1)),
+        ('Z', (1, 3, 1)),
+        ('Z', (9, 9, 5)),
+        ('Z', (1, 1, 5)),
+        ('Z', (9, 7, 5)),
+        ('Z', (1, 3, 5)),
+    ])
+    def test_errors_on_corners(self, code, decoder, pauli, location):
+        error = RotatedPlanar3DPauli(code)
+        assert location in code.qubit_index
+        error.site(pauli, location)
+        assert bsf_wt(error.to_bsf()) == 1
+
+        syndrome = code.measure_syndrome(error)
+        assert np.any(syndrome != 0)
+
+        correction = decoder.decode(code, syndrome)
+        total_error = (error.to_bsf() + correction) % 2
+        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+
+        assert np.all(bcommute(code.logical_xs, total_error) == 0)
+        assert np.all(bcommute(code.logical_zs, total_error) == 0)
+
+    @pytest.mark.parametrize('pauli', ['X', 'Y', 'Z'])
+    def test_all_1_qubit_errors_correctable(self, code, decoder, pauli):
+        uncorrectable_locations = []
+        for location in code.qubit_index:
+            error = RotatedPlanar3DPauli(code)
+            error.site(pauli, location)
+            assert bsf_wt(error.to_bsf()) == 1
+
+            syndrome = code.measure_syndrome(error)
+            assert np.any(syndrome != 0)
+
+            correction = decoder.decode(code, syndrome)
+            total_error = (error.to_bsf() + correction) % 2
+            assert np.all(bcommute(code.stabilizers, total_error) == 0)
+
+            correctable = True
+            if np.any(bcommute(code.logical_xs, total_error) != 0):
+                correctable = False
+            if np.all(bcommute(code.logical_zs, total_error) != 0):
+                correctable = False
+            if not correctable:
+                uncorrectable_locations.append(location)
+
+        assert len(uncorrectable_locations) == 0
