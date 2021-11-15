@@ -135,12 +135,31 @@ class RotatedSweepDecoder3D(Decoder):
         # Apply sweep rule on every vertex.
         for vertex in code.vertex_index.keys():
 
+            # The actual sweep direction should be towards ot bulk
+            # when on the top and bottom boundaries.
+            actual_sweep_direction = sweep_direction
+            if vertex[2] == 2*code.size[2] + 1:
+                actual_sweep_direction = (
+                    sweep_direction[0],
+                    sweep_direction[1],
+                    -1
+                )
+
+            # Special rule applies on the special corner.
+            special_corner = (
+                4*code.size[0],
+                4*code.size[0] + 2,
+                2*code.size[2] + 1,
+            )
+            if vertex == special_corner:
+                actual_sweep_direction = (0, -1, -1)
+
             # Get neighbouring faces and edges in the sweep direction.
             x_face, y_face, z_face = self.get_sweep_faces(
-                vertex, sweep_direction, code
+                vertex, actual_sweep_direction, code
             )
             x_edge, y_edge, z_edge = self.get_sweep_edges(
-                vertex, sweep_direction, code
+                vertex, actual_sweep_direction, code
             )
 
             # Check faces and edges are in lattice before proceeding.
