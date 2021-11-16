@@ -6,6 +6,7 @@ from bn3d.bpauli import bcommute
 from bn3d.tc3d import (
     RotatedPlanarCode3D, RotatedSweepMatchDecoder, RotatedPlanar3DPauli
 )
+from bn3d.tc3d._rotated_sweep_decoder import RotatedSweepDecoder3D
 
 
 class TestRotatedSweepMatchDecoder:
@@ -276,10 +277,16 @@ class TestSweepMatch2x2x2:
 
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert np.all(bcommute(code.stabilizers, total_error) == 0), (
+            'Total error not in codespace'
+        )
 
-        assert np.all(bcommute(code.logical_xs, total_error) == 0)
-        assert np.all(bcommute(code.logical_zs, total_error) == 0)
+        assert np.all(bcommute(code.logical_xs, total_error) == 0), (
+            'Total error anticommutes with logical X'
+        )
+        assert np.all(bcommute(code.logical_zs, total_error) == 0), (
+            'Total error anticommutes with logical Z'
+        )
 
 
 class TestSweepCorners:
@@ -294,11 +301,11 @@ class TestSweepCorners:
         return RotatedSweepMatchDecoder()
 
     @pytest.mark.parametrize('location', [
-        # (1, 3, 5),
-        # (3, 5, 5),
+        (1, 3, 5),
+        (3, 5, 5),
         (5, 7, 5),
-        # (7, 9, 5),
-        # (9, 9, 5)
+        (7, 9, 5),
+        (9, 9, 5)
     ])
     def test_sweep_errors_on_extreme_layer(self, code, decoder, location):
         error = RotatedPlanar3DPauli(code)
@@ -311,10 +318,16 @@ class TestSweepCorners:
 
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert np.all(bcommute(code.stabilizers, total_error) == 0), (
+            'Total error not in codespace'
+        )
 
-        assert np.all(bcommute(code.logical_xs, total_error) == 0)
-        assert np.all(bcommute(code.logical_zs, total_error) == 0)
+        assert np.all(bcommute(code.logical_xs, total_error) == 0), (
+            'Total error anticommutes with logical X'
+        )
+        assert np.all(bcommute(code.logical_zs, total_error) == 0), (
+            'Total error anticommutes with logical Z'
+        )
 
     @pytest.mark.parametrize('pauli', ['X', 'Y', 'Z'])
     def test_all_1_qubit_errors_correctable(self, code, decoder, pauli):
@@ -339,7 +352,10 @@ class TestSweepCorners:
             if not correctable:
                 uncorrectable_locations.append(location)
 
-        assert len(uncorrectable_locations) == 0
+        assert len(uncorrectable_locations) == 0, (
+            f'Found {len(uncorrectable_locations)} uncorrectable weight-1 '
+            f'{pauli} errors'
+        )
 
     @pytest.mark.slow
     def test_all_2_qubit_errors_correctable(self, code, decoder):
@@ -368,4 +384,114 @@ class TestSweepCorners:
             if not correctable:
                 uncorrectable_error_locations.append(locations)
 
-        assert len(uncorrectable_error_locations) == 0
+        assert len(uncorrectable_error_locations) == 0, (
+            f'Found {len(uncorrectable_error_locations)} uncorrectable '
+            f'weight-2 Z errors'
+        )
+
+
+class TestRotatedSweepDecoder3D:
+
+    @pytest.fixture
+    def code(self):
+        return RotatedPlanarCode3D(2, 2, 2)
+
+    @pytest.fixture
+    def decoder(self):
+        return RotatedSweepDecoder3D()
+
+    @pytest.mark.parametrize(
+        'vertex,sweep_direction,sweep_faces,sweep_edges',
+        [
+            (
+                (4, 6, 5),
+                (1, 0, -1),
+                [(5, 7, 4), (5, 5, 4), (6, 6, 5)],
+                [(5, 5, 5), (5, 7, 5), (4, 6, 4)],
+            )
+        ]
+    )
+    def test_sweep_faces_edges_top_boundary(
+        self, code, decoder, vertex, sweep_direction, sweep_faces, sweep_edges
+    ):
+        vertex = (4, 6, 5)
+        sweep_direction = (1, 0, -1)
+        assert vertex in code.vertex_index
+        x_face, y_face, z_face = decoder.get_sweep_faces(
+            vertex, sweep_direction, code
+        )
+        x_edge, y_edge, z_edge = decoder.get_sweep_edges(
+            vertex, sweep_direction, code
+        )
+        assert [x_face, y_face, z_face] == sweep_faces
+        assert [x_edge, y_edge, z_edge] == sweep_edges
+
+    def test_adjacency_sweep_faces_edges(self, code, decoder):
+        touched_edges = []
+        sweep_directions = [
+            (1, 0, 1), (1, 0, -1),
+            (0, 1, 1), (0, 1, -1),
+            (-1, 0, 1), (-1, 0, -1),
+            (0, -1, 1), (0, -1, -1),
+        ]
+        for sweep_direction in sweep_directions:
+            for vertex in code.vertex_index:
+                x_face, y_face, z_face = decoder.get_sweep_faces(
+                    vertex, sweep_direction, code
+                )
+                x_edge, y_edge, z_edge = decoder.get_sweep_edges(
+                    vertex, sweep_direction, code
+                )
+
+                faces_valid = tuple(
+                    face in code.face_index
+                    for face in [x_face, y_face, z_face]
+                )
+                edges_valid = tuple(
+                    edge in code.qubit_index
+                    for edge in [x_edge, y_edge, z_edge]
+                )
+                if all(faces_valid) and all(edges_valid):
+                    x_face_bsf = code.stabilizers[code.face_index[x_face]]
+                    y_face_bsf = code.stabilizers[code.face_index[y_face]]
+                    z_face_bsf = code.stabilizers[code.face_index[z_face]]
+
+                    error = RotatedPlanar3DPauli(code)
+                    x_edge_bsf = error.site('Z', x_edge).to_bsf()
+                    assert np.all(bcommute(x_edge_bsf, x_face_bsf) == 0)
+                    assert np.any(bcommute(x_edge_bsf, y_face_bsf) == 1)
+                    assert np.any(bcommute(x_edge_bsf, z_face_bsf) == 1)
+
+                    error = RotatedPlanar3DPauli(code)
+                    y_edge_bsf = error.site('Z', y_edge).to_bsf()
+                    assert np.all(bcommute(y_edge_bsf, y_face_bsf) == 0)
+                    assert np.any(bcommute(y_edge_bsf, x_face_bsf) == 1)
+                    assert np.any(bcommute(y_edge_bsf, z_face_bsf) == 1)
+
+                    error = RotatedPlanar3DPauli(code)
+                    z_edge_bsf = error.site('Z', z_edge).to_bsf()
+                    assert np.any(bcommute(z_edge_bsf, z_face_bsf) == 0)
+                    assert np.any(bcommute(z_edge_bsf, x_face_bsf) == 1)
+                    assert np.any(bcommute(z_edge_bsf, y_face_bsf) == 1)
+
+                    touched_edges.append(x_edge)
+                    touched_edges.append(y_edge)
+                    touched_edges.append(z_edge)
+
+        assert set(code.qubit_index.keys()) == set(touched_edges)
+
+    def test_flip_edge(self, code, decoder):
+        n_faces = len(code.face_index)
+        for edge in code.qubit_index:
+            signs = {face: 0 for face in code.face_index}
+            decoder.flip_edge(edge, signs, code)
+            sign_flip_syndrome = np.zeros(n_faces, dtype=int)
+            for face, sign in signs.items():
+                if sign:
+                    sign_flip_syndrome[code.face_index[face]] = 1
+
+            error = RotatedPlanar3DPauli(code)
+            error_bsf = error.site('Z', edge).to_bsf()
+            pauli_syndrome = bcommute(code.stabilizers[:n_faces], error_bsf)
+
+            assert np.all(pauli_syndrome == sign_flip_syndrome)
