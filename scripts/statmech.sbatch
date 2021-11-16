@@ -43,10 +43,10 @@ python scripts/monitor.py "$log_dir/usage_${SLURM_JOB_ID}_${i_task}.txt" &
 hashes_txt="$log_dir/filter_${SLURM_JOB_ID}_${i_task}.txt"
 
 # Print out filtered hashes to run on each line.
-bn3d statmech assign-inputs $data_dir $i_task $n_tasks >> hashes_txt
+bn3d statmech assign-inputs $data_dir $i_task $n_tasks >> $hashes_txt
 
 # Run in parallel.
-cat hashes_txt | parallel --colsep '\t' --results $log_dir "$bash_command"
+cat $hashes_txt | parallel --colsep '\t' --results $log_dir "$bash_command"
 
 # Print out the date when done.
 date
