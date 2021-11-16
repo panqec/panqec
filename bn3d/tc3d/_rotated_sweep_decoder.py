@@ -12,7 +12,7 @@ class RotatedSweepDecoder3D(Decoder):
     _rng: np.random.Generator
     max_rounds: int
 
-    def __init__(self, seed: int = 0, max_rounds: int = 2):
+    def __init__(self, seed: int = 0, max_rounds: int = 10):
         self._rng = np.random.default_rng(seed)
         self.max_rounds = max_rounds
 
@@ -135,31 +135,12 @@ class RotatedSweepDecoder3D(Decoder):
         # Apply sweep rule on every vertex.
         for vertex in code.vertex_index.keys():
 
-            # The actual sweep direction should be towards ot bulk
-            # when on the top and bottom boundaries.
-            actual_sweep_direction = sweep_direction
-            if vertex[2] == 2*code.size[2] + 1:
-                actual_sweep_direction = (
-                    sweep_direction[0],
-                    sweep_direction[1],
-                    -1
-                )
-
-            # Special rule applies on the special corner.
-            special_corner = (
-                4*code.size[0],
-                4*code.size[0] + 2,
-                2*code.size[2] + 1,
-            )
-            if vertex == special_corner:
-                actual_sweep_direction = (0, -1, -1)
-
             # Get neighbouring faces and edges in the sweep direction.
             x_face, y_face, z_face = self.get_sweep_faces(
-                vertex, actual_sweep_direction, code
+                vertex, sweep_direction, code
             )
             x_edge, y_edge, z_edge = self.get_sweep_edges(
-                vertex, actual_sweep_direction, code
+                vertex, sweep_direction, code
             )
 
             # Check faces and edges are in lattice before proceeding.
@@ -175,8 +156,8 @@ class RotatedSweepDecoder3D(Decoder):
 
                 if signs[x_face] and signs[y_face] and signs[z_face]:
                     direction = self.get_default_direction()
-                    flip_edge = {0: x_edge, 1: y_edge, 2: z_edge}[direction]
-                    flip_locations.append(flip_edge)
+                    edge_flip = {0: x_edge, 1: y_edge, 2: z_edge}[direction]
+                    flip_locations.append(edge_flip)
                 elif signs[y_face] and signs[z_face]:
                     flip_locations.append(x_edge)
                 elif signs[x_face] and signs[z_face]:
@@ -184,6 +165,7 @@ class RotatedSweepDecoder3D(Decoder):
                 elif signs[x_face] and signs[y_face]:
                     flip_locations.append(z_edge)
 
+            """
             # Boundary case with only 1 face and 2 edges.
             elif sum(faces_valid) == 1 and sum(edges_valid) == 2:
                 i_face_valid = faces_valid.index(True)
@@ -198,6 +180,7 @@ class RotatedSweepDecoder3D(Decoder):
                     # Flip an edge if the face has a syndrome.
                     if signs[valid_face]:
                         flip_locations.append(valid_edge)
+            """
 
         new_signs = signs.copy()
         for location in flip_locations:
