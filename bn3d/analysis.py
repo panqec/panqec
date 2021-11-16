@@ -105,16 +105,20 @@ def get_results_df(
             batch_result['label'] = batch_label
             batch_result['noise_direction'] = sim.error_model.direction
             if len(sim.results['effective_error']) > 0:
-                batch_result['p_x'] = np.array(
+                codespace = np.array(sim.results['codespace'])
+                x_errors = np.array(
                     sim.results['effective_error']
-                )[:, :n_logicals].any(axis=1).mean()
+                )[:, :n_logicals].any(axis=1)
+                batch_result['p_x'] = x_errors.mean()
                 batch_result['p_x_se'] = np.sqrt(
                     batch_result['p_x']*(1 - batch_result['p_x'])
                     / (sim.n_results + 1)
                 )
-                batch_result['p_z'] = np.array(
+
+                z_errors = ~codespace & np.array(
                     sim.results['effective_error']
-                )[:, n_logicals:].any(axis=1).mean()
+                )[:, n_logicals:].any(axis=1)
+                batch_result['p_z'] = z_errors.mean()
                 batch_result['p_z_se'] = np.sqrt(
                     batch_result['p_z']*(1 - batch_result['p_z'])
                     / (sim.n_results + 1)
