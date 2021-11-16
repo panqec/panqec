@@ -7,6 +7,7 @@ from itertools import product
 from pprint import pprint
 import numpy as np
 import psutil
+from .analysis import count_updates
 from .controllers import DataManager, SimpleController
 from .config import DISORDER_MODELS
 from ..utils import hash_json
@@ -20,6 +21,7 @@ def generate_input_entries(
     info_dict: Dict = {
         'max_tau': {},
         'i_disorder': {},
+        'mc_updates': {},
     }
     for spec in ranges:
         iterates = product(
@@ -43,9 +45,18 @@ def generate_input_entries(
                         'disorder': disorder.tolist()
                     }
                     entries.append(entry)
+
+                    # Information to be stored in info.json.
                     hash_key = hash_json(entry)
                     info_dict['max_tau'][hash_key] = spec['max_tau']
                     info_dict['i_disorder'][hash_key] = i_disorder
+
+                    # Calculate the number of MCMC updates.
+                    update_params = spin_model_params.copy()
+                    update_params['tau'] = spec['max_tau'] + 1
+                    info_dict['mc_updates'][hash_key] = count_updates(
+                        spec['spin_model'], update_params
+                    )
     return entries, info_dict
 
 

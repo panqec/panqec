@@ -1,4 +1,5 @@
 import os
+import re
 import json
 from shutil import copyfile
 from glob import glob
@@ -111,7 +112,9 @@ def sample(input_json):
 @click.command()
 @click.argument('data_dir', required=True)
 @click.option('--n_jobs', default=1, type=click.INT, show_default=True)
-@click.option('-m', '--monitor', default=False, is_flag=True, show_default=True)
+@click.option(
+    '-m', '--monitor', default=False, is_flag=True, show_default=True
+)
 def sample_parallel(data_dir, n_jobs, monitor):
     """Perform MCMC runs in parallel."""
 
@@ -188,6 +191,73 @@ def models():
         print(f'  {disorder_model}')
 
 
+@click.command()
+@click.argument('data_dir', required=True)
+def get_progress(data_dir):
+    info_json = os.path.join(data_dir, 'info.json')
+    results_dir = os.path.join(data_dir, 'results')
+    with open(info_json) as f:
+        info_dict = json.load(f)
+    results_list = []
+    for name in os.listdir(results_dir):
+        match = re.search(r'results_tau(\d+)_([a-f0-9]+)_seed(\d+).gz', name)
+        if match:
+            results_list.append({
+                'hash': match.group(2),
+                'tau': int(match.group(1)),
+                'seed': match.group(3),
+                'time': os.path.getmtime(os.path.join(results_dir, name)),
+            })
+    results = pd.DataFrame(results_list)
+
+    print(
+        results.groupby('tau')['hash'].count().reset_index()
+        .rename(columns={'hash': 'results'}).to_string(index=False)
+    )
+
+    updates = pd.concat(
+        [
+            results.groupby('hash')['tau'].max(),
+            pd.Series(info_dict['mc_updates'], name='target_updates'),
+            pd.Series(info_dict['max_tau'], name='target_tau'),
+            pd.Series(
+                results.groupby('hash')['time'].min(), name='start_time'
+            ),
+            pd.Series(results.groupby('hash')['time'].max(), name='end_time'),
+        ],
+        axis=1
+    )
+    updates['progress'] = 2.0**(updates['tau'] - updates['target_tau'])
+
+    # Work out the overall progress.
+    total_updates = updates['target_updates'].sum()
+    completed_updates = (updates['progress']*updates['target_updates']).sum()
+    overall_progress = completed_updates/total_updates
+
+    first_update = pd.Timestamp(
+        updates['start_time'].min(), unit='s', tz='UTC'
+    )
+    last_update = pd.Timestamp(updates['end_time'].max(), unit='s', tz='UTC')
+    time_elapsed = last_update - first_update
+
+    time_remaining = time_elapsed*(1/overall_progress - 1)
+    estimated_finish = last_update + time_remaining
+
+    total_time_required = time_elapsed/overall_progress
+    print('Total {} required'.format(total_time_required.round('s')))
+
+    # Correction to account for time till last update.
+    time_now = pd.Timestamp.now(tz='UTC')
+    actual_time_elapsed = time_now - first_update
+    actual_time_remaining = estimated_finish - time_now
+
+    print('{:.2f}%, {} elapsed, {} remaining'.format(
+        overall_progress*100,
+        actual_time_elapsed.round('s'),
+        actual_time_remaining.round('s')
+    ))
+
+
 statmech.add_command(status)
 statmech.add_command(sample)
 statmech.add_command(sample_parallel)
@@ -195,3 +265,4 @@ statmech.add_command(generate)
 statmech.add_command(models)
 statmech.add_command(analyse)
 statmech.add_command(clear)
+statmech.add_command(get_progress)
