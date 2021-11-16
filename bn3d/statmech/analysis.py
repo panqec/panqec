@@ -52,8 +52,8 @@ class SimpleAnalysis:
         self.combine_results()
         print('Estimating observables')
         self.estimate_observables()
-        # print('Estimating  capacity')
-        # self.estimate_heat_caheatpacity()
+        print('Estimating heat capacity')
+        self.estimate_heat_capacity()
         print('Estimating correlation length')
         self.estimate_correlation_length()
         print('Estimating Binder cumulant')
@@ -373,6 +373,8 @@ def count_updates(spin_model: str, params) -> float:
     """Number of count updates."""
     if spin_model == 'RandomBondIsingModel2D':
         return params['L_x']*params['L_y']*2**params['tau']
+    if spin_model == 'LoopModel2D':
+        return 2*params['L_x']*params['L_y']*2**params['tau']
     else:
         return 1
 

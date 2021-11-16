@@ -435,8 +435,8 @@ class DumbController(SimpleController):
         self.data_manager = DataManager(data_dir)
 
         # Load the hash key.
-        with open(input_json) as f:
-            self.input_hash = json.load(f)['hash']
+        with gzip.open(input_json, 'r') as f:
+            self.input_hash = json.loads(f.read().decode('utf-8'))['hash']
 
     def get_max_tau(self) -> int:
         """Get the max tau."""
@@ -490,7 +490,7 @@ class DumbController(SimpleController):
 
         time_now = datetime.datetime.now()
         run_time = time_now - start_time
-        print(f'{time_now} Done ({run_time})')
+        print(f'{time_now} Done {self.input_hash} ({run_time})')
 
     def run_safe(self):
         """Run for all tau safely reusing data."""

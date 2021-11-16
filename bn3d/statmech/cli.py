@@ -12,6 +12,8 @@ from .core import (
     start_sampling, generate_inputs, filter_input_hashes, monitor_usage,
 )
 from .config import SPIN_MODELS, DISORDER_MODELS
+from bn3d.utils import hash_json
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
 @click.group(invoke_without_command=True)
@@ -20,6 +22,49 @@ def statmech(ctx):
     """Routines for doing stat mech MCMC runs."""
     if not ctx.invoked_subcommand:
         print(ctx.get_help())
+
+
+@click.command()
+@click.argument('data_dir', type=click.Path(exists=True), required=True)
+@click.argument('i_worker', type=click.INT, required=True)
+@click.argument('n_workers', type=click.INT, required=True)
+def assign_inputs(data_dir, i_worker, n_workers):
+    """Print out path to input files for i_worker out of n_workers."""
+    data_manager = DataManager(data_dir)
+
+    temp_group_hashes = {
+        entry['hash']: hash_json({
+            k: v
+            for k, v in entry.items()
+            if k != 'temperature' and k != 'hash'
+        })
+        for entry in data_manager.load('inputs')
+    }
+
+    info_json = os.path.join(data_dir, 'info.json')
+    with open(info_json) as f:
+        info_dict = json.load(f)
+
+    info = pd.DataFrame(info_dict)
+    info.index.name = 'hash'
+    info = info.reset_index()
+
+    info['temp_group'] = info['hash'].map(temp_group_hashes)
+
+    temp_groups = pd.concat([
+        info.groupby('temp_group')['hash'].aggregate(list),
+        info.groupby('temp_group')['mc_updates'].sum(),
+        info.groupby('temp_group')['i_disorder'].min()
+    ], axis=1).reset_index()
+    temp_groups = temp_groups.sort_values(
+        by=['mc_updates', 'i_disorder'], ascending=[False, True]
+    )
+    temp_groups = temp_groups.reset_index(drop=True)
+    temp_groups['i_worker'] = temp_groups.index % n_workers
+
+    hashes = temp_groups[temp_groups['i_worker'] == i_worker]['hash'].sum()
+    for value in hashes:
+        print(value)
 
 
 @click.command()
@@ -161,6 +206,47 @@ def generate(data_dir, targets):
 
 
 @click.command()
+@click.argument('sbatch_file', required=True)
+@click.option('-d', '--data_dir', type=click.Path(exists=True), required=True)
+@click.option('-n', '--n_array', default=6, type=click.INT, show_default=True)
+@click.option('-q', '--queue', default='defq', type=str, show_default=True)
+@click.option(
+    '-w', '--wall_time', default='0-20:00', type=str, show_default=True
+)
+@click.option(
+    '-s', '--split', default=1, type=click.INT, show_default=True
+)
+def pi_sbatch(sbatch_file, data_dir, n_array, queue, wall_time, split):
+    """Generate PI-style sbatch file with parallel and array job."""
+    template_file = os.path.join(
+        os.path.dirname(os.path.dirname(BASE_DIR)), 'scripts',
+        'statmech.sbatch'
+    )
+    with open(template_file) as f:
+        text = f.read()
+
+    inputs_dir = os.path.join(data_dir, 'inputs')
+    assert os.path.isdir(inputs_dir), (
+        f'{inputs_dir} missing, please create it and generate inputs'
+    )
+    name = os.path.basename(data_dir)
+    replace_map = {
+        '${DATADIR}': data_dir,
+        '${TIME}': wall_time,
+        '${NAME}': name,
+        '${NARRAY}': str(n_array),
+        '${QUEUE}': queue,
+        '${SPLIT}': str(split),
+    }
+    for template_string, value in replace_map.items():
+        text = text.replace(template_string, value)
+
+    with open(sbatch_file, 'w') as f:
+        f.write(text)
+    print(f'Wrote to {sbatch_file}')
+
+
+@click.command()
 @click.argument('data_dir', required=True)
 def clear(data_dir):
     """Clear inputs and results."""
@@ -266,3 +352,5 @@ statmech.add_command(models)
 statmech.add_command(analyse)
 statmech.add_command(clear)
 statmech.add_command(get_progress)
+statmech.add_command(assign_inputs)
+statmech.add_command(pi_sbatch)
