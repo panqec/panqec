@@ -39,8 +39,8 @@ def run_once(
     effective_error = get_effective_error(
         total_error, code.logical_xs, code.logical_zs
     )
-    success = bool(np.all(effective_error == 0))
     codespace = bool(np.all(bcommute(code.stabilizers, total_error) == 0))
+    success = bool(np.all(effective_error == 0)) and codespace
 
     results = {
         'error': error,
