@@ -206,7 +206,9 @@ class TestSweepMatch1x1x1:
 
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert not np.all(bcommute(code.stabilizers, total_error) == 0), (
+            'Total error not in codespace'
+        )
 
 
 class TestSweepMatch2x2x2:
@@ -221,19 +223,6 @@ class TestSweepMatch2x2x2:
         return RotatedSweepMatchDecoder()
 
     @pytest.mark.parametrize('locations', [
-        [('Z', (1, 9, 1)), ('Z', (1, 9, 3)), ('Z', (1, 9, 5))],
-        [
-            ('Z', (1, 1, 1)), ('Z', (3, 3, 1)), ('Z', (5, 5, 1)),
-            ('Z', (7, 7, 1)), ('Z', (9, 9, 1))
-        ],
-        [
-            ('Z', (1, 1, 5)), ('Z', (3, 3, 5)), ('Z', (5, 5, 5)),
-            ('Z', (7, 7, 5)), ('Z', (9, 9, 5))
-        ],
-        [
-            ('Z', (3, 9, 5)), ('Z', (5, 7, 5)), ('Z', (7, 5, 5)),
-            ('Z', (9, 3, 5)), ('Z', (9, 1, 5))
-        ],
         [
             ('Z', (1, 1, 5)), ('Z', (3, 3, 5)), ('Z', (5, 5, 5)),
             ('Z', (7, 5, 5)), ('Z', (9, 3, 5)),
@@ -254,10 +243,6 @@ class TestSweepMatch2x2x2:
             ('Z', (1, 3, 3)), ('Z', (3, 1, 5)),
         ],
     ], ids=[
-        'z_vertical',
-        'up_left_horizontal_bottom',
-        'up_left_horizontal_top',
-        'down_right_horizontal',
         'arthurs_example',
         'weight_2_Z_error_1',
         'weight_2_Z_error_2',
@@ -265,7 +250,7 @@ class TestSweepMatch2x2x2:
         'weight_2_Z_error_4',
         'weight_2_Z_error_5',
     ])
-    def test_errors_spanning_boundaries(self, code, decoder, locations):
+    def test_gui_examples(self, code, decoder, locations):
         error = RotatedPlanar3DPauli(code)
         for pauli, location in locations:
             assert location in code.qubit_index
@@ -286,6 +271,42 @@ class TestSweepMatch2x2x2:
         )
         assert np.all(bcommute(code.logical_zs, total_error) == 0), (
             'Total error anticommutes with logical Z'
+        )
+
+    @pytest.mark.parametrize('locations', [
+        [('Z', (1, 9, 1)), ('Z', (1, 9, 3)), ('Z', (1, 9, 5))],
+        [
+            ('Z', (1, 1, 1)), ('Z', (3, 3, 1)), ('Z', (5, 5, 1)),
+            ('Z', (7, 7, 1)), ('Z', (9, 9, 1))
+        ],
+        [
+            ('Z', (1, 1, 5)), ('Z', (3, 3, 5)), ('Z', (5, 5, 5)),
+            ('Z', (7, 7, 5)), ('Z', (9, 9, 5))
+        ],
+        [
+            ('Z', (3, 9, 5)), ('Z', (5, 7, 5)), ('Z', (7, 5, 5)),
+            ('Z', (9, 3, 5)), ('Z', (9, 1, 5))
+        ],
+    ], ids=[
+        'z_vertical',
+        'up_left_horizontal_bottom',
+        'up_left_horizontal_top',
+        'down_right_horizontal',
+    ])
+    def test_errors_spanning_boundaries(self, code, decoder, locations):
+        error = RotatedPlanar3DPauli(code)
+        for pauli, location in locations:
+            assert location in code.qubit_index
+            error.site(pauli, location)
+        assert bsf_wt(error.to_bsf()) == len(locations)
+
+        syndrome = code.measure_syndrome(error)
+        assert np.any(syndrome != 0)
+
+        correction = decoder.decode(code, syndrome)
+        total_error = (error.to_bsf() + correction) % 2
+        assert not np.all(bcommute(code.stabilizers, total_error) == 0), (
+            'Total error in codespace'
         )
 
 
@@ -428,6 +449,7 @@ class TestRotatedSweepDecoder3D:
 
     def test_adjacency_sweep_faces_edges(self, code, decoder):
         touched_edges = []
+        touched_faces = []
         sweep_directions = [
             (1, 0, 1), (1, 0, -1),
             (0, 1, 1), (0, 1, -1),
@@ -478,7 +500,12 @@ class TestRotatedSweepDecoder3D:
                     touched_edges.append(y_edge)
                     touched_edges.append(z_edge)
 
+                    touched_faces.append(x_face)
+                    touched_faces.append(y_face)
+                    touched_faces.append(z_face)
+
         assert set(code.qubit_index.keys()) == set(touched_edges)
+        assert set(code.face_index.keys()) == set(touched_faces)
 
     def test_flip_edge(self, code, decoder):
         n_faces = len(code.face_index)
