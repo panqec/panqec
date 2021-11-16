@@ -124,6 +124,7 @@ def test_merge_results():
             'results': {
                 'effective_error': [[0, 0]],
                 'success': [True],
+                'codespace': [True],
                 'wall_time': 0.018024
             },
             'inputs': {
@@ -138,7 +139,8 @@ def test_merge_results():
         {
             'results': {
                 'effective_error': [[0, 1]],
-                'success': [True],
+                'success': [False],
+                'codespace': [False],
                 'wall_time': 0.017084
             },
             'inputs': {
@@ -154,7 +156,8 @@ def test_merge_results():
     expected_merged_results = {
         'results': {
             'effective_error': [[0, 0], [0, 1]],
-            'success': [True, True],
+            'success': [True, False],
+            'codespace': [True, False],
             'wall_time': 0.035108
         },
         'inputs': {
