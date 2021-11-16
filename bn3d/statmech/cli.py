@@ -60,7 +60,7 @@ def assign_inputs(data_dir, i_worker, n_workers):
         by=['mc_updates', 'i_disorder'], ascending=[False, True]
     )
     temp_groups = temp_groups.reset_index(drop=True)
-    temp_groups['i_worker'] = temp_groups.index % n_workers
+    temp_groups['i_worker'] = temp_groups.index % n_workers + 1
 
     hashes = temp_groups[temp_groups['i_worker'] == i_worker]['hash'].sum()
     for value in hashes:
