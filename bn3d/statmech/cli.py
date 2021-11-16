@@ -151,7 +151,7 @@ def sample(input_json):
 
     # Run just that single input.
     controller = DumbController(input_json)
-    controller.run_all()
+    controller.run_safe()
 
 
 @click.command()
