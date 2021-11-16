@@ -60,6 +60,7 @@ def test_run_once(required_fields):
     assert results['syndrome'].shape == (code.stabilizers.shape[0],)
     assert isinstance(results['success'], bool)
     assert results['effective_error'].shape == (2*code.logical_xs.shape[0],)
+    assert isinstance(results['codespace'], bool)
 
 
 def test_run_once_invalid_probability():

@@ -40,6 +40,7 @@ def run_once(
         total_error, code.logical_xs, code.logical_zs
     )
     success = bool(np.all(effective_error == 0))
+    codespace = bool(np.all(bcommute(code.stabilizers, total_error) == 0))
 
     results = {
         'error': error,
@@ -47,6 +48,7 @@ def run_once(
         'correction': correction,
         'effective_error': effective_error,
         'success': success,
+        'codespace': codespace,
     }
 
     return results
@@ -103,6 +105,7 @@ class Simulation:
         self._results = {
             'effective_error': [],
             'success': [],
+            'codespace': [],
             'wall_time': 0,
         }
 
