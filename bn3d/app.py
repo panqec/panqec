@@ -519,6 +519,7 @@ def merge_results_dicts(results_dicts: List[Dict]) -> Dict:
     results = {
         'effective_error': [],
         'success': [],
+        'codespace': [],
         'wall_time': 0.0
     }
     inputs = results_dicts[0]['inputs']
