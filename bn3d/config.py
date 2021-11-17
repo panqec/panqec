@@ -11,7 +11,8 @@ from qecsim.models.toric import ToricCode
 from qecsim.models.generic import NaiveDecoder
 from .tc3d import (
     ToricCode3D, Toric3DPymatchingDecoder, SweepMatchDecoder,
-    RotatedPlanarCode3D, RotatedToricCode3D, RotatedSweepMatchDecoder
+    RotatedPlanarCode3D, RotatedToricCode3D, RotatedSweepMatchDecoder,
+    RotatedInfiniteZBiasDecoder
 )
 from .rhombic import RhombicCode
 from .bp_os_decoder import BeliefPropagationOSDDecoder
@@ -72,7 +73,8 @@ DECODERS = {
     'DeformedSweepMatchDecoder': DeformedSweepMatchDecoder,
     'FoliatedMatchingDecoder': FoliatedMatchingDecoder,
     'DeformedToric3DPymatchingDecoder': DeformedToric3DPymatchingDecoder,
-    'BeliefPropagationOSDDecoder': BeliefPropagationOSDDecoder
+    'BeliefPropagationOSDDecoder': BeliefPropagationOSDDecoder,
+    'RotatedInfiniteZBiasDecoder': RotatedInfiniteZBiasDecoder
 }
 
 # Slurm automation config.
