@@ -76,10 +76,23 @@ class TestRotatedInfiniteZBiasDecoder:
             'Total error anticommutes with logical Z'
         )
 
-    @pytest.mark.parametrize('pauli', ['X', 'Y', 'Z'])
+    @pytest.mark.parametrize('pauli', ['X', 'Z'])
     def test_all_1_qubit_errors_correctable(self, code, decoder, pauli):
         uncorrectable_locations = []
-        for location in code.qubit_index:
+
+        # Filter down allowable errors for infinite bias XZZX deformed noise.
+        if pauli == 'X':
+            qubit_locations = [
+                (x, y, z) for x, y, z in code.qubit_index
+                if z % 2 == 0
+            ]
+        else:
+            qubit_locations = [
+                (x, y, z) for x, y, z in code.qubit_index
+                if z % 2 == 1
+            ]
+
+        for location in qubit_locations:
             error = RotatedPlanar3DPauli(code)
             error.site(pauli, location)
             assert bsf_wt(error.to_bsf()) == 1

@@ -115,7 +115,7 @@ def get_results_df(
                     / (sim.n_results + 1)
                 )
 
-                z_errors = ~codespace & np.array(
+                z_errors = np.array(
                     sim.results['effective_error']
                 )[:, n_logicals:].any(axis=1)
                 batch_result['p_z'] = z_errors.mean()
@@ -123,11 +123,13 @@ def get_results_df(
                     batch_result['p_z']*(1 - batch_result['p_z'])
                     / (sim.n_results + 1)
                 )
+                batch_result['p_undecodable'] = (~codespace).mean()
             else:
                 batch_result['p_x'] = np.nan
                 batch_result['p_x_se'] = np.nan
                 batch_result['p_z'] = np.nan
                 batch_result['p_z_se'] = np.nan
+                batch_results['p_undecodable'] = np.nan
         results += batch_results
 
     results_df = pd.DataFrame(results)

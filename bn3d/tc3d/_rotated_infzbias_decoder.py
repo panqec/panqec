@@ -10,8 +10,7 @@ Indexer = Dict[Tuple[int, int, int], int]
 
 
 class ZMatchingDecoder(RotatedSweepDecoder3D):
-    def __init__(self):
-        pass
+    label = 'Rotated Infinite Z Bias Loop Sector Decoder'
 
     def get_edges_xy(self, code: RotatedPlanarCode3D):
         xy = [
@@ -132,15 +131,88 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
         return new_signs
 
 
+class XLineDecoder(Decoder):
+
+    label = 'Rotated Infinite Z Bias Point Sector Decoder'
+
+    def decode_line(
+        self, code: RotatedPlanarCode3D, syndrome: np.ndarray,
+        xy: Tuple[int, int]
+    ) -> np.ndarray:
+        x, y = xy
+        L_z = code.size[2]
+        n_faces = len(code.face_index)
+
+        edges = [
+            (x, y, 2*i + 2)
+            for i in range(L_z)
+        ]
+        vertices = [
+            (x, y, 2*i + 1)
+            for i in range(L_z + 1)
+        ]
+        edge_index = {
+            location: index for index, location in enumerate(edges)
+        }
+
+        # Construct the check matrix for PyMatching.
+        check_matrix = np.zeros((len(vertices), len(edges)), dtype=np.uint)
+        for i_vertex, (x, y, z) in enumerate(vertices):
+            neighbouring_edges = [
+                (x, y, z + 1),
+                (x, y, z - 1),
+            ]
+            for edge in neighbouring_edges:
+                if edge in edges:
+                    check_matrix[i_vertex, edge_index[edge]] = 1
+        matcher = Matching(check_matrix)
+
+        line_syndromes = np.array([
+            syndrome[n_faces + code.vertex_index[vertex]]
+            for vertex in vertices
+        ], dtype=np.uint)
+
+        line_corrections = matcher.decode(
+            line_syndromes, num_neighbours=None
+        )
+
+        x_correction = np.zeros(code.n_k_d[0], dtype=np.uint)
+        for i_edge in np.where(line_corrections)[0]:
+            x_correction[code.qubit_index[edges[i_edge]]] = 1
+
+        return x_correction
+
+    def decode(
+        self, code: RotatedPlanarCode3D, syndrome: np.ndarray
+    ) -> np.ndarray:
+        """Get X corrections given code and measured syndrome."""
+
+        # Initialize correction as full bsf.
+        n_qubits = code.n_k_d[0]
+        correction = np.zeros(2*n_qubits, dtype=np.uint)
+        x_correction = np.zeros(n_qubits, dtype=np.uint)
+
+        lines_xy = sorted([
+            (x, y) for x, y, z in code.qubit_index if z == 2
+        ])
+        for xy in lines_xy:
+            x_correction += self.decode_line(code, syndrome, xy)
+
+        # Load it into the X block of the full bsf.
+        correction[:n_qubits] = x_correction
+
+        return correction
+
+
 class RotatedInfiniteZBiasDecoder(Decoder):
     """An optimal decoder for infinite Z bias on deformed noise."""
 
     label = 'Rotated Infinite Z Bias Decoder'
-    _matcher: RotatedPlanarPymatchingDecoder
+    _matcher: XLineDecoder
     _sweeper: ZMatchingDecoder
 
     def __init__(self):
-        self._matcher = RotatedPlanarPymatchingDecoder()
+        self._matcher = XLineDecoder()
         self._sweeper = ZMatchingDecoder()
 
     def decode(
