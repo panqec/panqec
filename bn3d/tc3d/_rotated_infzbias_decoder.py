@@ -25,17 +25,17 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
         correction = RotatedPlanar3DPauli(code)
         signs = self.get_initial_state(code, syndrome)
 
+        # 1D pair matching along each vertical lines of horizontal edges.
+        for xy in self.get_edges_xy(code):
+            signs = self.decode_vertical_line(
+                signs, correction, code, xy
+            )
+
         # 2D matching on horizontal planes.
         L_z = code.size[2]
         for z_plane in range(1, 2*L_z + 2, 2):
             signs = self.match_horizontal_plane(
                 signs, correction, code, z_plane
-            )
-
-        # 1D pair matching along each vertical lines of horizontal edges.
-        for xy in self.get_edges_xy(code):
-            signs = self.decode_vertical_line(
-                signs, correction, code, xy
             )
         return correction.to_bsf()
 
