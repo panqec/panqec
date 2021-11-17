@@ -445,7 +445,7 @@ class DumbController(SimpleController):
             max_tau_map = json.load(f)['max_tau']
         return max_tau_map[self.input_hash]
 
-    def run_all(self):
+    def run_all(self, use_existing=True):
         """Dumb way of running to the end without saving in between."""
         max_tau = self.get_max_tau()
         seed = 0
@@ -457,9 +457,24 @@ class DumbController(SimpleController):
         model = self.new_model(input_entry)
         model.seed_rng(seed)
 
+        start_tau = 0
+        if use_existing:
+            existing_results = self.data_manager.load(
+                'results', {
+                    'hash': self.input_hash, 'seed': seed
+                }
+            )
+            if existing_results:
+                last_result = existing_results[-1]
+                if last_result['tau'] >= max_tau:
+                    print(f'Already done {self.input_hash}')
+                    return
+                start_tau = last_result['tau'] + 1
+                model.init_spins(np.array(last_result['spins'], dtype=int))
+
         start_time = datetime.datetime.now()
 
-        for tau in range(max_tau + 1):
+        for tau in range(start_tau, max_tau + 1):
             time_now = datetime.datetime.now()
             print(f'{time_now} sampling {self.input_hash} for tau={tau}')
 
