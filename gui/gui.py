@@ -3,7 +3,7 @@ import numpy as np
 from flask import Flask, send_from_directory, request, json, render_template
 from bn3d.tc3d import (
     ToricCode3D, RotatedPlanarCode3D, RotatedToricCode3D, SweepMatchDecoder,
-    RotatedSweepMatchDecoder
+    RotatedSweepMatchDecoder, RotatedInfiniteZBiasDecoder
 )
 from bn3d.tc2d import Toric2DPymatchingDecoder
 from qecsim.models.toric import ToricCode
@@ -242,6 +242,8 @@ def send_correction():
             raise NotImplementedError("No SweepMatch decoder for XY code")
         else:
             raise ValueError("Deformation not recognized")
+    elif decoder_name == 'infzopt':
+        decoder = RotatedInfiniteZBiasDecoder()
     else:
         raise ValueError(f'Decoder {decoder} not recognized')
 
