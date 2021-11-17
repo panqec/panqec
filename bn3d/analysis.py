@@ -129,7 +129,7 @@ def get_results_df(
                 batch_result['p_x_se'] = np.nan
                 batch_result['p_z'] = np.nan
                 batch_result['p_z_se'] = np.nan
-                batch_results['p_undecodable'] = np.nan
+                batch_result['p_undecodable'] = np.nan
         results += batch_results
 
     results_df = pd.DataFrame(results)
