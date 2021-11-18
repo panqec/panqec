@@ -175,7 +175,6 @@ def send_stabilizer_matrix():
 @app.route('/decode', methods=['POST'])
 def send_correction():
     content = request.json
-    print(json.dumps(content))
     syndrome = np.array(content['syndrome'])
     Lx = content['Lx']
     Ly = content['Ly']
@@ -257,7 +256,6 @@ def send_correction():
 @app.route('/new-errors', methods=['POST'])
 def send_random_errors():
     content = request.json
-    print(json.dumps(content))
     Lx = content['Lx']
     Ly = content['Ly']
     if 'Lz' in content:
@@ -300,8 +298,6 @@ def send_random_errors():
 
     errors = error_model.generate(code, p)
 
-    print('Generated error')
-    print(errors)
     n_qubits = code.n_k_d[0]
     bsf_to_str_map = {(0, 0): 'I', (1, 0): 'X', (0, 1): 'Z', (1, 1): 'Y'}
     error_spec = [
@@ -317,7 +313,6 @@ def send_random_errors():
         for i_qubit in range(n_qubits)
     ]
     error_spec = [spec for spec in error_spec if spec[0] != 'I']
-    print(error_spec)
     return json.dumps(errors.tolist())
 
 
