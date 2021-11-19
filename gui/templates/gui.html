@@ -9,11 +9,12 @@
 </head>
 <body style="margin: 0">
     {% if request.path == url_for('send_index_2d') %}
-        <script type="module" src="js/gui2d.js"></script>
+        <script>const codeDimension = 2;</script>
     {% elif request.path == url_for('send_index_3d') %}
-        <script type="module" src="js/main.js"></script>
+        <script>const codeDimension = 3;</script>
     {% else %}
         <b>Problem: {{ request.path }}</b>
     {% endif %}
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>

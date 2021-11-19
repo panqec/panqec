@@ -137,3 +137,8 @@ dmypy.json
 
 # PyCharm project settings
 .idea
+
+# Javascript libraries
+
+gui/static/node_modules
+gui/static/package-lock.json

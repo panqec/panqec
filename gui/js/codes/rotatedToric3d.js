@@ -1,16 +1,17 @@
-import * as THREE from 'https://cdn.skypack.dev/three@v0.130.1';
+import * as THREE from '../../modules/three/build/three.module.js';
 
 import { AbstractCode, stringToArray } from './base.js';
 
 export {RotatedToricCode3D};
 
 class RotatedToricCode3D extends AbstractCode {
-    constructor(Lx, Ly, Lz, Hx, Hz, indices, scene) {
+    constructor(size, Hx, Hz, indices, scene) {
         super(Hx, Hz, scene);
 
-        this.Lx = Lx;
-        this.Ly = Ly;
-        this.Lz = Lz;
+        this.Lx = size[0];
+        this.Ly = size[1];
+        this.Lz = size[2];
+
 
         this.vertices = new Array(Hx.length);
         this.faces = new Array(Hz.length);

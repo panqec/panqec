@@ -42,17 +42,23 @@ def send_index_3d():
 
 @app.route('/main.css')
 def css():
-    return send_from_directory('static/css/main.css')
+    return send_from_directory('static/css', 'main.css')
 
 
 @app.route('/favicon.ico')
 def favicon():
-    return send_from_directory('static/favicon.ico')
+    return send_from_directory('static', 'favicon.ico')
 
 
 @app.route('/js/<path:path>')
 def send_js(path):
     return send_from_directory('js', path)
+
+
+@app.route('/modules/<path:path>')
+def send_modules(path):
+    return send_from_directory('static/node_modules', path)
+
 
 
 @app.route('/stabilizer-matrix', methods=['POST'])
@@ -65,7 +71,7 @@ def send_stabilizer_matrix():
 
     indices = {}
 
-    if code_name == 'toric2d':
+    if code_name == 'toric-2d':
         code = ToricCode(Lx, Ly)
 
         n_qubits = code.n_k_d[0]
@@ -76,7 +82,7 @@ def send_stabilizer_matrix():
         Hz = code.stabilizers[:n_faces, n_qubits:]
         Hx = code.stabilizers[n_faces:, :n_qubits]
 
-    elif code_name == 'cubic':
+    elif code_name == 'toric-3d':
         code = ToricCode3D(Lx, Ly, Lz)
 
         Hz = code.Hz
