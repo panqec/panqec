@@ -219,7 +219,10 @@ def get_p_th_sd_interp(
         p_left = p_interp[i_maxima[0]]
     else:
         p_left = p_interp[i_maxima[i_maxima < i_crossover].max()]
-    p_right = p_interp[i_maxima[i_crossover < i_maxima].min()]
+    if not any(i_crossover < i_maxima):
+        p_right = p_interp[i_maxima[-1]]
+    else:
+        p_right = p_interp[i_maxima[i_crossover < i_maxima].min()]
 
     # Crossover is the error rate value for that point.
     p_crossover = p_interp[i_crossover]
