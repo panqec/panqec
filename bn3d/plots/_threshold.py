@@ -13,7 +13,8 @@ from ..analysis import quadratic
 
 
 def detailed_plot(
-    plt, results_df, error_model, x_limits=None, save_folder=None
+    plt, results_df, error_model, x_limits=None, save_folder=None,
+    yscale=None,
 ):
     """Plot routine on loop.
 
@@ -30,6 +31,8 @@ def detailed_plot(
         Will not impose limits if 'auto' given.
     save_folder : str
         If given will save save figure as png to directory.
+    yscale : Optional[str]
+        Set to 'log' to make yscale logarithmic.
     """
     df = results_df.copy()
     df.sort_values('probability', inplace=True)
@@ -56,7 +59,8 @@ def detailed_plot(
                 linestyle='-',
                 marker='.',
             )
-        # ax.set_yscale('log')
+        if yscale is not None:
+            ax.set_yscale(yscale)
         if x_limits != 'auto':
             ax.set_xlim(x_limits[i_ax])
             ax.set_ylim(1e-2, 1e0)
