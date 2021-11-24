@@ -20,7 +20,7 @@ from .tc2d import Toric2DPymatchingDecoder
 from .deform import (
     DeformedXZZXErrorModel, DeformedXYErrorModel,
     DeformedSweepMatchDecoder,
-    FoliatedMatchingDecoder, DeformedToric3DPymatchingDecoder,
+    FoliatedMatchingDecoder, DeformedRotatedSweepMatchDecoder,
 )
 from .noise import PauliErrorModel, XNoiseOnYZEdgesOnly
 
@@ -72,7 +72,7 @@ DECODERS = {
     'NaiveDecoder': NaiveDecoder,
     'DeformedSweepMatchDecoder': DeformedSweepMatchDecoder,
     'FoliatedMatchingDecoder': FoliatedMatchingDecoder,
-    'DeformedToric3DPymatchingDecoder': DeformedToric3DPymatchingDecoder,
+    'DeformedRotatedSweepMatchDecoder': DeformedRotatedSweepMatchDecoder,
     'BeliefPropagationOSDDecoder': BeliefPropagationOSDDecoder,
     'RotatedInfiniteZBiasDecoder': RotatedInfiniteZBiasDecoder
 }
