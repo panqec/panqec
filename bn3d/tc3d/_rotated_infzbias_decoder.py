@@ -4,7 +4,6 @@ from qecsim.model import Decoder
 from pymatching import Matching
 from ._rotated_planar_code_3d import RotatedPlanarCode3D
 from ._rotated_planar_3d_pauli import RotatedPlanar3DPauli
-from ._rotated_planar_pymatching_decoder import RotatedPlanarPymatchingDecoder
 from ._rotated_sweep_decoder import RotatedSweepDecoder3D
 Indexer = Dict[Tuple[int, int, int], int]
 
