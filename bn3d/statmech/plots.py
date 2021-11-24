@@ -17,8 +17,10 @@ def get_wilson_loop_data(estimates, max_tau=10, L=15, eps=1e-5):
 
     for i_p, p_val in enumerate(probas):
         for i_T, T_val in enumerate(temperatures):
-            curr_estimates = filt_estimates[(filt_estimates['p'] == p_val) &
-                                            (filt_estimates['temperature'] == T_val)]
+            curr_estimates = filt_estimates[
+                (filt_estimates['p'] == p_val) &
+                (filt_estimates['temperature'] == T_val)
+            ]
             wilson_loops = curr_estimates['Wilson Loop_estimate'].to_numpy()[0]
 
             log_wl[i_p, i_T] = -np.log(np.abs(wilson_loops)+eps) / perimeters
@@ -30,26 +32,37 @@ def wilson_loop_ansatz(L, a, b, c):
     return a*L + b + c*np.log(L)
 
 
-def get_wilson_loop_ansatz_parameters(estimates, max_tau=10, L=15, eps=1e-5, start=0):
-    perimeters, log_wl = get_wilson_loop_data(estimates, max_tau=max_tau, L=L, eps=eps)
+def get_wilson_loop_ansatz_parameters(
+    estimates, max_tau=10, L=15, eps=1e-5, start=0
+):
+    perimeters, log_wl = get_wilson_loop_data(
+        estimates, max_tau=max_tau, L=L, eps=eps
+    )
     temperatures = estimates['temperature'].unique()
     probas = estimates['p'].unique()
 
     list_params = np.zeros((len(probas), len(temperatures), 3))
     for i_p in range(len(probas)):
         for i_T in range(len(temperatures)):
-            a, b, c = curve_fit(wilson_loop_ansatz, perimeters[start:], log_wl[i_p, i_T][start:], p0=[0.1, 0.1, 0.1])[0]
+            a, b, c = curve_fit(
+                wilson_loop_ansatz, perimeters[start:],
+                log_wl[i_p, i_T][start:], p0=[0.1, 0.1, 0.1]
+            )[0]
             list_params[i_p, i_T] = [a, b, c]
     list_params = np.array(list_params)
 
     return list_params
 
 
-def get_wilson_loop_critical_temperatures(estimates, max_tau=10, L=15, eps=1e-5, start=0, threshold=1e-4):
+def get_wilson_loop_critical_temperatures(
+    estimates, max_tau=10, L=15, eps=1e-5, start=0, threshold=1e-4
+):
     temperatures = estimates['temperature'].unique()
     probas = estimates['p'].unique()
 
-    list_params = get_wilson_loop_ansatz_parameters(estimates, max_tau=max_tau, L=L, eps=eps, start=start)
+    list_params = get_wilson_loop_ansatz_parameters(
+        estimates, max_tau=max_tau, L=L, eps=eps, start=start
+    )
     list_a = list_params[:, :, 0]
 
     critical_temperatures = np.zeros(len(probas))
@@ -61,7 +74,9 @@ def get_wilson_loop_critical_temperatures(estimates, max_tau=10, L=15, eps=1e-5,
 
 
 def plot_wilson_loops(estimates, max_tau=10, L=15, eps=1e-5, save_file=None):
-    perimeters, log_wl = get_wilson_loop_data(estimates, max_tau=max_tau, L=L, eps=eps)
+    perimeters, log_wl = get_wilson_loop_data(
+        estimates, max_tau=max_tau, L=L, eps=eps
+    )
 
     probas = estimates['p'].unique()
     temperatures = estimates['temperature'].unique()
@@ -72,10 +87,10 @@ def plot_wilson_loops(estimates, max_tau=10, L=15, eps=1e-5, save_file=None):
     for i_p, p_val in enumerate(probas):
         plt.subplot(log_wl.shape[0], 1, i_p+1)
         for i_T, T_val in enumerate(temperatures):
-            plt.plot(perimeters, log_wl[i_p, i_T], 'o-', label=f'T={T_val}');
+            plt.plot(perimeters, log_wl[i_p, i_T], 'o-', label=f'T={T_val}')
 
             plt.title(f'p={p_val}')
-            plt.ylabel("$-\log(WL) / P$")
+            plt.ylabel(r"$-\log(WL) / P$")
             plt.xlabel("Perimeter")
             plt.xticks(perimeters)
             plt.legend()
