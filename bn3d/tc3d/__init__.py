@@ -19,6 +19,8 @@ from ._rotated_sweep_decoder import RotatedSweepDecoder3D  # noqa
 from ._rotated_sweep_match_decoder import RotatedSweepMatchDecoder  # noqa
 from ._rotated_infzbias_decoder import RotatedInfiniteZBiasDecoder  # noqa
 from ._rotated_planar_pymatching_decoder import RotatedPlanarPymatchingDecoder  # noqa
+from ._layered_rotated_toric_code import LayeredRotatedToricCode  # noqa
+from ._layered_toric_pauli import LayeredToricPauli  # noqa
 
 
 def get_vertex_Z_stabilisers(L: int) -> np.ndarray:
