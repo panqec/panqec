@@ -34,6 +34,11 @@ class IndexedCode(StabilizerCode, metaclass=ABCMeta):
         self._face_index = self._create_face_indices()
 
     @property
+    @abstractmethod
+    def pauli_class(self):
+        """The Pauli operator class."""
+
+    @property
     def qubit_index(self) -> Indexer:
         return self._qubit_index
 
