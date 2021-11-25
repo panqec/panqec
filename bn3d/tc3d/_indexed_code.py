@@ -9,9 +9,9 @@ Indexer = Dict[Tuple[int, int, int], int]
 class IndexedCode(StabilizerCode, metaclass=ABCMeta):
 
     _size: Tuple[int, int, int]
-    _qubit_index: Dict[Tuple[int, int, int], int]
-    _vertex_index: Dict[Tuple[int, int, int], int]
-    _face_index: Dict[Tuple[int, int, int], int]
+    _qubit_index: Indexer
+    _vertex_index: Indexer
+    _face_index: Indexer
     _stabilizers = np.array([])
     _Hx = np.array([])
     _Hz = np.array([])
@@ -49,6 +49,10 @@ class IndexedCode(StabilizerCode, metaclass=ABCMeta):
     @property
     def face_index(self) -> Indexer:
         return self._face_index
+
+    @abstractmethod
+    def _create_qubit_indices(self) -> Indexer:
+        """Create qubit indices."""
 
     @abstractmethod
     def _create_vertex_indices(self) -> Indexer:
