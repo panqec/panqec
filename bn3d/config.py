@@ -19,7 +19,7 @@ from .bp_os_decoder import BeliefPropagationOSDDecoder
 from .tc2d import Toric2DPymatchingDecoder
 from .deform import (
     DeformedXZZXErrorModel, DeformedXYErrorModel,
-    DeformedSweepMatchDecoder,
+    DeformedSweepMatchDecoder, DeformedRhombicErrorModel,
     FoliatedMatchingDecoder, DeformedToric3DPymatchingDecoder,
 )
 from .noise import PauliErrorModel, XNoiseOnYZEdgesOnly
@@ -62,6 +62,7 @@ ERROR_MODELS = {
     'PauliErrorModel': PauliErrorModel,
     'DeformedXZZXErrorModel': DeformedXZZXErrorModel,
     'DeformedXYErrorModel': DeformedXYErrorModel,
+    'DeformedRhombicErrorModel': DeformedRhombicErrorModel,
     'XNoiseOnYZEdgesOnly': XNoiseOnYZEdgesOnly,
 }
 DECODERS = {
