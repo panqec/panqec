@@ -1,7 +1,7 @@
 from typing import Tuple, List
 from abc import ABCMeta, abstractmethod
 import pytest
-from bn3d.tc3d import LayeredRotatedToricCode
+from bn3d.tc3d import LayeredRotatedToricCode, LayeredToricPauli
 
 from .indexed_code_test import IndexedCodeTest
 
@@ -40,8 +40,7 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
 
     @pytest.fixture
     def code(self):
-        new_code = LayeredRotatedToricCode(*self.size)
-        return new_code
+        return LayeredRotatedToricCode(*self.size)
 
     def test_qubit_indices(self, code):
         locations = set(code.qubit_index.keys())
@@ -139,12 +138,15 @@ class TestLayeredRotatedToricCode3x4x3(IndexedCodeTestWithCoordinates):
 
 class TestLayeredRotatedToricPauli:
 
-    L_x = 3
-    L_y = 4
-    L_z = 3
+    size = (4, 3, 3)
 
     @pytest.fixture
     def code(self):
         """Example code with co-prime x and y dimensions."""
-        new_code = LayeredRotatedToricCode(self.L_x, self.L_y, self.L_z)
-        return new_code
+        return LayeredRotatedToricCode(*self.size)
+
+    def test_vertex_operator_in_bulk_has_weight_6(self, code):
+        vertex = (6, 4, 3)
+        operator = LayeredToricPauli(code)
+        operator.vertex('Z', vertex)
+        assert sum(operator.to_bsf()) == 6
