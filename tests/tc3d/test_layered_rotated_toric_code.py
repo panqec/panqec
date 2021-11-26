@@ -149,9 +149,26 @@ class TestLayeredRotatedToricPauli:
         vertices = [
             (x, y, z)
             for x, y, z in code.vertex_index
-            if z == 3
+            if z in [3, 5]
         ]
         for vertex in vertices:
             operator = LayeredToricPauli(code)
             operator.vertex('Z', vertex)
             assert sum(operator.to_bsf()) == 6
+
+    def test_vertex_operator_on_boundary_has_weight_5(self, code):
+        vertices = [
+            (x, y, z)
+            for x, y, z in code.vertex_index
+            if z in [1, 7]
+        ]
+        for vertex in vertices:
+            operator = LayeredToricPauli(code)
+            operator.vertex('Z', vertex)
+            assert sum(operator.to_bsf()) == 5
+
+    def test_every_face_operator_has_weight_4(self, code):
+        for face in code.face_index:
+            operator = LayeredToricPauli(code)
+            operator.vertex('X', face)
+            assert sum(operator.to_bsf()) == 4
