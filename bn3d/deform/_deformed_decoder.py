@@ -3,7 +3,10 @@ import itertools
 import numpy as np
 from pymatching import Matching
 from qecsim.model import Decoder, StabilizerCode, ErrorModel
-from ..tc3d import SweepDecoder3D, Toric3DPymatchingDecoder
+from ..tc3d import (
+    SweepDecoder3D, Toric3DPymatchingDecoder, RotatedPlanarPymatchingDecoder,
+    RotatedSweepDecoder3D
+)
 
 
 class DeformedToric3DPymatchingDecoder(Toric3DPymatchingDecoder):
@@ -33,36 +36,11 @@ class DeformedToric3DPymatchingDecoder(Toric3DPymatchingDecoder):
     def get_deformed_weights(self, code: StabilizerCode) -> np.ndarray:
         """Get MWPM weights for deformed Pauli noise."""
 
-        # Extract undeformed error probabilities.
-        r_x, r_y, r_z = self._error_model.direction
-        p_X, p_Y, p_Z = np.array([r_x, r_y, r_z])*self._probability
-
-        # Very small regularizer to deal with infinities.
-        epsilon = self._epsilon
-
         # The x-edges are deformed.
         deformed_edge = code.X_AXIS
 
-        # For undeformed qubit sites, only X and Y errors can be detected,
-        # so the probability of error is the sum of their probabilities.
-        # Note that Z errors can neither be detected nor corrected so they
-        # do not contribute to the weight.
-        p_regular = p_X + p_Y
-
-        # For deformed qubit sites, only Z and Y errors can be detected.
-        p_deformed = p_Z + p_Y
-
-        # Take logarithms regularized by epsilons to avoid infinities.
-        # Logarithms turn products into sums.
-        # Divide by the probability of no (detectable) error because that is
-        # the baseline to compare with.
-        regular_weight = -np.log(
-            (p_regular + epsilon)
-            / (1 - p_regular + epsilon)
-        )
-        deformed_weight = -np.log(
-            (p_deformed + epsilon)
-            / (1 - p_deformed + epsilon)
+        regular_weight, deformed_weight = get_regular_and_deformed_weights(
+            self._error_model.direction, self._probability, self._epsilon
         )
 
         # All weights are regular weights to start off with.
@@ -137,3 +115,89 @@ class DeformedSweepMatchDecoder(Decoder):
         correction = (z_correction + x_correction) % 2
         correction = correction.astype(np.uint)
         return correction
+
+
+class DeformedRotatedSweepMatchDecoder(DeformedSweepMatchDecoder):
+
+    def __init__(self, error_model: ErrorModel, probability: float):
+        self._sweeper = RotatedSweepDecoder3D()
+        self._matcher = DeformedRotatedPlanarPymatchingDecoder(
+            error_model, probability
+        )
+
+
+class DeformedRotatedPlanarPymatchingDecoder(RotatedPlanarPymatchingDecoder):
+
+    def __init__(self, error_model: ErrorModel, probability: float):
+        super(DeformedRotatedPlanarPymatchingDecoder, self).__init__()
+        self._error_model = error_model
+        self._probability = probability
+        self._epsilon = 1e-15
+
+    def new_matcher(self, code: StabilizerCode):
+        """Return a new Matching object."""
+        # Get the number of X stabilizers (faces).
+        n_faces = len(code.face_index)
+        self._n_faces[code.label] = n_faces
+        n_qubits = code.n_k_d[0]
+        self._n_qubits[code.label] = n_qubits
+
+        # Only keep the Z vertex stabilizers.
+        H_z = code.stabilizers[n_faces:, n_qubits:]
+        weights = self.get_deformed_weights(code)
+        return Matching(H_z, spacelike_weights=weights)
+
+    def get_deformed_weights(self, code: StabilizerCode) -> np.ndarray:
+        """Get MWPM weights for deformed Pauli noise."""
+
+        regular_weight, deformed_weight = get_regular_and_deformed_weights(
+            self._error_model.direction, self._probability, self._epsilon
+        )
+
+        # Count qubits and faces.
+        n_qubits = code.n_k_d[0]
+
+        # All weights are regular weights to start off with.
+        weights = np.ones(n_qubits, dtype=float)*regular_weight
+
+        # The weights on the deformed edge are different.
+        for (x, y, z), i_qubit in code.qubit_index.items():
+            if z % 2 == 0:
+                weights[i_qubit] = deformed_weight
+
+        # Return flattened arrays.
+        return weights
+
+
+def get_regular_and_deformed_weights(
+    direction: Tuple[float, float, float], probability: float, epsilon: float
+) -> Tuple[float, float]:
+    """Get MWPM weights for given Pauli noise probabilities."""
+
+    # Extract undeformed error probabilities.
+    r_x, r_y, r_z = direction
+    p_X, p_Y, p_Z = np.array([r_x, r_y, r_z])*probability
+
+    # For undeformed qubit sites, only X and Y errors can be detected,
+    # so the probability of error is the sum of their probabilities.
+    # Note that Z errors can neither be detected nor corrected so they
+    # do not contribute to the weight.
+    p_regular = p_X + p_Y
+
+    # For deformed qubit sites, only Z and Y errors can be detected.
+    p_deformed = p_Z + p_Y
+
+    # Take logarithms regularized by epsilons to avoid infinities.
+    # Logarithms turn products into sums.
+    # Divide by the probability of no (detectable) error because that is
+    # the baseline to compare with.
+    regular_weight = -np.log(
+        (p_regular + epsilon)
+        / (1 - p_regular + epsilon)
+    )
+    deformed_weight = -np.log(
+        (p_deformed + epsilon)
+        / (1 - p_deformed + epsilon)
+    )
+
+    return regular_weight, deformed_weight

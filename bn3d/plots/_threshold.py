@@ -13,9 +13,27 @@ from ..analysis import quadratic
 
 
 def detailed_plot(
-    plt, results_df, error_model, x_limits=None, save_folder=None
+    plt, results_df, error_model, x_limits=None, save_folder=None,
+    yscale=None,
 ):
-    """Plot routine on loop."""
+    """Plot routine on loop.
+
+    Parameters
+    ----------
+    plt : matplotlib.pyplot
+        The matplotlib pyplot reference.
+    results_df : pd.Dataframe
+        Results table.
+    error_model : str
+        Name of the error model to filter to.
+    x_limits : Optional[Union[List[Tuple[float, float]], str]]
+        Will set limits from 0 to 0.5 if None given.
+        Will not impose limits if 'auto' given.
+    save_folder : str
+        If given will save save figure as png to directory.
+    yscale : Optional[str]
+        Set to 'log' to make yscale logarithmic.
+    """
     df = results_df.copy()
     df.sort_values('probability', inplace=True)
     fig, axes = plt.subplots(ncols=3, figsize=(12, 4))
@@ -41,9 +59,11 @@ def detailed_plot(
                 linestyle='-',
                 marker='.',
             )
-        # ax.set_yscale('log')
-        ax.set_xlim(x_limits[i_ax])
-        ax.set_ylim(1e-2, 1e0)
+        if yscale is not None:
+            ax.set_yscale(yscale)
+        if x_limits != 'auto':
+            ax.set_xlim(x_limits[i_ax])
+            ax.set_ylim(1e-2, 1e0)
 
         if i_ax == 0:
             paulis = title.split("Pauli")[1]
