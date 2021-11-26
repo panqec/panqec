@@ -167,9 +167,19 @@ def read_range_input(specification: str) -> List[float]:
     show_default=True,
     help='min:max:step or single value or list of values'
 )
+@click.option(
+    '--code_class', default=None, type=str,
+    show_default=True,
+    help='Explicitly specify the code class, e.g. ToricCode3D'
+)
+@click.option(
+    '--noise_class', default=None, type=str,
+    show_default=True,
+    help='Explicitly specify the noise class, e.g. DeformedXZZXErrorModel'
+)
 def generate_input(
     input_dir, lattice, boundary, deformation, ratio, sizes, decoder, bias,
-    eta, prob
+    eta, prob, code_class, noise_class
 ):
     """Generate the json files of every experiment.
 
@@ -212,6 +222,10 @@ def generate_input(
                 code_model += 'Planar'
             code_model += 'Code3D'
 
+            # Explicit override.
+            if code_class is not None:
+                code_model = code_class
+
             L_list = [int(s) for s in sizes.split(',')]
             if ratio == 'coprime':
                 code_parameters = [
@@ -234,6 +248,10 @@ def generate_input(
                 noise_model = 'DeformedXZZXErrorModel'
             elif deformation == "xy":
                 noise_model = 'DeformedXYErrorModel'
+
+            # Explicit override option for noise model.
+            if noise_class is not None:
+                noise_model = noise_class
 
             noise_parameters = direction
             noise_dict = {
