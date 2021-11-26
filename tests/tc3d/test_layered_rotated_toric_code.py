@@ -146,7 +146,12 @@ class TestLayeredRotatedToricPauli:
         return LayeredRotatedToricCode(*self.size)
 
     def test_vertex_operator_in_bulk_has_weight_6(self, code):
-        vertex = (6, 4, 3)
-        operator = LayeredToricPauli(code)
-        operator.vertex('Z', vertex)
-        assert sum(operator.to_bsf()) == 6
+        vertices = [
+            (x, y, z)
+            for x, y, z in code.vertex_index
+            if z == 3
+        ]
+        for vertex in vertices:
+            operator = LayeredToricPauli(code)
+            operator.vertex('Z', vertex)
+            assert sum(operator.to_bsf()) == 6
