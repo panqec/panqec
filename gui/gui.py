@@ -11,7 +11,8 @@ from bn3d.rhombic import RhombicCode
 from bn3d.bp_os_decoder import BeliefPropagationOSDDecoder
 from bn3d.noise import PauliErrorModel
 from bn3d.deform import (
-    DeformedXZZXErrorModel, DeformedXYErrorModel, DeformedSweepMatchDecoder
+    DeformedXZZXErrorModel, DeformedXYErrorModel,
+    DeformedSweepMatchDecoder, DeformedRhombicErrorModel
 )
 
 import webbrowser
@@ -193,9 +194,9 @@ def send_correction():
     error_model_name = content['error_model']
     code_name = content['code_name']
 
-    if code_name == 'toric2d':
+    if code_name == 'toric-2d':
         code = ToricCode(Lx, Ly)
-    elif code_name == 'cubic':
+    elif code_name == 'toric-3d':
         code = ToricCode3D(Lx, Ly, Lz)
     elif code_name == 'rhombic':
         code = RhombicCode(Lx, Ly, Lz)
@@ -223,8 +224,10 @@ def send_correction():
         error_model = DeformedXZZXErrorModel(rx, ry, rz)
     elif deformation == "XY":
         error_model = DeformedXYErrorModel(rx, ry, rz)
+    elif deformation == "Rhombic":
+        error_model = DeformedRhombicErrorModel(rx, ry, rz)
     else:
-        raise ValueError("Deformation not recognized")
+        raise ValueError(f"Deformation {deformation} not recognized")
 
     if decoder_name == 'bp-osd':
         decoder = BeliefPropagationOSDDecoder(error_model, p,
@@ -271,9 +274,9 @@ def send_random_errors():
     error_model_name = content['error_model']
     code_name = content['code_name']
 
-    if code_name == 'toric2d':
+    if code_name == 'toric-2d':
         code = ToricCode(Lx, Ly)
-    elif code_name == 'cubic':
+    elif code_name == 'toric-3d':
         code = ToricCode3D(Lx, Ly, Lz)
     elif code_name == 'rhombic':
         code = RhombicCode(Lx, Ly, Lz)
@@ -299,6 +302,8 @@ def send_random_errors():
         error_model = DeformedXZZXErrorModel(rx, ry, rz)
     elif deformation == "XY":
         error_model = DeformedXYErrorModel(rx, ry, rz)
+    elif deformation == "Rhombic":
+        error_model = DeformedRhombicErrorModel(rx, ry, rz)
     else:
         raise ValueError('Deformation not recognized')
 

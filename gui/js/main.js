@@ -13,16 +13,16 @@ import { RotatedToricCode3D } from './codes/rotatedToric3d.js';
 const MIN_OPACITY = 0.1;
 const MAX_OPACITY = 0.6;
 
-var defaultCode = codeDimension == 2 ? 'toric-2d' : 'toric-3d';
+var defaultCode = codeDimension == 2 ? 'toric-2d' : 'rhombic';
 
 const params = {
     opacity: MAX_OPACITY,
     errorProbability: 0.1,
-    L: 2,
-    deformation: "None",
+    L: 4,
+    deformation: "Rhombic",
     decoder: 'bp-osd-2',
     max_bp_iter: 10,
-    errorModel: 'Depolarizing',
+    errorModel: 'Pure X',
     codeName: defaultCode
 };
 
@@ -220,7 +220,7 @@ function buildGUI() {
     const errorModelFolder = gui.addFolder('Error Model')
     errorModelFolder.add(params, 'errorModel', {'Pure X': 'Pure X', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}).name('Model');
     errorModelFolder.add(params, 'errorProbability', 0, 0.5).name('Probability');
-    errorModelFolder.add(params, 'deformation', {'None': 'None', 'XZZX': 'XZZX', 'XY': 'XY'}).name('Deformation');
+    errorModelFolder.add(params, 'deformation', {'None': 'None', 'XZZX': 'XZZX', 'XY': 'XY', 'Rhombic': 'Rhombic'}).name('Deformation');
     errorModelFolder.add(buttons, 'addErrors').name('▶ Add errors (r)');
     errorModelFolder.open();
 
