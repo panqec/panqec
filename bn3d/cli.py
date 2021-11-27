@@ -123,17 +123,20 @@ def read_range_input(specification: str) -> List[float]:
     help='Directory to save input .json files'
 )
 @click.option(
-    '-l', '--lattice', required=True,
+    '-l', '--lattice', default='kitaev',
+    show_default=True,
     type=click.Choice(['rotated', 'kitaev']),
     help='Lattice rotation'
 )
 @click.option(
-    '-b', '--boundary', required=True,
+    '-b', '--boundary', default='toric',
+    show_default=True,
     type=click.Choice(['toric', 'planar']),
     help='Boundary conditions'
 )
 @click.option(
-    '-d', '--deformation', required=True,
+    '-d', '--deformation', default='none',
+    show_default=True,
     type=click.Choice(['none', 'xzzx', 'xy']),
     help='Deformation'
 )
