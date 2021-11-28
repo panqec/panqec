@@ -71,6 +71,7 @@ class LayeredToricPauli(RotatedPlanar3DPauli):
             neighbours = []
 
             # Those in-plane with unrotated y (normal to unrotated x)
+            # a.k.a parallel up-right in rotated lattice
             if (x - y) % 4 == 2:
 
                 # y boundary.
@@ -107,29 +108,58 @@ class LayeredToricPauli(RotatedPlanar3DPauli):
                     neighbours.append((x - 1, y - 1, z))
 
             # Those in-plane with unrotated x (normal to unrotated y)
+            # a.k.a parallel down-right in rotated lattice
             else:
 
                 # Corner case.
                 if (x, y) == (1, 1):
+
+                    # even x even lattice.
                     if L_x % 2 == 0 and L_y % 2 == 0:
                         neighbours.append((2, 2*L_y, z))
                         neighbours.append((2*L_x, 2, z))
+
+                    # even x odd lattice.
                     elif L_x % 2 == 0 and L_y % 2 == 1:
                         neighbours.append((2*L_x, 2*L_y, z))
                         neighbours.append((2*L_x, 2, z))
+
+                    # odd x even lattice.
                     elif L_x % 2 == 1 and L_x % 2 == 0:
                         neighbours.append((2, 2*L_y, z))
                         neighbours.append((2*L_x, 2*L_y, z))
+
+                    # No corner operator for odd x odd lattice.
                     else:
                         pass
 
                 # y boundary.
                 elif y == 1:
-                    pass
+
+                    # Neighbouring vertical edge in the bulk.
+                    neighbours.append((x - 1, 2, z))
+
+                    # Compatible lattice boundary.
+                    if L_y % 2 == 0:
+                        neighbours.append((x + 1, 2*L_y, z))
+
+                    # Incompatible lattice boundary.
+                    else:
+                        neighbours.append((x - 1, 2*L_y, z))
 
                 # x boundary.
                 elif x == 1:
-                    pass
+
+                    # Neighbouring vertical edge in the bulk.
+                    neighbours.append((2, y - 1, z))
+
+                    # Compatible lattice boundary.
+                    if L_x % 2 == 0:
+                        neighbours.append((2*L_x, y + 1, z))
+
+                    # Incompatible lattice boundary.
+                    else:
+                        neighbours.append((2*L_x, y - 1, z))
 
                 # Typical case in the bulk.
                 else:
@@ -142,5 +172,16 @@ class LayeredToricPauli(RotatedPlanar3DPauli):
             if x - 1 >= 1:
                 neighbours.append((x, y, z - 1))
 
+        defect_x_boundary, defect_y_boundary = self.vertex_on_defect_boundary(
+            L_x, L_y, x, y
+        )
+        if defect_x_boundary or defect_y_boundary:
+            defect_operator = {'X': 'Z', 'Y': 'Y', 'Z': 'X'}[operator]
+
         for edge in neighbours:
-            self.site(operator, edge)
+            defect_x_on_edge = defect_x_boundary and edge[0] == 1
+            defect_y_on_edge = defect_y_boundary and edge[1] == 1
+            if defect_x_on_edge != defect_y_on_edge:
+                self.site(defect_operator, edge)
+            else:
+                self.site(operator, edge)

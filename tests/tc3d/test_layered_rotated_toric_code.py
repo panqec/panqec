@@ -1,9 +1,30 @@
 from typing import Tuple, List
 from abc import ABCMeta, abstractmethod
 import pytest
+import numpy as np
 from bn3d.tc3d import LayeredRotatedToricCode, LayeredToricPauli
+from bn3d.bpauli import bcommute, bvector_to_pauli_string
 
 from .indexed_code_test import IndexedCodeTest
+
+
+def operator_spec(code, bsf):
+    """Get representation of BSF as list of (pauli, (x, y, z)) entries.
+
+    Useful for debugging and reading BSF in human-readable format.
+    """
+    operator_spec = []
+    pauli_string = bvector_to_pauli_string(bsf)
+    for index, pauli in enumerate(pauli_string):
+        if pauli != 'I':
+            matches = [
+                xyz
+                for xyz, i in code.qubit_index.items()
+                if i == index
+            ]
+            location = matches[0]
+            operator_spec.append((pauli, location))
+    return operator_spec
 
 
 class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
@@ -76,6 +97,26 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
             for z in self.expected_plane_z
         ])
         assert locations == expected_locations
+
+    def test_all_stabilizers_commute(self, code):
+        commutators = bcommute(code.stabilizers, code.stabilizers)
+        non_commuting = set([
+            (i, j)
+            for i, j in np.array(np.where(commutators)).T
+            if i <= j
+        ])
+
+        # Print the first few non-commuting stabilizers if any found.
+        if non_commuting:
+            max_print = 5
+            for i_print, (i, j) in enumerate(non_commuting):
+                print(operator_spec(code, code.stabilizers[i]))
+                print(operator_spec(code, code.stabilizers[j]))
+                if i_print == max_print:
+                    break
+
+        # There should be no non-commuting pairs of stabilizers.
+        assert len(non_commuting) == 0
 
 
 class TestLayeredRotatedToricCode2x2x1(IndexedCodeTestWithCoordinates):
@@ -167,8 +208,10 @@ class TestLayeredRotatedToricPauli:
             operator.vertex('Z', vertex)
             assert sum(operator.to_bsf()) == 5
 
-    def test_every_face_operator_has_weight_4(self, code):
+    def test_every_face_operator_in_bulk_has_weight_4(self, code):
         for face in code.face_index:
-            operator = LayeredToricPauli(code)
-            operator.vertex('X', face)
-            assert sum(operator.to_bsf()) == 4
+            x, y, z = face
+            if x > 1 and y > 1 and z > 1 and z < 2*self.size[2] + 1:
+                operator = LayeredToricPauli(code)
+                operator.face('X', face)
+                assert sum(operator.to_bsf()) == 4
