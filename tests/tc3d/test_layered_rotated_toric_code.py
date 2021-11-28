@@ -110,8 +110,9 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
         if non_commuting:
             max_print = 5
             for i_print, (i, j) in enumerate(non_commuting):
-                print(operator_spec(code, code.stabilizers[i]))
-                print(operator_spec(code, code.stabilizers[j]))
+                print(f'Stabilizers {i} and {j} anticommuting')
+                print(f'{i}:', operator_spec(code, code.stabilizers[i]))
+                print(f'{j}:', operator_spec(code, code.stabilizers[j]))
                 if i_print == max_print:
                     break
 
@@ -133,6 +134,43 @@ class TestLayeredRotatedToricCode2x2x1(IndexedCodeTestWithCoordinates):
     ]
     expected_plane_z = [1, 3]
     expected_vertical_z = [2]
+
+
+class TestLayeredRotatedToricCode3x2x1(IndexedCodeTestWithCoordinates):
+    size = (3, 2, 1)
+    expected_plane_edges_xy = [
+        (1, 1), (3, 1), (5, 1),
+        (1, 3), (3, 3), (5, 3),
+    ]
+    expected_plane_faces_xy = [
+        (2, 2), (4, 4), (6, 2),
+    ]
+    expected_plane_vertices_xy = [
+        (4, 2), (2, 4), (6, 4)
+    ]
+    expected_plane_z = [1, 3]
+    expected_vertical_z = [2]
+
+
+class TestLayeredRotatedToricCode3x3x3(IndexedCodeTestWithCoordinates):
+    size = (3, 3, 3)
+    expected_plane_edges_xy = [
+        (1, 1), (3, 1), (5, 1),
+        (1, 3), (3, 3), (5, 3),
+        (1, 5), (3, 5), (5, 5),
+    ]
+    expected_plane_faces_xy = [
+        (2, 2), (6, 2),
+        (4, 4),
+        (2, 6), (6, 6),
+    ]
+    expected_plane_vertices_xy = [
+        (4, 2),
+        (2, 4), (6, 4),
+        (4, 6),
+    ]
+    expected_plane_z = [1, 3, 5, 7]
+    expected_vertical_z = [2, 4, 6]
 
 
 class TestLayeredRotatedToricCode4x3x3(IndexedCodeTestWithCoordinates):
@@ -172,6 +210,30 @@ class TestLayeredRotatedToricCode3x4x3(IndexedCodeTestWithCoordinates):
         (2, 4), (2, 8),
         (4, 2), (4, 6),
         (6, 4), (6, 8),
+    ]
+    expected_plane_z = [1, 3, 5, 7]
+    expected_vertical_z = [2, 4, 6]
+
+
+class TestLayeredRotatedToricCode4x4x3(IndexedCodeTestWithCoordinates):
+    size = (4, 4, 3)
+    expected_plane_edges_xy = [
+        (1, 1), (1, 3), (1, 5), (1, 7),
+        (3, 1), (3, 3), (3, 5), (3, 7),
+        (5, 1), (5, 3), (5, 5), (5, 7),
+        (7, 1), (7, 3), (7, 5), (7, 7),
+    ]
+    expected_plane_faces_xy = [
+        (2, 2), (2, 6),
+        (4, 4), (4, 8),
+        (6, 2), (6, 6),
+        (8, 4), (8, 8),
+    ]
+    expected_plane_vertices_xy = [
+        (2, 4), (2, 8),
+        (4, 2), (4, 6),
+        (6, 4), (6, 8),
+        (8, 2), (8, 6),
     ]
     expected_plane_z = [1, 3, 5, 7]
     expected_vertical_z = [2, 4, 6]

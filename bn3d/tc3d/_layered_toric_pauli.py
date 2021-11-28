@@ -4,7 +4,7 @@ from ._rotated_planar_3d_pauli import RotatedPlanar3DPauli
 
 class LayeredToricPauli(RotatedPlanar3DPauli):
 
-    def vertex_on_defect_boundary(self, L_x, L_y, x, y):
+    def on_defect_boundary(self, L_x, L_y, x, y):
         """Determine whether or not to defect each boundary."""
         defect_x_boundary = False
         defect_y_boundary = False
@@ -37,7 +37,7 @@ class LayeredToricPauli(RotatedPlanar3DPauli):
         if z - 1 >= 1:
             neighbours.append((x, y, z - 1))
 
-        defect_x_boundary, defect_y_boundary = self.vertex_on_defect_boundary(
+        defect_x_boundary, defect_y_boundary = self.on_defect_boundary(
             L_x, L_y, x, y
         )
         if defect_x_boundary or defect_y_boundary:
@@ -65,114 +65,48 @@ class LayeredToricPauli(RotatedPlanar3DPauli):
             ]
 
         # Vertical faces.
-        # TODO deal with boundary conditions and defects
         else:
 
             neighbours = []
 
-            # Those in-plane with unrotated y (normal to unrotated x)
-            # a.k.a parallel up-right in rotated lattice
-            if (x - y) % 4 == 2:
+            # Horizontal plane surrounding edges.
+            possible_sites = [
+                (x + 1, y + 1, z), (x - 1, y - 1, z),
+                (x + 1, y - 1, z), (x - 1, y + 1, z),
+                (x, y, z + 1), (x, y, z - 1)
+            ]
 
-                # y boundary.
-                if y == 1:
+            # if L_y % 2 == 1 and z % 2 == 0:
+            #     possible_sites.append((x, y - 1, z))
+            # if L_x % 2 == 1 and z % 2 == 0:
+            #     possible_sites.append((x - 1, y, z))
 
-                    # Neighbouring vertical edge in bulk.
-                    neighbours.append((x + 1, y + 1, z))
+            # Apply periodic boundary conditions if compatible lattice.
+            if L_x % 2 == 0:
+                for i_site, site in enumerate(possible_sites):
+                    if site[0] == 0:
+                        possible_sites[i_site] = (2*L_x, site[1], site[2])
+                    elif site[0] == 2*L_x + 1:
+                        possible_sites[i_site] = (1, site[1], site[2])
 
-                    # Interpolate across compatible boundary.
-                    if L_y % 2 == 0:
-                        neighbours.append((x - 1, 2*L_y, z))
+            # Otherwise no sites if odd boundary.
+            elif x == 1:
+                possible_sites = []
 
-                    # Twist across incompatible boundary.
-                    else:
-                        neighbours.append((x + 1, 2*L_y, z))
+            if L_y % 2 == 0:
+                for i_site, site in enumerate(possible_sites):
+                    if site[1] == 0:
+                        possible_sites[i_site] = (site[0], 2*L_y, site[2])
+                    elif site[1] == 2*L_y + 1:
+                        possible_sites[i_site] = (site[0], 1, site[2])
+            elif y == 1:
+                possible_sites = []
 
-                # x boundary.
-                elif x == 1:
+            for site in possible_sites:
+                if site in self.code.qubit_index:
+                    neighbours.append(site)
 
-                    # Neighbouring vertical edge in bulk.
-                    neighbours.append((x + 1, y + 1, z))
-
-                    # Interpolate across compatible boundary.
-                    if L_x % 2 == 0:
-                        neighbours.append((2*L_x, y - 1, z))
-
-                    # Twist across incompatible boundary.
-                    else:
-                        neighbours.append((2*L_x, y + 1, z))
-
-                # Typical case in the bulk.
-                else:
-                    neighbours.append((x + 1, y + 1, z))
-                    neighbours.append((x - 1, y - 1, z))
-
-            # Those in-plane with unrotated x (normal to unrotated y)
-            # a.k.a parallel down-right in rotated lattice
-            else:
-
-                # Corner case.
-                if (x, y) == (1, 1):
-
-                    # even x even lattice.
-                    if L_x % 2 == 0 and L_y % 2 == 0:
-                        neighbours.append((2, 2*L_y, z))
-                        neighbours.append((2*L_x, 2, z))
-
-                    # even x odd lattice.
-                    elif L_x % 2 == 0 and L_y % 2 == 1:
-                        neighbours.append((2*L_x, 2*L_y, z))
-                        neighbours.append((2*L_x, 2, z))
-
-                    # odd x even lattice.
-                    elif L_x % 2 == 1 and L_x % 2 == 0:
-                        neighbours.append((2, 2*L_y, z))
-                        neighbours.append((2*L_x, 2*L_y, z))
-
-                    # No corner operator for odd x odd lattice.
-                    else:
-                        pass
-
-                # y boundary.
-                elif y == 1:
-
-                    # Neighbouring vertical edge in the bulk.
-                    neighbours.append((x - 1, 2, z))
-
-                    # Compatible lattice boundary.
-                    if L_y % 2 == 0:
-                        neighbours.append((x + 1, 2*L_y, z))
-
-                    # Incompatible lattice boundary.
-                    else:
-                        neighbours.append((x - 1, 2*L_y, z))
-
-                # x boundary.
-                elif x == 1:
-
-                    # Neighbouring vertical edge in the bulk.
-                    neighbours.append((2, y - 1, z))
-
-                    # Compatible lattice boundary.
-                    if L_x % 2 == 0:
-                        neighbours.append((2*L_x, y + 1, z))
-
-                    # Incompatible lattice boundary.
-                    else:
-                        neighbours.append((2*L_x, y - 1, z))
-
-                # Typical case in the bulk.
-                else:
-                    neighbours.append((x + 1, y - 1, z))
-                    neighbours.append((x - 1, y + 1, z))
-
-            # Edges top and bottom.
-            if z + 1 <= 2*L_z + 1:
-                neighbours.append((x, y, z + 1))
-            if x - 1 >= 1:
-                neighbours.append((x, y, z - 1))
-
-        defect_x_boundary, defect_y_boundary = self.vertex_on_defect_boundary(
+        defect_x_boundary, defect_y_boundary = self.on_defect_boundary(
             L_x, L_y, x, y
         )
         if defect_x_boundary or defect_y_boundary:
