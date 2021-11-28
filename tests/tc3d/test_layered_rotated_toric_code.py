@@ -162,6 +162,7 @@ class TestLayeredRotatedToricCode3x2x1(IndexedCodeTestWithCoordinates):
     expected_vertical_z = [2]
 
 
+@pytest.mark.skip(reason='odd by odd')
 class TestLayeredRotatedToricCode3x3x3(IndexedCodeTestWithCoordinates):
     size = (3, 3, 3)
     expected_plane_edges_xy = [
