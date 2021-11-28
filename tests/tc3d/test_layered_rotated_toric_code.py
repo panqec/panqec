@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 import pytest
 import numpy as np
 from bn3d.tc3d import LayeredRotatedToricCode, LayeredToricPauli
-from bn3d.bpauli import bcommute, bvector_to_pauli_string
+from bn3d.bpauli import bcommute, bvector_to_pauli_string, brank
 
 from .indexed_code_test import IndexedCodeTest
 
@@ -118,6 +118,16 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
 
         # There should be no non-commuting pairs of stabilizers.
         assert len(non_commuting) == 0
+
+    def test_n_indepdent_stabilizers_equals_n_minus_k(self, code):
+        n, k, _ = code.n_k_d
+        matrix = code.stabilizers
+
+        # Number of independent stabilizer generators.
+        rank = brank(matrix)
+
+        assert rank <= matrix.shape[0]
+        assert rank == n - k
 
 
 class TestLayeredRotatedToricCode2x2x1(IndexedCodeTestWithCoordinates):

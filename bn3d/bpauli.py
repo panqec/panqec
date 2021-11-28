@@ -199,3 +199,28 @@ def ints_to_bvectors(int_list: list, n: int) -> list:
     for int_rep in int_list:
         bvectors.append(int_to_bvector(int_rep, n))
     return bvectors
+
+
+def gf2_rank(rows):
+    """Find rank of a matrix over GF2 given as list of binary ints.
+
+    From https://stackoverflow.com/questions/56856378
+    """
+    rank = 0
+    while rows:
+        pivot_row = rows.pop()
+        if pivot_row:
+            rank += 1
+            lsb = pivot_row & -pivot_row
+            for index, row in enumerate(rows):
+                if row & lsb:
+                    rows[index] = row ^ pivot_row
+    return rank
+
+
+def brank(matrix):
+    """Rank of a binary matrix."""
+
+    # Convert to list of binary numbers.
+    rows = [int(''.join(map(str, row)), 2) for row in matrix.astype(int)]
+    return gf2_rank(rows)

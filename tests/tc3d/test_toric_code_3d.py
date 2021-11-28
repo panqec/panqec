@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from qecsim.paulitools import bsf_wt, bsf_to_pauli
-from bn3d.bpauli import bcommute
+from bn3d.bpauli import bcommute, brank
 from bn3d.tc3d import ToricCode3D
 
 
@@ -102,6 +102,16 @@ class TestToricCode3D:
         logicals = code.logical_xs
         assert logicals.shape[0] == 3
         assert logicals.shape[1] == 2*n
+
+    def test_check_matrix_rank_equals_n_minus_k(self, code):
+        n, k, _ = code.n_k_d
+        matrix = code.stabilizers
+
+        # Number of independent stabilizer generators.
+        rank = brank(matrix)
+
+        assert rank <= matrix.shape[0]
+        assert rank == n - k
 
 
 class TestCommutationRelationsToricCode3D:
