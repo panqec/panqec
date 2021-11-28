@@ -76,11 +76,6 @@ class LayeredToricPauli(RotatedPlanar3DPauli):
                 (x, y, z + 1), (x, y, z - 1)
             ]
 
-            # if L_y % 2 == 1 and z % 2 == 0:
-            #     possible_sites.append((x, y - 1, z))
-            # if L_x % 2 == 1 and z % 2 == 0:
-            #     possible_sites.append((x - 1, y, z))
-
             # Apply periodic boundary conditions if compatible lattice.
             if L_x % 2 == 0:
                 for i_site, site in enumerate(possible_sites):
@@ -93,12 +88,15 @@ class LayeredToricPauli(RotatedPlanar3DPauli):
             elif x == 1:
                 possible_sites = []
 
+            # Apply periodic boundary conditions if compatible lattice.
             if L_y % 2 == 0:
                 for i_site, site in enumerate(possible_sites):
                     if site[1] == 0:
                         possible_sites[i_site] = (site[0], 2*L_y, site[2])
                     elif site[1] == 2*L_y + 1:
                         possible_sites[i_site] = (site[0], 1, site[2])
+
+            # Otherwise no sites if odd boundary.
             elif y == 1:
                 possible_sites = []
 

@@ -16,7 +16,12 @@ class LayeredRotatedToricCode(IndexedCode):
     @property
     def n_k_d(self) -> Tuple[int, int, int]:
         L_x, L_y, L_z = self.size
-        return (len(self.qubit_index), 2, min(L_x, L_y))
+        x_odd = L_x % 2 == 1
+        y_odd = L_y % 2 == 1
+        k = 2
+        if x_odd or y_odd:
+            k = 1
+        return (len(self.qubit_index), k, min(L_x, L_y))
 
     @property
     def logical_xs(self) -> np.ndarray:
