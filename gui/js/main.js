@@ -1,8 +1,9 @@
-import * as THREE from 'https://cdn.skypack.dev/three@v0.130.1';
-import { OrbitControls } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/controls/OrbitControls.js';
-import { OutlineEffect } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/effects/OutlineEffect.js';
-import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat.gui.module';
+import * as THREE from '../modules/three/build/three.module.js';
+import { OrbitControls } from '../modules/three/examples/jsm/controls/OrbitControls.js';
+import { OutlineEffect } from '../modules/three/examples/jsm/effects/OutlineEffect.js';
+import { GUI } from '../modules/three/examples/jsm/libs/dat.gui.module.js';
 
+import { ToricCode2D } from './codes/toric2d.js';
 import { ToricCode3D } from './codes/toric3d.js';
 import { RhombicCode } from './codes/rhombic.js';
 import { RotatedPlanarCode3D } from './codes/rotatedPlanar3d.js';
@@ -12,15 +13,17 @@ import { RotatedToricCode3D } from './codes/rotatedToric3d.js';
 const MIN_OPACITY = 0.1;
 const MAX_OPACITY = 0.6;
 
+var defaultCode = codeDimension == 2 ? 'toric-2d' : 'rhombic';
+
 const params = {
     opacity: MAX_OPACITY,
     errorProbability: 0.1,
-    L: 1,
-    deformation: "None",
-    decoder: 'bp-osd',
+    L: 4,
+    deformation: "Rhombic",
+    decoder: 'bp-osd-2',
     max_bp_iter: 10,
-    errorModel: 'Depolarizing',
-    codeName: 'rotated-planar'
+    errorModel: 'Pure X',
+    codeName: defaultCode
 };
 
 const buttons = {
@@ -39,15 +42,50 @@ animate();
 function init() {
     buildInstructions();
     buildReturnArrow();
-    buildScene();
-    buildGUI();
 
+    if (codeDimension == 2) {
+        buildScene2D();
+    }
+    else {
+        buildScene3D();
+    }
+    buildGUI();
     buildCode();
 
-    controls.update();
+    if (codeDimension == 3) {
+        controls.update();
+    }
 }
 
-function buildScene() {
+function buildScene2D() {
+    // Create scene
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color( 0x444488 );
+
+    // Camera
+    camera = new THREE.PerspectiveCamera( 10, window.innerWidth / window.innerHeight, 0.1, 1000 );
+    camera.position.z = 25;
+    camera.position.y = 0;
+    camera.position.x = 0;
+
+    const dirLight1 = new THREE.DirectionalLight( 0xffffff );
+    dirLight1.position.set( 1, 1, 1 );
+    scene.add( dirLight1 );
+
+    raycaster = new THREE.Raycaster();
+    mouse = new THREE.Vector2();
+
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    document.addEventListener("keydown", onDocumentKeyDown, false);
+    document.addEventListener('mousedown', onDocumentMouseDown, false);
+    window.addEventListener('resize', onWindowResize, false);
+    window.addEventListener("contextmenu", e => e.preventDefault());
+}
+
+function buildScene3D() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x444488);
 
@@ -58,13 +96,7 @@ function buildScene() {
     camera.position.z = radius * Math.cos(theta);
     camera.position.y = radius * Math.sin(phi) * Math.sin(theta);
     camera.position.x = radius * Math.cos(phi) * Math.sin(theta);
-    // camera.position.set(6, 3, 3)
 
-    // camera.lookAt(100, 0, 0);
-
-    // camera.rotation.z += Math.PI/4;
-
-    // camera.up = new THREE.Vector3(1, -1, 1);
 
     let dirLight1 = new THREE.DirectionalLight( 0xffffff );
     dirLight1.position.set( radius * Math.cos(theta), radius * Math.sin(phi) * Math.sin(theta), radius * Math.cos(phi) * Math.sin(theta));
@@ -112,12 +144,20 @@ async function buildCode() {
     let Ly = params.L;
     let Lz = params.L;
 
-    let codeClass = {'cubic': ToricCode3D,
+    if (codeDimension == 2) {
+        var size = [Lx, Ly];
+    }
+    else {
+        var size = [Lx, Ly, Lz]
+    }
+
+    let codeClass = {'toric-2d': ToricCode2D,
+                     'toric-3d': ToricCode3D,
                      'rhombic': RhombicCode,
                      'rotated-planar': RotatedPlanarCode3D,
                      'rotated-toric': RotatedToricCode3D}
 
-    code = new codeClass[params.codeName](Lx, Ly, Lz, Hx, Hz, indices, scene);
+    code = new codeClass[params.codeName](size, Hx, Hz, indices, scene);
     code.logical_x = logical_x;
     code.logical_z = logical_z;
     code.build();
@@ -167,14 +207,20 @@ async function getStabilizerMatrices() {
 function buildGUI() {
     gui = new GUI();
     const codeFolder = gui.addFolder('Code')
-    codeFolder.add(params, 'codeName', {'Cubic': 'cubic', 'Rhombic': 'rhombic', 'Rotated Planar': 'rotated-planar', 'Rotated Toric': 'rotated-toric'}).name('Code type').onChange(changeLatticeSize);
+    
+    var codes2d = {'Toric': 'toric-2d'};
+    var codes3d = {'Cubic': 'toric-3d', 'Rhombic': 'rhombic', 'Rotated Planar': 'rotated-planar', 'Rotated Toric': 'rotated-toric'};
+
+    var codes = codeDimension == 2 ? codes2d : codes3d;
+
+    codeFolder.add(params, 'codeName', codes).name('Code type').onChange(changeLatticeSize);
     codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
     codeFolder.open();
 
     const errorModelFolder = gui.addFolder('Error Model')
     errorModelFolder.add(params, 'errorModel', {'Pure X': 'Pure X', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}).name('Model');
     errorModelFolder.add(params, 'errorProbability', 0, 0.5).name('Probability');
-    errorModelFolder.add(params, 'deformation', {'None': 'None', 'XZZX': 'XZZX', 'XY': 'XY'}).name('Deformation');
+    errorModelFolder.add(params, 'deformation', {'None': 'None', 'XZZX': 'XZZX', 'XY': 'XY', 'Rhombic': 'Rhombic'}).name('Deformation');
     errorModelFolder.add(buttons, 'addErrors').name('▶ Add errors (r)');
     errorModelFolder.open();
 
@@ -258,7 +304,6 @@ function onDocumentMouseDown(event) {
                     break;
             }
         } else {
-            console.log(selectedQubit);
         }
     }
 }
@@ -393,7 +438,11 @@ function animate() {
     // update the picking ray with the camera and mouse position
 	raycaster.setFromCamera(mouse, camera);
 
-    controls.update()
-
-    effect.render(scene, camera);
+    if (codeDimension == 3) {
+        controls.update();
+        effect.render(scene, camera);
+    }
+    else {
+        renderer.render(scene, camera);
+    }
 }

@@ -11,7 +11,8 @@ from bn3d.rhombic import RhombicCode
 from bn3d.bp_os_decoder import BeliefPropagationOSDDecoder
 from bn3d.noise import PauliErrorModel
 from bn3d.deform import (
-    DeformedXZZXErrorModel, DeformedXYErrorModel, DeformedSweepMatchDecoder
+    DeformedXZZXErrorModel, DeformedXYErrorModel,
+    DeformedSweepMatchDecoder, DeformedRhombicErrorModel
 )
 
 import webbrowser
@@ -42,17 +43,23 @@ def send_index_3d():
 
 @app.route('/main.css')
 def css():
-    return send_from_directory('static/css/main.css')
+    return send_from_directory('static/css', 'main.css')
 
 
 @app.route('/favicon.ico')
 def favicon():
-    return send_from_directory('static/favicon.ico')
+    return send_from_directory('static', 'favicon.ico')
 
 
 @app.route('/js/<path:path>')
 def send_js(path):
     return send_from_directory('js', path)
+
+
+@app.route('/modules/<path:path>')
+def send_modules(path):
+    return send_from_directory('static/node_modules', path)
+
 
 
 @app.route('/stabilizer-matrix', methods=['POST'])
@@ -65,7 +72,7 @@ def send_stabilizer_matrix():
 
     indices = {}
 
-    if code_name == 'toric2d':
+    if code_name == 'toric-2d':
         code = ToricCode(Lx, Ly)
 
         n_qubits = code.n_k_d[0]
@@ -76,7 +83,7 @@ def send_stabilizer_matrix():
         Hz = code.stabilizers[:n_faces, n_qubits:]
         Hx = code.stabilizers[n_faces:, :n_qubits]
 
-    elif code_name == 'cubic':
+    elif code_name == 'toric-3d':
         code = ToricCode3D(Lx, Ly, Lz)
 
         Hz = code.Hz
@@ -175,7 +182,6 @@ def send_stabilizer_matrix():
 @app.route('/decode', methods=['POST'])
 def send_correction():
     content = request.json
-    print(json.dumps(content))
     syndrome = np.array(content['syndrome'])
     Lx = content['Lx']
     Ly = content['Ly']
@@ -188,9 +194,9 @@ def send_correction():
     error_model_name = content['error_model']
     code_name = content['code_name']
 
-    if code_name == 'toric2d':
+    if code_name == 'toric-2d':
         code = ToricCode(Lx, Ly)
-    elif code_name == 'cubic':
+    elif code_name == 'toric-3d':
         code = ToricCode3D(Lx, Ly, Lz)
     elif code_name == 'rhombic':
         code = RhombicCode(Lx, Ly, Lz)
@@ -218,8 +224,10 @@ def send_correction():
         error_model = DeformedXZZXErrorModel(rx, ry, rz)
     elif deformation == "XY":
         error_model = DeformedXYErrorModel(rx, ry, rz)
+    elif deformation == "Rhombic":
+        error_model = DeformedRhombicErrorModel(rx, ry, rz)
     else:
-        raise ValueError("Deformation not recognized")
+        raise ValueError(f"Deformation {deformation} not recognized")
 
     if decoder_name == 'bp-osd':
         decoder = BeliefPropagationOSDDecoder(error_model, p,
@@ -259,7 +267,6 @@ def send_correction():
 @app.route('/new-errors', methods=['POST'])
 def send_random_errors():
     content = request.json
-    print(json.dumps(content))
     Lx = content['Lx']
     Ly = content['Ly']
     if 'Lz' in content:
@@ -269,9 +276,9 @@ def send_random_errors():
     error_model_name = content['error_model']
     code_name = content['code_name']
 
-    if code_name == 'toric2d':
+    if code_name == 'toric-2d':
         code = ToricCode(Lx, Ly)
-    elif code_name == 'cubic':
+    elif code_name == 'toric-3d':
         code = ToricCode3D(Lx, Ly, Lz)
     elif code_name == 'rhombic':
         code = RhombicCode(Lx, Ly, Lz)
@@ -297,13 +304,13 @@ def send_random_errors():
         error_model = DeformedXZZXErrorModel(rx, ry, rz)
     elif deformation == "XY":
         error_model = DeformedXYErrorModel(rx, ry, rz)
+    elif deformation == "Rhombic":
+        error_model = DeformedRhombicErrorModel(rx, ry, rz)
     else:
         raise ValueError('Deformation not recognized')
 
     errors = error_model.generate(code, p)
 
-    print('Generated error')
-    print(errors)
     n_qubits = code.n_k_d[0]
     bsf_to_str_map = {(0, 0): 'I', (1, 0): 'X', (0, 1): 'Z', (1, 1): 'Y'}
     error_spec = [
@@ -319,7 +326,6 @@ def send_random_errors():
         for i_qubit in range(n_qubits)
     ]
     error_spec = [spec for spec in error_spec if spec[0] != 'I']
-    print(error_spec)
     return json.dumps(errors.tolist())
 
 

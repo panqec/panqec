@@ -311,13 +311,13 @@ class BeliefPropagationOSDDecoder(Decoder):
                     channel_probs=probabilities_z,
                     # the maximum number of iterations for BP)
                     max_iter=self._max_bp_iter,
-                    bp_method="ms",
+                    bp_method="msl",
                     # min sum scaling factor. If set to zero the variable
                     # scaling factor method is used
                     ms_scaling_factor=0,
                     # Choose from:  1) "osd_e", "osd_cs", "osd0"
                     osd_method="osd_cs",
-                    osd_order=7  # the osd search depth
+                    osd_order=6  # the osd search depth
                 )
 
                 x_decoder = bposd_decoder(
@@ -333,7 +333,7 @@ class BeliefPropagationOSDDecoder(Decoder):
                     # Choose from:  1) "osd_e", "osd_cs", "osd0"
                     osd_method="osd_cs",
                     # the osd search depth
-                    osd_order=7
+                    osd_order=6
                 )
                 self._x_decoder[code.label] = x_decoder
                 self._z_decoder[code.label] = z_decoder
@@ -347,20 +347,6 @@ class BeliefPropagationOSDDecoder(Decoder):
             x_decoder.update_channel_probs(new_x_probs)
             x_decoder.decode(syndrome_x)
             x_correction = x_decoder.osdw_decoding
-
-            # new_z_probs = self.update_probabilities(
-            #     x_correction, px, py, pz, direction="x->z"
-            # )
-            # z_decoder.update_channel_probs(new_z_probs)
-            # z_decoder.decode(syndrome_z)
-            # z_correction = z_decoder.osdw_decoding
-
-            # new_x_probs = self.update_probabilities(
-            #     z_correction, px, py, pz, direction="x->z"
-            # )
-            # x_decoder.update_channel_probs(new_x_probs)
-            # x_decoder.decode(syndrome_x)
-            # x_correction = x_decoder.osdw_decoding
         else:
             z_correction = bp_osd_decoder(
                 Hz, syndrome_z, probabilities_z, max_bp_iter=self._max_bp_iter

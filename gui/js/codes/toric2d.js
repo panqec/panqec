@@ -2,15 +2,14 @@ import * as THREE from '../../modules/three/build/three.module.js';
 
 import { AbstractCode, stringToArray } from './base.js';
 
-export {ToricCode3D};
+export {ToricCode2D};
 
-class ToricCode3D extends AbstractCode {
+class ToricCode2D extends AbstractCode {
     constructor(size, Hx, Hz, indices, scene) {
         super(Hx, Hz, scene);
 
         this.Lx = size[0];
         this.Ly = size[1];
-        this.Lz = size[2];
 
         this.vertices = [];
         this.faces = [];
@@ -25,25 +24,24 @@ class ToricCode3D extends AbstractCode {
         this.toggleStabFn['X'] = this.toggleVertex;
         this.toggleStabFn['Z'] = this.toggleFace;
 
-        this.X_AXIS = 1;
-        this.Y_AXIS = 2;
-        this.Z_AXIS = 0;
+        this.X_AXIS = 0;
+        this.Y_AXIS = 1;
         
         this.SIZE = {radiusEdge: 0.05, radiusVertex: 0.1, lengthEdge: 1};
     }
 
-    getIndexQubit(axis, x, y, z) {
-        let key = `[${axis}, ${x}, ${y}, ${z}]`;
+    getIndexQubit(axis, x, y) {
+        let key = `[${axis}, ${x}, ${y}]`;
         return this.qubitIndex[key];
     }
 
-    getIndexFace(axis, x, y, z) {
-        let key = `[${axis}, ${x}, ${y}, ${z}]`;
+    getIndexFace(x, y) {
+        let key = `[${x}, ${y}]`;
         return this.faceIndex[key];
     }
  
-    getIndexVertex(x, y, z) {
-        let key = `[${x}, ${y}, ${z}]`;
+    getIndexVertex(x, y) {
+        let key = `[${x}, ${y}]`;
         return this.vertexIndex[key];
     }
 
@@ -88,7 +86,6 @@ class ToricCode3D extends AbstractCode {
     
         edge.position.x = x;
         edge.position.y = y;
-        edge.position.z = z;
     
         if (axis == this.X_AXIS) {
             edge.position.y += this.SIZE.lengthEdge / 2
@@ -97,14 +94,10 @@ class ToricCode3D extends AbstractCode {
             edge.rotateX(Math.PI / 2)
             edge.position.z += this.SIZE.lengthEdge / 2
         }
-        else if (axis == this.Z_AXIS) {
-            edge.rotateZ(Math.PI / 2)
-            edge.position.x += this.SIZE.lengthEdge / 2
-        }
     
         edge.hasError = {'X': false, 'Z': false};
     
-        let index = this.getIndexQubit(axis, x, y, z)
+        let index = this.getIndexQubit(axis, x, y)
     
         edge.index = index;
         this.qubits[index] = edge;
@@ -120,9 +113,8 @@ class ToricCode3D extends AbstractCode {
     
         sphere.position.x = x;
         sphere.position.y = y;
-        sphere.position.z = z;
     
-        let index = this.getIndexVertex(x, y, z);
+        let index = this.getIndexVertex(x, y);
     
         sphere.index = index;
         sphere.isActivated = false;
@@ -132,7 +124,7 @@ class ToricCode3D extends AbstractCode {
         this.scene.add(sphere);
     }
 
-    buildFace(axis, x, y, z) {
+    buildFace(x, y, z) {
         const geometry = new THREE.PlaneGeometry(this.SIZE.lengthEdge-0.3, this.SIZE.lengthEdge-0.3);
     
         const material = new THREE.MeshToonMaterial({color: this.COLOR.activatedFace, opacity: 0, transparent: true, side: THREE.DoubleSide});
@@ -140,24 +132,8 @@ class ToricCode3D extends AbstractCode {
     
         face.position.x = x;
         face.position.y = y;
-        face.position.z = z;
     
-        if (axis == this.Y_AXIS) {
-            face.position.x += this.SIZE.lengthEdge / 2;
-            face.position.y += this.SIZE.lengthEdge / 2;
-        }
-        if (axis == this.X_AXIS) {
-            face.position.x += this.SIZE.lengthEdge / 2;
-            face.position.z += this.SIZE.lengthEdge / 2;
-            face.rotateX(Math.PI / 2)
-        }
-        else if (axis == this.Z_AXIS) {
-            face.position.z += this.SIZE.lengthEdge / 2
-            face.position.y += this.SIZE.lengthEdge / 2
-            face.rotateY(Math.PI / 2)
-        }
-    
-        let index = this.getIndexFace(axis, x, y, z);
+        let index = this.getIndexFace(x, y);
     
         face.index = index;
         face.isActivated = false;
@@ -169,16 +145,16 @@ class ToricCode3D extends AbstractCode {
 
     build() {
         for (const [coord, index] of Object.entries(this.qubitIndex)) {
-            let [axis, x, y, z] = stringToArray(coord)
-            this.buildEdge(axis, x, y, z)
+            let [axis, x, y] = stringToArray(coord)
+            this.buildEdge(axis, x, y)
         }
         for (const [coord, index] of Object.entries(this.vertexIndex)) {
-            let [x, y, z] = stringToArray(coord)
-            this.buildVertex(x, y, z)
+            let [x, y] = stringToArray(coord)
+            this.buildVertex(x, y)
         }
         for (const [coord, index] of Object.entries(this.faceIndex)) {
-            let [axis, x, y, z] = stringToArray(coord)
-            this.buildFace(axis, x, y, z)
+            let [x, y] = stringToArray(coord)
+            this.buildFace(x, y)
         }
     }
 }
