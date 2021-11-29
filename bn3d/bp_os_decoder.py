@@ -317,7 +317,7 @@ class BeliefPropagationOSDDecoder(Decoder):
                     ms_scaling_factor=0,
                     # Choose from:  1) "osd_e", "osd_cs", "osd0"
                     osd_method="osd_cs",
-                    osd_order=7  # the osd search depth
+                    osd_order=6  # the osd search depth
                 )
 
                 x_decoder = bposd_decoder(
@@ -333,7 +333,7 @@ class BeliefPropagationOSDDecoder(Decoder):
                     # Choose from:  1) "osd_e", "osd_cs", "osd0"
                     osd_method="osd_cs",
                     # the osd search depth
-                    osd_order=7
+                    osd_order=6
                 )
                 self._x_decoder[code.label] = x_decoder
                 self._z_decoder[code.label] = z_decoder

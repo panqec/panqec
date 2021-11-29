@@ -15,8 +15,12 @@ from ._rotated_toric_3d_pauli import RotatedToric3DPauli  # noqa
 from ._pymatching_decoder import Toric3DPymatchingDecoder  # noqa
 from ._sweep_decoder_3d import SweepDecoder3D  # noqa
 from ._sweep_match_decoder import SweepMatchDecoder  # noqa
+from ._rotated_sweep_decoder import RotatedSweepDecoder3D  # noqa
 from ._rotated_sweep_match_decoder import RotatedSweepMatchDecoder  # noqa
 from ._rotated_infzbias_decoder import RotatedInfiniteZBiasDecoder  # noqa
+from ._rotated_planar_pymatching_decoder import RotatedPlanarPymatchingDecoder  # noqa
+from ._layered_rotated_toric_code import LayeredRotatedToricCode  # noqa
+from ._layered_toric_pauli import LayeredToricPauli  # noqa
 
 
 def get_vertex_Z_stabilisers(L: int) -> np.ndarray:
