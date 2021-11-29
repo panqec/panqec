@@ -15,6 +15,7 @@ from ..analysis import quadratic
 def detailed_plot(
     plt, results_df, error_model, x_limits=None, save_folder=None,
     yscale=None,
+    thresholds_df=None,
 ):
     """Plot routine on loop.
 
@@ -33,6 +34,8 @@ def detailed_plot(
         If given will save save figure as png to directory.
     yscale : Optional[str]
         Set to 'log' to make yscale logarithmic.
+    thresholds_df : Optional[pd.DataFrame]
+        Plot the estimated threshold if given.
     """
     df = results_df.copy()
     df.sort_values('probability', inplace=True)
@@ -47,6 +50,7 @@ def detailed_plot(
 
     for (i_ax, prob, prob_se, title) in plot_labels:
         ax = axes[i_ax]
+        legend_title = None
         for code_size in np.sort(df['size'].unique()):
             df_filtered = df[
                 (df['size'] == code_size) & (df['error_model'] == error_model)
@@ -59,6 +63,30 @@ def detailed_plot(
                 linestyle='-',
                 marker='.',
             )
+        if i_ax == 0 and thresholds_df is not None:
+            thresholds = thresholds_df[
+                thresholds_df['error_model'] == error_model
+            ]
+            if thresholds.shape[0] > 0:
+                p_th_fss_left = thresholds['p_th_fss_left'].iloc[0]
+                p_th_fss_right = thresholds['p_th_fss_right'].iloc[0]
+                p_th_fss = thresholds['p_th_fss'].iloc[0]
+                p_th_fss_se = thresholds['p_th_fss_se'].iloc[0]
+                if not pd.isna(p_th_fss_left) and not pd.isna(p_th_fss_right):
+                    ax.axvspan(
+                        p_th_fss_left, p_th_fss_right,
+                        alpha=0.5, color='pink'
+                    )
+                if not pd.isna(p_th_fss):
+                    ax.axvline(
+                        p_th_fss,
+                        color='red',
+                        linestyle='--',
+                    )
+                if p_th_fss_se is not None and p_th_fss is not None:
+                    legend_title = r'$p_{\mathrm{th}}=(%.2f\pm %.2f)\%%$' % (
+                        100*p_th_fss, 100*p_th_fss_se,
+                    )
         if yscale is not None:
             ax.set_yscale(yscale)
         if x_limits != 'auto':
@@ -82,7 +110,10 @@ def detailed_plot(
         ax.locator_params(axis='x', nbins=6)
 
         ax.set_xlabel('Physical Error Rate')
-        ax.legend(loc='best')
+        if legend_title is not None:
+            ax.legend(loc='best', title=legend_title)
+        else:
+            ax.legend(loc='best')
     axes[0].set_ylabel('Logical Error Rate')
 
     if save_folder:
