@@ -2,6 +2,7 @@ from typing import Tuple, List
 from abc import ABCMeta, abstractmethod
 import pytest
 import numpy as np
+from qecsim.model import StabilizerCode
 from bn3d.tc3d import LayeredRotatedToricCode, LayeredToricPauli
 from bn3d.bpauli import bcommute, bvector_to_pauli_string, brank
 
@@ -25,6 +26,28 @@ def operator_spec(code, bsf):
             location = matches[0]
             operator_spec.append((pauli, location))
     return operator_spec
+
+
+def print_non_commuting(
+    code: StabilizerCode, commutators: np.ndarray,
+    operators_1: np.ndarray, operators_2: np.ndarray,
+    name_1: str, name_2: str,
+    max_print: int = 5
+):
+    non_commuting = set([
+        (i, j)
+        for i, j in np.array(np.where(commutators)).T
+        if i <= j
+    ])
+
+    # Print the first few non-commuting stabilizers if any found.
+    if non_commuting:
+        for i_print, (i, j) in enumerate(non_commuting):
+            print(f'{name_1} {i} and {name_2} {j} anticommuting')
+            print(f'{name_1} {i}:', operator_spec(code, operators_1[i]))
+            print(f'{name_2} {j}:', operator_spec(code, operators_2[j]))
+            if i_print == max_print:
+                break
 
 
 class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
@@ -100,24 +123,13 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
 
     def test_all_stabilizers_commute(self, code):
         commutators = bcommute(code.stabilizers, code.stabilizers)
-        non_commuting = set([
-            (i, j)
-            for i, j in np.array(np.where(commutators)).T
-            if i <= j
-        ])
-
-        # Print the first few non-commuting stabilizers if any found.
-        if non_commuting:
-            max_print = 5
-            for i_print, (i, j) in enumerate(non_commuting):
-                print(f'Stabilizers {i} and {j} anticommuting')
-                print(f'{i}:', operator_spec(code, code.stabilizers[i]))
-                print(f'{j}:', operator_spec(code, code.stabilizers[j]))
-                if i_print == max_print:
-                    break
+        print_non_commuting(
+            code, commutators, code.stabilizers, code.stabilizers,
+            'stabilizer', 'stabilizer'
+        )
 
         # There should be no non-commuting pairs of stabilizers.
-        assert len(non_commuting) == 0
+        assert np.all(commutators == 0)
 
     def test_n_indepdent_stabilizers_equals_n_minus_k(self, code):
         n, k, _ = code.n_k_d
@@ -128,6 +140,32 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
 
         assert rank <= matrix.shape[0]
         assert rank == n - k
+
+    def test_number_of_logicals_is_k(self, code):
+        k = code.n_k_d[1]
+        assert code.logical_xs.shape[0] == k
+        assert code.logical_zs.shape[0] == k
+
+    def test_logical_operators_anticommute_pairwise(self, code):
+        k = code.n_k_d[1]
+        assert np.all(bcommute(code.logical_xs, code.logical_xs) == 0)
+        assert np.all(bcommute(code.logical_zs, code.logical_zs) == 0)
+        commutators = bcommute(code.logical_xs, code.logical_zs)
+        assert np.all(commutators == np.eye(k))
+
+    def test_logical_operators_commute_with_stabilizers(self, code):
+        x_commutators = bcommute(code.logical_xs, code.stabilizers)
+        print_non_commuting(
+            code, x_commutators, code.logical_xs, code.stabilizers,
+            'logicalX', 'stabilizer'
+        )
+        y_commutators = bcommute(code.logical_zs, code.stabilizers)
+        print_non_commuting(
+            code, y_commutators, code.logical_zs, code.stabilizers,
+            'logicalZ', 'stabilizer'
+        )
+        assert np.all(x_commutators == 0)
+        assert np.all(y_commutators == 0)
 
 
 class TestLayeredRotatedToricCode2x2x1(IndexedCodeTestWithCoordinates):

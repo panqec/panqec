@@ -28,15 +28,24 @@ class LayeredRotatedToricCode(IndexedCode):
         """Get the unique logical X operator."""
 
         if self._logical_xs.size == 0:
-            Lx, Ly, Lz = self.size
+            L_x, L_y, L_z = self.size
             logicals = []
 
-            # X operators along x edges in x direction.
-            logical = self.pauli_class(self)
+            # X string operator along x.
+            if L_x % 2 == 0:
+                logical = self.pauli_class(self)
+                for x, y, z in self.qubit_index:
+                    if x == 1 and z == 1:
+                        logical.site('X', (x, y, z))
+                logicals.append(logical.to_bsf())
 
-            for x in range(1, 4*Lx+2, 2):
-                logical.site('X', (x, 4*Ly + 2 - x, 1))
-            logicals.append(logical.to_bsf())
+            # X string operator along y.
+            if L_y % 2 == 0:
+                logical = self.pauli_class(self)
+                for x, y, z in self.qubit_index:
+                    if y == 1 and z == 1:
+                        logical.site('X', (x, y, z))
+                logicals.append(logical.to_bsf())
 
             self._logical_xs = np.array(logicals, dtype=np.uint)
 
@@ -46,15 +55,26 @@ class LayeredRotatedToricCode(IndexedCode):
     def logical_zs(self) -> np.ndarray:
         """Get the unique logical Z operator."""
         if self._logical_zs.size == 0:
-            Lx, L_y, Lz = self.size
+            L_x, L_y, L_z = self.size
             logicals = []
 
-            # Z operators on x edges forming surface normal to x (yz plane).
-            logical = self.pauli_class(self)
-            for z in range(1, 2*(Lz+1), 2):
-                for x in range(1, 4*Lx+2, 2):
-                    logical.site('Z', (x, x, z))
-            logicals.append(logical.to_bsf())
+            # Z membrane operator normal to y.
+            if L_x % 2 == 0:
+                logical = self.pauli_class(self)
+                for x, y, z in self.qubit_index:
+                    if y == 3:
+                        logical.site('Z', (x, y, z))
+
+                logicals.append(logical.to_bsf())
+
+            # Z membrane operator normal to x.
+            if L_y % 2 == 0:
+                logical = self.pauli_class(self)
+                for x, y, z in self.qubit_index:
+                    if x == 3:
+                        logical.site('Z', (x, y, z))
+
+                logicals.append(logical.to_bsf())
 
             self._logical_zs = np.array(logicals, dtype=np.uint)
 
