@@ -42,11 +42,18 @@ def print_non_commuting(
 
     # Print the first few non-commuting stabilizers if any found.
     if non_commuting:
+        print(
+            f'{len(non_commuting)} pairs of non-commuting '
+            f'{name_1} and {name_2}:'
+        )
         for i_print, (i, j) in enumerate(non_commuting):
             print(f'{name_1} {i} and {name_2} {j} anticommuting')
             print(f'{name_1} {i}:', operator_spec(code, operators_1[i]))
             print(f'{name_2} {j}:', operator_spec(code, operators_2[j]))
             if i_print == max_print:
+                n_remaining = len(non_commuting) - 1 - i_print
+                if n_remaining > 0:
+                    print(f'... {n_remaining} more pairs')
                 break
 
 
