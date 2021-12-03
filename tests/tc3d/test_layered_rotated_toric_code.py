@@ -2,9 +2,12 @@ from typing import Tuple, List
 from abc import ABCMeta, abstractmethod
 import pytest
 import numpy as np
+from itertools import permutations, combinations
 from qecsim.model import StabilizerCode
 from bn3d.tc3d import LayeredRotatedToricCode, LayeredToricPauli
-from bn3d.bpauli import bcommute, bvector_to_pauli_string, brank
+from bn3d.bpauli import (
+    bcommute, bvector_to_pauli_string, brank, pauli_string_to_bvector
+)
 
 from .indexed_code_test import IndexedCodeTest
 
@@ -48,8 +51,17 @@ def print_non_commuting(
         )
         for i_print, (i, j) in enumerate(non_commuting):
             print(f'{name_1} {i} and {name_2} {j} anticommuting')
-            print(f'{name_1} {i}:', operator_spec(code, operators_1[i]))
-            print(f'{name_2} {j}:', operator_spec(code, operators_2[j]))
+            operator_spec_1 = operator_spec(code, operators_1[i])
+            operator_spec_2 = operator_spec(code, operators_2[j])
+            overlap = [
+                (op_1, op_2, site_1)
+                for op_1, site_1 in operator_spec_1
+                for op_2, site_2 in operator_spec_2
+                if site_1 == site_2
+            ]
+            print('Overlap:', overlap)
+            print(f'{name_1} {i}:', operator_spec_1)
+            print(f'{name_2} {j}:', operator_spec_2)
             if i_print == max_print:
                 n_remaining = len(non_commuting) - 1 - i_print
                 if n_remaining > 0:
@@ -158,7 +170,9 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
         assert np.all(bcommute(code.logical_xs, code.logical_xs) == 0)
         assert np.all(bcommute(code.logical_zs, code.logical_zs) == 0)
         commutators = bcommute(code.logical_xs, code.logical_zs)
-        assert np.all(commutators == np.eye(k))
+        assert np.all(commutators == np.eye(k)), (
+            f'Not pairwise anticommuting {commutators}'
+        )
 
     def test_logical_operators_commute_with_stabilizers(self, code):
         x_commutators = bcommute(code.logical_xs, code.stabilizers)
@@ -166,13 +180,17 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
             code, x_commutators, code.logical_xs, code.stabilizers,
             'logicalX', 'stabilizer'
         )
-        y_commutators = bcommute(code.logical_zs, code.stabilizers)
+        z_commutators = bcommute(code.logical_zs, code.stabilizers)
         print_non_commuting(
-            code, y_commutators, code.logical_zs, code.stabilizers,
+            code, z_commutators, code.logical_zs, code.stabilizers,
             'logicalZ', 'stabilizer'
         )
-        assert np.all(x_commutators == 0)
-        assert np.all(y_commutators == 0)
+        assert np.all(x_commutators == 0), (
+            'logicalX not commuting with stabilizers'
+        )
+        assert np.all(z_commutators == 0), (
+            'logicalZ not commuting with stabilizers'
+        )
 
 
 class TestLayeredRotatedToricCode2x2x1(IndexedCodeTestWithCoordinates):
@@ -205,6 +223,19 @@ class TestLayeredRotatedToricCode3x2x1(IndexedCodeTestWithCoordinates):
     ]
     expected_plane_z = [1, 3]
     expected_vertical_z = [2]
+
+    @pytest.mark.skip
+    def test_find_logicals_by_brute_force(self, code):
+        stabilizers = code.stabilizers
+        rank = brank(stabilizers)
+        n, k, d = code.n_k_d
+        assert rank == n - k
+        for weight in range(3):
+            for non_trivial_operators in combinations('XYZ', weight):
+                operators = non_trivial_operators + 'I'*(n - weight)
+                for pauli_string in permutations(operators):
+                    x = pauli_string_to_bvector(pauli_string)
+                    codespace = np.all(bcommute(code.stabilizers, x) == 0)
 
 
 @pytest.mark.skip(reason='odd by odd')

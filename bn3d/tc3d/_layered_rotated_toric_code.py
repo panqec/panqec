@@ -31,20 +31,32 @@ class LayeredRotatedToricCode(IndexedCode):
             L_x, L_y, L_z = self.size
             logicals = []
 
-            # X string operator along x.
-            if L_x % 2 == 0:
+            # Even times even.
+            if L_x % 2 == 0 and L_y % 2 == 0:
+
+                # X string operator along y.
+                logical = self.pauli_class(self)
+                for x, y, z in self.qubit_index:
+                    if y == 1 and z == 1:
+                        logical.site('X', (x, y, z))
+                logicals.append(logical.to_bsf())
+
+                # X string operator along x.
                 logical = self.pauli_class(self)
                 for x, y, z in self.qubit_index:
                     if x == 1 and z == 1:
                         logical.site('X', (x, y, z))
                 logicals.append(logical.to_bsf())
 
-            # X string operator along y.
-            if L_y % 2 == 0:
+            # Odd times even.
+            else:
                 logical = self.pauli_class(self)
                 for x, y, z in self.qubit_index:
-                    if y == 1 and z == 1:
-                        logical.site('X', (x, y, z))
+                    if z == 1:
+                        if (x + y) % 2 == 2:
+                            logical.site('Z', (x, y, z))
+                        else:
+                            logical.site('X', (x, y, z))
                 logicals.append(logical.to_bsf())
 
             self._logical_xs = np.array(logicals, dtype=np.uint)
@@ -58,22 +70,33 @@ class LayeredRotatedToricCode(IndexedCode):
             L_x, L_y, L_z = self.size
             logicals = []
 
-            # Z membrane operator normal to y.
-            if L_x % 2 == 0:
+            # Even times even.
+            if L_x % 2 == 0 and L_y % 2 == 0:
+
                 logical = self.pauli_class(self)
                 for x, y, z in self.qubit_index:
-                    if y == 3:
+                    if x == 1:
                         logical.site('Z', (x, y, z))
 
                 logicals.append(logical.to_bsf())
 
-            # Z membrane operator normal to x.
-            if L_y % 2 == 0:
                 logical = self.pauli_class(self)
                 for x, y, z in self.qubit_index:
-                    if x == 3:
+                    if y == 1:
                         logical.site('Z', (x, y, z))
 
+                logicals.append(logical.to_bsf())
+
+            # Odd times even.
+            else:
+                logical = self.pauli_class(self)
+                for x, y, z in self.qubit_index:
+                    if L_x % 2 == 1:
+                        if y == 1:
+                            logical.site('Y', (x, y, z))
+                    elif L_y % 2 == 1:
+                        if x == 1:
+                            logical.site('Y', (x, y, z))
                 logicals.append(logical.to_bsf())
 
             self._logical_zs = np.array(logicals, dtype=np.uint)
