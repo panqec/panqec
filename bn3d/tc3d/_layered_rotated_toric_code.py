@@ -53,10 +53,7 @@ class LayeredRotatedToricCode(IndexedCode):
                 logical = self.pauli_class(self)
                 for x, y, z in self.qubit_index:
                     if z == 1:
-                        if (x + y) % 2 == 2:
-                            logical.site('Z', (x, y, z))
-                        else:
-                            logical.site('X', (x, y, z))
+                        logical.site('X', (x, y, z))
                 logicals.append(logical.to_bsf())
 
             self._logical_xs = np.array(logicals, dtype=np.uint)
