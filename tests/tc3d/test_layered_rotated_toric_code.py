@@ -192,6 +192,24 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
             'logicalZ not commuting with stabilizers'
         )
 
+    def test_logical_operators_are_independent_by_rank(self, code):
+        n, k, _ = code.n_k_d
+        matrix = code.stabilizers
+
+        # Number of independent stabilizer generators.
+        rank = brank(matrix)
+
+        assert rank == n - k
+
+        matrix_with_logicals = np.concatenate([
+            matrix,
+            code.logical_xs,
+            code.logical_zs,
+        ])
+
+        rank_with_logicals = brank(matrix_with_logicals)
+        assert rank_with_logicals == n + k
+
 
 class TestLayeredRotatedToricCode2x2x1(IndexedCodeTestWithCoordinates):
     size = (2, 2, 1)
@@ -223,19 +241,6 @@ class TestLayeredRotatedToricCode3x2x1(IndexedCodeTestWithCoordinates):
     ]
     expected_plane_z = [1, 3]
     expected_vertical_z = [2]
-
-    @pytest.mark.skip
-    def test_find_logicals_by_brute_force(self, code):
-        stabilizers = code.stabilizers
-        rank = brank(stabilizers)
-        n, k, d = code.n_k_d
-        assert rank == n - k
-        for weight in range(3):
-            for non_trivial_operators in combinations('XYZ', weight):
-                operators = non_trivial_operators + 'I'*(n - weight)
-                for pauli_string in permutations(operators):
-                    x = pauli_string_to_bvector(pauli_string)
-                    codespace = np.all(bcommute(code.stabilizers, x) == 0)
 
 
 @pytest.mark.skip(reason='odd by odd')
