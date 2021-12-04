@@ -10,7 +10,7 @@ from qecsim.models.toric import ToricCode
 from bn3d.bpauli import (
     pauli_string_to_bvector, bvector_to_pauli_string, bvector_to_barray,
     barray_to_bvector, bcommute, get_effective_error, bvector_to_int,
-    bvectors_to_ints, ints_to_bvectors
+    bvectors_to_ints, ints_to_bvectors, apply_deformation
 )
 
 
@@ -204,3 +204,44 @@ def test_get_effective_error_toric_code_logicals_many():
         f'{expected_effective_errors}, '
         f'instead got {effective_errors}'
     )
+
+
+@pytest.mark.parametrize('deformation_index,bsf,deformed', [
+    (
+        [False, False, False],
+        [1, 1, 0, 0, 1, 1],
+        [1, 1, 0, 0, 1, 1],
+    ),
+    (
+        [False, False, True],
+        [1, 1, 0, 0, 1, 1],
+        [1, 1, 1, 0, 1, 0],
+    ),
+    (
+        [False, True, True],
+        [1, 1, 0, 0, 1, 1],
+        [1, 1, 1, 0, 1, 0],
+    ),
+    (
+        [True, True, True],
+        [1, 1, 0, 0, 1, 1],
+        [0, 1, 1, 1, 1, 0],
+    ),
+    (
+        [True, False, False],
+        [
+            [1, 1, 0, 0, 1, 1],
+            [1, 0, 1, 1, 1, 0],
+            [0, 1, 1, 1, 0, 1],
+        ],
+        [
+            [0, 1, 0, 1, 1, 1],
+            [1, 0, 1, 1, 1, 0],
+            [1, 1, 1, 0, 0, 1],
+        ],
+    ),
+])
+def test_apply_deformation_on_easy_examples(deformation_index, bsf, deformed):
+    bsf = np.array(bsf, dtype=np.uint)
+    deformed = np.array(deformed, dtype=np.uint)
+    assert np.all(deformed == apply_deformation(deformation_index, bsf))
