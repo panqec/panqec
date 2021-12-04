@@ -52,8 +52,39 @@ class LayeredRotatedToricCode(IndexedCode):
             else:
                 logical = self.pauli_class(self)
                 for x, y, z in self.qubit_index:
-                    if z == 1:
-                        logical.site('X', (x, y, z))
+                    # Z on every layer in deformed code. (FAIL, in stabilizer)
+                    """
+                    if z % 2 == 1:
+                        if (x + y) % 4 == 2:
+                            logical.site('X', (x, y, z))
+                        else:
+                            logical.site('Z', (x, y, z))
+                    """
+
+                    # X string operator in undeformed code. (OK)
+                    if L_x % 2 == 1:
+                        if z == 1 and x == 1:
+                            if (x + y) % 4 == 2:
+                                logical.site('X', (x, y, z))
+                            else:
+                                logical.site('X', (x, y, z))
+                    else:
+                        if z == 1 and y == 1:
+                            if (x + y) % 4 == 2:
+                                logical.site('X', (x, y, z))
+                            else:
+                                logical.site('X', (x, y, z))
+
+                    # Z everywhere in deformed (FAIL, actually in stabilizer)
+                    """
+                    if z % 2 == 1:
+                        if (x + y) % 4 == 2:
+                            logical.site('X', (x, y, z))
+                        else:
+                            logical.site('Z', (x, y, z))
+                    else:
+                        logical.site('Z', (x, y, z))
+                    """
                 logicals.append(logical.to_bsf())
 
             self._logical_xs = np.array(logicals, dtype=np.uint)

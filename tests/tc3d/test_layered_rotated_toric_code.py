@@ -2,12 +2,14 @@ from typing import Tuple, List
 from abc import ABCMeta, abstractmethod
 import pytest
 import numpy as np
-from itertools import permutations, combinations
+from tqdm import tqdm
+from itertools import combinations
 from qecsim.model import StabilizerCode
 from bn3d.tc3d import LayeredRotatedToricCode, LayeredToricPauli
 from bn3d.bpauli import (
-    bcommute, bvector_to_pauli_string, brank, pauli_string_to_bvector
+    bcommute, bvector_to_pauli_string, brank
 )
+from scipy.special import comb
 
 from .indexed_code_test import IndexedCodeTest
 
@@ -209,6 +211,42 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
 
         rank_with_logicals = brank(matrix_with_logicals)
         assert rank_with_logicals == n + k
+
+    @pytest.mark.skip
+    def test_find_lowest_weight_Z_only_logical_by_brute_force(self, code):
+        n, k, _ = code.n_k_d
+        matrix = code.stabilizers
+
+        coords = {v: k for k, v in code.qubit_index.items()}
+
+        min_weight = 4
+        max_weight = 4
+        for weight in range(min_weight, max_weight + 1):
+            n_comb = comb(n, weight, exact=True)
+            for sites in tqdm(combinations(range(n), weight), total=n_comb):
+                logical = np.zeros(2*n, dtype=np.uint)
+                for site in sites:
+                    x, y, z = coords[site]
+                    deform = False
+                    if z % 2 == 1 and (x + y) % 4 == 2:
+                        deform = True
+
+                    if deform:
+                        logical[site] = 1  # X operator on deformed
+                    else:
+                        logical[n + site] = 1  # Z operator on undeformed
+
+                codespace = np.all(bcommute(matrix, logical) == 0)
+                if codespace:
+                    matrix_with_logical = np.concatenate([
+                        matrix,
+                        [logical]
+                    ])
+                    if brank(matrix_with_logical) == n - k + 1:
+                        print('Found Z-only logical')
+                        print([coords[site] for site in sites])
+                        print(operator_spec(code, logical))
+                        return
 
 
 class TestLayeredRotatedToricCode2x2x1(IndexedCodeTestWithCoordinates):
