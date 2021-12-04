@@ -105,7 +105,7 @@ def get_results_df(
             batch_result['label'] = batch_label
             batch_result['noise_direction'] = sim.error_model.direction
             if len(sim.results['effective_error']) > 0:
-                codespace = np.array(sim.results['codespace'])
+                # codespace = np.array(sim.results['codespace'])
                 x_errors = np.array(
                     sim.results['effective_error']
                 )[:, :n_logicals].any(axis=1)
@@ -123,7 +123,7 @@ def get_results_df(
                     batch_result['p_z']*(1 - batch_result['p_z'])
                     / (sim.n_results + 1)
                 )
-                batch_result['p_undecodable'] = (~codespace).mean()
+                # batch_result['p_undecodable'] = (~codespace).mean()
             else:
                 batch_result['p_x'] = np.nan
                 batch_result['p_x_se'] = np.nan
@@ -363,11 +363,18 @@ def get_fit_params(
     y_data = f_list
 
     # Curve fit.
+    bounds = [min(x_data[0]), max(x_data[0])]
+
+    if params_0[0] not in bounds:
+        params_0[0] = (bounds[0] + bounds[1]) / 2
+
+    # print("Bounds", bounds)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         params_opt, _ = curve_fit(
-            fit_function, x_data, y_data, method='lm',
+            fit_function, x_data, y_data,
             p0=params_0, ftol=ftol, maxfev=maxfev
+            # bounds=([bounds[0], -np.inf, -np.inf, -np.inf, -np.inf], [bounds[1], np.inf, np.inf, np.inf, np.inf])
         )
 
     return params_opt
@@ -486,6 +493,7 @@ def get_thresholds_df(results_df, ftol_est=1e-5, ftol_std=1e-5, maxfev=2000):
     p_left = []
     p_right = []
     fss_params = []
+    p_th_fss = []
     p_th_fss_left = []
     p_th_fss_right = []
     p_th_fss_se = []
@@ -522,6 +530,9 @@ def get_thresholds_df(results_df, ftol_est=1e-5, ftol_std=1e-5, maxfev=2000):
         # Standard error.
         p_th_fss_se.append(params_bs[:, 0].std())
 
+        # Estimator
+        p_th_fss.append(np.median(params_bs[:, 0]))
+
         # Trucated data.
         df_trunc_list.append(df_trunc)
 
@@ -532,9 +543,11 @@ def get_thresholds_df(results_df, ftol_est=1e-5, ftol_std=1e-5, maxfev=2000):
     thresholds_df['p_th_nearest'] = p_th_nearest
     thresholds_df['p_left'] = p_left
     thresholds_df['p_right'] = p_right
-    thresholds_df['p_th_fss'] = np.array(fss_params)[:, 0]
+    # thresholds_df['p_th_fss'] = np.array(fss_params)[:, 0]
+    thresholds_df['p_th_fss'] = p_th_fss
     thresholds_df['p_th_fss_left'] = p_th_fss_left
     thresholds_df['p_th_fss_right'] = p_th_fss_right
+
     thresholds_df['p_th_fss_se'] = p_th_fss_se
     thresholds_df['fss_params'] = list(map(tuple, fss_params))
 

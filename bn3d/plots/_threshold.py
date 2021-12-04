@@ -174,6 +174,8 @@ def plot_data_collapse(plt, df_trunc, params_opt, params_bs):
     )
     plt.ylabel(r'Logical failure rate $p_{\mathrm{fail}}$', fontsize=16)
 
+
+
     error_model = df_trunc['error_model'].iloc[0]
     title = get_error_model_format(error_model)
     plt.title(title)
@@ -284,12 +286,13 @@ def plot_threshold_vs_bias(
     markers=['x', 'o', '^'],
     colors=['r', 'b', 'g'],
     labels=None,
+    depolarizing_label=False,
     hashing=True,
     png=None,
 ):
-    cmap = plt.get_cmap("tab10")
-    colors = [cmap(3), cmap(0), cmap(2)]
     p_th_key = 'p_th_fss'
+    p_th_left_key = 'p_th_fss_left'
+    p_th_right_key = 'p_th_fss_right'
     if labels is None:
         labels = [
             r'${}$ bias'.format(eta_key[-1].upper())
@@ -300,11 +303,16 @@ def plot_threshold_vs_bias(
         eta_keys, colors, markers, labels
     ):
         df_filt = error_model_df[
-            error_model_df[eta_key] >= 0.5
+            error_model_df[eta_key] >= 0.4
         ].sort_values(by=eta_key)
+
         p_th_inf = df_filt[df_filt[eta_key] == np.inf][p_th_key].iloc[0]
-        plt.plot(
-            df_filt[eta_key], df_filt[p_th_key],
+
+        errors_left = df_filt[p_th_key] - df_filt[p_th_left_key]
+        errors_right = df_filt[p_th_right_key] - df_filt[p_th_key]
+        errors = np.array([errors_left, errors_right])
+        plt.errorbar(
+            df_filt[eta_key], df_filt[p_th_key], errors,
             linestyle=main_linestyle,
             color=color,
             label=label,
@@ -329,9 +337,10 @@ def plot_threshold_vs_bias(
             ha='center'
         )
 
-    # Show label for depolarizing data point.
-    p_th_dep = error_model_df[error_model_df[eta_key] == 0.5].iloc[0][p_th_key]
-    plt.text(0.5, p_th_dep + 0.01, f'{p_th_dep:.3f}', ha='center')
+        # Show label for depolarizing data point.
+        if depolarizing_label:
+            p_th_dep = error_model_df[np.isclose(error_model_df[eta_key], 0.5)].iloc[0][p_th_key]
+            plt.text(0.5, p_th_dep + 0.02, f'{p_th_dep:.3f}', ha='center', color=color)
 
     # Plot the hashing bound curve.
     if hashing:
@@ -441,28 +450,75 @@ def plot_thresholds_on_triangle(
     plt.gca().set_aspect(1)
 
 
-def plot_combined_threshold_vs_bias(plt, Line2D, thresholds_df, pdf=None):
+def plot_combined_threshold_vs_bias(plt, Line2D, thresholds_df,
+                                    ext_data_css=None,
+                                    ext_data_xzzx=None,
+                                    hashing=False,
+                                    eta_key='eta_z',
+                                    labels=['3D XZZZZX', '3D CSS'],
+                                    pdf=None):
     thres_df_filt = thresholds_df[
         thresholds_df['error_model'].str.contains('Deformed')
     ]
+    cmap = plt.get_cmap("tab10")
+
     plot_threshold_vs_bias(
         plt, Line2D, thres_df_filt,
-        labels=['Z deformed', 'X deformed'],
-        hashing=False
+        markers=['o'],
+        eta_keys=[eta_key],
+        colors=[cmap(3)],
+        labels=[labels[0]],
+        depolarizing_label=True,
+        hashing=hashing
     )
     thres_df_filt = thresholds_df[
         ~thresholds_df['error_model'].str.contains('Deformed')
     ]
     plot_threshold_vs_bias(
         plt, Line2D, thres_df_filt,
-        eta_keys=['eta_x', 'eta_z'],
-        colors=['#ff9999', '#9999ff'],
-        labels=['Z undeformed', 'X undeformed'],
+        markers=['x'],
+        eta_keys=[eta_key],
+        colors=[cmap(3)],
+        labels=[labels[1]],
         main_linestyle='--',
         hashing=False
     )
     plt.ylim(0, 0.5)
-    plt.text(0.5, -0.06, 'Depol.', ha='center')
+
+    if ext_data_css is not None and ext_data_xzzx is not None:
+        infinite_bias = 1000
+        xzzx_finite = ext_data_xzzx[ext_data_xzzx["bias"] != infinite_bias]
+        css_finite = ext_data_css[ext_data_css["bias"] != infinite_bias]
+        plt.errorbar(xzzx_finite["bias"], xzzx_finite["threshold"], xzzx_finite["threshold_error"],
+                     marker="x", color=cmap(0), label="2D XZZX")
+        plt.errorbar(css_finite["bias"], css_finite["threshold"], css_finite["threshold_error"],
+                     marker="o", linestyle="--", color=cmap(0), label="2D CSS")
+
+        max_finite_bias = np.max(xzzx_finite["bias"])
+        max_finite_bias_p = xzzx_finite[xzzx_finite["bias"] == max_finite_bias]["threshold"]
+        infinite_bias_p = ext_data_xzzx[ext_data_xzzx["bias"] == infinite_bias]["threshold"]
+        plt.plot([max_finite_bias, infinite_bias], [max_finite_bias_p, infinite_bias_p],
+                 '--', color=cmap(0), marker='x', linewidth=1)
+
+        max_finite_bias = np.max(css_finite["bias"])
+        max_finite_bias_p = css_finite[css_finite["bias"] == max_finite_bias]["threshold"]
+        infinite_bias_p = ext_data_css[ext_data_css["bias"] == infinite_bias]["threshold"].to_numpy()[0]
+        plt.plot([max_finite_bias, infinite_bias], [max_finite_bias_p, infinite_bias_p],
+                 '--', color=cmap(0), marker='o', linewidth=1)
+
+        plt.text(
+            infinite_bias,
+            infinite_bias_p + 0.01,
+            '{:.3f}'.format(infinite_bias_p),
+            color=cmap(0),
+            ha='center'
+        )
+
+        p_th_dep = xzzx_finite[np.isclose(xzzx_finite['bias'], 0.5)].iloc[0]['threshold']
+        plt.text(0.5, p_th_dep + 0.02, f'{p_th_dep:.3f}', ha='center', color=cmap(0))
+
+    plt.legend()
+
     if pdf:
         plt.savefig(pdf, bbox_inches='tight')
 
@@ -512,7 +568,11 @@ def plot_crossing_collapse(
         plt.gca().minorticks_on()
         plt.gca().tick_params(direction='in', which='minor')
         plt.ylim(0, 0.9)
-        plt.xlim(0, 1.5*plot_thresholds_df['p_right'].max())
+
+        proba_min = min(df_trunc['probability'].unique())
+        proba_max = max(df_trunc['probability'].unique())
+
+        plt.xlim(proba_min, proba_max)
         plt.gca().get_legend().remove()
         plt.gca().legend(
             plt.gca().get_legend_handles_labels()[1][:1],
