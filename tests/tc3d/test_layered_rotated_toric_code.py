@@ -1,3 +1,5 @@
+import os
+import json
 from typing import Tuple, List
 from abc import ABCMeta, abstractmethod
 import pytest
@@ -7,8 +9,9 @@ from itertools import combinations
 from qecsim.model import StabilizerCode
 from bn3d.tc3d import LayeredRotatedToricCode, LayeredToricPauli
 from bn3d.bpauli import (
-    bcommute, bvector_to_pauli_string, brank
+    bcommute, bvector_to_pauli_string, brank, apply_deformation
 )
+from bn3d.deform import DeformedXZZXErrorModel
 from scipy.special import comb
 
 from .indexed_code_test import IndexedCodeTest
@@ -407,3 +410,50 @@ class TestLayeredRotatedToricPauli:
                 operator = LayeredToricPauli(code)
                 operator.face('X', face)
                 assert sum(operator.to_bsf()) == 4
+
+
+class TestLayeredDeformation:
+
+    @pytest.mark.skip
+    def test_stabilizer_matrix(self):
+        project_dir = os.path.dirname(
+            os.path.dirname(os.path.dirname(__file__))
+        )
+        entries = []
+        for size in range(3, 14):
+            L_x, L_y, L_z = size, size + 1, size
+            print(L_x, L_y, L_z)
+            code = LayeredRotatedToricCode(L_x, L_y, L_z)
+            out_json = os.path.join(project_dir, 'temp', 'layered_test.json')
+            error_model = DeformedXZZXErrorModel(0.2, 0.3, 0.5)
+            deformation_index = error_model._get_deformation_indices(code)
+            # coords_map = {
+            #     index: coord for coord, index in code.qubit_index.items()
+            # }
+            # coords = [coords_map[index] for index in range(len(coords_map))],
+            entries.append({
+                'size': [L_x, L_y, L_z],
+                # 'coords': coords,
+                'undeformed': {
+                    'n_k_d': code.n_k_d,
+                    'stabilizers': code.stabilizers.tolist(),
+                    'logical_xs': code.logical_xs.tolist(),
+                    'logical_zs': code.logical_zs.tolist(),
+                },
+                'deformed': {
+                    'n_k_d': code.n_k_d,
+                    'stabilizers': apply_deformation(
+                        deformation_index, code.stabilizers
+                    ).tolist(),
+                    'logical_xs': apply_deformation(
+                        deformation_index, code.logical_xs
+                    ).tolist(),
+                    'logical_zs': apply_deformation(
+                        deformation_index, code.logical_zs
+                    ).tolist(),
+                }
+            })
+        with open(out_json, 'w') as f:
+            json.dump({
+                'entries': entries
+            }, f)
