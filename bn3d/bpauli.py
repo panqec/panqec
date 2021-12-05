@@ -7,6 +7,7 @@ routines are useful specifically for dealing with the 3D code.
 :Author:
     Eric Huang
 """
+from typing import Union, List
 import numpy as np
 
 
@@ -224,3 +225,39 @@ def brank(matrix):
     # Convert to list of binary numbers.
     rows = [int(''.join(map(str, row)), 2) for row in matrix.astype(int)]
     return gf2_rank(rows)
+
+
+def apply_deformation(
+    deformation_indices: Union[List[bool], np.ndarray], bsf: np.ndarray
+) -> np.ndarray:
+    """Return Hadamard-deformed bsf at given indices."""
+    n = len(deformation_indices)
+    deformed = np.zeros_like(bsf)
+    if len(bsf.shape) == 1:
+        if bsf.shape[0] != 2*n:
+            raise ValueError(
+                f'Deformation index length {n} does not match '
+                f'bsf shape {bsf.shape}, which should be {(2*n,)}'
+            )
+        for i, deform in enumerate(deformation_indices):
+            if deform:
+                deformed[i] = bsf[i + n]
+                deformed[i + n] = bsf[i]
+            else:
+                deformed[i] = bsf[i]
+                deformed[i + n] = bsf[i + n]
+    else:
+        if bsf.shape[1] != 2*n:
+            raise ValueError(
+                f'Deformation index length {n} does not match '
+                f'bsf shape {bsf.shape}, which should be '
+                f'{(bsf.shape[0], 2*n)}.'
+            )
+        for i, deform in enumerate(deformation_indices):
+            if deform:
+                deformed[:, i] = bsf[:, i + n]
+                deformed[:, i + n] = bsf[:, i]
+            else:
+                deformed[:, i] = bsf[:, i]
+                deformed[:, i + n] = bsf[:, i + n]
+    return deformed

@@ -2,9 +2,14 @@ from typing import Tuple, List
 from abc import ABCMeta, abstractmethod
 import pytest
 import numpy as np
+from tqdm import tqdm
+from itertools import combinations
 from qecsim.model import StabilizerCode
 from bn3d.tc3d import LayeredRotatedToricCode, LayeredToricPauli
-from bn3d.bpauli import bcommute, bvector_to_pauli_string, brank
+from bn3d.bpauli import (
+    bcommute, bvector_to_pauli_string, brank
+)
+from scipy.special import comb
 
 from .indexed_code_test import IndexedCodeTest
 
@@ -42,11 +47,27 @@ def print_non_commuting(
 
     # Print the first few non-commuting stabilizers if any found.
     if non_commuting:
+        print(
+            f'{len(non_commuting)} pairs of non-commuting '
+            f'{name_1} and {name_2}:'
+        )
         for i_print, (i, j) in enumerate(non_commuting):
             print(f'{name_1} {i} and {name_2} {j} anticommuting')
-            print(f'{name_1} {i}:', operator_spec(code, operators_1[i]))
-            print(f'{name_2} {j}:', operator_spec(code, operators_2[j]))
+            operator_spec_1 = operator_spec(code, operators_1[i])
+            operator_spec_2 = operator_spec(code, operators_2[j])
+            overlap = [
+                (op_1, op_2, site_1)
+                for op_1, site_1 in operator_spec_1
+                for op_2, site_2 in operator_spec_2
+                if site_1 == site_2
+            ]
+            print('Overlap:', overlap)
+            print(f'{name_1} {i}:', operator_spec_1)
+            print(f'{name_2} {j}:', operator_spec_2)
             if i_print == max_print:
+                n_remaining = len(non_commuting) - 1 - i_print
+                if n_remaining > 0:
+                    print(f'... {n_remaining} more pairs')
                 break
 
 
@@ -151,7 +172,9 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
         assert np.all(bcommute(code.logical_xs, code.logical_xs) == 0)
         assert np.all(bcommute(code.logical_zs, code.logical_zs) == 0)
         commutators = bcommute(code.logical_xs, code.logical_zs)
-        assert np.all(commutators == np.eye(k))
+        assert np.all(commutators == np.eye(k)), (
+            f'Not pairwise anticommuting {commutators}'
+        )
 
     def test_logical_operators_commute_with_stabilizers(self, code):
         x_commutators = bcommute(code.logical_xs, code.stabilizers)
@@ -159,13 +182,71 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
             code, x_commutators, code.logical_xs, code.stabilizers,
             'logicalX', 'stabilizer'
         )
-        y_commutators = bcommute(code.logical_zs, code.stabilizers)
+        z_commutators = bcommute(code.logical_zs, code.stabilizers)
         print_non_commuting(
-            code, y_commutators, code.logical_zs, code.stabilizers,
+            code, z_commutators, code.logical_zs, code.stabilizers,
             'logicalZ', 'stabilizer'
         )
-        assert np.all(x_commutators == 0)
-        assert np.all(y_commutators == 0)
+        assert np.all(x_commutators == 0), (
+            'logicalX not commuting with stabilizers'
+        )
+        assert np.all(z_commutators == 0), (
+            'logicalZ not commuting with stabilizers'
+        )
+
+    def test_logical_operators_are_independent_by_rank(self, code):
+        n, k, _ = code.n_k_d
+        matrix = code.stabilizers
+
+        # Number of independent stabilizer generators.
+        rank = brank(matrix)
+
+        assert rank == n - k
+
+        matrix_with_logicals = np.concatenate([
+            matrix,
+            code.logical_xs,
+            code.logical_zs,
+        ])
+
+        rank_with_logicals = brank(matrix_with_logicals)
+        assert rank_with_logicals == n + k
+
+    @pytest.mark.skip
+    def test_find_lowest_weight_Z_only_logical_by_brute_force(self, code):
+        n, k, _ = code.n_k_d
+        matrix = code.stabilizers
+
+        coords = {v: k for k, v in code.qubit_index.items()}
+
+        min_weight = 4
+        max_weight = 4
+        for weight in range(min_weight, max_weight + 1):
+            n_comb = comb(n, weight, exact=True)
+            for sites in tqdm(combinations(range(n), weight), total=n_comb):
+                logical = np.zeros(2*n, dtype=np.uint)
+                for site in sites:
+                    x, y, z = coords[site]
+                    deform = False
+                    if z % 2 == 1 and (x + y) % 4 == 2:
+                        deform = True
+
+                    if deform:
+                        logical[site] = 1  # X operator on deformed
+                    else:
+                        logical[n + site] = 1  # Z operator on undeformed
+
+                codespace = np.all(bcommute(matrix, logical) == 0)
+                if codespace:
+                    matrix_with_logical = np.concatenate([
+                        matrix,
+                        [logical]
+                    ])
+                    if brank(matrix_with_logical) == n - k + 1:
+                        print('Found Z-only logical')
+                        print([coords[site] for site in sites])
+                        print(operator_spec(code, logical))
+                        return
 
 
 class TestLayeredRotatedToricCode2x2x1(IndexedCodeTestWithCoordinates):

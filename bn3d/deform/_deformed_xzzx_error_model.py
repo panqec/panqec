@@ -40,6 +40,10 @@ class DeformedXZZXErrorModel(PauliErrorModel):
     def _get_deformation_indices(self, code: StabilizerCode):
         is_deformed = [False for _ in range(code.n_k_d[0])]
 
+        if "Layered Rotated" in code.label:
+            for (x, y, z), index in code.qubit_index.items():
+                if z % 2 == 1 and (x + y) % 4 == 2:
+                    is_deformed[index] = True
         if "Rotated" in code.label:
             for coord, index in code.qubit_index.items():
                 x, y, z = coord

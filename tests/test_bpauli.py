@@ -10,7 +10,7 @@ from qecsim.models.toric import ToricCode
 from bn3d.bpauli import (
     pauli_string_to_bvector, bvector_to_pauli_string, bvector_to_barray,
     barray_to_bvector, bcommute, get_effective_error, bvector_to_int,
-    bvectors_to_ints, ints_to_bvectors
+    bvectors_to_ints, ints_to_bvectors, apply_deformation
 )
 
 
@@ -204,3 +204,86 @@ def test_get_effective_error_toric_code_logicals_many():
         f'{expected_effective_errors}, '
         f'instead got {effective_errors}'
     )
+
+
+class TestApplyDeformation:
+
+    @pytest.mark.parametrize('deformation_index,bsf,deformed', [
+        (
+            [False, False, False],
+            [1, 1, 0, 0, 1, 1],
+            [1, 1, 0, 0, 1, 1],
+        ),
+        (
+            [False, False, True],
+            [1, 1, 0, 0, 1, 1],
+            [1, 1, 1, 0, 1, 0],
+        ),
+        (
+            [False, True, True],
+            [1, 1, 0, 0, 1, 1],
+            [1, 1, 1, 0, 1, 0],
+        ),
+        (
+            [True, True, True],
+            [1, 1, 0, 0, 1, 1],
+            [0, 1, 1, 1, 1, 0],
+        ),
+        (
+            [True, False, False],
+            [
+                [1, 1, 0, 0, 1, 1],
+                [1, 0, 1, 1, 1, 0],
+                [0, 1, 1, 1, 0, 1],
+            ],
+            [
+                [0, 1, 0, 1, 1, 1],
+                [1, 0, 1, 1, 1, 0],
+                [1, 1, 1, 0, 0, 1],
+            ],
+        ),
+    ])
+    def test_apply_deformation_on_easy_examples(
+        self, deformation_index, bsf, deformed
+    ):
+        bsf = np.array(bsf, dtype=np.uint)
+        deformed = np.array(deformed, dtype=np.uint)
+        assert np.all(deformed == apply_deformation(deformation_index, bsf))
+
+    def test_apply_deformation_preserves_commutators(self):
+        operators = np.array([
+            pauli_string_to_bvector(pauli_string)
+            for pauli_string in ['IXYZ', 'XXXX', 'ZXYI', 'IIZZ']
+        ], dtype=np.uint)
+        commutators = bcommute(operators, operators)
+        deformation_index = [True, False, True, False]
+        deformed_commutators = bcommute(
+            apply_deformation(deformation_index, operators),
+            apply_deformation(deformation_index, operators)
+        )
+        assert np.all(commutators == deformed_commutators)
+
+    def test_apply_deformation_is_involution(self):
+        original = np.array([
+            pauli_string_to_bvector(pauli_string)
+            for pauli_string in ['IXYZ', 'XXXX', 'ZXYI', 'IIZZ']
+        ], dtype=np.uint)
+        deformation_index = [True, False, True, False]
+        deformed_once = apply_deformation(deformation_index, original)
+        deformed_twice = apply_deformation(deformation_index, deformed_once)
+        assert np.all(deformed_twice == original)
+
+    def test_value_error_raised_single_bsf(self):
+        bsf = pauli_string_to_bvector('XYZ')
+        deformation_index = [True, False]
+        with pytest.raises(ValueError):
+            apply_deformation(deformation_index, bsf)
+
+    def test_value_error_raised_many_bsf(self):
+        bsf = np.array([
+            pauli_string_to_bvector(pauli_string)
+            for pauli_string in ['IXYZ', 'XXXX', 'ZXYI', 'IIZZ']
+        ], dtype=np.uint)
+        deformation_index = [True, False, True]
+        with pytest.raises(ValueError):
+            apply_deformation(deformation_index, bsf)
