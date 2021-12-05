@@ -1,7 +1,7 @@
-import * as THREE from '../modules/three/build/three.module.js';
-import { OrbitControls } from '../modules/three/examples/jsm/controls/OrbitControls.js';
-import { OutlineEffect } from '../modules/three/examples/jsm/effects/OutlineEffect.js';
-import { GUI } from '../modules/three/examples/jsm/libs/dat.gui.module.js';
+import * as THREE from 'https://cdn.skypack.dev/three@v0.130.1';
+import { OrbitControls } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/controls/OrbitControls.js';
+import { OutlineEffect } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/effects/OutlineEffect.js';
+import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat.gui.module';
 
 import { ToricCode2D } from './codes/toric2d.js';
 import { ToricCode3D } from './codes/toric3d.js';
