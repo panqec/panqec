@@ -56,12 +56,6 @@ def send_js(path):
     return send_from_directory('js', path)
 
 
-@app.route('/modules/<path:path>')
-def send_modules(path):
-    return send_from_directory('static/node_modules', path)
-
-
-
 @app.route('/stabilizer-matrix', methods=['POST'])
 def send_stabilizer_matrix():
     Lx = request.json['Lx']
