@@ -433,9 +433,12 @@ def fit_fss_params(
             n_fail = int(df_trunc['n_fail'].iloc[i])
             if n_fail == 0:
                 n_fail = 1
-            f_list_bs.append(
-                rng.beta(n_fail, n_trials - n_fail)
-            )
+            if n_fail == n_trials:
+                f_list_bs.append(0.5)
+            else:
+                f_list_bs.append(
+                    rng.beta(n_fail, n_trials - n_fail)
+                )
         f_bs = np.array(f_list_bs)
 
         try:
