@@ -414,26 +414,52 @@ class TestLayeredRotatedToricPauli:
 
 class TestLayeredDeformation:
 
-    @pytest.mark.skip
+    def test_deformation_index(self):
+        code = LayeredRotatedToricCode(3, 4, 3)
+        error_model = DeformedXZZXErrorModel(0.2, 0.3, 0.5)
+        deformation_index = error_model._get_deformation_indices(code)
+        coords_map = {
+            index: coord for coord, index in code.qubit_index.items()
+        }
+        coords = [coords_map[index] for index in range(len(coords_map))]
+        deformation_sites = sorted(
+            [
+                coords[i]
+                for i, active in enumerate(deformation_index)
+                if active
+            ],
+            key=lambda x: x[::-1]
+        )
+        assert all(z % 2 == 1 for x, y, z in deformation_sites)
+        expected_sites_plane = [
+            (1, 1), (5, 1), (3, 3), (1, 5), (5, 5), (3, 7)
+        ]
+        expected_sites = []
+        for z in [1, 3, 5, 7]:
+            expected_sites += [(x, y, z) for x, y in expected_sites_plane]
+        expected_sites.sort(key=lambda x: x[::-1])
+        assert deformation_sites == expected_sites
+
+    @pytest.mark.skip()
     def test_stabilizer_matrix(self):
         project_dir = os.path.dirname(
             os.path.dirname(os.path.dirname(__file__))
         )
         entries = []
-        for size in range(3, 14):
+        for size in [3]:
             L_x, L_y, L_z = size, size + 1, size
             print(L_x, L_y, L_z)
             code = LayeredRotatedToricCode(L_x, L_y, L_z)
             out_json = os.path.join(project_dir, 'temp', 'layered_test.json')
             error_model = DeformedXZZXErrorModel(0.2, 0.3, 0.5)
             deformation_index = error_model._get_deformation_indices(code)
-            # coords_map = {
-            #     index: coord for coord, index in code.qubit_index.items()
-            # }
-            # coords = [coords_map[index] for index in range(len(coords_map))],
+            coords_map = {
+                index: coord for coord, index in code.qubit_index.items()
+            }
+            coords = [coords_map[index] for index in range(len(coords_map))]
             entries.append({
                 'size': [L_x, L_y, L_z],
-                # 'coords': coords,
+                'coords': coords,
                 'undeformed': {
                     'n_k_d': code.n_k_d,
                     'stabilizers': code.stabilizers.tolist(),
