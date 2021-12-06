@@ -487,13 +487,15 @@ class TestLayeredDeformation:
 
 
 class TestBPOSDOnLayeredToricCodeOddTimesEven:
-    code = LayeredRotatedToricCode(3, 4, 3)
-    error_model = DeformedXZZXErrorModel(1/3, 1/3, 1/3)
-    probability = 0.1
-    decoder = BeliefPropagationOSDDecoder(error_model, probability)
 
-    failing_cases: List[Tuple[str, Tuple[int, int, int]]] = []
-    for pauli in ['X', 'Y', 'Z']:
+    @pytest.mark.parametrize('pauli', ['X', 'Y', 'Z'])
+    def test_decode_single_qubit_error(self, pauli):
+        code = LayeredRotatedToricCode(3, 4, 3)
+        error_model = DeformedXZZXErrorModel(1/3, 1/3, 1/3)
+        probability = 0.1
+        decoder = BeliefPropagationOSDDecoder(error_model, probability)
+
+        failing_cases: List[Tuple[int, int, int]] = []
         for site in code.qubit_index:
             error_pauli = LayeredToricPauli(code)
             error_pauli.site(pauli, site)
@@ -502,21 +504,17 @@ class TestBPOSDOnLayeredToricCodeOddTimesEven:
             correction = decoder.decode(code, syndrome)
             total_error = (error + correction) % 2
             if np.all(bcommute(code.stabilizers, total_error) == 0):
-                failing_cases.append((pauli, site))
-    n_failing = len(failing_cases)
-    max_show = 100
-    if n_failing > max_show:
-        failing_cases_show = ', '.join(map(str, failing_cases[:max_show]))
-        end_part = f'...{n_failing - max_show} more'
-    else:
-        failing_cases_show = ', '.join(map(str, failing_cases))
-        end_part = ''
+                failing_cases.append(site)
+        n_failing = len(failing_cases)
+        max_show = 100
+        if n_failing > max_show:
+            failing_cases_show = ', '.join(map(str, failing_cases[:max_show]))
+            end_part = f'...{n_failing - max_show} more'
+        else:
+            failing_cases_show = ', '.join(map(str, failing_cases))
+            end_part = ''
 
-    count_summary = ''
-    for pauli in ['X', 'Y', 'Z']:
-        count = len([pauli for pauli, site in failing_cases if pauli == 'X'])
-        count_summary += f'{count} X, '
-    assert n_failing == 0, (
-        f'Failed decoding {n_failing} errors {count_summary}: '
-        f'{failing_cases_show} {end_part}'
-    )
+        assert n_failing == 0, (
+            f'Failed decoding {n_failing} {pauli} errors at '
+            f'{failing_cases_show} {end_part}'
+        )
