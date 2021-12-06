@@ -12,7 +12,7 @@ from qecsim.models.generic import NaiveDecoder
 from .tc3d import (
     ToricCode3D, Toric3DPymatchingDecoder, SweepMatchDecoder,
     RotatedPlanarCode3D, RotatedToricCode3D, RotatedSweepMatchDecoder,
-    RotatedInfiniteZBiasDecoder
+    RotatedInfiniteZBiasDecoder, LayeredRotatedToricCode,
 )
 from .rhombic import RhombicCode
 from .bp_os_decoder import BeliefPropagationOSDDecoder
@@ -64,6 +64,7 @@ ERROR_MODELS = {
     'DeformedXYErrorModel': DeformedXYErrorModel,
     'DeformedRhombicErrorModel': DeformedRhombicErrorModel,
     'XNoiseOnYZEdgesOnly': XNoiseOnYZEdgesOnly,
+    'LayeredRotatedToricCode': LayeredRotatedToricCode,
 }
 DECODERS = {
     'Toric2DPymatchingDecoder': Toric2DPymatchingDecoder,
