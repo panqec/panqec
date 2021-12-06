@@ -57,6 +57,7 @@ CODES = {
     'RotatedPlanarCode3D': RotatedPlanarCode3D,
     'RotatedToricCode3D': RotatedToricCode3D,
     'FiveQubitCode': FiveQubitCode,
+    'LayeredRotatedToricCode': LayeredRotatedToricCode,
 }
 ERROR_MODELS = {
     'PauliErrorModel': PauliErrorModel,
@@ -64,7 +65,6 @@ ERROR_MODELS = {
     'DeformedXYErrorModel': DeformedXYErrorModel,
     'DeformedRhombicErrorModel': DeformedRhombicErrorModel,
     'XNoiseOnYZEdgesOnly': XNoiseOnYZEdgesOnly,
-    'LayeredRotatedToricCode': LayeredRotatedToricCode,
 }
 DECODERS = {
     'Toric2DPymatchingDecoder': Toric2DPymatchingDecoder,
