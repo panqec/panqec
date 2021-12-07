@@ -492,7 +492,7 @@ class TestBPOSDOnLayeredToricCodeOddTimesEven:
     @pytest.mark.parametrize('pauli', ['X', 'Y', 'Z'])
     def test_decode_single_qubit_error(self, pauli):
         code = LayeredRotatedToricCode(3, 4, 3)
-        error_model = PauliErrorModel(1/3, 1/3, 1/3)
+        error_model = DeformedXZZXErrorModel(1/3, 1/3, 1/3)
         probability = 0.1
         decoder = BeliefPropagationOSDDecoder(error_model, probability)
 
