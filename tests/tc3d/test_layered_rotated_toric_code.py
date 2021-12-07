@@ -12,6 +12,7 @@ from bn3d.bpauli import (
     bcommute, bvector_to_pauli_string, brank, apply_deformation
 )
 from bn3d.deform import DeformedXZZXErrorModel
+from bn3d.noise import PauliErrorModel
 from bn3d.bp_os_decoder import BeliefPropagationOSDDecoder
 from scipy.special import comb
 
@@ -491,7 +492,7 @@ class TestBPOSDOnLayeredToricCodeOddTimesEven:
     @pytest.mark.parametrize('pauli', ['X', 'Y', 'Z'])
     def test_decode_single_qubit_error(self, pauli):
         code = LayeredRotatedToricCode(3, 4, 3)
-        error_model = DeformedXZZXErrorModel(1/3, 1/3, 1/3)
+        error_model = PauliErrorModel(1/3, 1/3, 1/3)
         probability = 0.1
         decoder = BeliefPropagationOSDDecoder(error_model, probability)
 
@@ -503,7 +504,7 @@ class TestBPOSDOnLayeredToricCodeOddTimesEven:
             syndrome = bcommute(code.stabilizers, error)
             correction = decoder.decode(code, syndrome)
             total_error = (error + correction) % 2
-            if np.all(bcommute(code.stabilizers, total_error) == 0):
+            if not np.all(bcommute(code.stabilizers, total_error) == 0):
                 failing_cases.append(site)
         n_failing = len(failing_cases)
         max_show = 100
