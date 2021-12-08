@@ -57,6 +57,14 @@ class RhombicCode(StabilizerCode):
         return self._cube_index
 
     @property
+    def n_cubes(self) -> int:
+        return len(self.cube_index)
+
+    @property
+    def n_triangles(self) -> int:
+        return len(self.triangle_index)
+
+    @property
     def label(self) -> str:
         return 'Rhombic {}x{}x{}'.format(*self.size)
 
@@ -74,14 +82,14 @@ class RhombicCode(StabilizerCode):
     @property
     def Hz(self) -> np.ndarray:
         if self._Hz.size == 0:
-            self._Hz = self.get_cube_X_stabilizers()
-        return self._Hz[:, :self.n_k_d[0]]
+            self._Hz = self.stabilizers[:self.n_cubes, :self.n_k_d[0]]
+        return self._Hz
 
     @property
     def Hx(self) -> np.ndarray:
         if self._Hx.size == 0:
-            self._Hx = self.get_triangle_Z_stabilizers()
-        return self._Hx[:, self.n_k_d[0]:]
+            self._Hx = self.stabilizers[self.n_cubes:, self.n_k_d[0]:]
+        return self._Hx
 
     @property
     def logical_xs(self) -> np.ndarray:
