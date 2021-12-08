@@ -276,7 +276,11 @@ class BeliefPropagationOSDDecoder(Decoder):
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
-        is_css = True
+        is_css = hasattr(code, 'Hz')
+
+        if 'Layered Rotated' in code.label:
+            L_x, L_y, L_z = code.size
+            is_css = (L_x % 2 == 0 and L_y % 2 == 0)
 
         n_qubits = code.n_k_d[0]
         syndrome = np.array(syndrome, dtype=int)
