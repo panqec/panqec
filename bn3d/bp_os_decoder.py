@@ -4,7 +4,6 @@ from qecsim.model import Decoder, StabilizerCode, ErrorModel
 from typing import Tuple, List
 import numpy.ma as ma
 from bposd import bposd_decoder
-from memory_profiler import profile
 
 
 def get_rref_mod2(
@@ -274,16 +273,10 @@ class BeliefPropagationOSDDecoder(Decoder):
 
         return new_probs
 
-    @profile
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
         is_css = hasattr(code, 'Hz')
-        
-        if is_css:
-            Hx = code.Hx
-            Hz = code.Hz
-            H = code.stabilizers
 
         if 'Layered Rotated' in code.label:
             L_x, L_y, L_z = code.size
@@ -293,8 +286,9 @@ class BeliefPropagationOSDDecoder(Decoder):
         syndrome = np.array(syndrome, dtype=int)
 
         if is_css:
-            syndrome_z = syndrome[:n_qubits]
-            syndrome_x = syndrome[n_qubits:]
+
+            syndrome_z = syndrome[:len(code.Hz)]
+            syndrome_x = syndrome[len(code.Hz):]
 
         pi, px, py, pz = self.get_probabilities(code)
 
@@ -384,7 +378,6 @@ class BeliefPropagationOSDDecoder(Decoder):
         return correction
 
 
-@profile
 def test_decoder():
     from bn3d.tc3d import ToricCode3D
     import qecsim.paulitools as pt
