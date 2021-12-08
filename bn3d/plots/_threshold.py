@@ -58,7 +58,7 @@ def detailed_plot(
             ax.errorbar(
                 df_filtered['probability'], df_filtered[prob],
                 yerr=df_filtered[prob_se],
-                label=df_filtered['code'].iloc[0],
+                label=r'$L={}$'.format(df_filtered['size'].iloc[0][0]),
                 capsize=1,
                 linestyle='-',
                 marker='.',
