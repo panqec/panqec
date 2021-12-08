@@ -19,7 +19,7 @@ const params = {
     opacity: MAX_OPACITY,
     errorProbability: 0.1,
     L: 4,
-    deformation: "Rhombic",
+    deformation: "None",
     decoder: 'bp-osd-2',
     max_bp_iter: 10,
     errorModel: 'Pure X',
