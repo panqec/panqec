@@ -64,7 +64,6 @@ def select_independent_columns(A: np.ndarray) -> List[int]:
     return list_col_idx
 
 
-# @profile
 def osd_decoder(H: np.ndarray,
                 syndrome: np.ndarray,
                 bp_proba: np.ndarray) -> np.ndarray:
@@ -106,7 +105,6 @@ def osd_decoder(H: np.ndarray,
     return correction
 
 
-# @profile
 def bp_decoder(H: np.ndarray,
                syndrome: np.ndarray,
                probabilities: np.ndarray,
@@ -275,20 +273,10 @@ class BeliefPropagationOSDDecoder(Decoder):
 
         return new_probs
 
-    # @profile
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
-        if hasattr(code, 'Hz'):
-            Hz = code.Hz
-            Hx = code.Hx
-            is_css = True
-        else:
-            H = code.stabilizers
-            is_css = False
-
-        is_css = False  # debugging, to remove
-        H = code.stabilizers
+        is_css = True
 
         n_qubits = code.n_k_d[0]
         syndrome = np.array(syndrome, dtype=int)
@@ -314,7 +302,7 @@ class BeliefPropagationOSDDecoder(Decoder):
             else:
                 if is_css:
                     z_decoder = bposd_decoder(
-                        Hz,
+                        code.Hz,
                         error_rate=0.05,  # ignore this due to the next parameter
                         channel_probs=probabilities_z,
                         max_iter=self._max_bp_iter,
@@ -325,7 +313,7 @@ class BeliefPropagationOSDDecoder(Decoder):
                     )
 
                     x_decoder = bposd_decoder(
-                        Hx,
+                        code.Hx,
                         error_rate=0.05,  # ignore this due to the next parameter
                         channel_probs=probabilities_x,
                         max_iter=self._max_bp_iter,
@@ -338,7 +326,7 @@ class BeliefPropagationOSDDecoder(Decoder):
                     self._z_decoder[code.label] = z_decoder
                 else:
                     decoder = bposd_decoder(
-                        H,
+                        code.stabilizers,
                         error_rate=0.05,  # ignore this due to the next parameter,
                         channel_probs=probabilities,
                         max_iter=self._max_bp_iter,
@@ -367,16 +355,16 @@ class BeliefPropagationOSDDecoder(Decoder):
         else:
             if is_css:
                 z_correction = bp_osd_decoder(
-                    Hz, syndrome_z, probabilities_z, max_bp_iter=self._max_bp_iter
+                    code.Hz, syndrome_z, probabilities_z, max_bp_iter=self._max_bp_iter
                 )
                 new_x_probs = self.update_probabilities(z_correction, px, py, pz)
                 x_correction = bp_osd_decoder(
-                    Hx, syndrome_x, new_x_probs, max_bp_iter=self._max_bp_iter
+                    code.Hx, syndrome_x, new_x_probs, max_bp_iter=self._max_bp_iter
                 )
                 correction = np.concatenate([x_correction, z_correction])
             else:
                 correction = bp_osd_decoder(
-                    H, syndrome, probabilities, max_bp_iter=self._max_bp_iter
+                    code.stabilizers, syndrome, probabilities, max_bp_iter=self._max_bp_iter
                 )
                 correction = np.concatenate([correction[n_qubits:], correction[:n_qubits]])
 
@@ -385,12 +373,12 @@ class BeliefPropagationOSDDecoder(Decoder):
         return correction
 
 
-if __name__ == "__main__":
+def test_decoder():
     from bn3d.tc3d import ToricCode3D
     import qecsim.paulitools as pt
     from bn3d.noise import PauliErrorModel
 
-    L = 9
+    L = 12
     code = ToricCode3D(L, L, L)
 
     probability = 0.1
@@ -399,9 +387,14 @@ if __name__ == "__main__":
     error_model = PauliErrorModel(r_x, r_y, r_z)
     errors = error_model.generate(code, probability)
     syndrome = pt.bsp(errors, code.stabilizers.T)
+    print(syndrome.shape)
 
     decoder = BeliefPropagationOSDDecoder(
         error_model, probability, joschka=True
     )
 
     correction = decoder.decode(code, syndrome)
+
+
+if __name__ == '__main__':
+    test_decoder()
