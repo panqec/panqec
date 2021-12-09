@@ -9,6 +9,7 @@ memory="16GB"
 # Rough runs using BPOSD decoder on toric code
 name=unrot_bposd_xzzx_zbias
 rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --lattice kitaev --boundary toric --deformation xzzx --ratio equal  \
     --sizes "5,9,13,17,21" --decoder BeliefPropagationOSDDecoder --bias Z \
@@ -18,6 +19,7 @@ bn3d cc-sbatch --data_dir "$paper_dir/$name" --n_array 100 \
 
 name=unrot_bposd_undef_zbias
 rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --lattice kitaev --boundary toric --deformation none --ratio equal \
     --sizes "5,9,13,17,21" --decoder BeliefPropagationOSDDecoder --bias Z \
