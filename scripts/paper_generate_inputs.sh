@@ -106,8 +106,8 @@ bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
 '
 
 # Subthreshold scaling.
-name=lay_coprime_xzzx_zbias
 : '
+name=lay_coprime_xzzx_zbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
     --ratio coprime \
@@ -323,15 +323,15 @@ bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
 name=unrot_bposd_xzzx_zbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --lattice kitaev --boundary toric --deformation xzzx --ratio "$ratio" \
-    --sizes "5,9,13,17" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --sizes "5,9,13,17,21" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "30,100,inf" --prob "0:0.5:0.02"
-bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 12 --queue $queue \
-    --wall_time "$wall_time" --trials 10000 --split 1 $sbatch_dir/$name.sbatch
+bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 100 --queue $queue \
+    --wall_time "$wall_time" --trials 10000 --split 10 $sbatch_dir/$name.sbatch
 
 name=unrot_bposd_undef_zbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --lattice kitaev --boundary toric --deformation none --ratio "$ratio" \
-    --sizes "5,9,13,17" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --sizes "5,9,13,17,21" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "30,100,inf" --prob "0:0.5:0.02"
-bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 12 --queue $queue \
-    --wall_time "$wall_time" --trials 10000 --split 1 $sbatch_dir/$name.sbatch
+bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 100 --queue $queue \
+    --wall_time "$wall_time" --trials 10000 --split 10 $sbatch_dir/$name.sbatch
