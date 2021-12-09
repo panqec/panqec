@@ -3,7 +3,7 @@ mkdir -p "$paper_dir"
 sbatch_dir=temp/paper/sbatch
 mkdir -p "$sbatch_dir"
 
-wall_time="04:00:00"
+wall_time="23:00:00"
 memory="16GB"
 
 # Rough runs using BPOSD decoder on toric code
