@@ -384,6 +384,63 @@ def pi_sbatch(sbatch_file, data_dir, n_array, queue, wall_time, trials, split):
 
 
 @click.command()
+@click.argument('sbatch_file', required=True)
+@click.option('-d', '--data_dir', type=click.Path(exists=True), required=True)
+@click.option('-n', '--n_array', default=6, type=click.INT, show_default=True)
+@click.option(
+    '-a', '--account', default='def-raymond', type=str, show_default=True
+)
+@click.option(
+    '-e', '--email', default='mvasmer@pitp.ca', type=str, show_default=True
+)
+@click.option(
+    '-w', '--wall_time', default='04:00:00', type=str, show_default=True
+)
+@click.option(
+    '-m', '--memory', default='16GB', type=str, show_default=True
+)
+@click.option(
+    '-t', '--trials', default=1000, type=click.INT, show_default=True
+)
+@click.option(
+    '-s', '--split', default=1, type=click.INT, show_default=True
+)
+def cc_sbatch(
+    sbatch_file, data_dir, n_array, account, email, wall_time, memory, trials,
+    split
+):
+    """Generate Compute Canada-style sbatch file with parallel array jobs."""
+    template_file = os.path.join(
+        os.path.dirname(BASE_DIR), 'scripts', 'cc_template.sh'
+    )
+    with open(template_file) as f:
+        text = f.read()
+
+    inputs_dir = os.path.join(data_dir, 'inputs')
+    assert os.path.isdir(inputs_dir), (
+        f'{inputs_dir} missing, please create it and generate inputs'
+    )
+    name = os.path.basename(data_dir)
+    replace_map = {
+        '${ACCOUNT}': account,
+        '${EMAIL}': email,
+        '${TIME}': wall_time,
+        '${MEMORY}': memory,
+        '${NAME}': name,
+        '${NARRAY}': str(n_array),
+        '${DATADIR}': os.path.abspath(data_dir),
+        '${TRIALS}': str(trials),
+        '${SPLIT}': str(split),
+    }
+    for template_string, value in replace_map.items():
+        text = text.replace(template_string, value)
+
+    with open(sbatch_file, 'w') as f:
+        f.write(text)
+    print(f'Wrote to {sbatch_file}')
+
+
+@click.command()
 @click.option('--n_trials', default=1000, type=click.INT, show_default=True)
 @click.option('--partition', default='defq', show_default=True)
 @click.option('--time', default='10:00:00', show_default=True)
@@ -456,4 +513,5 @@ cli.add_command(slurm)
 cli.add_command(generate_input)
 cli.add_command(statmech)
 cli.add_command(pi_sbatch)
+cli.add_command(cc_sbatch)
 cli.add_command(merge_dirs)
