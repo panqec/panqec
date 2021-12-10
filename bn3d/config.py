@@ -12,7 +12,7 @@ from qecsim.models.generic import NaiveDecoder
 from .tc3d import (
     ToricCode3D, Toric3DPymatchingDecoder, SweepMatchDecoder,
     RotatedPlanarCode3D, RotatedToricCode3D, RotatedSweepMatchDecoder,
-    RotatedInfiniteZBiasDecoder
+    RotatedInfiniteZBiasDecoder, LayeredRotatedToricCode,
 )
 from .rhombic import RhombicCode
 from .bp_os_decoder import BeliefPropagationOSDDecoder
@@ -57,6 +57,7 @@ CODES = {
     'RotatedPlanarCode3D': RotatedPlanarCode3D,
     'RotatedToricCode3D': RotatedToricCode3D,
     'FiveQubitCode': FiveQubitCode,
+    'LayeredRotatedToricCode': LayeredRotatedToricCode,
 }
 ERROR_MODELS = {
     'PauliErrorModel': PauliErrorModel,

@@ -54,6 +54,14 @@ class ToricCode3D(StabilizerCode):
     @property
     def face_index(self) -> Dict[Tuple[int, int, int, int], int]:
         return self._face_index
+    
+    @property
+    def n_faces(self) -> int:
+        return len(self.face_index)
+
+    @property
+    def n_vertices(self) -> int:
+        return len(self.vertex_index)
 
     @property
     def label(self) -> str:
@@ -73,14 +81,14 @@ class ToricCode3D(StabilizerCode):
     @property
     def Hz(self) -> np.ndarray:
         if self._Hz.size == 0:
-            self._Hz = self.get_face_X_stabilizers()
-        return self._Hz[:, :self.n_k_d[0]]
+            self._Hz = self.stabilizers[:self.n_faces, :self.n_k_d[0]]
+        return self._Hz
 
     @property
     def Hx(self) -> np.ndarray:
         if self._Hx.size == 0:
-            self._Hx = self.get_vertex_Z_stabilizers()
-        return self._Hx[:, self.n_k_d[0]:]
+            self._Hx = self.stabilizers[self.n_faces:, self.n_k_d[0]:]
+        return self._Hx
 
     @property
     def logical_xs(self) -> np.ndarray:

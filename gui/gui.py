@@ -254,7 +254,6 @@ def send_correction():
     correction_x = correction[:n_qubits]
     correction_z = correction[n_qubits:]
 
-    print(json.dumps({'x': correction_x.tolist(), 'z': correction_z.tolist()}))
     return json.dumps({'x': correction_x.tolist(), 'z': correction_z.tolist()})
 
 

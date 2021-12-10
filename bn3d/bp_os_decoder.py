@@ -64,7 +64,6 @@ def select_independent_columns(A: np.ndarray) -> List[int]:
     return list_col_idx
 
 
-# @profile
 def osd_decoder(H: np.ndarray,
                 syndrome: np.ndarray,
                 bp_proba: np.ndarray) -> np.ndarray:
@@ -106,7 +105,6 @@ def osd_decoder(H: np.ndarray,
     return correction
 
 
-# @profile
 def bp_decoder(H: np.ndarray,
                syndrome: np.ndarray,
                probabilities: np.ndarray,
@@ -230,6 +228,7 @@ class BeliefPropagationOSDDecoder(Decoder):
 
         self._x_decoder: Dict = dict()
         self._z_decoder: Dict = dict()
+        self._decoder: Dict = dict()
 
     def get_probabilities(
         self, code: StabilizerCode
@@ -274,100 +273,117 @@ class BeliefPropagationOSDDecoder(Decoder):
 
         return new_probs
 
-    # @profile
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
-        if hasattr(code, 'Hz'):
-            Hz = code.Hz
-            Hx = code.Hx
-        else:
-            n_qubits = code.n_k_d[0]
-            n_stabilizers = code.stabilizers.shape[0]
-            n_vertices = int(np.product(code.size))
-            n_faces = n_stabilizers - n_vertices
+        is_css = hasattr(code, 'Hz')
 
-            Hz = code.stabilizers[:n_faces, n_qubits:]
-            Hx = code.stabilizers[n_faces:, :n_qubits]
+        if 'Layered Rotated' in code.label:
+            L_x, L_y, L_z = code.size
+            is_css = (L_x % 2 == 0 and L_y % 2 == 0)
 
+        n_qubits = code.n_k_d[0]
         syndrome = np.array(syndrome, dtype=int)
 
-        syndrome_z = syndrome[:len(Hz)]
-        syndrome_x = syndrome[len(Hz):]
+        if is_css:
+
+            syndrome_z = syndrome[:len(code.Hz)]
+            syndrome_x = syndrome[len(code.Hz):]
 
         pi, px, py, pz = self.get_probabilities(code)
 
         probabilities_x = px + py
         probabilities_z = pz + py
 
+        probabilities = np.hstack([probabilities_z, probabilities_x])
+
         if self._joschka:
             if code.label in self._x_decoder.keys():
                 x_decoder = self._x_decoder[code.label]
                 z_decoder = self._z_decoder[code.label]
+            if code.label in self._decoder.keys():
+                decoder = self._decoder[code.label]
+
             else:
-                z_decoder = bposd_decoder(
-                    Hz,
-                    error_rate=0.05,
-                    channel_probs=probabilities_z,
-                    # the maximum number of iterations for BP)
-                    max_iter=self._max_bp_iter,
-                    bp_method="msl",
-                    # min sum scaling factor. If set to zero the variable
-                    # scaling factor method is used
-                    ms_scaling_factor=0,
-                    # Choose from:  1) "osd_e", "osd_cs", "osd0"
-                    osd_method="osd_cs",
-                    osd_order=6  # the osd search depth
+                if is_css:
+                    z_decoder = bposd_decoder(
+                        code.Hz,
+                        error_rate=0.05,  # ignore this due to the next parameter
+                        channel_probs=probabilities_z,
+                        max_iter=self._max_bp_iter,
+                        bp_method="msl",
+                        ms_scaling_factor=0,
+                        osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
+                        osd_order=6
+                    )
+
+                    x_decoder = bposd_decoder(
+                        code.Hx,
+                        error_rate=0.05,  # ignore this due to the next parameter
+                        channel_probs=probabilities_x,
+                        max_iter=self._max_bp_iter,
+                        bp_method="msl",
+                        ms_scaling_factor=0,
+                        osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
+                        osd_order=6
+                    )
+                    self._x_decoder[code.label] = x_decoder
+                    self._z_decoder[code.label] = z_decoder
+                else:
+                    decoder = bposd_decoder(
+                        code.stabilizers,
+                        error_rate=0.05,  # ignore this due to the next parameter,
+                        channel_probs=probabilities,
+                        max_iter=self._max_bp_iter,
+                        bp_method="msl",
+                        ms_scaling_factor=0,
+                        osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
+                        osd_order=6
+                    )
+
+            if is_css:
+                z_decoder.decode(syndrome_z)
+                z_correction = z_decoder.osdw_decoding
+
+                new_x_probs = self.update_probabilities(
+                    z_correction, px, py, pz, direction="z->x"
                 )
+                x_decoder.update_channel_probs(new_x_probs)
+                x_decoder.decode(syndrome_x)
+                x_correction = x_decoder.osdw_decoding
 
-                x_decoder = bposd_decoder(
-                    Hx,
-                    error_rate=0.05,
-                    channel_probs=probabilities_x,
-                    # the maximum number of iterations for BP)
-                    max_iter=self._max_bp_iter,
-                    bp_method="msl",
-                    # min sum scaling factor. If set to zero the variable
-                    # scaling factor method is used
-                    ms_scaling_factor=0,
-                    # Choose from:  1) "osd_e", "osd_cs", "osd0"
-                    osd_method="osd_cs",
-                    # the osd search depth
-                    osd_order=6
-                )
-                self._x_decoder[code.label] = x_decoder
-                self._z_decoder[code.label] = z_decoder
-
-            z_decoder.decode(syndrome_z)
-            z_correction = z_decoder.osdw_decoding
-
-            new_x_probs = self.update_probabilities(
-                z_correction, px, py, pz, direction="z->x"
-            )
-            x_decoder.update_channel_probs(new_x_probs)
-            x_decoder.decode(syndrome_x)
-            x_correction = x_decoder.osdw_decoding
+                correction = np.concatenate([x_correction, z_correction])
+            else:
+                decoder.decode(syndrome)
+                correction = decoder.osdw_decoding
+                correction = np.concatenate([correction[n_qubits:], correction[:n_qubits]])
         else:
-            z_correction = bp_osd_decoder(
-                Hz, syndrome_z, probabilities_z, max_bp_iter=self._max_bp_iter
-            )
-            new_x_probs = self.update_probabilities(z_correction, px, py, pz)
-            x_correction = bp_osd_decoder(
-                Hx, syndrome_x, new_x_probs, max_bp_iter=self._max_bp_iter
-            )
+            if is_css:
+                z_correction = bp_osd_decoder(
+                    code.Hz, syndrome_z, probabilities_z, max_bp_iter=self._max_bp_iter
+                )
+                new_x_probs = self.update_probabilities(z_correction, px, py, pz)
+                x_correction = bp_osd_decoder(
+                    code.Hx, syndrome_x, new_x_probs, max_bp_iter=self._max_bp_iter
+                )
+                correction = np.concatenate([x_correction, z_correction])
+            else:
+                correction = bp_osd_decoder(
+                    code.stabilizers, syndrome, probabilities, max_bp_iter=self._max_bp_iter
+                )
+                correction = np.concatenate([correction[n_qubits:], correction[:n_qubits]])
 
-        correction = np.concatenate([x_correction, z_correction])
-        correction = correction.astype(int)
+            correction = correction.astype(int)
 
         return correction
 
 
-if __name__ == "__main__":
+def test_decoder():
     from bn3d.tc3d import ToricCode3D
     import qecsim.paulitools as pt
     from bn3d.noise import PauliErrorModel
 
-    L = 9
+    L = 12
     code = ToricCode3D(L, L, L)
 
     probability = 0.1
@@ -382,3 +398,7 @@ if __name__ == "__main__":
     )
 
     correction = decoder.decode(code, syndrome)
+
+
+if __name__ == '__main__':
+    test_decoder()

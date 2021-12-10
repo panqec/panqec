@@ -58,7 +58,7 @@ def detailed_plot(
             ax.errorbar(
                 df_filtered['probability'], df_filtered[prob],
                 yerr=df_filtered[prob_se],
-                label=df_filtered['code'].iloc[0],
+                label=r'$L={}$'.format(df_filtered['size'].iloc[0][0]),
                 capsize=1,
                 linestyle='-',
                 marker='.',
@@ -327,7 +327,7 @@ def plot_threshold_vs_bias(
                 df_filt[df_filt[eta_key] != np.inf].iloc[-1][p_th_key],
                 p_th_inf,
             ],
-            '--', color=color, marker=marker, linewidth=1
+            main_linestyle, color=color, marker=marker
         )
         plt.text(
             inf_replacement,
@@ -377,7 +377,7 @@ def plot_threshold_vs_bias(
                 hb_interp[-1],
                 get_hashing_bound((0, 0, 1))
             ],
-            '--', color='black', linewidth=1,
+            '-.', color='black'
         )
 
     plt.legend()
@@ -456,6 +456,7 @@ def plot_combined_threshold_vs_bias(plt, Line2D, thresholds_df,
                                     hashing=False,
                                     eta_key='eta_z',
                                     labels=['3D XZZZZX', '3D CSS'],
+                                    colors=['r', 'b'],
                                     pdf=None):
     thres_df_filt = thresholds_df[
         thresholds_df['error_model'].str.contains('Deformed')
@@ -466,7 +467,7 @@ def plot_combined_threshold_vs_bias(plt, Line2D, thresholds_df,
         plt, Line2D, thres_df_filt,
         markers=['o'],
         eta_keys=[eta_key],
-        colors=[cmap(3)],
+        colors=[colors[0]],
         labels=[labels[0]],
         depolarizing_label=True,
         hashing=hashing
@@ -478,7 +479,7 @@ def plot_combined_threshold_vs_bias(plt, Line2D, thresholds_df,
         plt, Line2D, thres_df_filt,
         markers=['x'],
         eta_keys=[eta_key],
-        colors=[cmap(3)],
+        colors=[colors[1]],
         labels=[labels[1]],
         main_linestyle='--',
         hashing=False
@@ -569,8 +570,11 @@ def plot_crossing_collapse(
         plt.gca().tick_params(direction='in', which='minor')
         plt.ylim(0, 0.9)
 
-        proba_min = min(df_trunc['probability'].unique())
-        proba_max = max(df_trunc['probability'].unique())
+        proba_min = min(df_no_trunc['probability'].unique())
+        proba_max = max(df_no_trunc['probability'].unique())
+
+        # proba_min = 0
+        # proba_max = 0.5
 
         plt.xlim(proba_min, proba_max)
         plt.gca().get_legend().remove()

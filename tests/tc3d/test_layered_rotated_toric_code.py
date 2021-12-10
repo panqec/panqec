@@ -1,3 +1,5 @@
+import os
+import json
 from typing import Tuple, List
 from abc import ABCMeta, abstractmethod
 import pytest
@@ -7,8 +9,11 @@ from itertools import combinations
 from qecsim.model import StabilizerCode
 from bn3d.tc3d import LayeredRotatedToricCode, LayeredToricPauli
 from bn3d.bpauli import (
-    bcommute, bvector_to_pauli_string, brank
+    bcommute, bvector_to_pauli_string, brank, apply_deformation
 )
+from bn3d.deform import DeformedXZZXErrorModel
+from bn3d.noise import PauliErrorModel
+from bn3d.bp_os_decoder import BeliefPropagationOSDDecoder
 from scipy.special import comb
 
 from .indexed_code_test import IndexedCodeTest
@@ -407,3 +412,110 @@ class TestLayeredRotatedToricPauli:
                 operator = LayeredToricPauli(code)
                 operator.face('X', face)
                 assert sum(operator.to_bsf()) == 4
+
+
+class TestLayeredDeformation:
+
+    def test_deformation_index(self):
+        code = LayeredRotatedToricCode(3, 4, 3)
+        error_model = DeformedXZZXErrorModel(0.2, 0.3, 0.5)
+        deformation_index = error_model._get_deformation_indices(code)
+        coords_map = {
+            index: coord for coord, index in code.qubit_index.items()
+        }
+        coords = [coords_map[index] for index in range(len(coords_map))]
+        deformation_sites = sorted(
+            [
+                coords[i]
+                for i, active in enumerate(deformation_index)
+                if active
+            ],
+            key=lambda x: x[::-1]
+        )
+        assert all(z % 2 == 1 for x, y, z in deformation_sites)
+        expected_sites_plane = [
+            (1, 1), (5, 1), (3, 3), (1, 5), (5, 5), (3, 7)
+        ]
+        expected_sites = []
+        for z in [1, 3, 5, 7]:
+            expected_sites += [(x, y, z) for x, y in expected_sites_plane]
+        expected_sites.sort(key=lambda x: x[::-1])
+        assert deformation_sites == expected_sites
+
+    @pytest.mark.skip()
+    def test_stabilizer_matrix(self):
+        project_dir = os.path.dirname(
+            os.path.dirname(os.path.dirname(__file__))
+        )
+        entries = []
+        for size in [3]:
+            L_x, L_y, L_z = size, size + 1, size
+            print(L_x, L_y, L_z)
+            code = LayeredRotatedToricCode(L_x, L_y, L_z)
+            out_json = os.path.join(project_dir, 'temp', 'layered_test.json')
+            error_model = DeformedXZZXErrorModel(0.2, 0.3, 0.5)
+            deformation_index = error_model._get_deformation_indices(code)
+            coords_map = {
+                index: coord for coord, index in code.qubit_index.items()
+            }
+            coords = [coords_map[index] for index in range(len(coords_map))]
+            entries.append({
+                'size': [L_x, L_y, L_z],
+                'coords': coords,
+                'undeformed': {
+                    'n_k_d': code.n_k_d,
+                    'stabilizers': code.stabilizers.tolist(),
+                    'logical_xs': code.logical_xs.tolist(),
+                    'logical_zs': code.logical_zs.tolist(),
+                },
+                'deformed': {
+                    'n_k_d': code.n_k_d,
+                    'stabilizers': apply_deformation(
+                        deformation_index, code.stabilizers
+                    ).tolist(),
+                    'logical_xs': apply_deformation(
+                        deformation_index, code.logical_xs
+                    ).tolist(),
+                    'logical_zs': apply_deformation(
+                        deformation_index, code.logical_zs
+                    ).tolist(),
+                }
+            })
+        with open(out_json, 'w') as f:
+            json.dump({
+                'entries': entries
+            }, f)
+
+
+class TestBPOSDOnLayeredToricCodeOddTimesEven:
+
+    @pytest.mark.parametrize('pauli', ['X', 'Y', 'Z'])
+    def test_decode_single_qubit_error(self, pauli):
+        code = LayeredRotatedToricCode(3, 4, 3)
+        error_model = DeformedXZZXErrorModel(1/3, 1/3, 1/3)
+        probability = 0.1
+        decoder = BeliefPropagationOSDDecoder(error_model, probability)
+
+        failing_cases: List[Tuple[int, int, int]] = []
+        for site in code.qubit_index:
+            error_pauli = LayeredToricPauli(code)
+            error_pauli.site(pauli, site)
+            error = error_pauli.to_bsf()
+            syndrome = bcommute(code.stabilizers, error)
+            correction = decoder.decode(code, syndrome)
+            total_error = (error + correction) % 2
+            if not np.all(bcommute(code.stabilizers, total_error) == 0):
+                failing_cases.append(site)
+        n_failing = len(failing_cases)
+        max_show = 100
+        if n_failing > max_show:
+            failing_cases_show = ', '.join(map(str, failing_cases[:max_show]))
+            end_part = f'...{n_failing - max_show} more'
+        else:
+            failing_cases_show = ', '.join(map(str, failing_cases))
+            end_part = ''
+
+        assert n_failing == 0, (
+            f'Failed decoding {n_failing} {pauli} errors at '
+            f'{failing_cases_show} {end_part}'
+        )

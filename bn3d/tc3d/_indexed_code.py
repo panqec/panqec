@@ -50,6 +50,14 @@ class IndexedCode(StabilizerCode, metaclass=ABCMeta):
     def face_index(self) -> Indexer:
         return self._face_index
 
+    @property
+    def n_faces(self) -> int:
+        return len(self.face_index)
+
+    @property
+    def n_vertices(self) -> int:
+        return len(self.vertex_index)
+
     @abstractmethod
     def _create_qubit_indices(self) -> Indexer:
         """Create qubit indices."""
@@ -81,14 +89,14 @@ class IndexedCode(StabilizerCode, metaclass=ABCMeta):
     @property
     def Hz(self) -> np.ndarray:
         if self._Hz.size == 0:
-            self._Hz = self.get_face_X_stabilizers()
-        return self._Hz[:, :self.n_k_d[0]]
+            self._Hz = self.stabilizers[:self.n_faces, :self.n_k_d[0]]
+        return self._Hz
 
     @property
     def Hx(self) -> np.ndarray:
         if self._Hx.size == 0:
-            self._Hx = self.get_vertex_Z_stabilizers()
-        return self._Hx[:, self.n_k_d[0]:]
+            self._Hx = self.stabilizers[self.n_faces:, self.n_k_d[0]:]
+        return self._Hx
 
     def get_vertex_Z_stabilizers(self) -> np.ndarray:
         vertex_stabilizers = []
