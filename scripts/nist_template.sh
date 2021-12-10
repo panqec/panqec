@@ -1,9 +1,10 @@
 #!/bin/bash
 #SBATCH -N 1
-#SBATCH --cpus-per-task=1
 #SBATCH -t ${TIME}
+#SBATCH --cpus-per-task=1
+#SBATCH --exclusive
 #SBATCH --job-name=${NAME}
-#SBATCH --ntasks-per-node=22
+#SBATCH --array=1-${NARRAY}
 #SBATCH -p ${QUEUE}
 #SBATCH --output=${DATADIR}/%j.out
 
