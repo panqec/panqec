@@ -105,7 +105,7 @@ def get_results_df(
             batch_result['label'] = batch_label
             batch_result['noise_direction'] = sim.error_model.direction
             if len(sim.results['effective_error']) > 0:
-                # codespace = np.array(sim.results['codespace'])
+                codespace = np.array(sim.results['codespace'])
                 x_errors = np.array(
                     sim.results['effective_error']
                 )[:, :n_logicals].any(axis=1)
@@ -123,7 +123,7 @@ def get_results_df(
                     batch_result['p_z']*(1 - batch_result['p_z'])
                     / (sim.n_results + 1)
                 )
-                # batch_result['p_undecodable'] = (~codespace).mean()
+                batch_result['p_undecodable'] = (~codespace).mean()
             else:
                 batch_result['p_x'] = np.nan
                 batch_result['p_x_se'] = np.nan
