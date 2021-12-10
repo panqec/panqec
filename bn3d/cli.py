@@ -448,6 +448,9 @@ def cc_sbatch(
     '-w', '--wall_time', default='0-23:00', type=str, show_default=True
 )
 @click.option(
+    '-m', '--memory', default='32GB', type=str, show_default=True
+)
+@click.option(
     '-t', '--trials', default=1000, type=click.INT, show_default=True
 )
 @click.option(
@@ -455,7 +458,7 @@ def cc_sbatch(
 )
 @click.option('-p', '--partition', default='pml', type=str, show_default=True)
 def nist_sbatch(
-    sbatch_file, data_dir, n_array, wall_time, trials, split, partition
+    sbatch_file, data_dir, n_array, wall_time, memory, trials, split, partition
 ):
     """Generate NIST-style sbatch file with parallel array jobs."""
     template_file = os.path.join(
@@ -471,6 +474,7 @@ def nist_sbatch(
     name = os.path.basename(data_dir)
     replace_map = {
         '${TIME}': wall_time,
+        '${MEMORY}': memory,
         '${NAME}': name,
         '${NARRAY}': str(n_array),
         '${DATADIR}': os.path.abspath(data_dir),

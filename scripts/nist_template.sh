@@ -5,6 +5,7 @@
 #SBATCH --exclusive
 #SBATCH --job-name=${NAME}
 #SBATCH --array=1-${NARRAY}
+#SBATCH --mem=${MEMORY}
 #SBATCH -p ${QUEUE}
 #SBATCH --output=${DATADIR}/%j.out
 
