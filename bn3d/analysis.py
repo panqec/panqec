@@ -10,6 +10,7 @@ import warnings
 from typing import List, Optional, Tuple
 import itertools
 import numpy as np
+from numpy.polynomial.polynomial import polyfit
 import pandas as pd
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
@@ -631,3 +632,69 @@ def export_summary_tables(thresholds_df, table_dir=None, verbose=True):
         if verbose:
             print(summary_df_latex[-1])
     return summary_df_list, summary_df_latex
+
+
+def subthreshold_scaling(results_df, chosen_probabilities=None):
+    """Do subthreshold scaling analysis."""
+    if chosen_probabilities is None:
+        chosen_probabilities = np.sort(results_df['probability'].unique())
+    sts_properties = []
+    for probability in chosen_probabilities:
+        df_filt = results_df[
+            np.isclose(results_df['probability'], probability)
+        ].copy()
+        df_filt['d'] = df_filt['size'].apply(lambda x: min(x))
+        df_filt = df_filt[df_filt['d'] > 2]
+
+        d_values = df_filt['d'].values
+        p_est_values = df_filt['p_est'].values
+        p_se_values = df_filt['p_se'].values
+        log_p_est_values = np.log(p_est_values)
+        log_p_se_values = p_se_values/p_est_values
+        w = 1/log_p_se_values
+
+        # Fit to linear ansatz log(p_est) = c_0 + c_1*d
+        linear_coefficients = polyfit(
+            d_values, log_p_est_values,
+            deg=1,
+            w=w
+        )
+
+        # Fit to quadratic ansatz log(p_est) = c_0 + c_2*d**2
+        # fit_coefficients, _, _, _ = np.linalg.lstsq(
+        #     np.vstack([w*np.ones_like(d_values), w*d_values**2]).T,
+        #     log_p_est_values*w,
+        #     rcond=None
+        # )
+        # quadratic_coefficients = np.array([
+        #     fit_coefficients[0],
+        #     0.0,
+        #     fit_coefficients[1]
+        # ])
+
+        # Fit to ansatz log(p_est) = c_0 + c_1*d + c_2*d**2
+        quadratic_coefficients = polyfit(
+            d_values, log_p_est_values,
+            deg=2,
+            w=w
+        )
+
+        # The slope of the linear fit.
+        linear_fit_gradient = linear_coefficients[-1]
+        sts_properties.append({
+            'probability': probability,
+            'd': d_values,
+            'p_est': p_est_values,
+            'p_se': p_se_values,
+            'linear_coefficients': linear_coefficients,
+            'quadratic_coefficients': quadratic_coefficients,
+            'linear_fit_gradient': linear_fit_gradient,
+            'log_p_on_1_minus_p': np.log(probability/(1 - probability)),
+        })
+
+    gradient_coefficients = polyfit(
+        [props['log_p_on_1_minus_p'] for props in sts_properties],
+        [props['linear_fit_gradient'] for props in sts_properties],
+        1
+    )
+    return sts_properties, gradient_coefficients
