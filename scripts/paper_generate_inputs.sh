@@ -4,8 +4,8 @@ sbatch_dir=temp/paper/sbatch
 mkdir -p "$sbatch_dir"
 
 ratio=equal
-wall_time="0-00:59"
-queue=debugq
+wall_time="0-23:59"
+queue=defq
 
 # Regime where finite-size scaling starts to break down
 : '
@@ -143,45 +143,36 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
     --wall_time "$wall_time" --trials 10000 --split 10 $sbatch_dir/$name.sbatch
 
+: '
 name=sts_lay_coprime_xzzx_zbias
+rm -rf "$paper_dir/$name/inputs"
+rm -rf "$paper_dir/$name/logs"
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
     --ratio coprime \
-    --sizes "2,4,6,8,10,12" --decoder BeliefPropagationOSDDecoder --bias Z \
-    --eta "10,100,inf" --prob "0.1"
-bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
-    --ratio coprime \
-    --sizes "2,4,6,8,10,12" --decoder BeliefPropagationOSDDecoder --bias Z \
-    --eta "0.5" --prob "0.05"
-bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
-    --wall_time "$wall_time" --trials 100000 --split 90 $sbatch_dir/$name.sbatch
+    --sizes "7,9,11,13,15" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "100" --prob "0.15:0.20:0.01"
+bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 4 --queue $queue \
+    --wall_time "$wall_time" --trials 100000 --split 80 $sbatch_dir/$name.sbatch
 
+name=sts_lay_coprime_undef_zbias
+rm -rf "$paper_dir/$name/inputs"
+rm -rf "$paper_dir/$name/logs"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class LayeredRotatedToricCode --noise_class PauliErrorModel \
+    --ratio coprime \
+    --sizes "7,9,11,13,15" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "100" --prob "0.15:0.20:0.01"
+bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 4 --queue $queue \
+    --wall_time "$wall_time" --trials 100000 --split 80 $sbatch_dir/$name.sbatch
+
+: '
 name=sts_lay_equal_xzzx_zbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
     --ratio equal \
     --sizes "2,4,6,8,10,12" --decoder BeliefPropagationOSDDecoder --bias Z \
-    --eta "10,100,inf" --prob "0.1"
-bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
-    --ratio equal \
-    --sizes "2,4,6,8,10,12" --decoder BeliefPropagationOSDDecoder --bias Z \
-    --eta "0.5" --prob "0.05"
-bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
-    --wall_time "$wall_time" --trials 100000 --split 90 $sbatch_dir/$name.sbatch
-
-name=sts_lay_coprime_undef_zbias
-bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class LayeredRotatedToricCode --noise_class PauliErrorModel \
-    --ratio coprime \
-    --sizes "2,4,6,8,10,12" --decoder BeliefPropagationOSDDecoder --bias Z \
-    --eta "10,100,inf" --prob "0.1"
-bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class LayeredRotatedToricCode --noise_class PauliErrorModel \
-    --ratio coprime \
-    --sizes "2,4,6,8,10,12" --decoder BeliefPropagationOSDDecoder --bias Z \
-    --eta "0.5" --prob "0.05"
+    --eta "100" --prob "0.1"
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
     --wall_time "$wall_time" --trials 100000 --split 90 $sbatch_dir/$name.sbatch
 
@@ -190,12 +181,7 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --code_class LayeredRotatedToricCode --noise_class PauliErrorModel \
     --ratio equal \
     --sizes "2,4,6,8,10,12" --decoder BeliefPropagationOSDDecoder --bias Z \
-    --eta "10,100,inf" --prob "0.1"
-bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class LayeredRotatedToricCode --noise_class PauliErrorModel \
-    --ratio equal \
-    --sizes "2,4,6,8,10,12" --decoder BeliefPropagationOSDDecoder --bias Z \
-    --eta "0.5" --prob "0.05"
+    --eta "100" --prob "0.1"
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
     --wall_time "$wall_time" --trials 100000 --split 90 $sbatch_dir/$name.sbatch
 '
@@ -320,6 +306,7 @@ bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
 '
 
 # Rough runs using BPOSD decoder on toric code
+: '
 name=unrot_bposd_xzzx_zbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --lattice kitaev --boundary toric --deformation xzzx --ratio "$ratio" \
@@ -335,3 +322,4 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --eta "30,100,inf" --prob "0:0.5:0.02"
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 100 --queue $queue \
     --wall_time "$wall_time" --trials 10000 --split 10 $sbatch_dir/$name.sbatch
+'
