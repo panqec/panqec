@@ -199,7 +199,7 @@ class BatchSimulation():
         label='unlabelled',
         on_update: Callable = identity,
         update_frequency: int = 10,
-        save_frequency: int = 100,
+        save_frequency: int = 20,
         output_dir: Optional[str] = None,
     ):
         self._simulations = []
