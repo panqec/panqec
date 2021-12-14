@@ -41,7 +41,7 @@ def detailed_plot(
     df.sort_values('probability', inplace=True)
     fig, axes = plt.subplots(ncols=3, figsize=(12, 4))
     plot_labels = [
-        (0, 'p_est', 'p_se', 'Full threshold'),
+        (0, 'p_est', 'p_se', 'All sectors'),
         (1, 'p_x', 'p_x_se', 'Point sector'),
         (2, 'p_z', 'p_z_se', 'Loop sector'),
     ]
@@ -141,9 +141,9 @@ def xyz_sector_plot(
     fig, axes = plt.subplots(ncols=4, figsize=(16, 4))
     plot_labels = [
         (0, 'p_est', 'p_se', 'Full threshold'),
-        (1, 'p_pure_x', 'p_pure_x_se', 'X sector'),
-        (2, 'p_pure_y', 'p_pure_y_se', 'Y sector'),
-        (3, 'p_pure_z', 'p_pure_z_se', 'Z sector'),
+        (1, 'p_pure_x', 'p_pure_x_se', '$X_L$ sector'),
+        (2, 'p_pure_y', 'p_pure_y_se', '$Y_L$ sector'),
+        (3, 'p_pure_z', 'p_pure_z_se', '$Z_L$ sector'),
     ]
     if x_limits is None:
         x_limits = [(0, 0.5), (0, 0.5), (0, 0.5), (0, 0.5)]
@@ -160,7 +160,7 @@ def xyz_sector_plot(
             ax.errorbar(
                 df_filtered['probability'], df_filtered[prob],
                 yerr=df_filtered[prob_se],
-                label=r'$L={}$'.format(df_filtered['size'].iloc[0][0]),
+                label=r'$d={}$'.format(df_filtered['size'].iloc[0][0]),
                 capsize=1,
                 linestyle='-',
                 marker='.',
