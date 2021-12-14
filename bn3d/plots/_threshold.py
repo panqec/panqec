@@ -14,7 +14,7 @@ from ..analysis import quadratic
 
 def detailed_plot(
     plt, results_df, error_model, x_limits=None, save_folder=None,
-    yscale=None,
+    yscale=None, eta_key='eta_x',
     thresholds_df=None,
 ):
     """Plot routine on loop.
@@ -41,12 +41,15 @@ def detailed_plot(
     df.sort_values('probability', inplace=True)
     fig, axes = plt.subplots(ncols=3, figsize=(12, 4))
     plot_labels = [
-        (0, 'p_est', 'p_se', error_model),
+        (0, 'p_est', 'p_se', 'Full threshold'),
         (1, 'p_x', 'p_x_se', 'Point sector'),
         (2, 'p_z', 'p_z_se', 'Loop sector'),
     ]
     if x_limits is None:
         x_limits = [(0, 0.5), (0, 0.5), (0, 0.5)]
+
+    eta = df[(df['error_model'] == error_model)].iloc[0][eta_key]
+    fig.suptitle(f"$\eta={eta:.1f}$")
 
     for (i_ax, prob, prob_se, title) in plot_labels:
         ax = axes[i_ax]
@@ -91,20 +94,7 @@ def detailed_plot(
             ax.set_yscale(yscale)
         if x_limits != 'auto':
             ax.set_xlim(x_limits[i_ax])
-            ax.set_ylim(1e-2, 1e0)
-
-        if i_ax == 0:
-            paulis = title.split("Pauli")[1]
-            pauli_x = paulis.split("X")[1].split("Y")[0][:5]
-            pauli_y = paulis.split("Y")[1].split("Z")[0][:5]
-            pauli_z = paulis.split("Z")[1][:5]
-
-            title = (
-                title.split("Pauli")[0]
-                + "Pauli" + " X" + pauli_x
-                + " Y" + pauli_y
-                + " Z" + pauli_z
-            )
+            ax.set_ylim(1e-3, 1e0)
 
         ax.set_title(title)
         ax.locator_params(axis='x', nbins=6)
@@ -119,6 +109,109 @@ def detailed_plot(
     if save_folder:
         filename = os.path.join(save_folder, results_df['label'][0])
         plt.savefig(f'{filename}.png')
+
+
+def xyz_sector_plot(
+    plt, results_df, error_model, x_limits=None, save_folder=None,
+    yscale=None, eta_key='eta_x',
+    thresholds_df=None,
+):
+    """Plot the different sectors (pure X, pure Y, pure Z) crossover plots
+
+    Parameters
+    ----------
+    plt : matplotlib.pyplot
+        The matplotlib pyplot reference.
+    results_df : pd.Dataframe
+        Results table.
+    error_model : str
+        Name of the error model to filter to.
+    x_limits : Optional[Union[List[Tuple[float, float]], str]]
+        Will set limits from 0 to 0.5 if None given.
+        Will not impose limits if 'auto' given.
+    save_folder : str
+        If given will save save figure as png to directory.
+    yscale : Optional[str]
+        Set to 'log' to make yscale logarithmic.
+    thresholds_df : Optional[pd.DataFrame]
+        Plot the estimated threshold if given.
+    """
+    df = results_df.copy()
+    df.sort_values('probability', inplace=True)
+    fig, axes = plt.subplots(ncols=4, figsize=(16, 4))
+    plot_labels = [
+        (0, 'p_est', 'p_se', 'Full threshold'),
+        (1, 'p_pure_x', 'p_pure_x_se', 'X sector'),
+        (2, 'p_pure_y', 'p_pure_y_se', 'Y sector'),
+        (3, 'p_pure_z', 'p_pure_z_se', 'Z sector'),
+    ]
+    if x_limits is None:
+        x_limits = [(0, 0.5), (0, 0.5), (0, 0.5), (0, 0.5)]
+
+    eta = df[(df['error_model'] == error_model)].iloc[0][eta_key]
+
+    for (i_ax, prob, prob_se, title) in plot_labels:
+        ax = axes[i_ax]
+        legend_title = None
+        for code_size in np.sort(df['size'].unique()):
+            df_filtered = df[
+                (df['size'] == code_size) & (df['error_model'] == error_model)
+            ]
+            ax.errorbar(
+                df_filtered['probability'], df_filtered[prob],
+                yerr=df_filtered[prob_se],
+                label=r'$L={}$'.format(df_filtered['size'].iloc[0][0]),
+                capsize=1,
+                linestyle='-',
+                marker='.',
+            )
+
+        if i_ax == 0 and thresholds_df is not None:
+            thresholds = thresholds_df[
+                thresholds_df['error_model'] == error_model
+            ]
+            if thresholds.shape[0] > 0:
+                p_th_fss_left = thresholds['p_th_fss_left'].iloc[0]
+                p_th_fss_right = thresholds['p_th_fss_right'].iloc[0]
+                p_th_fss = thresholds['p_th_fss'].iloc[0]
+                p_th_fss_se = thresholds['p_th_fss_se'].iloc[0]
+                if not pd.isna(p_th_fss_left) and not pd.isna(p_th_fss_right):
+                    ax.axvspan(
+                        p_th_fss_left, p_th_fss_right,
+                        alpha=0.5, color='pink'
+                    )
+                if not pd.isna(p_th_fss):
+                    ax.axvline(
+                        p_th_fss,
+                        color='red',
+                        linestyle='--',
+                    )
+                if p_th_fss_se is not None and p_th_fss is not None:
+                    legend_title = r'$p_{\mathrm{th}}=(%.2f\pm %.2f)\%%$' % (
+                        100*p_th_fss, 100*p_th_fss_se,
+                    )
+        if yscale is not None:
+            ax.set_yscale(yscale)
+        if x_limits != 'auto':
+            ax.set_xlim(x_limits[i_ax])
+            ax.set_ylim(1e-3, 1e0)
+
+        ax.set_title(title)
+        ax.locator_params(axis='x', nbins=6)
+
+        ax.set_xlabel('Physical Error Rate')
+        if legend_title is not None:
+            ax.legend(loc='best', title=legend_title)
+        else:
+            ax.legend(loc='best')
+    axes[0].set_ylabel('Logical Error Rate')
+
+    fig.suptitle(f"$\eta={eta:.1f}$")
+
+    if save_folder:
+        filename = os.path.join(save_folder, results_df['label'][0])
+        plt.savefig(f'{filename}.png')
+
 
 
 def update_plot(plt, results_df, error_model):
@@ -356,7 +449,7 @@ def plot_threshold_vs_bias(
         eta_interp = np.append(eta_interp, [inf_replacement])
         hb_interp = np.append(hb_interp, [get_hashing_bound((0, 0, 1))])
 
-        plt.plot(eta_interp, hb_interp, '-.', color='black', label='hashing', alpha=0.5)
+        plt.plot(eta_interp, hb_interp, '-.', color='black', label='HB', alpha=0.5)
 
     plt.legend()
     plt.xscale('log')
@@ -365,8 +458,8 @@ def plot_threshold_vs_bias(
         ticks=[0.5, 1e0, 1e1, 1e2, inf_replacement],
         labels=['0.5', '1', '10', ' '*13 + '100' + ' '*10 + '...', r'$\infty$']
     )
-    plt.xlabel(r'Bias Ratio $\eta$', fontsize=16)
-    plt.ylabel(r'Threshold $p_{\mathrm{th}}$', fontsize=16)
+    plt.xlabel(r'$\eta$', fontsize=16)
+    plt.ylabel(r'$p_{\mathrm{th}}$', fontsize=16)
     if png is not None:
         plt.savefig(png)
 
