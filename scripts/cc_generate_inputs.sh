@@ -4,7 +4,7 @@ sbatch_dir=temp/paper/sbatch
 mkdir -p "$sbatch_dir"
 
 wall_time="23:59:00"
-memory="124GB"
+memory="60GB"
 
 # Rough runs using BPOSD decoder on toric code
 for repeat in $(seq 1 6); do
@@ -16,7 +16,7 @@ for repeat in $(seq 1 6); do
         --sizes "9,13,17,21" --decoder BeliefPropagationOSDDecoder --bias Z \
         --eta "30,100" --prob "0:0.5:0.02"
     bn3d cc-sbatch --data_dir "$paper_dir/$name" --n_array 50 --memory $memory \
-        --wall_time "$wall_time" --trials 1667 --split 3 $sbatch_dir/$name.sbatch
+        --wall_time "$wall_time" --trials 1667 --split 1 $sbatch_dir/$name.sbatch
 
     name=unrot_bposd_undef_zbias_$repeat
     rm -rf $paper_dir/$name/inputs
@@ -26,5 +26,5 @@ for repeat in $(seq 1 6); do
         --sizes "9,13,17,21" --decoder BeliefPropagationOSDDecoder --bias Z \
         --eta "30,100" --prob "0:0.5:0.02"
     bn3d cc-sbatch --data_dir "$paper_dir/$name" --n_array 50 --memory $memory \
-        --wall_time "$wall_time" --trials 1667 --split 3 $sbatch_dir/$name.sbatch
+        --wall_time "$wall_time" --trials 1667 --split 1 $sbatch_dir/$name.sbatch
 done
