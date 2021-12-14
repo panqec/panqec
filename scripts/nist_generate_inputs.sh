@@ -13,8 +13,8 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --lattice rotated --boundary planar --deformation xzzx --ratio equal  \
     --sizes "4,6,8,10" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "0.5,1,3,10,30,100,inf" --prob "0:0.5:0.02"
-bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 100 --memory "$memory" \
-    --wall_time "$wall_time" --trials 1000 --split 1 $sbatch_dir/$name.sbatch
+bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 50 --memory "$memory" \
+    --wall_time "$wall_time" --trials 2000 --split 2 $sbatch_dir/$name.sbatch
 
 name=rot_bposd_undef_zbias
 rm -rf $paper_dir/$name/inputs
@@ -23,5 +23,5 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --lattice rotated --boundary planar --deformation none --ratio equal \
     --sizes "4,6,8,10" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "0.5,1,3,10,30,100,inf" --prob "0:0.5:0.02"
-bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 100 --memory "$memory" \
-    --wall_time "$wall_time" --trials 1000 --split 1 $sbatch_dir/$name.sbatch
+bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 50 --memory "$memory" \
+    --wall_time "$wall_time" --trials 2000 --split 2 $sbatch_dir/$name.sbatch
