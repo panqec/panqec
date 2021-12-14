@@ -153,7 +153,7 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --sizes "7,9,11,13,15" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "100" --prob "0.15:0.20:0.01"
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 4 --queue $queue \
-    --wall_time "$wall_time" --trials 100000 --split 80 $sbatch_dir/$name.sbatch
+    --wall_time "$wall_time" --trials 500000 --split 80 $sbatch_dir/$name.sbatch
 
 name=sts_lay_coprime_undef_zbias
 rm -rf "$paper_dir/$name/inputs"
@@ -164,7 +164,7 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --sizes "7,9,11,13,15" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "100" --prob "0.15:0.20:0.01"
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 4 --queue $queue \
-    --wall_time "$wall_time" --trials 100000 --split 80 $sbatch_dir/$name.sbatch
+    --wall_time "$wall_time" --trials 500000 --split 80 $sbatch_dir/$name.sbatch
 
 : '
 name=sts_lay_equal_xzzx_zbias
