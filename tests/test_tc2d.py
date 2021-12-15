@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from qecsim.models.toric import ToricCode
 from qecsim.paulitools import bsf_wt
-from bn3d.tc2d import Toric2DPymatchingDecoder
+from bn3d.decoders import Toric2DPymatchingDecoder
 from bn3d.bpauli import bcommute
 
 

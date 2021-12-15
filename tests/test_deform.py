@@ -2,10 +2,13 @@ import itertools
 import pytest
 import numpy as np
 from bn3d.bpauli import bcommute
-from bn3d.tc3d import ToricCode3D, Toric3DPauli
+from bn3d.models import ToricCode3D, Toric3DPauli
 from bn3d.noise import XNoiseOnYZEdgesOnly, PauliErrorModel
-from bn3d.deform import (
-    DeformedXZZXErrorModel, DeformedSweepMatchDecoder, DeformedSweepDecoder3D,
+from bn3d.error_models import (
+    DeformedXZZXErrorModel
+)
+from bn3d.decoders import (
+    DeformedSweepMatchDecoder, DeformedSweepDecoder3D,
     DeformedToric3DPymatchingDecoder, FoliatedMatchingDecoder
 )
 from bn3d.bpauli import bvector_to_pauli_string

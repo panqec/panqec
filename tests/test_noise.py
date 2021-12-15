@@ -8,7 +8,7 @@ from bn3d.noise import (
 )
 from bn3d.bpauli import get_bvector_index
 from bn3d.noise import PauliErrorModel, XNoiseOnYZEdgesOnly
-from bn3d.tc3d import ToricCode3D, Toric3DPauli
+from bn3d.models import ToricCode3D, Toric3DPauli
 
 
 class TestPauliNoise:

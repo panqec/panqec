@@ -1,14 +1,16 @@
 import numpy as np
 
 from flask import Flask, send_from_directory, request, json, render_template
-from bn3d.tc3d import (
-    ToricCode3D, RotatedPlanarCode3D, RotatedToricCode3D, SweepMatchDecoder,
-    RotatedSweepMatchDecoder, RotatedInfiniteZBiasDecoder
+from bn3d.models import (
+    ToricCode3D, RotatedPlanarCode3D, RotatedToricCode3D,
 )
-from bn3d.tc2d import Toric2DPymatchingDecoder
+from bn3d.decoders import (
+    Toric2DPymatchingDecoder, RotatedSweepMatchDecoder,
+    RotatedInfiniteZBiasDecoder, SweepMatchDecoder
+)
 from qecsim.models.toric import ToricCode
 from bn3d.rhombic import RhombicCode
-from bn3d.bp_os_decoder import BeliefPropagationOSDDecoder
+from bn3d.decoders import BeliefPropagationOSDDecoder
 from bn3d.noise import PauliErrorModel
 from bn3d.deform import (
     DeformedXZZXErrorModel, DeformedXYErrorModel,

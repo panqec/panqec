@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from qecsim.paulitools import bsf_wt, bsf_to_pauli
 from bn3d.bpauli import bcommute, brank
-from bn3d.tc3d import ToricCode3D
+from bn3d.models import ToricCode3D
 
 
 class TestToricCode3D:

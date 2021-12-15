@@ -3,7 +3,8 @@ import pytest
 import numpy as np
 from qecsim.paulitools import bsf_wt
 from bn3d.bpauli import bcommute
-from bn3d.tc3d import ToricCode3D, SweepMatchDecoder, Toric3DPauli
+from bn3d.models import ToricCode3D, Toric3DPauli
+from bn3d.decoders import SweepMatchDecoder
 
 
 class TestSweepMatchDecoder:

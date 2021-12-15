@@ -3,10 +3,10 @@ from itertools import combinations
 import numpy as np
 from qecsim.paulitools import bsf_wt
 from bn3d.bpauli import bcommute
-from bn3d.tc3d import (
-    RotatedPlanarCode3D, RotatedSweepMatchDecoder, RotatedPlanar3DPauli
+from bn3d.models import (
+    RotatedPlanarCode3D, RotatedPlanar3DPauli
 )
-from bn3d.tc3d._rotated_sweep_decoder import RotatedSweepDecoder3D
+from bn3d.decoders import RotatedSweepMatchDecoder, RotatedSweepDecoder3D
 
 
 class TestRotatedSweepMatchDecoder:

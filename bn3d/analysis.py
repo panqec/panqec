@@ -484,17 +484,17 @@ def get_bias_ratios(noise_direction):
     if r_y + r_z != 0:
         eta_x = r_x / (r_y + r_z)
     else:
-        eta_x = np.nan
+        eta_x = np.inf
 
     if r_x + r_z != 0:
         eta_y = r_y / (r_x + r_z)
     else:
-        eta_y = np.nan
+        eta_y = np.inf
 
     if r_x + r_y != 0:
         eta_z = r_z / (r_x + r_y)
     else:
-        eta_z = np.nan
+        eta_z = np.inf
 
     return eta_x, eta_y, eta_z
 
