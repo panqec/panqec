@@ -105,6 +105,12 @@ def get_results_df(
 
             batch_result['label'] = batch_label
             batch_result['noise_direction'] = sim.error_model.direction
+
+            eta_x, eta_y, eta_z = get_bias_ratios(sim.error_model.direction)
+            batch_result['eta_x'] = eta_x
+            batch_result['eta_y'] = eta_y
+            batch_result['eta_z'] = eta_z
+
             if len(sim.results['effective_error']) > 0:
                 codespace = np.array(sim.results['codespace'])
                 x_errors = np.array(
@@ -125,6 +131,23 @@ def get_results_df(
                     / (sim.n_results + 1)
                 )
                 batch_result['p_undecodable'] = (~codespace).mean()
+
+                if n_logicals == 1:
+                    p_pure_x = (np.array(sim.results['effective_error']) == [1, 0]).all(axis=1).mean()
+                    p_pure_y = (np.array(sim.results['effective_error']) == [1, 1]).all(axis=1).mean()
+                    p_pure_z = (np.array(sim.results['effective_error']) == [0, 1]).all(axis=1).mean()
+
+                    p_pure_x_se = np.sqrt(p_pure_x * (1-p_pure_x) / (sim.n_results + 1))
+                    p_pure_y_se = np.sqrt(p_pure_y * (1-p_pure_y) / (sim.n_results + 1))
+                    p_pure_z_se = np.sqrt(p_pure_z * (1-p_pure_z) / (sim.n_results + 1))
+
+                    batch_result['p_pure_x'] = p_pure_x
+                    batch_result['p_pure_y'] = p_pure_y
+                    batch_result['p_pure_z'] = p_pure_z
+
+                    batch_result['p_pure_x_se'] = p_pure_x_se
+                    batch_result['p_pure_y_se'] = p_pure_y_se
+                    batch_result['p_pure_z_se'] = p_pure_z_se
             else:
                 batch_result['p_x'] = np.nan
                 batch_result['p_x_se'] = np.nan
@@ -454,6 +477,27 @@ def fit_fss_params(
             params_bs_list.append(np.array([np.nan]*5))
     params_bs = np.array(params_bs_list)
     return params_opt, params_bs, df_trunc
+
+
+def get_bias_ratios(noise_direction):
+    r_x, r_y, r_z = noise_direction
+
+    if r_y + r_z != 0:
+        eta_x = r_x / (r_y + r_z)
+    else:
+        eta_x = np.nan
+
+    if r_x + r_z != 0:
+        eta_y = r_y / (r_x + r_z)
+    else:
+        eta_y = np.nan
+
+    if r_x + r_y != 0:
+        eta_z = r_z / (r_x + r_y)
+    else:
+        eta_z = np.nan
+
+    return eta_x, eta_y, eta_z
 
 
 def get_error_model_df(results_df):
