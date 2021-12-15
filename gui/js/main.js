@@ -13,16 +13,16 @@ import { RotatedToricCode3D } from './codes/rotatedToric3d.js';
 const MIN_OPACITY = 0.1;
 const MAX_OPACITY = 0.6;
 
-var defaultCode = codeDimension == 2 ? 'toric-2d' : 'rhombic';
+var defaultCode = codeDimension == 2 ? 'toric-2d' : 'toric-3d';
 
 const params = {
     opacity: MAX_OPACITY,
     errorProbability: 0.1,
-    L: 4,
+    L: 3,
     deformation: "None",
     decoder: 'bp-osd-2',
     max_bp_iter: 10,
-    errorModel: 'Pure X',
+    errorModel: 'Depolarizing',
     codeName: defaultCode
 };
 

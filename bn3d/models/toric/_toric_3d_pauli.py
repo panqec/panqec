@@ -1,18 +1,14 @@
 from typing import Tuple, Optional
 import numpy as np
-from qecsim.models.toric import ToricPauli
+from ..generic._indexed_code import IndexedCodePauli
 from qecsim.model import StabilizerCode
 
 
-class Toric3DPauli(ToricPauli):
+class Toric3DPauli(IndexedCodePauli):
     """Pauli Operator on 3D Toric Code.
 
     Qubit sites are on edges of the lattice.
     """
-
-    X_AXIS = 0
-    Y_AXIS = 1
-    Z_AXIS = 2
 
     def __init__(self, code: StabilizerCode, bsf: Optional[np.ndarray] = None):
 
@@ -48,25 +44,28 @@ class Toric3DPauli(ToricPauli):
         """
 
         # Location modulo lattice shape, to handle edge cases.
-        x, y, z = np.mod(location, self.code.size)
+        Lx, Ly, Lz = self.code.size
+        x, y, z = location
+
+        if (x + y + z) % 2 == 1:
+            raise ValueError(f"Invalid coordinate {location} for a vertex")
 
         # Apply operator on each of the six neighbouring edges.
 
         # x-edge.
-        self.site(operator, (0, x, y, z))
-        self.site(operator, (0, x - 1, y, z))
+        self.site(operator, ((x + 1) % (2*Lx), y, z))
+        self.site(operator, ((x - 1) % (2*Lx), y, z))
 
         # y-edge.
-        self.site(operator, (1, x, y, z))
-        self.site(operator, (1, x, y - 1, z))
+        self.site(operator, (x, (y + 1) % (2*Ly), z))
+        self.site(operator, (x, (y - 1) % (2*Ly), z))
 
         # z-edge.
-        self.site(operator, (2, x, y, z))
-        self.site(operator, (2, x, y, z - 1))
+        self.site(operator, (x, y, (z + 1) % (2*Lz)))
+        self.site(operator, (x, y, (z - 1) % (2*Lz)))
 
     def face(
         self, operator: str,
-        normal: int,
         location: Tuple[int, int, int]
     ):
         r"""Apply operator on sites on face normal to direction at location.
@@ -80,7 +79,7 @@ class Toric3DPauli(ToricPauli):
             0 is x-normal face in yz plane,
             1 is y-normal face in xz plane,
             2 is z-normal face in xy plane.
-        location: Tuple[int, int, int]
+        location: Tuple[int, int, int])
             The (x, y, z) location of the vertex of the face
             that is closest to the origin.
 
@@ -100,29 +99,28 @@ class Toric3DPauli(ToricPauli):
         """
 
         # Location modulo lattice shape, to handle edge cases.
-        x, y, z = np.mod(location, self.code.size)
-
-        X_AXIS, Y_AXIS, Z_AXIS = (
-            self.code.X_AXIS, self.code.Y_AXIS, self.code.Z_AXIS
-        )
-
-        # x-normal so face is in yz-plane.
-        if normal == X_AXIS:
-            self.site(operator, (Y_AXIS, x, y, z))
-            self.site(operator, (Z_AXIS, x, y + 1, z))
-            self.site(operator, (Y_AXIS, x, y, z + 1))
-            self.site(operator, (Z_AXIS, x, y, z))
-
-        # y-normal so face is in zx-plane.
-        elif normal == Y_AXIS:
-            self.site(operator, (Z_AXIS, x, y, z))
-            self.site(operator, (X_AXIS, x, y, z + 1))
-            self.site(operator, (Z_AXIS, x + 1, y, z))
-            self.site(operator, (X_AXIS, x, y, z))
+        x, y, z = location
+        Lx, Ly, Lz = self.code.size
 
         # z-normal so face is xy-plane.
-        elif normal == Z_AXIS:
-            self.site(operator, (X_AXIS, x, y, z))
-            self.site(operator, (Y_AXIS, x + 1, y, z))
-            self.site(operator, (X_AXIS, x, y + 1, z))
-            self.site(operator, (Y_AXIS, x, y, z))
+        if z % 2 == 0:
+            self.site(operator, ((x - 1) % (2*Lx), y, z))
+            self.site(operator, ((x + 1) % (2*Lx), y, z))
+            self.site(operator, (x, (y - 1) % (2*Ly), z))
+            self.site(operator, (x, (y + 1) % (2*Ly), z))
+
+        # x-normal so face is in yz-plane.
+        elif (x % 2 == 0):
+            self.site(operator, (x, (y - 1) % (2*Ly), z))
+            self.site(operator, (x, (y + 1) % (2*Ly), z))
+            self.site(operator, (x, y, (z - 1) % (2*Lz)))
+            self.site(operator, (x, y, (z + 1) % (2*Lz)))
+
+        # y-normal so face is in zx-plane.
+        elif (y % 2 == 0):
+            self.site(operator, (x, y, (z - 1) % (2*Lz)))
+            self.site(operator, (x, y, (z + 1) % (2*Lz)))
+            self.site(operator, ((x - 1) % (2*Lx), y, z))
+            self.site(operator, ((x + 1) % (2*Lx), y, z))
+        else:
+            raise ValueError(f"Invalid coordinate {location} for a face")
