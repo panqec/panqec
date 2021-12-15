@@ -3,8 +3,8 @@ mkdir -p "$paper_dir"
 sbatch_dir=temp/paper/sbatch
 mkdir -p "$sbatch_dir"
 
-wall_time="23:59:00"
-memory="124GB"
+wall_time="24:00:00"
+memory="64GB"
 
 # Rough runs using BPOSD decoder on toric code
 for repeat in $(seq 1 6); do
