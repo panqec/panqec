@@ -144,17 +144,29 @@ bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
     --wall_time "$wall_time" --trials 10000 --split 10 $sbatch_dir/$name.sbatch
 
 : '
-name=sts_lay_coprime_xzzx_zbias
+name=sts_lay_coprime_xzzx_zbias_1
 rm -rf "$paper_dir/$name/inputs"
 rm -rf "$paper_dir/$name/logs"
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
     --ratio coprime \
     --sizes "7,9,11,13,15" --decoder BeliefPropagationOSDDecoder --bias Z \
-    --eta "100" --prob "0.15:0.20:0.01"
-bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 4 --queue $queue \
-    --wall_time "$wall_time" --trials 500000 --split 80 $sbatch_dir/$name.sbatch
+    --eta "100" --prob "0.19:0.23:0.01"
+bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 5 --queue $queue \
+    --wall_time "$wall_time" --trials 250000 --split 80 $sbatch_dir/$name.sbatch
 
+name=sts_lay_coprime_xzzx_zbias_2
+rm -rf "$paper_dir/$name/inputs"
+rm -rf "$paper_dir/$name/logs"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
+    --ratio coprime \
+    --sizes "7,9,11,13,15" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "100" --prob "0.19:0.23:0.01"
+bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 5 --queue $queue \
+    --wall_time "$wall_time" --trials 250000 --split 80 $sbatch_dir/$name.sbatch
+
+: '
 name=sts_lay_coprime_undef_zbias
 rm -rf "$paper_dir/$name/inputs"
 rm -rf "$paper_dir/$name/logs"
@@ -162,11 +174,10 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --code_class LayeredRotatedToricCode --noise_class PauliErrorModel \
     --ratio coprime \
     --sizes "7,9,11,13,15" --decoder BeliefPropagationOSDDecoder --bias Z \
-    --eta "100" --prob "0.15:0.20:0.01"
+    --eta "100" --prob "0.19:0.23:0.01"
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 4 --queue $queue \
     --wall_time "$wall_time" --trials 500000 --split 80 $sbatch_dir/$name.sbatch
 
-: '
 name=sts_lay_equal_xzzx_zbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
