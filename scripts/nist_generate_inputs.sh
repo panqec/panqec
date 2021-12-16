@@ -65,7 +65,7 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --ratio equal \
     --sizes "9,13,17,21" --decoder BeliefPropagationOSDDecoder --bias X \
     --eta "30,100,inf" --prob "0.28:0.32:0.005"
-bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 100 --memory "$memory" \
+bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 104 --memory "$memory" \
     --wall_time "$wall_time" --trials 2000 --split 2 $sbatch_dir/$name.sbatch
 
 name=det_rhombic_bposd_xzzx_xbias
@@ -106,5 +106,5 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --ratio equal \
     --sizes "6,8,10,12" --decoder BeliefPropagationOSDDecoder --bias X \
     --eta "inf" --prob "0.38:0.42:0.005"
-bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 100 --memory "$memory" \
+bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 65 --memory "$memory" \
     --wall_time "$wall_time" --trials 2000 --split 2 $sbatch_dir/$name.sbatch
