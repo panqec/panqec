@@ -40,11 +40,14 @@ class DeformedRhombicErrorModel(PauliErrorModel):
     def _get_deformation_indices(self, code: StabilizerCode):
         is_deformed = [False for _ in range(code.n_k_d[0])]
 
-        deformed_edge = code.X_AXIS
+        deformed_axis = {'RhombicCode': code.Z_AXIS}
 
-        for axis, x, y, z in code.qubit_index.keys():
-            if axis == deformed_edge and (x + y + z) % 2 == 0:
-                index = code.qubit_index[(axis, x, y, z)]
+        if code.id not in deformed_axis.keys():
+            raise NotImplementedError(f"Code {code.id} has no rhombic deformation implemented")
+
+        for (x, y, z) in code.qubit_index.keys():
+            if code.axis((x, y, z)) == deformed_axis[code.id] and (x + y) % 4 == 2:
+                index = code.qubit_index[(x, y, z)]
                 is_deformed[index] = True
 
         return is_deformed

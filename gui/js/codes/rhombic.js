@@ -17,8 +17,8 @@ class RhombicCode extends AbstractCode {
         this.triangles = [];
 
         this.qubitIndex = indices['qubit'];
-        this.triangleIndex = indices['triangle'];
-        this.cubeIndex = indices['cube'];
+        this.triangleIndex = indices['vertex'];
+        this.cubeIndex = indices['face'];
 
         this.stabilizers['X'] = this.triangles;
         this.stabilizers['Z'] = this.cubes;
@@ -26,10 +26,6 @@ class RhombicCode extends AbstractCode {
         this.toggleStabFn['X'] = this.toggleTriangle;
         this.toggleStabFn['Z'] = this.toggleCube;
 
-        this.X_AXIS = 1;
-        this.Y_AXIS = 2;
-        this.Z_AXIS = 0;
-        
         this.SIZE = {radiusEdge: 0.05, radiusVertex: 0.1, lengthEdge: 1};
         this.COLOR = Object.assign(this.COLOR, {
             activatedTriangle: 0xf1c232,
@@ -40,8 +36,8 @@ class RhombicCode extends AbstractCode {
         });
     }
 
-    getIndexQubit(axis, x, y, z) {
-        let key = `[${axis}, ${x}, ${y}, ${z}]`;
+    getIndexQubit(x, y, z) {
+        let key = `[${x}, ${y}, ${z}]`;
         return this.qubitIndex[key];
     }
 
@@ -49,7 +45,7 @@ class RhombicCode extends AbstractCode {
         let key = `[${axis}, ${x}, ${y}, ${z}]`;
         return this.triangleIndex[key];
     }
- 
+
     getIndexCube(x, y, z) {
         let key = `[${x}, ${y}, ${z}]`;
         return this.cubeIndex[key];
@@ -62,7 +58,7 @@ class RhombicCode extends AbstractCode {
         cube.material.color.setHex(color);
         cube.material.opacity = this.currentOpacity;
     }
-    
+
     toggleTriangle(triangle, activate) {
         triangle.isActivated = activate;
         triangle.material.transparent = !activate;
@@ -84,7 +80,7 @@ class RhombicCode extends AbstractCode {
                 q.material.opacity = this.currentOpacity;
             }
         });
-    
+
         this.cubes.forEach(c => {
             if (!c.isActivated) {
                 c.material.opacity = this.currentOpacity;
@@ -99,130 +95,77 @@ class RhombicCode extends AbstractCode {
         });
     }
 
-    buildEdge(axis, x, y, z) {
+    buildEdge(x, y, z) {
         const geometry = new THREE.CylinderGeometry(this.SIZE.radiusEdge, this.SIZE.radiusEdge, this.SIZE.lengthEdge, 32);
-    
+
         const material = new THREE.MeshPhongMaterial({color: this.COLOR.deactivatedEdge, opacity: this.currentOpacity, transparent: true});
         const edge = new THREE.Mesh(geometry, material);
-    
-        edge.position.x = x;
-        edge.position.y = y;
-        edge.position.z = z;
-    
-        if (axis == this.X_AXIS) {
-            edge.position.y += this.SIZE.lengthEdge / 2
-        }
-        if (axis == this.Y_AXIS) {
-            edge.rotateX(Math.PI / 2)
-            edge.position.z += this.SIZE.lengthEdge / 2
-        }
-        else if (axis == this.Z_AXIS) {
+
+        edge.position.x = x * this.SIZE.lengthEdge / 2;
+        edge.position.y = y * this.SIZE.lengthEdge / 2;
+        edge.position.z = z * this.SIZE.lengthEdge / 2;
+
+        let x_axis = ((z % 2 == 0) && y % 2 == 0);
+        let y_axis = ((z % 2 == 0) && x % 2 == 0);
+        let z_axis = (z % 2 == 1);
+
+        if (x_axis) {
             edge.rotateZ(Math.PI / 2)
-            edge.position.x += this.SIZE.lengthEdge / 2
         }
-    
+        else if (z_axis) {
+            edge.rotateX(Math.PI / 2)
+        }
+
         edge.hasError = {'X': false, 'Z': false};
-    
-        let index = this.getIndexQubit(axis, x, y, z)
-    
+
+        let index = this.getIndexQubit(x, y, z)
+
         edge.index = index;
         this.qubits[index] = edge;
-    
+
         this.scene.add(edge);
     }
 
     buildTriangle(axis, x, y, z) {
         const L = this.SIZE.lengthEdge / 4
-    
+
         const geometry = new THREE.BufferGeometry();
-    
-        if (axis == 0) {
-            if ((x + y + z) % 2 == 0) {
-                var vertices = new Float32Array([
-                    x+L,   y,   z,
-                    x,   y+L, z,
-                    x,   y,   z+L
-                ]);
-            }
-            else {
-                var vertices = new Float32Array([
-                    x-L,   y,   z,
-                    x,   y-L, z,
-                    x,   y,   z-L
-                ]);
-            }
-        }
-    
-        else if (axis == 1) {
-            if ((x + y + z) % 2 == 0) {
-                var vertices = new Float32Array([
-                    x+L,   y,   z,
-                    x,   y-L, z,
-                    x,   y,   z-L
-                ]);
-            }
-            else {
-                var vertices = new Float32Array([
-                    x-L,   y,   z,
-                    x,   y+L, z,
-                    x,   y,   z+L
-                ]);
-            }
-        }
-    
-        else if (axis == 2) {
-            if ((x + y + z) % 2 == 0) {
-                var vertices = new Float32Array([
-                    x-L,   y,   z,
-                    x,   y+L, z,
-                    x,   y,   z-L
-                ]);
-            }
-            else {
-                var vertices = new Float32Array([
-                    x+L,   y,   z,
-                    x,   y-L, z,
-                    x,   y,   z+L
-                ]);
-            }
-        }
-    
-        else if (axis == 3) {
-            if ((x + y + z) % 2 == 0) {
-                var vertices = new Float32Array([
-                    x-L,   y,   z,
-                    x,   y-L, z,
-                    x,   y,   z+L
-                ]);
-            }
-            else {
-                var vertices = new Float32Array([
-                    x+L,   y,   z,
-                    x,   y+L, z,
-                    x,   y,   z-L
-                ]);
-            }
-        }
-    
+
+        let pos_x = x * this.SIZE.lengthEdge / 2;
+        let pos_y = y * this.SIZE.lengthEdge / 2;
+        let pos_z = z * this.SIZE.lengthEdge / 2;
+
+        let delta_1 = [[1, 1, 1], [-1, -1, 1], [1, -1, -1], [-1, 1, -1]];
+        let delta_2 = [[1, 1, -1], [-1, -1, -1], [1, -1, 1], [-1, 1, 1]];
+
+        let delta = ((x + y + z) % 4 == 0) ? delta_1 : delta_2
+
+        var vertices = new Float32Array([
+            pos_x + delta[axis][0]*L, pos_y,                    pos_z,
+            pos_x,                    pos_y + delta[axis][1]*L, pos_z,
+            pos_x,                    pos_y,                    pos_z+delta[axis][2]*L
+        ]);
+
         geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3) );
-    
+
         const material = new THREE.MeshBasicMaterial({color: this.COLOR.deactivatedTriangle, opacity: this.currentOpacity, transparent: true, side: THREE.DoubleSide});
         const triangle = new THREE.Mesh(geometry, material);
-    
+
         var geo = new THREE.EdgesGeometry(triangle.geometry);
         var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1, opacity: this.currentOpacity, transparent: true});
         var wireframe = new THREE.LineSegments(geo, mat);
         wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
         triangle.add(wireframe);
-    
+
         let index = this.getIndexTriangle(axis, x, y, z);
         triangle.index = index;
         triangle.isActivated = false;
+
         this.triangles[index] = triangle;
-    
+
         this.scene.add(triangle);
     }
-    
+
     buildCube(x, y, z) {
         const L = this.SIZE.lengthEdge - 0.3
         const geometry = new THREE.BoxBufferGeometry(L, L, L);
@@ -235,9 +178,9 @@ class RhombicCode extends AbstractCode {
         wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
         cube.add(wireframe);
 
-        cube.position.x = x + this.SIZE.lengthEdge / 2;
-        cube.position.y = y + this.SIZE.lengthEdge / 2;
-        cube.position.z = z + this.SIZE.lengthEdge / 2;
+        cube.position.x = x * this.SIZE.lengthEdge / 2;
+        cube.position.y = y * this.SIZE.lengthEdge / 2;
+        cube.position.z = z * this.SIZE.lengthEdge / 2;
 
         let index = this.getIndexCube(x, y, z);
         cube.index = index;

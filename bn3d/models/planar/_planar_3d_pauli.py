@@ -4,7 +4,7 @@ from ..generic._indexed_code import IndexedCodePauli
 from qecsim.model import StabilizerCode
 
 
-class Toric3DPauli(IndexedCodePauli):
+class Planar3DPauli(IndexedCodePauli):
     """Pauli Operator on 3D Toric Code.
 
     Qubit sites are on edges of the lattice.
@@ -43,25 +43,16 @@ class Toric3DPauli(IndexedCodePauli):
              .       .
         """
 
-        Lx, Ly, Lz = self.code.size
         x, y, z = location
 
         if (x + y + z) % 2 == 1:
             raise ValueError(f"Invalid coordinate {location} for a vertex")
 
-        # Apply operator on each of the six neighbouring edges.
+        vertex = [(x + 1, y, z), (x - 1, y, z), (x, y + 1, z), (x, y - 1, z), (x, y, z + 1), (x, y, z - 1)]
 
-        # x-edge.
-        self.site(operator, ((x + 1) % (2*Lx), y, z))
-        self.site(operator, ((x - 1) % (2*Lx), y, z))
-
-        # y-edge.
-        self.site(operator, (x, (y + 1) % (2*Ly), z))
-        self.site(operator, (x, (y - 1) % (2*Ly), z))
-
-        # z-edge.
-        self.site(operator, (x, y, (z + 1) % (2*Lz)))
-        self.site(operator, (x, y, (z - 1) % (2*Lz)))
+        for qubit_location in vertex:
+            if qubit_location in self.code.qubit_index:
+                self.site(operator, qubit_location)
 
     def face(
         self, operator: str,
@@ -92,29 +83,23 @@ class Toric3DPauli(IndexedCodePauli):
              .   -   .
         """
 
-        # Location modulo lattice shape, to handle edge cases.
         x, y, z = location
-        Lx, Ly, Lz = self.code.size
 
-        # z-normal so face is xy-plane.
+        z_face = [(x - 1, y, z), (x + 1, y, z), (x, y - 1, z), (x, y + 1, z)]  # zy-plane
+        x_face = [(x, y - 1, z), (x, y + 1, z), (x, y, z - 1), (x, y, z + 1)]  # xz-plane
+        y_face = [(x - 1, y, z), (x + 1, y, z), (x, y, z - 1), (x, y, z + 1)]  # xy-plane
+
+        # Choose the right face orientation depending on its position
         if z % 2 == 0:
-            self.site(operator, ((x - 1) % (2*Lx), y, z))
-            self.site(operator, ((x + 1) % (2*Lx), y, z))
-            self.site(operator, (x, (y - 1) % (2*Ly), z))
-            self.site(operator, (x, (y + 1) % (2*Ly), z))
-
-        # x-normal so face is in yz-plane.
+            face = z_face
         elif (x % 2 == 0):
-            self.site(operator, (x, (y - 1) % (2*Ly), z))
-            self.site(operator, (x, (y + 1) % (2*Ly), z))
-            self.site(operator, (x, y, (z - 1) % (2*Lz)))
-            self.site(operator, (x, y, (z + 1) % (2*Lz)))
-
-        # y-normal so face is in zx-plane.
+            face = x_face
         elif (y % 2 == 0):
-            self.site(operator, (x, y, (z - 1) % (2*Lz)))
-            self.site(operator, (x, y, (z + 1) % (2*Lz)))
-            self.site(operator, ((x - 1) % (2*Lx), y, z))
-            self.site(operator, ((x + 1) % (2*Lx), y, z))
+            face = y_face
         else:
             raise ValueError(f"Invalid coordinate {location} for a face")
+
+        # Place the qubits
+        for index in face:
+            if index in self.code.qubit_index:
+                self.site(operator, index)

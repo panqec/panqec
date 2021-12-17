@@ -69,7 +69,7 @@ class SweepDecoder3D(Decoder):
     def get_sign_array(self, code: ToricCode3D, syndrome: np.ndarray):
         signs = np.reshape(
             self.get_face_syndromes(code, syndrome),
-            newshape=code.shape
+            newshape=code.size
         )
         return signs
 

@@ -1,18 +1,14 @@
 from typing import Tuple, Optional
 import numpy as np
-from qecsim.models.toric import ToricPauli
+from ..generic._indexed_code import IndexedCodePauli
 from qecsim.model import StabilizerCode
 
 
-class RhombicPauli(ToricPauli):
+class RhombicPauli(IndexedCodePauli):
     """Pauli Operator on 3D Toric Code.
 
     Qubit sites are on edges of the lattice.
     """
-
-    X_AXIS = 0
-    Y_AXIS = 1
-    Z_AXIS = 2
 
     def __init__(self, code: StabilizerCode, bsf: Optional[np.ndarray] = None):
 
@@ -22,122 +18,68 @@ class RhombicPauli(ToricPauli):
 
         super().__init__(code, bsf=bsf)
 
-    def triangle(
-        self, operator: str, axis: int, location: Tuple[int, int, int]
+    def vertex(
+        self, operator: str, location: Tuple[int, int, int, int]
     ):
-        r"""Apply operator on sites neighbouring vertex (3-body terms).
+        r"""Apply triangle operator on sites neighbouring vertex (3-body terms).
 
         Parameters
         ----------
         operator: str
             Pauli operator in string format.
         location: Tuple[int, int, int]
-            The (x, y, z) location of the vertex.
-
-        Examples
-        --------
-        operator.vertex('X', (0, 0, 0))
-
-             .       .            Coordinate axes:
-              \     /                        y
-               X   X                        /
-                \ /                        /
-         .---X---o---X---.         z <----o
-                / \                        \
-               X   X                        \
-              /     \                        x
-             .       .
+            The (axis, x, y, z) location and orientation of the triangle
         """
 
-        # Location modulo lattice shape, to handle edge cases.
-        x, y, z = np.mod(location, self.code.size)
+        axis, x, y, z = location
+        
+        if not self.code.is_vertex(location):
+            raise ValueError(f'Location {location} does not correspond to a triangle')
 
-        # Apply operator on each of the six neighbouring edges.
+        # Vertices of type 1 have neighboring cube stabs on the top left and bottom right
+        # vertex_1[axis] contains the 3 qubits (i.e. 3 locations) in the corresponding triangle
+        vertex_1 = [[(x + 1, y, z), (x, y + 1, z), (x, y, z + 1)],
+                    [(x - 1, y, z), (x, y - 1, z), (x, y, z + 1)],
+                    [(x + 1, y, z), (x, y - 1, z), (x, y, z - 1)],
+                    [(x - 1, y, z), (x, y + 1, z), (x, y, z - 1)]]
 
-        # x-edge.
-        if ((x + y + z) % 2 == 0):
-            if axis == 0:
-                self.site(operator, (0, x, y, z))
-                self.site(operator, (1, x, y, z))
-                self.site(operator, (2, x, y, z))
-            elif axis == 1:
-                self.site(operator, (0, x, y, z))
-                self.site(operator, (1, x, y-1, z))
-                self.site(operator, (2, x, y, z-1))
-            elif axis == 2:
-                self.site(operator, (0, x-1, y, z))
-                self.site(operator, (1, x, y, z))
-                self.site(operator, (2, x, y, z-1))
-            elif axis == 3:
-                self.site(operator, (0, x-1, y, z))
-                self.site(operator, (1, x, y-1, z))
-                self.site(operator, (2, x, y, z))
+        # Vertices of type 2 have neighboring cube stabs on the top right and bottom left
+        vertex_2 = [[(x + 1, y, z), (x, y + 1, z), (x, y, z - 1)],
+                    [(x - 1, y, z), (x, y - 1, z), (x, y, z - 1)],
+                    [(x + 1, y, z), (x, y - 1, z), (x, y, z + 1)],
+                    [(x - 1, y, z), (x, y + 1, z), (x, y, z + 1)]]
 
-        else:
-            if axis == 0:
-                self.site(operator, (0, x-1, y, z))
-                self.site(operator, (1, x, y-1, z))
-                self.site(operator, (2, x, y, z-1))
-            elif axis == 1:
-                self.site(operator, (0, x-1, y, z))
-                self.site(operator, (1, x, y, z))
-                self.site(operator, (2, x, y, z))
-            elif axis == 2:
-                self.site(operator, (0, x, y, z))
-                self.site(operator, (1, x, y-1, z))
-                self.site(operator, (2, x, y, z))
-            elif axis == 3:
-                self.site(operator, (0, x, y, z))
-                self.site(operator, (1, x, y, z))
-                self.site(operator, (2, x, y, z-1))
+        vertex = vertex_1 if (x + y + z) % 4 == 0 else vertex_2
 
-    def cube(
+        for qubit_location in vertex[axis]:
+            mod_location = tuple(np.mod(qubit_location, 2*self.code.size))
+            self.site(operator, mod_location)
+
+    def face(
         self, operator: str,
         location: Tuple[int, int, int]
     ):
-        r"""Apply operator on sites around cubes.
+        r"""Apply cube operator on sites around cubes.
 
         Parameters
         ----------
         operator: str
             Pauli operator in string format.
         location: Tuple[int, int, int]
-            The (x, y, z) location of the vertex of the face
-            that is closest to the origin.
-
-        Examples
-        --------
-        operator.cube('X', 0, (0, 0, 0))
-
-             .---X---.            Coordinate axes:
-            /       /                        y
-           X       X   \                    /
-          /       /                        /
-         .---X---o       .         z <----o
-                                           \
-           \       \   /                    \
-                                             x
-             .   -   .
+            The (x, y, z) location of the cube
         """
 
-        # Location modulo lattice shape, to handle edge cases.
-        x, y, z = np.mod(location, self.code.size)
+        x, y, z = location
+        print("Face", x, y, z)
 
-        X_AXIS, Y_AXIS, Z_AXIS = (
-            self.code.X_AXIS, self.code.Y_AXIS, self.code.Z_AXIS
-        )
+        if not self.code.is_face(location):
+            raise ValueError(f'Location {location} does not correspond to a cube')
 
-        self.site(operator, (X_AXIS, x, y, z))
-        self.site(operator, (X_AXIS, x, y, z+1))
-        self.site(operator, (X_AXIS, x, y+1, z))
-        self.site(operator, (X_AXIS, x, y+1, z+1))
+        cube = [(x + 1, y + 1, z), (x - 1, y - 1, z), (x + 1, y - 1, z), (x - 1, y + 1, z),
+                (x - 1, y, z - 1), (x + 1, y, z - 1), (x, y - 1, z - 1), (x, y + 1, z - 1),
+                (x - 1, y, z + 1), (x + 1, y, z + 1), (x, y - 1, z + 1), (x, y + 1, z + 1)]
 
-        self.site(operator, (Y_AXIS, x, y, z))
-        self.site(operator, (Y_AXIS, x+1, y, z))
-        self.site(operator, (Y_AXIS, x, y, z+1))
-        self.site(operator, (Y_AXIS, x+1, y, z+1))
-
-        self.site(operator, (Z_AXIS, x, y, z))
-        self.site(operator, (Z_AXIS, x+1, y, z))
-        self.site(operator, (Z_AXIS, x, y+1, z))
-        self.site(operator, (Z_AXIS, x+1, y+1, z))
+        for qubit_location in cube:
+            mod_location = tuple(np.mod(qubit_location, 2*self.code.size))
+            print("Qubit", mod_location)
+            self.site(operator, mod_location)

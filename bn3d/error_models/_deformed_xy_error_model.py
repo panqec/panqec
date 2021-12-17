@@ -41,17 +41,17 @@ class DeformedXYErrorModel(PauliErrorModel):
         """Undeformed noise direction (r_X, r_Y, r_Z) for qubits."""
         is_deformed = [False for _ in range(code.n_k_d[0])]
 
-        if "Rotated" in code.label:
-            for coord, index in code.qubit_index.items():
-                x, y, z = coord
-                if z % 2 == 0:
-                    is_deformed[index] = True
-        else:
-            deformed_edge = code.X_AXIS
+        deformed_axis = {'ToricCode3D': code.Z_AXIS,
+                         'PlanarCode3D': code.Z_AXIS,
+                         'RotatedToricCode3D': code.Z_AXIS,
+                         'RotatedPlanarCode3D': code.Z_AXIS,
+                         'RhombicCode': code.Z_AXIS}
 
-            for axis, x, y, z in code.qubit_index.keys():
-                if axis == deformed_edge:
-                    index = code.qubit_index[(axis, x, y, z)]
-                    is_deformed[index] = True
+        if code.id not in deformed_axis.keys():
+            raise NotImplementedError(f"Code {code.id} has no XY deformation implemented")
+
+        for location, index in code.qubit_index.items():
+            if code.axis(location) == deformed_axis[code.id]:
+                is_deformed[index] = True
 
         return is_deformed

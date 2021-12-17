@@ -8,6 +8,8 @@ import numpy as np
 from ..bpauli import barray_to_bvector, new_barray
 from .toric._toric_code_3d import ToricCode3D  # noqa
 from .toric._toric_3d_pauli import Toric3DPauli  # noqa
+from .planar._planar_code_3d import PlanarCode3D  # noqa
+from .planar._planar_3d_pauli import Planar3DPauli  # noqa
 from .rotated_planar._rotated_planar_code_3d import RotatedPlanarCode3D  # noqa
 from .rotated_planar._rotated_planar_3d_pauli import RotatedPlanar3DPauli  # noqa
 from .rotated_toric._rotated_toric_code_3d import RotatedToricCode3D  # noqa

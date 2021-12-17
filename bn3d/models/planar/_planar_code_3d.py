@@ -1,54 +1,36 @@
-import itertools
 from typing import Tuple
 import numpy as np
 from ..generic._indexed_code import IndexedCode
-from ._rhombic_pauli import RhombicPauli
+from ._planar_3d_pauli import Planar3DPauli
 
 
-class RhombicCode(IndexedCode):
+class PlanarCode3D(IndexedCode):
 
-    pauli_class = RhombicPauli
+    pauli_class = Planar3DPauli
 
     # StabilizerCode interface methods.
 
     @property
     def n_k_d(self) -> Tuple[int, int, int]:
-        return (3 * np.product(self.size), 3, min(self.size))
+        Lx, Ly, Lz = self.size
+        return (3 * Lx*Ly*Lz + Ly*Lz - Lx*Lz - Lx*Ly, 1, Lx + 1)
 
     @property
     def label(self) -> str:
-        return 'Rhombic {}x{}x{}'.format(*self.size)
+        return 'Planar {}x{}x{}'.format(*self.size)
 
     @property
     def logical_xs(self) -> np.ndarray:
-        """The 3 logical X operators."""
+        """The 1 logical X operator."""
 
         if self._logical_xs.size == 0:
             Lx, Ly, Lz = self.size
             logicals = []
 
-            # Sheet of X operators normal to the z direction
+            # X operators along x edges in x direction.
             logical = self.pauli_class(self)
-            for x in range(2*Lx):
-                for y in range(2*Ly):
-                    if (x + y) % 2 == 1:
-                        logical.site('X', (x, y, 0))
-            logicals.append(logical.to_bsf())
-
-            # Sheet of X operators normal to the y direction
-            logical = self.pauli_class(self)
-            for x in range(2*Lx):
-                for z in range(2*Lz):
-                    if (x + z) % 2 == 1:
-                        logical.site('X', (x, 0, z))
-            logicals.append(logical.to_bsf())
-
-            # Sheet of X operators normal to the x direction
-            logical = self.pauli_class(self)
-            for y in range(2*Ly):
-                for z in range(2*Lz):
-                    if (y + z) % 2 == 1:
-                        logical.site('X', (0, y, z))
+            for x in range(1, 2*Lx+2, 2):
+                logical.site('X', (x, 0, 0))
             logicals.append(logical.to_bsf())
 
             self._logical_xs = np.array(logicals, dtype=np.uint)
@@ -57,27 +39,16 @@ class RhombicCode(IndexedCode):
 
     @property
     def logical_zs(self) -> np.ndarray:
-        """Get the 3 logical Z operators."""
+        """Get the 1 logical Z operator."""
         if self._logical_zs.size == 0:
             Lx, Ly, Lz = self.size
             logicals = []
 
-            # Line of parallel Z operators along the x direction
-            logical = self.pauli_class(self)
-            for x in range(0, 2*Lx, 2):
-                logical.site('Z', (x, 1, 0))
-            logicals.append(logical.to_bsf())
-
-            # Line of parallel Z operators along the y direction
+            # Z operators on x edges forming surface normal to x (yz plane).
             logical = self.pauli_class(self)
             for y in range(0, 2*Ly, 2):
-                logical.site('Z', (1, y, 0))
-            logicals.append(logical.to_bsf())
-
-            # Line of parallel Z operators along the z direction
-            logical = self.pauli_class(self)
-            for z in range(0, 2*Lz, 2):
-                logical.site('Z', (0, 1, z))
+                for z in range(0, 2*Lz, 2):
+                    logical.site('Z', (1, y, z))
             logicals.append(logical.to_bsf())
 
             self._logical_zs = np.array(logicals, dtype=np.uint)
@@ -103,21 +74,21 @@ class RhombicCode(IndexedCode):
         Lx, Ly, Lz = self.size
 
         # Qubits along e_x
-        for x in range(1, 2*Lx, 2):
+        for x in range(1, 2*Lx+3, 2):
             for y in range(0, 2*Ly, 2):
                 for z in range(0, 2*Lz, 2):
                     coordinates.append((x, y, z))
 
         # Qubits along e_y
-        for x in range(0, 2*Lx, 2):
-            for y in range(1, 2*Ly, 2):
+        for x in range(2, 2*Lx+1, 2):
+            for y in range(1, 2*Ly-1, 2):
                 for z in range(0, 2*Lz, 2):
                     coordinates.append((x, y, z))
 
         # Qubits along e_z
-        for x in range(0, 2*Lx, 2):
+        for x in range(2, 2*Lx+1, 2):
             for y in range(0, 2*Ly, 2):
-                for z in range(1, 2*Lz, 2):
+                for z in range(1, 2*Lz-1, 2):
                     coordinates.append((x, y, z))
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
@@ -125,30 +96,39 @@ class RhombicCode(IndexedCode):
         return coord_to_index
 
     def _create_vertex_indices(self):
-        """ Vertex = triangle stabilizer"""
         coordinates = []
         Lx, Ly, Lz = self.size
 
-        for x in range(0, 2*Lx, 2):
+        for x in range(2, 2*Lx+1, 2):
             for y in range(0, 2*Ly, 2):
                 for z in range(0, 2*Lz, 2):
-                    for axis in range(4):
-                        coordinates.append((axis, x, y, z))
+                    coordinates.append((x, y, z))
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 
         return coord_to_index
 
     def _create_face_indices(self):
-        """ Face = cube stabilizer"""
+        coordinates = []
         Lx, Ly, Lz = self.size
 
-        ranges = [range(1, 2*Lx, 2), range(1, 2*Ly, 2), range(1, 2*Lz, 2)]
-        coordinates = []
-        print(list(itertools.product(*ranges)))
-        for x, y, z in itertools.product(*ranges):
-            if (x + y + z) % 4 == 1:
-                coordinates.append((x, y, z))
+        # Face in xy plane
+        for x in range(1, 2*Lx+2, 2):
+            for y in range(1, 2*Ly-1, 2):
+                for z in range(0, 2*Lz, 2):
+                    coordinates.append((x, y, z))
+
+        # Face in yz plane
+        for x in range(2, 2*Lx+1, 2):
+            for y in range(1, 2*Ly-1, 2):
+                for z in range(1, 2*Lz, 2):
+                    coordinates.append((x, y, z))
+
+        # Face in xz plane
+        for x in range(1, 2*Lx+2, 2):
+            for y in range(0, 2*Ly, 2):
+                for z in range(1, 2*Lz-1, 2):
+                    coordinates.append((x, y, z))
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 

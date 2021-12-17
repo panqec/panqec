@@ -144,18 +144,9 @@ class ToricCode3D extends AbstractCode {
     
         if (x_axis) {
             face.rotateY(Math.PI / 2)
-            // face.position.x += this.SIZE.lengthEdge / 2;
-            // face.position.y += this.SIZE.lengthEdge / 2;
         }
         else if (y_axis) {
-            // face.position.x += this.SIZE.lengthEdge / 2;
-            // face.position.z += this.SIZE.lengthEdge / 2;
             face.rotateX(Math.PI / 2)
-        }
-        else if (z_axis) {
-            // face.position.z += this.SIZE.lengthEdge / 2
-            // face.position.y += this.SIZE.lengthEdge / 2
-            // face.rotateY(Math.PI / 2)
         }
     
         let index = this.getIndexFace(x, y, z);

@@ -86,6 +86,21 @@ class RotatedToricCode3D(IndexedCode):
 
         return self._logical_zs
 
+    def axis(self, location):
+        x, y, z = location
+
+        if location not in self.qubit_index.keys():
+            raise ValueError(f'Location {location} does not correspond to a qubit')
+
+        if (z % 2 == 0):
+            axis = self.Z_AXIS
+        elif (x + y) % 2 == 2:
+            axis = self.X_AXIS
+        elif (x + y) % 2 == 0:
+            axis = self.Y_AXIS
+
+        return axis
+
     def _create_qubit_indices(self):
         Lx, Ly, Lz = self.size
 

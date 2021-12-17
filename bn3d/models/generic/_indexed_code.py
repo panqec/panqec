@@ -7,8 +7,11 @@ Indexer = Dict[Tuple[int, int, int], int]
 
 
 class IndexedCode(StabilizerCode, metaclass=ABCMeta):
+    X_AXIS = 0
+    Y_AXIS = 1
+    Z_AXIS = 2
 
-    _size: Tuple[int, int, int]
+    _size: np.ndarray
     _qubit_index: Indexer
     _vertex_index: Indexer
     _face_index: Indexer
@@ -28,7 +31,7 @@ class IndexedCode(StabilizerCode, metaclass=ABCMeta):
         if L_z is None:
             L_z = L_x
 
-        self._size = (L_x, L_y, L_z)
+        self._size = np.array([L_x, L_y, L_z])
         self._qubit_index = self._create_qubit_indices()
         self._vertex_index = self._create_vertex_indices()
         self._face_index = self._create_face_indices()
@@ -37,6 +40,10 @@ class IndexedCode(StabilizerCode, metaclass=ABCMeta):
     @abstractmethod
     def pauli_class(self):
         """The Pauli operator class."""
+
+    @property
+    def id(self):
+        return self.__class__.__name__
 
     @property
     def qubit_index(self) -> Indexer:
@@ -70,6 +77,10 @@ class IndexedCode(StabilizerCode, metaclass=ABCMeta):
     def _create_face_indices(self):
         """Create face indices."""
 
+    @abstractmethod
+    def axis(self, location) -> int:
+        """ Return the axis corresponding to a given location"""
+
     @property
     def stabilizers(self) -> np.ndarray:
         if self._stabilizers.size == 0:
@@ -101,9 +112,9 @@ class IndexedCode(StabilizerCode, metaclass=ABCMeta):
     def get_vertex_Z_stabilizers(self) -> np.ndarray:
         vertex_stabilizers = []
 
-        for (x, y, z) in self.vertex_index.keys():
+        for vertex_location in self.vertex_index.keys():
             operator = self.pauli_class(self)
-            operator.vertex('Z', (x, y, z))
+            operator.vertex('Z', vertex_location)
             vertex_stabilizers.append(operator.to_bsf())
 
         return np.array(vertex_stabilizers, dtype=np.uint)
@@ -111,9 +122,9 @@ class IndexedCode(StabilizerCode, metaclass=ABCMeta):
     def get_face_X_stabilizers(self) -> np.ndarray:
         face_stabilizers = []
 
-        for (x, y, z) in self.face_index.keys():
+        for face_location in self.face_index.keys():
             operator = self.pauli_class(self)
-            operator.face('X', (x, y, z))
+            operator.face('X', face_location)
             face_stabilizers.append(operator.to_bsf())
 
         return np.array(face_stabilizers, dtype=np.uint)
@@ -121,6 +132,15 @@ class IndexedCode(StabilizerCode, metaclass=ABCMeta):
     def measure_syndrome(self, error) -> np.ndarray:
         """Perfectly measure syndromes given Pauli error."""
         return bcommute(self.stabilizers, error.to_bsf())
+
+    def is_face(self, location):
+        return location in self.face_index.keys()
+
+    def is_vertex(self, location):
+        return location in self.vertex_index.keys()
+
+    def is_qubit(self, location):
+        return location in self.qubit_index.keys()
 
 
 class IndexedCodePauli(metaclass=ABCMeta):
@@ -171,6 +191,8 @@ class IndexedCodePauli(metaclass=ABCMeta):
         return self
 
     def get_index(self, coordinate):
+        coordinate = tuple(coordinate)
+
         if coordinate not in self.code.qubit_index.keys():
             raise ValueError(
                 f"Incorrect qubit coordinate {coordinate} given when "
