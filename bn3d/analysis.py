@@ -7,8 +7,9 @@ Routines for analysing output data.
 
 import os
 import warnings
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union, Callable
 import itertools
+from multiprocessing import Pool, cpu_count
 import numpy as np
 from numpy.polynomial.polynomial import polyfit
 import pandas as pd
@@ -19,6 +20,7 @@ from .config import SLURM_DIR
 from .app import read_input_json
 from .plots._hashing_bound import project_triangle
 from .utils import fmt_uncertainty
+from .bpauli import int_to_bvector, bvector_to_pauli_string
 
 
 def get_results_df_from_batch(batch_sim, batch_label):
@@ -67,9 +69,10 @@ def get_results_df_from_batch(batch_sim, batch_label):
 def get_results_df(
     job_list: List[str],
     output_dir: str,
-    input_dir: str = None
+    input_dir: str = None,
 ) -> pd.DataFrame:
     """Get raw results in DataFrame."""
+
     if input_dir is None:
         input_dir = os.path.join(SLURM_DIR, 'inputs')
 
@@ -89,6 +92,7 @@ def get_results_df(
         batches[batch_sim.label] = batch_sim
 
     results = []
+
     for batch_label, batch_sim in batches.items():
         batch_results = batch_sim.get_results()
         # print(
@@ -133,13 +137,25 @@ def get_results_df(
                 batch_result['p_undecodable'] = (~codespace).mean()
 
                 if n_logicals == 1:
-                    p_pure_x = (np.array(sim.results['effective_error']) == [1, 0]).all(axis=1).mean()
-                    p_pure_y = (np.array(sim.results['effective_error']) == [1, 1]).all(axis=1).mean()
-                    p_pure_z = (np.array(sim.results['effective_error']) == [0, 1]).all(axis=1).mean()
+                    p_pure_x = (
+                        np.array(sim.results['effective_error']) == [1, 0]
+                    ).all(axis=1).mean()
+                    p_pure_y = (
+                        np.array(sim.results['effective_error']) == [1, 1]
+                    ).all(axis=1).mean()
+                    p_pure_z = (
+                        np.array(sim.results['effective_error']) == [0, 1]
+                    ).all(axis=1).mean()
 
-                    p_pure_x_se = np.sqrt(p_pure_x * (1-p_pure_x) / (sim.n_results + 1))
-                    p_pure_y_se = np.sqrt(p_pure_y * (1-p_pure_y) / (sim.n_results + 1))
-                    p_pure_z_se = np.sqrt(p_pure_z * (1-p_pure_z) / (sim.n_results + 1))
+                    p_pure_x_se = np.sqrt(
+                        p_pure_x * (1-p_pure_x) / (sim.n_results + 1)
+                    )
+                    p_pure_y_se = np.sqrt(
+                        p_pure_y * (1-p_pure_y) / (sim.n_results + 1)
+                    )
+                    p_pure_z_se = np.sqrt(
+                        p_pure_z * (1-p_pure_z) / (sim.n_results + 1)
+                    )
 
                     batch_result['p_pure_x'] = p_pure_x
                     batch_result['p_pure_y'] = p_pure_y
@@ -148,6 +164,15 @@ def get_results_df(
                     batch_result['p_pure_x_se'] = p_pure_x_se
                     batch_result['p_pure_y_se'] = p_pure_y_se
                     batch_result['p_pure_z_se'] = p_pure_z_se
+                else:
+                    batch_result['p_pure_x'] = np.nan
+                    batch_result['p_pure_y'] = np.nan
+                    batch_result['p_pure_z'] = np.nan
+
+                    batch_result['p_pure_x_se'] = np.nan
+                    batch_result['p_pure_y_se'] = np.nan
+                    batch_result['p_pure_z_se'] = np.nan
+
             else:
                 batch_result['p_x'] = np.nan
                 batch_result['p_x_se'] = np.nan
@@ -157,12 +182,90 @@ def get_results_df(
         results += batch_results
 
     results_df = pd.DataFrame(results)
+
     return results_df
+
+
+def get_logical_rates_df(
+    job_list, input_dir, output_dir, progress: Optional[Callable] = None
+):
+    """Get DataFrame of logical error rates for each logical error."""
+    if progress is None:
+        def progress_func(x, total: int = 0):
+            return x
+    else:
+        progress_func = progress
+
+    input_files = [
+        os.path.join(input_dir, f'{name}.json')
+        for name in job_list
+    ]
+    output_dirs = [
+        os.path.join(output_dir, name)
+        for name in job_list
+    ]
+
+    arguments = list(zip(input_files, output_dirs))
+
+    with Pool(cpu_count()) as pool:
+        data = pool.starmap(
+            extract_logical_rates,
+            progress_func(arguments, total=len(arguments))
+        )
+
+    data = [entry for entries in data for entry in entries]
+    df = pd.DataFrame(data)
+    return df
+
+
+def extract_logical_rates(input_file, output_dir):
+    batch_sim = read_input_json(input_file)
+
+    data = []
+    for sim in batch_sim:
+        sim.load_results(output_dir)
+        batch_result = sim.get_results()
+        entry = {
+            'label': batch_sim.label,
+            'noise_direction': sim.error_model.direction,
+            'probability': batch_result['probability'],
+            'size': batch_result['size'],
+            'n_k_d': batch_result['n_k_d'],
+        }
+
+        n_logicals = batch_result['n_k_d'][1]
+
+        # Small fix for the current situation. TO REMOVE in later versions
+        if n_logicals == -1:
+            n_logicals = 1
+
+        # All possible logical errors.
+        possible_logical_errors = [
+            int_to_bvector(int_rep, n_logicals)
+            for int_rep in range(1, 2**(2*n_logicals))
+        ]
+
+        for logical_error in possible_logical_errors:
+            pauli_string = bvector_to_pauli_string(logical_error)
+            p_est_label = f'p_est_{pauli_string}'
+            p_se_label = f'p_se_{pauli_string}'
+            p_est_logical = (
+                np.array(sim.results['effective_error'])
+                == logical_error
+            ).all(axis=1).mean()
+            entry[p_est_label] = p_est_logical
+            entry[p_se_label] = np.sqrt(
+                p_est_logical*(1 - p_est_logical)
+                / (sim.n_results + 1)
+            )
+        data.append(entry)
+    return data
 
 
 def get_p_th_sd_interp(
     df_filt: pd.DataFrame,
-    p_nearest: Optional[float] = None
+    p_nearest: Optional[float] = None,
+    p_est: str = 'p_est',
 ) -> Tuple[float, float, float]:
     """Estimate threshold by where SD of p_est is local min."""
 
@@ -186,7 +289,7 @@ def get_p_th_sd_interp(
             by='probability'
         )
         interpolator = interp1d(
-            df_filt_code['probability'], df_filt_code['p_est'],
+            df_filt_code['probability'], df_filt_code[p_est],
             fill_value="extrapolate"
         )
         curves[code] = interpolator(p_interp)
@@ -285,12 +388,12 @@ def longest_sequence(arr, char):
     return best_seq
 
 
-def get_p_th_nearest(df_filt: pd.DataFrame) -> float:
+def get_p_th_nearest(df_filt: pd.DataFrame, p_est: str = 'p_est') -> float:
     code_df = get_code_df(df_filt)
     # Estimate the threshold by where the order of the lines change.
     p_est_df = pd.DataFrame({
         code: dict(df_filt[df_filt['code'] == code][[
-            'probability', 'p_est'
+            'probability', p_est
         ]].values)
         for code in code_df['code']
     })
@@ -374,9 +477,12 @@ def rescale_prob(x_data, *params):
 
 
 def get_fit_params(
-    p_list, d_list, f_list, params_0=None, ftol=1e-5, maxfev=2000
+    p_list: np.ndarray, d_list: np.ndarray, f_list: np.ndarray,
+    params_0: Optional[Union[np.ndarray, List]] = None,
+    ftol: float = 1e-5, maxfev: int = 2000
 ) -> np.ndarray:
     """Get fitting params."""
+
     # Curve fitting inputs.
     x_data = np.array([
         p_list,
@@ -389,7 +495,7 @@ def get_fit_params(
     # Curve fit.
     bounds = [min(x_data[0]), max(x_data[0])]
 
-    if params_0[0] not in bounds:
+    if params_0 is not None and params_0[0] not in bounds:
         params_0[0] = (bounds[0] + bounds[1]) / 2
 
     # print("Bounds", bounds)
@@ -398,7 +504,6 @@ def get_fit_params(
         params_opt, _ = curve_fit(
             fit_function, x_data, y_data,
             p0=params_0, ftol=ftol, maxfev=maxfev
-            # bounds=([bounds[0], -np.inf, -np.inf, -np.inf, -np.inf], [bounds[1], np.inf, np.inf, np.inf, np.inf])
         )
 
     return params_opt
@@ -412,7 +517,9 @@ def fit_fss_params(
     n_bs: int = 100,
     ftol_est: float = 1e-5,
     ftol_std: float = 1e-5,
-    maxfev: int = 2000
+    maxfev: int = 2000,
+    p_est: str = 'p_est',
+    n_fail_label: str = 'n_fail',
 ) -> Tuple[np.ndarray, np.ndarray, pd.DataFrame]:
     """Get optimized parameters and data table."""
     # Truncate error probability between values.
@@ -420,17 +527,17 @@ def fit_fss_params(
         (p_left_val <= df_filt['probability'])
         & (df_filt['probability'] <= p_right_val)
     ].copy()
-    df_trunc = df_trunc.dropna(subset=['p_est'])
+    df_trunc = df_trunc.dropna(subset=[p_est])
     df_trunc['d'] = df_trunc['n_k_d'].apply(lambda x: x[2])
 
     d_list = df_trunc['d'].values
     p_list = df_trunc['probability'].values
-    f_list = df_trunc['p_est'].values
+    f_list = df_trunc[p_est].values
 
     # Initial parameters to optimize.
-    f_0 = df_trunc[df_trunc['probability'] == p_nearest]['p_est'].mean()
+    f_0 = df_trunc[df_trunc['probability'] == p_nearest][p_est].mean()
     if pd.isna(f_0):
-        f_0 = df_trunc['p_est'].mean()
+        f_0 = df_trunc[p_est].mean()
     params_0 = [p_nearest, 2, f_0, 1, 1]
 
     try:
@@ -454,7 +561,7 @@ def fit_fss_params(
         f_list_bs = []
         for i in range(df_trunc.shape[0]):
             n_trials = int(df_trunc['n_trials'].iloc[i])
-            n_fail = int(df_trunc['n_fail'].iloc[i])
+            n_fail = int(df_trunc[n_fail_label].iloc[i])
             if n_fail == 0:
                 n_fail = 1
             if n_fail == n_trials:
@@ -534,7 +641,14 @@ def get_error_model_df(results_df):
     return error_model_df
 
 
-def get_thresholds_df(results_df, ftol_est=1e-5, ftol_std=1e-5, maxfev=2000):
+def get_thresholds_df(
+    results_df: pd.DataFrame,
+    ftol_est: float = 1e-5,
+    ftol_std: float = 1e-5,
+    maxfev: int = 2000,
+    p_est: str = 'p_est',
+    n_fail_label: str = 'n_fail',
+):
     thresholds_df = get_error_model_df(results_df)
     p_th_sd = []
     p_th_nearest = []
@@ -551,12 +665,12 @@ def get_thresholds_df(results_df, ftol_est=1e-5, ftol_std=1e-5, maxfev=2000):
         df_filt = results_df[results_df['error_model'] == error_model]
 
         # Find nearest value where crossover changes.
-        p_th_nearest_val = get_p_th_nearest(df_filt)
+        p_th_nearest_val = get_p_th_nearest(df_filt, p_est=p_est)
         p_th_nearest.append(p_th_nearest_val)
 
         # More refined crossover using standard deviation heuristic.
         p_th_sd_val, p_left_val, p_right_val = get_p_th_sd_interp(
-            df_filt, p_nearest=p_th_nearest_val
+            df_filt, p_nearest=p_th_nearest_val, p_est=p_est
         )
         p_th_sd.append(p_th_sd_val)
 
@@ -567,7 +681,8 @@ def get_thresholds_df(results_df, ftol_est=1e-5, ftol_std=1e-5, maxfev=2000):
         # Finite-size scaling fitting.
         params_opt, params_bs, df_trunc = fit_fss_params(
             df_filt, p_left_val, p_right_val, p_th_nearest_val,
-            ftol_est=ftol_est, ftol_std=ftol_std, maxfev=maxfev
+            ftol_est=ftol_est, ftol_std=ftol_std, maxfev=maxfev,
+            p_est=p_est, n_fail_label=n_fail_label,
         )
         fss_params.append(params_opt)
 

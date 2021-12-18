@@ -49,7 +49,7 @@ def detailed_plot(
         x_limits = [(0, 0.5), (0, 0.5), (0, 0.5)]
 
     eta = df[(df['error_model'] == error_model)].iloc[0][eta_key]
-    fig.suptitle(f"$\eta={eta:.1f}$")
+    fig.suptitle(f"$\\eta={eta:.1f}$")
 
     for (i_ax, prob, prob_se, title) in plot_labels:
         ax = axes[i_ax]
@@ -206,7 +206,7 @@ def xyz_sector_plot(
             ax.legend(loc='best')
     axes[0].set_ylabel('Logical Error Rate')
 
-    fig.suptitle(f"$\eta={eta:.1f}$")
+    fig.suptitle(f"$\\eta={eta:.1f}$")
 
     if save_folder:
         filename = os.path.join(save_folder, results_df['label'][0])
