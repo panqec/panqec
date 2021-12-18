@@ -16,7 +16,7 @@ class TestToricCode3D:
 
     def test_cubic_code(self):
         code = ToricCode3D(5)
-        assert code.size == (5, 5, 5)
+        assert np.all(code.size == [5, 5, 5])
 
     def test_get_vertex_Z_stabilizers(self, code):
         n, k, d = code.n_k_d
@@ -54,7 +54,6 @@ class TestToricCode3D:
 
         # The number of qubits should be the number of edges 3*L_x*L_y*L_z.
         assert n == 3*np.product(code.size)
-        assert n == np.product(code.shape)
         assert k == 3
         assert d == min(code.size)
 

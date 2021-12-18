@@ -32,7 +32,7 @@ class TestSweepDecoder3D:
 
     def test_decode_Z_error(self, decoder, code):
         error = Toric3DPauli(code)
-        error.site('Z', (0, 2, 2, 2))
+        error.site('Z', (2, 1, 2))
         assert bsf_wt(error.to_bsf()) == 1
 
         # Measure the syndrome and ensure non-triviality.
@@ -45,9 +45,9 @@ class TestSweepDecoder3D:
 
     def test_decode_many_Z_errors(self, decoder, code):
         error = Toric3DPauli(code)
-        error.site('Z', (0, 2, 2, 2))
-        error.site('Z', (1, 2, 2, 2))
-        error.site('Z', (2, 2, 2, 2))
+        error.site('Z', (1, 0, 0))
+        error.site('Z', (0, 1, 0))
+        error.site('Z', (0, 0, 3))
         assert bsf_wt(error.to_bsf()) == 3
 
         syndrome = code.measure_syndrome(error)
@@ -59,7 +59,7 @@ class TestSweepDecoder3D:
 
     def test_unable_to_decode_X_error(self, decoder, code):
         error = Toric3DPauli(code)
-        error.site('X', (0, 2, 2, 2))
+        error.site('X', (1, 0, 2))
         assert bsf_wt(error.to_bsf()) == 1
 
         syndrome = code.measure_syndrome(error)
@@ -82,9 +82,9 @@ class TestSweepDecoder3D:
         ]
 
         sites = [
-            (1, 2, 2, 2),
-            (0, 1, 0, 2),
-            (2, 1, 1, 1)
+            (0, 0, 1),
+            (1, 0, 0),
+            (0, 1, 0)
         ]
 
         for code, site in itertools.product(codes, sites):
@@ -99,8 +99,8 @@ class TestSweepDecoder3D:
         code = ToricCode3D(3, 3, 3)
         decoder = SweepDecoder3D()
         error_pauli = Toric3DPauli(code)
-        error_pauli.site('Z', (0, 1, 1, 1))
-        error_pauli.site('Z', (1, 1, 1, 1))
+        error_pauli.site('Z', (1, 0, 0))
+        error_pauli.site('Z', (0, 1, 0))
         error = error_pauli.to_bsf()
         syndrome = bcommute(code.stabilizers, error)
         correction = decoder.decode(code, syndrome)
@@ -329,8 +329,8 @@ class TestSweepDecoder3D:
         decoder = SweepDecoder3D()
 
         error = Toric3DPauli(code)
-        error.site('Z', (0, 1, 1, 1))
-        error.site('Z', (1, 1, 1, 1))
+        error.site('Z', (0, 1, 0))
+        error.site('Z', (1, 0, 0))
 
         syndrome = bcommute(code.stabilizers, error.to_bsf())
 
