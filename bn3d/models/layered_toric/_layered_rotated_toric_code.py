@@ -131,6 +131,10 @@ class LayeredRotatedToricCode(IndexedCode):
 
         return self._logical_zs
 
+    def axis(self, location):
+        # TODO: implement the actual method
+        return self.X_AXIS
+
     def _create_qubit_indices(self):
         L_x, L_y, L_z = self.size
 
