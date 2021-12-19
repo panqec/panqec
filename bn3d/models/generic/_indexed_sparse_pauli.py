@@ -2,7 +2,7 @@ from typing import Dict, Tuple, Optional
 from abc import ABCMeta
 import numpy as np
 from ._indexed_code import IndexedCode
-from ... import sparse
+from ... import bsparse
 
 Indexer = Dict[Tuple[int, int, int], int]
 
@@ -13,23 +13,26 @@ class IndexedSparsePauli(metaclass=ABCMeta):
 
         # Copy needs to be made because numpy arrays are mutable.
         self._code = code
+
         self._from_bsf(bsf)
 
     def _from_bsf(self, bsf):
         # initialise lattices for X and Z operators from bsf
         n_qubits = self.code.n_k_d[0]
         # initialise identity lattices for X and Z operators
-        self._xs = sparse.zero_row(n_qubits)
-        self._zs = sparse.zero_row(n_qubits)
+        self._xs = bsparse.zero_row(n_qubits)
+        self._zs = bsparse.zero_row(n_qubits)
 
         if bsf is not None:
+            if not bsparse.is_sparse(bsf):
+                bsf = bsparse.from_array(bsf)
             assert bsf.shape[1] == 2 * n_qubits, \
                 'BSF {} has incompatible length'.format(bsf)
             assert np.all(bsf.data == 1), \
                 'BSF {} is not in binary form'.format(bsf)
             # initialise lattices for X and Z operators from bsf
 
-            self._xs, self._zs = sparse.hsplit(bsf)
+            self._xs, self._zs = bsparse.hsplit_row(bsf)
 
     def site(self, operator, *indices):
         """
@@ -50,9 +53,9 @@ class IndexedSparsePauli(metaclass=ABCMeta):
             # flip sites
             flat_index = self.get_index(coord)
             if operator in ('X', 'Y'):
-                sparse.insert_mod2(flat_index, self._xs)
+                bsparse.insert_mod2(flat_index, self._xs)
             if operator in ('Z', 'Y'):
-                sparse.insert_mod2(flat_index, self._zs)
+                bsparse.insert_mod2(flat_index, self._zs)
         return self
 
     def get_index(self, coordinate):
@@ -85,8 +88,8 @@ class IndexedSparsePauli(metaclass=ABCMeta):
         """
         # extract binary x and z
         index = self.code.qubit_index[coord]
-        x = sparse.is_one(index, self._xs.index)
-        z = sparse.is_one(index, self._zs.index)
+        x = bsparse.is_one(index, self._xs.index)
+        z = bsparse.is_one(index, self._zs.index)
         # return Pauli
         if x and z:
             return 'Y'
@@ -136,4 +139,4 @@ class IndexedSparsePauli(metaclass=ABCMeta):
         :rtype: scipy.sparse.csr_matrix (1d)
         """
 
-        return sparse.hstack([self._xs, self._zs])
+        return bsparse.hstack([self._xs, self._zs])

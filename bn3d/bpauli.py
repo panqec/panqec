@@ -9,6 +9,7 @@ routines are useful specifically for dealing with the 3D code.
 """
 from typing import Union, List
 import numpy as np
+from . import bsparse
 
 
 def barray_to_bvector(a: np.ndarray, L: int) -> np.ndarray:
@@ -42,12 +43,8 @@ def new_barray(L: int) -> np.ndarray:
     return np.zeros((3, L, L, L, 2), dtype=np.uint)
 
 
-def bcommute(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+def bcommute(a, b) -> np.ndarray:
     """Array of 0 for commutes and 1 for anticommutes bvectors."""
-
-    # Convert to arrays.
-    a = np.array(a)
-    b = np.array(b)
 
     # Determine the output shape.
     # In particular, flatten array where needed.
@@ -78,21 +75,39 @@ def bcommute(a: np.ndarray, b: np.ndarray) -> np.ndarray:
             'composed with length {b.shape[1]}'
         )
 
-    # Number of qubits.
-    n = int(a.shape[1]/2)
+    if bsparse.is_sparse(a) or bsparse.is_sparse(b):
+        commutes = _bcommute_sparse(a, b)
+    else:
+        # Number of qubits.
+        n = int(a.shape[1]/2)
+
+        # Commute commutator by binary symplectic form.
+        commutes = np.zeros((a.shape[0], b.shape[0]), dtype=np.uint)
+        for i_a in range(a.shape[0]):
+            for i_b in range(b.shape[0]):
+                a_X = a[i_a, :n]
+                a_Z = a[i_a, n:]
+                b_X = b[i_b, :n]
+                b_Z = b[i_b, n:]
+                commutes[i_a, i_b] = np.sum(a_X*b_Z + a_Z*b_X) % 2
+
+        if output_shape is not None:
+            commutes = commutes.reshape(output_shape)
+
+    return commutes
+
+
+def _bcommute_sparse(a, b):
+    """Array of 0 for commutes and 1 for anticommutes bvectors."""
 
     # Commute commutator by binary symplectic form.
-    commutes = np.zeros((a.shape[0], b.shape[0]), dtype=np.uint)
+    commutes = np.zeros((a.shape[0], b.shape[0]), dtype=np.uint8)
     for i_a in range(a.shape[0]):
         for i_b in range(b.shape[0]):
-            a_X = a[i_a, :n]
-            a_Z = a[i_a, n:]
-            b_X = b[i_b, :n]
-            b_Z = b[i_b, n:]
-            commutes[i_a, i_b] = np.sum(a_X*b_Z + a_Z*b_X) % 2
+            commutes[i_a, i_b] = bsparse.dot(a[i_a], b[i_b])
 
-    if output_shape is not None:
-        commutes = commutes.reshape(output_shape)
+    if commutes.shape[0] == 1 or commutes.shape[1] == 1:
+        commutes = commutes.flatten()
 
     return commutes
 
@@ -131,9 +146,9 @@ def bvector_to_pauli_string(bvector: np.ndarray) -> str:
 
 
 def get_effective_error(
-    total_error: np.ndarray,
-    logical_xs: np.ndarray,
-    logical_zs: np.ndarray,
+    total_error,
+    logical_xs,
+    logical_zs,
 ) -> np.ndarray:
     """Effective Pauli error on logical qubits after decoding."""
 

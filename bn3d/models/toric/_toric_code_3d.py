@@ -2,6 +2,7 @@ from typing import Tuple
 import numpy as np
 from ..generic._indexed_sparse_code import IndexedSparseCode
 from ._toric_3d_pauli import Toric3DPauli
+from ... import bsparse
 
 
 class ToricCode3D(IndexedSparseCode):
@@ -24,27 +25,27 @@ class ToricCode3D(IndexedSparseCode):
 
         if self._logical_xs.size == 0:
             Lx, Ly, Lz = self.size
-            logicals = []
+            logicals = bsparse.empty_row(2*self.n_k_d[0])
 
             # X operators along x edges in x direction.
             logical = self.pauli_class(self)
             for x in range(1, 2*Lx, 2):
                 logical.site('X', (x, 0, 0))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             # X operators along y edges in y direction.
             logical = self.pauli_class(self)
             for y in range(1, 2*Ly, 2):
                 logical.site('X', (0, y, 0))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             # X operators along z edges in z direction
             logical = self.pauli_class(self)
             for z in range(1, 2*Lz, 2):
                 logical.site('X', (0, 0, z))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            self._logical_xs = np.array(logicals, dtype=np.uint)
+            self._logical_xs = logicals
 
         return self._logical_xs
 
@@ -53,30 +54,30 @@ class ToricCode3D(IndexedSparseCode):
         """Get the 3 logical Z operators."""
         if self._logical_zs.size == 0:
             Lx, Ly, Lz = self.size
-            logicals = []
+            logicals = bsparse.empty_row(2*self.n_k_d[0])
 
             # Z operators on x edges forming surface normal to x (yz plane).
             logical = self.pauli_class(self)
             for y in range(0, 2*Ly, 2):
                 for z in range(0, 2*Lz, 2):
                     logical.site('Z', (1, y, z))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             # Z operators on y edges forming surface normal to y (zx plane).
             logical = self.pauli_class(self)
             for z in range(0, 2*Lz, 2):
                 for x in range(0, 2*Lx, 2):
                     logical.site('Z', (x, 1, z))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             # Z operators on z edges forming surface normal to z (xy plane).
             logical = self.pauli_class(self)
             for x in range(0, 2*Lx, 2):
                 for y in range(0, 2*Ly, 2):
                     logical.site('Z', (x, y, 1))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            self._logical_zs = np.array(logicals, dtype=np.uint)
+            self._logical_zs = logicals
 
         return self._logical_zs
 

@@ -1,23 +1,13 @@
 from typing import Dict, Tuple, Optional
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 import numpy as np
-from qecsim.model import StabilizerCode
-from ...bpauli import bcommute
-from ... import sparse
+from ._indexed_code import IndexedCode
+from ... import bsparse
 
 Indexer = Dict[Tuple[int, int, int], int]
 
 
-class IndexedSparseCode(StabilizerCode, metaclass=ABCMeta):
-    X_AXIS = 0
-    Y_AXIS = 1
-    Z_AXIS = 2
-
-    _size: np.ndarray
-    _qubit_index: Indexer
-    _vertex_index: Indexer
-    _face_index: Indexer
-
+class IndexedSparseCode(IndexedCode, metaclass=ABCMeta):
     def __init__(
         self, L_x: int,
         L_y: Optional[int] = None,
@@ -30,118 +20,43 @@ class IndexedSparseCode(StabilizerCode, metaclass=ABCMeta):
 
         self._size = np.array([L_x, L_y, L_z])
 
-        self._stabilizers = sparse.empty_row(2*self.n_k_d[0])
-        self._Hx = sparse.empty_row(self.n_k_d[0])
-        self._Hz = sparse.empty_row(self.n_k_d[0])
-        self._logical_xs = sparse.empty_row(self.n_k_d[0])
-        self._logical_zs = sparse.empty_row(self.n_k_d[0])
+        self._stabilizers = bsparse.empty_row(2*self.n_k_d[0])
+        self._Hx = bsparse.empty_row(self.n_k_d[0])
+        self._Hz = bsparse.empty_row(self.n_k_d[0])
+        self._logical_xs = bsparse.empty_row(self.n_k_d[0])
+        self._logical_zs = bsparse.empty_row(self.n_k_d[0])
 
         self._qubit_index = self._create_qubit_indices()
         self._vertex_index = self._create_vertex_indices()
         self._face_index = self._create_face_indices()
 
     @property
-    @abstractmethod
-    def pauli_class(self):
-        """The Pauli operator class."""
-
-    @property
-    def id(self):
-        return self.__class__.__name__
-
-    @property
-    def qubit_index(self) -> Indexer:
-        return self._qubit_index
-
-    @property
-    def vertex_index(self) -> Indexer:
-        return self._vertex_index
-
-    @property
-    def face_index(self) -> Indexer:
-        return self._face_index
-
-    @property
-    def n_faces(self) -> int:
-        return len(self.face_index)
-
-    @property
-    def n_vertices(self) -> int:
-        return len(self.vertex_index)
-
-    @abstractmethod
-    def _create_qubit_indices(self) -> Indexer:
-        """Create qubit indices."""
-
-    @abstractmethod
-    def _create_vertex_indices(self) -> Indexer:
-        """Create vertex indices."""
-
-    @abstractmethod
-    def _create_face_indices(self):
-        """Create face indices."""
-
-    @abstractmethod
-    def axis(self, location) -> int:
-        """ Return the axis corresponding to a given location"""
-
-    @property
     def stabilizers(self):
-        if sparse.is_empty(self._stabilizers):
+        if bsparse.is_empty(self._stabilizers):
             face_stabilizers = self.get_face_X_stabilizers()
             vertex_stabilizers = self.get_vertex_Z_stabilizers()
-            self._stabilizers = sparse.vstack([
+            self._stabilizers = bsparse.vstack([
                 face_stabilizers,
                 vertex_stabilizers,
             ])
         return self._stabilizers
 
-    @property
-    def size(self) -> Tuple[int, int, int]:
-        """Dimensions of lattice."""
-        return self._size
-
-    @property
-    def Hz(self):
-        if self._Hz.size == 0:
-            self._Hz = self.stabilizers[:self.n_faces, :self.n_k_d[0]]
-        return self._Hz
-
-    @property
-    def Hx(self):
-        if self._Hx.size == 0:
-            self._Hx = self.stabilizers[self.n_faces:, self.n_k_d[0]:]
-        return self._Hx
-
     def get_vertex_Z_stabilizers(self):
-        vertex_stabilizers = []
+        vertex_stabilizers = bsparse.empty_row(2*self.n_k_d[0])
 
         for vertex_location in self.vertex_index.keys():
             operator = self.pauli_class(self)
             operator.vertex('Z', vertex_location)
-            vertex_stabilizers = sparse.vstack([vertex_stabilizers, operator.to_bsf()])
+            vertex_stabilizers = bsparse.vstack([vertex_stabilizers, operator.to_bsf()])
 
         return vertex_stabilizers
 
     def get_face_X_stabilizers(self):
-        face_stabilizers = []
+        face_stabilizers = bsparse.empty_row(2*self.n_k_d[0])
 
         for face_location in self.face_index.keys():
             operator = self.pauli_class(self)
             operator.face('X', face_location)
-            face_stabilizers = sparse.vstack([face_stabilizers, operator.to_bsf()])
+            face_stabilizers = bsparse.vstack([face_stabilizers, operator.to_bsf()])
 
         return face_stabilizers
-
-    def measure_syndrome(self, error) -> np.ndarray:
-        """Perfectly measure syndromes given Pauli error."""
-        return bcommute(self.stabilizers, error.to_bsf())
-
-    def is_face(self, location):
-        return location in self.face_index.keys()
-
-    def is_vertex(self, location):
-        return location in self.vertex_index.keys()
-
-    def is_qubit(self, location):
-        return location in self.qubit_index.keys()

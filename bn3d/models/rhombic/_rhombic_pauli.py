@@ -70,7 +70,6 @@ class RhombicPauli(IndexedCodePauli):
         """
 
         x, y, z = location
-        print("Face", x, y, z)
 
         if not self.code.is_face(location):
             raise ValueError(f'Location {location} does not correspond to a cube')
@@ -81,5 +80,4 @@ class RhombicPauli(IndexedCodePauli):
 
         for qubit_location in cube:
             mod_location = tuple(np.mod(qubit_location, 2*self.code.size))
-            print("Qubit", mod_location)
             self.site(operator, mod_location)

@@ -14,7 +14,7 @@ import { PlanarCode3D } from './codes/planar3d.js';
 const MIN_OPACITY = 0.1;
 const MAX_OPACITY = 0.6;
 
-var defaultCode = codeDimension == 2 ? 'toric-2d' : 'rhombic';
+var defaultCode = codeDimension == 2 ? 'toric-2d' : 'toric-3d';
 
 const params = {
     opacity: MAX_OPACITY,
@@ -292,9 +292,6 @@ function onDocumentMouseDown(event) {
         mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 
         raycaster.setFromCamera(mouse, camera);
-
-        console.log("Qubits", code.qubits)
-        console.log("Triangles", code.stabilizers['X'])
                 
         intersects = raycaster.intersectObjects(code.qubits);
         if (intersects.length == 0) return;

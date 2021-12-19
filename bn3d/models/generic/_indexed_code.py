@@ -99,13 +99,13 @@ class IndexedCode(StabilizerCode, metaclass=ABCMeta):
 
     @property
     def Hz(self) -> np.ndarray:
-        if self._Hz.size == 0:
+        if self._Hz.shape[0] == 0:
             self._Hz = self.stabilizers[:self.n_faces, :self.n_k_d[0]]
         return self._Hz
 
     @property
     def Hx(self) -> np.ndarray:
-        if self._Hx.size == 0:
+        if self._Hx.shape[0] == 0:
             self._Hx = self.stabilizers[self.n_faces:, self.n_k_d[0]:]
         return self._Hx
 

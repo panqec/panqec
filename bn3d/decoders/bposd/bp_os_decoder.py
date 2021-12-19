@@ -245,7 +245,7 @@ class BeliefPropagationOSDDecoder(Decoder):
                              direction: str = "x->z") -> np.ndarray:
         """Update X probabilities once a Z correction has been applied"""
 
-        n_qubits = len(correction)
+        n_qubits = correction.shape[0]
 
         new_probs = np.zeros(n_qubits)
 
@@ -286,9 +286,8 @@ class BeliefPropagationOSDDecoder(Decoder):
         syndrome = np.array(syndrome, dtype=int)
 
         if is_css:
-
-            syndrome_z = syndrome[:len(code.Hz)]
-            syndrome_x = syndrome[len(code.Hz):]
+            syndrome_z = syndrome[:code.Hz.shape[0]]
+            syndrome_x = syndrome[code.Hz.shape[0]:]
 
         pi, px, py, pz = self.get_probabilities(code)
 

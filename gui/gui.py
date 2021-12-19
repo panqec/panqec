@@ -14,6 +14,7 @@ from bn3d.noise import PauliErrorModel
 from bn3d.error_models import (
     DeformedXZZXErrorModel, DeformedXYErrorModel, DeformedRhombicErrorModel
 )
+import bn3d.bsparse as bsparse
 
 import webbrowser
 
@@ -117,11 +118,11 @@ def send_stabilizer_matrix():
     logical_z = code.logical_zs
     logical_x = code.logical_xs
 
-    return json.dumps({'Hx': Hx.tolist(),
-                       'Hz': Hz.tolist(),
+    return json.dumps({'Hx': Hx.toarray().tolist(),
+                       'Hz': Hz.toarray().tolist(),
                        'indices': indices,
-                       'logical_z': logical_z[:, n_qubits:].tolist(),
-                       'logical_x': logical_x[:, :n_qubits].tolist()})
+                       'logical_z': logical_z[:, n_qubits:].toarray().tolist(),
+                       'logical_x': logical_x[:, :n_qubits].toarray().tolist()})
 
 
 @app.route('/decode', methods=['POST'])
