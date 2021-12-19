@@ -1,6 +1,6 @@
 from typing import Tuple, Optional
 import numpy as np
-from ..generic._indexed_code import IndexedCodePauli
+from ..generic._indexed_pauli import IndexedCodePauli
 from qecsim.model import StabilizerCode
 
 

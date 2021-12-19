@@ -1,10 +1,10 @@
 from typing import Tuple
 import numpy as np
-from ..generic._indexed_code import IndexedCode
+from ..generic._indexed_sparse_code import IndexedSparseCode
 from ._toric_3d_pauli import Toric3DPauli
 
 
-class ToricCode3D(IndexedCode):
+class ToricCode3D(IndexedSparseCode):
 
     pauli_class = Toric3DPauli
 

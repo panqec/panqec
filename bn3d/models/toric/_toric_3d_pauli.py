@@ -1,22 +1,12 @@
-from typing import Tuple, Optional
-import numpy as np
-from ..generic._indexed_code import IndexedCodePauli
-from qecsim.model import StabilizerCode
+from typing import Tuple
+from ..generic._indexed_sparse_pauli import IndexedSparsePauli
 
 
-class Toric3DPauli(IndexedCodePauli):
+class Toric3DPauli(IndexedSparsePauli):
     """Pauli Operator on 3D Toric Code.
 
     Qubit sites are on edges of the lattice.
     """
-
-    def __init__(self, code: StabilizerCode, bsf: Optional[np.ndarray] = None):
-
-        # Copy needs to be made because numpy arrays are mutable.
-        if bsf is not None:
-            bsf = bsf.copy()
-
-        super().__init__(code, bsf=bsf)
 
     def vertex(self, operator: str, location: Tuple[int, int, int]):
         r"""Apply operator on sites neighbouring vertex.

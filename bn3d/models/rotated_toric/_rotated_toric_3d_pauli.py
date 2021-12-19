@@ -1,5 +1,5 @@
 from typing import Tuple
-from ..generic._indexed_code import IndexedCodePauli
+from ..generic._indexed_pauli import IndexedCodePauli
 
 
 class RotatedToric3DPauli(IndexedCodePauli):

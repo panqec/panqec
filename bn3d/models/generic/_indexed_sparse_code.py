@@ -3,10 +3,12 @@ from abc import ABCMeta, abstractmethod
 import numpy as np
 from qecsim.model import StabilizerCode
 from ...bpauli import bcommute
+from ... import sparse
+
 Indexer = Dict[Tuple[int, int, int], int]
 
 
-class IndexedCode(StabilizerCode, metaclass=ABCMeta):
+class IndexedSparseCode(StabilizerCode, metaclass=ABCMeta):
     X_AXIS = 0
     Y_AXIS = 1
     Z_AXIS = 2
@@ -15,11 +17,6 @@ class IndexedCode(StabilizerCode, metaclass=ABCMeta):
     _qubit_index: Indexer
     _vertex_index: Indexer
     _face_index: Indexer
-    _stabilizers = np.array([])
-    _Hx = np.array([])
-    _Hz = np.array([])
-    _logical_xs = np.array([])
-    _logical_zs = np.array([])
 
     def __init__(
         self, L_x: int,
@@ -32,6 +29,13 @@ class IndexedCode(StabilizerCode, metaclass=ABCMeta):
             L_z = L_x
 
         self._size = np.array([L_x, L_y, L_z])
+
+        self._stabilizers = sparse.empty_row(2*self.n_k_d[0])
+        self._Hx = sparse.empty_row(self.n_k_d[0])
+        self._Hz = sparse.empty_row(self.n_k_d[0])
+        self._logical_xs = sparse.empty_row(self.n_k_d[0])
+        self._logical_zs = sparse.empty_row(self.n_k_d[0])
+
         self._qubit_index = self._create_qubit_indices()
         self._vertex_index = self._create_vertex_indices()
         self._face_index = self._create_face_indices()
@@ -82,11 +86,11 @@ class IndexedCode(StabilizerCode, metaclass=ABCMeta):
         """ Return the axis corresponding to a given location"""
 
     @property
-    def stabilizers(self) -> np.ndarray:
-        if self._stabilizers.size == 0:
+    def stabilizers(self):
+        if sparse.is_empty(self._stabilizers):
             face_stabilizers = self.get_face_X_stabilizers()
             vertex_stabilizers = self.get_vertex_Z_stabilizers()
-            self._stabilizers = np.concatenate([
+            self._stabilizers = sparse.vstack([
                 face_stabilizers,
                 vertex_stabilizers,
             ])
@@ -98,36 +102,36 @@ class IndexedCode(StabilizerCode, metaclass=ABCMeta):
         return self._size
 
     @property
-    def Hz(self) -> np.ndarray:
+    def Hz(self):
         if self._Hz.size == 0:
             self._Hz = self.stabilizers[:self.n_faces, :self.n_k_d[0]]
         return self._Hz
 
     @property
-    def Hx(self) -> np.ndarray:
+    def Hx(self):
         if self._Hx.size == 0:
             self._Hx = self.stabilizers[self.n_faces:, self.n_k_d[0]:]
         return self._Hx
 
-    def get_vertex_Z_stabilizers(self) -> np.ndarray:
+    def get_vertex_Z_stabilizers(self):
         vertex_stabilizers = []
 
         for vertex_location in self.vertex_index.keys():
             operator = self.pauli_class(self)
             operator.vertex('Z', vertex_location)
-            vertex_stabilizers.append(operator.to_bsf())
+            vertex_stabilizers = sparse.vstack([vertex_stabilizers, operator.to_bsf()])
 
-        return np.array(vertex_stabilizers, dtype=np.uint)
+        return vertex_stabilizers
 
-    def get_face_X_stabilizers(self) -> np.ndarray:
+    def get_face_X_stabilizers(self):
         face_stabilizers = []
 
         for face_location in self.face_index.keys():
             operator = self.pauli_class(self)
             operator.face('X', face_location)
-            face_stabilizers.append(operator.to_bsf())
+            face_stabilizers = sparse.vstack([face_stabilizers, operator.to_bsf()])
 
-        return np.array(face_stabilizers, dtype=np.uint)
+        return face_stabilizers
 
     def measure_syndrome(self, error) -> np.ndarray:
         """Perfectly measure syndromes given Pauli error."""
