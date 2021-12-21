@@ -23,7 +23,7 @@ class SweepDecoder3D(Decoder):
 
         Z vertex stabiziliers syndromes are discarded for this decoder.
         """
-        n_faces = len(code.Hz)
+        n_faces = code.Hz.shape[0]
         face_syndromes = full_syndrome[:n_faces]
         return face_syndromes
 
