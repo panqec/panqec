@@ -7,9 +7,10 @@ routines are useful specifically for dealing with the 3D code.
 :Author:
     Eric Huang
 """
-from typing import Union, List
+from typing import Type, Union, List
 import numpy as np
 from . import bsparse
+from scipy.sparse import csr_matrix
 
 
 def barray_to_bvector(a: np.ndarray, L: int) -> np.ndarray:
@@ -101,10 +102,15 @@ def _bcommute_sparse(a, b):
     """Array of 0 for commutes and 1 for anticommutes bvectors."""
 
     # Commute commutator by binary symplectic form.
+    n = int(a.shape[1]/2)
     commutes = np.zeros((a.shape[0], b.shape[0]), dtype=np.uint8)
     for i_a in range(a.shape[0]):
         for i_b in range(b.shape[0]):
-            commutes[i_a, i_b] = bsparse.dot(a[i_a], b[i_b])
+            a_X = a[i_a, :n]
+            a_Z = a[i_a, n:]
+            b_X = b[i_b, :n]
+            b_Z = b[i_b, n:]
+            commutes[i_a, i_b] = (bsparse.dot(a_X, b_Z) + bsparse.dot(a_Z, b_X)) % 2
 
     if commutes.shape[0] == 1 or commutes.shape[1] == 1:
         commutes = commutes.flatten()
@@ -276,3 +282,22 @@ def apply_deformation(
                 deformed[:, i] = bsf[:, i]
                 deformed[:, i + n] = bsf[:, i + n]
     return deformed
+
+
+def bsf_wt(bsf):
+    """
+    Return weight of given binary symplectic form.
+    :param bsf: Binary symplectic vector or matrix.
+    :type bsf: numpy.array (1d or 2d) or csr_matrix
+    :return: Weight
+    :rtype: int
+    """
+    if isinstance(bsf, np.ndarray):
+        assert np.array_equal(bsf % 2, bsf), 'BSF {} is not in binary form'.format(bsf)
+        return np.count_nonzero(sum(np.hsplit(bsf, 2)))
+
+    elif isinstance(bsf, csr_matrix):
+        assert np.all(bsf.data == 1), 'BSF {} is not in binary form'.format(bsf)
+        return len(bsf.data)
+    else:
+        raise TypeError(f"bsf matrix should be a numpy array or csr_matrix, not {type(bsf)}")

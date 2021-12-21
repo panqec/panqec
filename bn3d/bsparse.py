@@ -95,6 +95,13 @@ def hsplit_row(matrix):
 
 def dot(a, b):
     """Dot product between two row vectors a and b"""
+
+    # Convert numpy arrays to sparse if necessary
+    if isinstance(a, np.ndarray):
+        a = from_array(a)
+    if isinstance(b, np.ndarray):
+        b = from_array(b)
+
     # Check if the dimensions are correct
     if a.shape[0] != 1 or b.shape[0] != 1:
         raise ValueError(f"Dot product only implemented for row vectors, not {a.shape} and {b.shape}")
