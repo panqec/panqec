@@ -1,7 +1,9 @@
 import pytest
 import numpy as np
-from qecsim.paulitools import bsf_wt
+from bn3d.bpauli import bsf_wt
 from bn3d.models import ToricCode3D, Toric3DPauli
+import bn3d.bsparse as bsparse
+from scipy.sparse import csr_matrix
 
 
 @pytest.fixture
@@ -26,17 +28,34 @@ class TestToric3DPauli:
 
         # Manually inject the X and Z blocks into hidden attributes.
         operator = Toric3DPauli(code)
+
+        # Test that xs and zs are eithe np array or csr matrices
+        assert isinstance(operator._xs, np.ndarray) or isinstance(operator._xs, csr_matrix)
+        assert isinstance(operator._zs, np.ndarray) or isinstance(operator._zs, csr_matrix)
+
+        if isinstance(operator._xs, csr_matrix):
+            x_block = bsparse.from_array(x_block)
+            z_block = bsparse.from_array(x_block)
+
         operator._xs = x_block
         operator._zs = z_block
 
         # Convert to binary simplectic form.
         bsf = operator.to_bsf()
-        assert bsf.shape[0] == 2*3*L_x*L_y*L_z
+        if isinstance(operator._xs, np.ndarray):
+            assert bsf.shape[0] == 2*3*L_x*L_y*L_z
+        else:
+            assert bsf.shape[1] == 2*3*L_x*L_y*L_z
 
         # Convert back into X and Z block arrays.
         new_operator = Toric3DPauli(code, bsf=bsf)
-        assert np.all(new_operator._xs == x_block)
-        assert np.all(new_operator._zs == z_block)
+
+        if isinstance(operator._xs, np.ndarray):
+            assert np.all(new_operator._xs == x_block)
+            assert np.all(new_operator._zs == z_block)
+        else:
+            assert bsparse.equal(new_operator._xs, x_block)
+            assert bsparse.equal(new_operator._zs, z_block)
 
     def test_apply_operator_on_site(self, code):
         operator = Toric3DPauli(code)
@@ -63,7 +82,11 @@ class TestToric3DPauli:
 
         assert bsf_wt(operator.to_bsf()) == 6
 
-        assert np.all(vertex_operator.to_bsf() == operator.to_bsf())
+        if isinstance(operator.to_bsf(), np.ndarray):
+            assert np.all(vertex_operator.to_bsf() == operator.to_bsf())
+        else:
+            assert bsparse.equal(vertex_operator.to_bsf(), operator.to_bsf())
+
         assert vertex_operator == operator
 
     def test_apply_face_operators_on_x_normal_face(self, code):
@@ -128,6 +151,7 @@ class TestToric3DPauli:
         """
         loop = Toric3DPauli(code)
         loop.face('Y', (1, 0, 1))
-        loop.face('Y', (2, 1, 1))
+        loop.face('Y', (0, 1, 1))
         loop.face('Y', (1, 1, 2))
+
         assert bsf_wt(loop.to_bsf()) == 6
