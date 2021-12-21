@@ -298,6 +298,11 @@ def bsf_wt(bsf):
 
     elif isinstance(bsf, csr_matrix):
         assert np.all(bsf.data == 1), 'BSF {} is not in binary form'.format(bsf)
-        return len(bsf.data)
+
+        n = bsf.shape[1] // 2
+        x_indices = bsf.indices[bsf.indices < n]
+        z_indices = bsf.indices[bsf.indices >= n] - n
+
+        return len(np.union1d(x_indices, z_indices))
     else:
         raise TypeError(f"bsf matrix should be a numpy array or csr_matrix, not {type(bsf)}")
