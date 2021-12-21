@@ -13,7 +13,7 @@ import numpy as np
 def zero_row(n_cols: int):
     """Create a zero sparse row in the csr format"""
 
-    return csr_matrix(([], ([], [])), shape=(1, n_cols), dtype='uint8')
+    return csr_matrix((np.array([]), (np.array([]), np.array([]))), shape=(1, n_cols), dtype='uint8')
 
 
 def empty_row(n_cols: int):
@@ -52,7 +52,7 @@ def insert_mod2(index: int, row_matrix):
         row_matrix.indices = np.append(row_matrix.indices, [index])
 
     row_matrix.data = np.ones(len(row_matrix.indices), dtype='uint8')
-    row_matrix.indptr = [0, len(row_matrix.indices)]
+    row_matrix.indptr = np.array([0, len(row_matrix.indices)])
 
 
 def is_one(index: int, row_matrix):
@@ -81,8 +81,8 @@ def hsplit_row(matrix):
     a_indices = indices[indices < n]
     b_indices = indices[indices >= n] - n
 
-    a_indptr = [0, len(a_indices)]
-    b_indptr = [0, len(b_indices)]
+    a_indptr = np.array([0, len(a_indices)])
+    b_indptr = np.array([0, len(b_indices)])
 
     a_data = np.ones(len(a_indices), dtype='uint8')
     b_data = np.ones(len(b_indices), dtype='uint8')
@@ -118,6 +118,14 @@ def dot(a, b):
     dot_product = int(n_common_ones % 2)
 
     return dot_product
+
+
+def equal(a, b):
+    """Test if two matrices are equal"""
+
+    is_equal = np.all(a.shape == b.shape) and ((a != b).nnz == 0)
+
+    return is_equal
 
 
 if __name__ == '__main__':
