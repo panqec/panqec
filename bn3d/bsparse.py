@@ -26,6 +26,13 @@ def from_array(array: np.ndarray):
     return csr_matrix(array, dtype='uint8')
 
 
+def to_array(matrix):
+    if isinstance(matrix, np.ndarray):
+        return matrix
+    else:
+        return matrix.toarray()
+
+
 def is_empty(matrix):
     return matrix.shape[0] == 0
 
@@ -69,26 +76,32 @@ def hstack(matrices):
     return sparse.hstack(matrices, format='csr', dtype='uint8')
 
 
-def hsplit_row(matrix):
+def hsplit(matrix):
     """Split a row matrix into two row matrices with half the number of columns"""
 
     if matrix.shape[1] % 2 != 0:
         raise ValueError(f"Matrix should have an even number of columns, not {matrix.shape[1]}")
 
-    indices = np.array(matrix.indices)
-    n = matrix.shape[1] // 2
+    # Fast version for row matrices
+    if matrix.shape[0] == 1:
+        indices = np.array(matrix.indices)
+        n = matrix.shape[1] // 2
 
-    a_indices = indices[indices < n]
-    b_indices = indices[indices >= n] - n
+        a_indices = indices[indices < n]
+        b_indices = indices[indices >= n] - n
 
-    a_indptr = np.array([0, len(a_indices)])
-    b_indptr = np.array([0, len(b_indices)])
+        a_indptr = np.array([0, len(a_indices)])
+        b_indptr = np.array([0, len(b_indices)])
 
-    a_data = np.ones(len(a_indices), dtype='uint8')
-    b_data = np.ones(len(b_indices), dtype='uint8')
+        a_data = np.ones(len(a_indices), dtype='uint8')
+        b_data = np.ones(len(b_indices), dtype='uint8')
 
-    a = csr_matrix((a_data, a_indices, a_indptr), shape=(1, n), dtype='uint8')
-    b = csr_matrix((b_data, b_indices, b_indptr), shape=(1, n), dtype='uint8')
+        a = csr_matrix((a_data, a_indices, a_indptr), shape=(1, n), dtype='uint8')
+        b = csr_matrix((b_data, b_indices, b_indptr), shape=(1, n), dtype='uint8')
+    else:
+        n = matrix.shape[1] // 2
+        a = matrix[:, :n]
+        b = matrix[:, n]
 
     return a, b
 
@@ -121,11 +134,23 @@ def dot(a, b):
 
 
 def equal(a, b):
-    """Test if two matrices are equal"""
+    """Test if two matrices are equal, or if a matrix equal a unique number everywhere"""
 
-    is_equal = np.all(a.shape == b.shape) and ((a != b).nnz == 0)
+    # Matrix equality
+    if isinstance(a, csr_matrix) and isinstance(b, csr_matrix):
+        return np.all(a.shape == b.shape) and ((a != b).nnz == 0)
 
-    return is_equal
+    # Matrix and number equality: a should be the int and b the matrix
+    if isinstance(b, int) and isinstance(a, csr_matrix):
+        a, b = b, a
+
+    if isinstance(a, int) and isinstance(b, csr_matrix):
+        if a == 0:
+            return (b.nnz == 0)
+        else:
+            return (len(b.data) == b.shape[1]) and np.all(b.data == a)
+    else:
+        raise TypeError(f"Equality not supported between {type(a)} and {type(b)}")
 
 
 if __name__ == '__main__':
