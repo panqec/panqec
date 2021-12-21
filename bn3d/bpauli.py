@@ -243,6 +243,8 @@ def gf2_rank(rows):
 def brank(matrix):
     """Rank of a binary matrix."""
 
+    matrix = bsparse.to_array(matrix)
+
     # Convert to list of binary numbers.
     rows = [int(''.join(map(str, row)), 2) for row in matrix.astype(int)]
     return gf2_rank(rows)
@@ -306,3 +308,47 @@ def bsf_wt(bsf):
         return len(np.union1d(x_indices, z_indices))
     else:
         raise TypeError(f"bsf matrix should be a numpy array or csr_matrix, not {type(bsf)}")
+
+
+def bsf_to_pauli(bsf):
+    """
+    Convert the given binary symplectic form to Pauli operator(s).
+    (1 0 0 0 1 | 0 0 1 0 1) -> XIZIY
+    Assumptions:
+    * bsf is a numpy.array (1d or 2d) in binary symplectic form.
+    :param bsf: Binary symplectic vector or matrix.
+    :type bsf: numpy.array (1d or 2d)
+    :return: Pauli operators.
+    :rtype: str or list of str
+    """
+
+    if isinstance(bsf, np.ndarray):
+        assert np.array_equal(bsf % 2, bsf), 'BSF {} is not in binary form'.format(bsf)
+
+        def _to_pauli(b, t=str.maketrans('0123', 'IXZY')):  # noqa: B008 (deliberately reuse t)
+            xs, zs = np.hsplit(b, 2)
+            ps = (xs + zs * 2).astype(str)  # 0=I, 1=X, 2=Z, 3=Y
+            return ''.join(ps).translate(t)
+
+        if bsf.ndim == 1:
+            return _to_pauli(bsf)
+        else:
+            return [_to_pauli(b) for b in bsf]
+    else:
+        assert np.all(bsf.data == 1), 'BSF {} is not in binary form'.format(bsf)
+
+        def _to_pauli(b):
+            n = bsf.shape[1] // 2
+            pauli_string = ['I' for _ in range(n)]
+            for i in b.indices:
+                if i < n:
+                    pauli_string[i] = 'X'
+                elif i >= n:
+                    if pauli_string[i - n] == 'X':
+                        pauli_string[i - n] = 'Y'
+                    else:
+                        pauli_string[i - n] = 'Z'
+
+            return ''.join(pauli_string)
+
+        return [_to_pauli(b) for b in bsf]
