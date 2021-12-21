@@ -32,7 +32,7 @@ class IndexedSparsePauli(metaclass=ABCMeta):
                 'BSF {} is not in binary form'.format(bsf)
             # initialise lattices for X and Z operators from bsf
 
-            self._xs, self._zs = bsparse.hsplit_row(bsf)
+            self._xs, self._zs = bsparse.hsplit(bsf)
 
     def site(self, operator, *indices):
         """
