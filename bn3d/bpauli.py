@@ -46,6 +46,12 @@ def new_barray(L: int) -> np.ndarray:
 
 def bcommute(a, b) -> np.ndarray:
     """Array of 0 for commutes and 1 for anticommutes bvectors."""
+    
+    # If lists, convert to numpy
+    if isinstance(a, list):
+        a = np.array(a, dtype='uint8')
+    if isinstance(b, list):
+        b = np.array(b, dtype='uint8')
 
     # Determine the output shape.
     # In particular, flatten array where needed.
