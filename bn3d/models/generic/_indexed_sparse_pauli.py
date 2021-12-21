@@ -88,8 +88,8 @@ class IndexedSparsePauli(metaclass=ABCMeta):
         """
         # extract binary x and z
         index = self.code.qubit_index[coord]
-        x = bsparse.is_one(index, self._xs.index)
-        z = bsparse.is_one(index, self._zs.index)
+        x = bsparse.is_one(index, self._xs)
+        z = bsparse.is_one(index, self._zs)
         # return Pauli
         if x and z:
             return 'Y'
@@ -111,9 +111,7 @@ class IndexedSparsePauli(metaclass=ABCMeta):
 
     def __eq__(self, other):
         if type(other) is type(self):
-            return np.array_equal(self._xs.indices, other._xs.indices) and np.array_equal(
-                self._zs.indices, other._zs.indices
-            )
+            return bsparse.equal(self._xs, other._xs) and bsparse.equal(self._zs, other._zs)
         return NotImplemented
 
     def __repr__(self):
