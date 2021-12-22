@@ -41,6 +41,12 @@ def is_sparse(matrix):
     return type(matrix) == csr_matrix
 
 
+def is_one(index: int, row_matrix):
+    """Return True if row_matrix[index] is nonzero"""
+
+    return index in row_matrix.indices
+
+
 def insert_mod2(index: int, row_matrix):
     """Insert 1 at 'index' in the row matrix, modulo 2"""
 
@@ -60,12 +66,6 @@ def insert_mod2(index: int, row_matrix):
 
     row_matrix.data = np.ones(len(row_matrix.indices), dtype='uint8')
     row_matrix.indptr = np.array([0, len(row_matrix.indices)])
-
-
-def is_one(index: int, row_matrix):
-    """Return True if row_matrix[index] is nonzero"""
-
-    return index in row_matrix.indices
 
 
 def vstack(matrices):
@@ -101,7 +101,7 @@ def hsplit(matrix):
     else:
         n = matrix.shape[1] // 2
         a = matrix[:, :n]
-        b = matrix[:, n]
+        b = matrix[:, n:]
 
     return a, b
 
@@ -109,10 +109,10 @@ def hsplit(matrix):
 def dot(a, b):
     """Dot product between two row vectors a and b"""
 
-    # Convert numpy arrays to sparse if necessary
-    if isinstance(a, np.ndarray):
+    # Turn both inputs to sparse format (in case one is not)
+    if not is_sparse(a):
         a = from_array(a)
-    if isinstance(b, np.ndarray):
+    if not is_sparse(b):
         b = from_array(b)
 
     # Check if the dimensions are correct
@@ -120,12 +120,6 @@ def dot(a, b):
         raise ValueError(f"Dot product only implemented for row vectors, not {a.shape} and {b.shape}")
     if a.shape[1] != b.shape[1]:
         raise ValueError(f"Dimensions {a.shape} and {b.shape} don't agree for dot product")
-
-    # Turn both inputs to sparse format (in case one is not)
-    if not is_sparse(a):
-        a = from_array(a)
-    if not is_sparse(b):
-        b = from_array(b)
 
     n_common_ones = len(np.intersect1d(a.indices, b.indices))
     dot_product = int(n_common_ones % 2)
@@ -148,30 +142,6 @@ def equal(a, b):
         if a == 0:
             return (b.nnz == 0)
         else:
-            return (len(b.data) == b.shape[1]) and np.all(b.data == a)
+            return (len(b.data) == np.product(b.shape)) and np.all(b.data == a)
     else:
         raise TypeError(f"Equality not supported between {type(a)} and {type(b)}")
-
-
-if __name__ == '__main__':
-    a = zero_row(10)
-    b = zero_row(10)
-
-    print(dot(a, b), " = 0")
-    insert_mod2(5, a)
-    print(dot(a, b), " = 0")
-    insert_mod2(5, b)
-    print(dot(a, b), " = 1")
-    insert_mod2(2, a)
-    print(dot(a, b), " = 1")
-    insert_mod2(2, b)
-    print(dot(a, b), " = 0")
-    print(dot(a, b.toarray()), " = 0")
-
-    print(type(a) == csr_matrix)
-
-    # print(hstack([a, b]))
-    # print("")
-    c, d = hsplit_row(hstack([a, b]))
-    print(c)
-    print(d)
