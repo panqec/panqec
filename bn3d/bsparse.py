@@ -22,7 +22,9 @@ def empty_row(n_cols: int):
     return csr_matrix(([], ([], [])), shape=(0, n_cols), dtype='uint8')
 
 
-def from_array(array: np.ndarray):
+def from_array(array):
+    if isinstance(array, list):
+        array = np.array(array)
     return csr_matrix(array, dtype='uint8')
 
 

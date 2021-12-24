@@ -300,7 +300,7 @@ class BeliefPropagationOSDDecoder(Decoder):
             if code.label in self._x_decoder.keys():
                 x_decoder = self._x_decoder[code.label]
                 z_decoder = self._z_decoder[code.label]
-            if code.label in self._decoder.keys():
+            elif code.label in self._decoder.keys():
                 decoder = self._decoder[code.label]
 
             else:
@@ -339,6 +339,7 @@ class BeliefPropagationOSDDecoder(Decoder):
                         osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
                         osd_order=6
                     )
+                    self._decoder[code.label] = decoder
 
             if is_css:
                 z_decoder.decode(syndrome_z)

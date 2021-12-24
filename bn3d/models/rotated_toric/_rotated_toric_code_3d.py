@@ -1,10 +1,11 @@
 from typing import Tuple, Dict
 import numpy as np
 from ._rotated_toric_3d_pauli import RotatedToric3DPauli
-from ..generic._indexed_code import IndexedCode
+from ..generic._indexed_sparse_code import IndexedSparseCode
+from ... import bsparse
 
 
-class RotatedToricCode3D(IndexedCode):
+class RotatedToricCode3D(IndexedSparseCode):
 
     _size: Tuple[int, int, int]
     _qubit_index: Dict[Tuple[int, int, int], int]
@@ -35,24 +36,24 @@ class RotatedToricCode3D(IndexedCode):
 
         if self._logical_xs.size == 0:
             Lx, Ly, Lz = self.size
-            logicals = []
+            logicals = bsparse.empty_row(2*self.n_k_d[0])
 
             logical = RotatedToric3DPauli(self)
             for y in range(1, 4*Ly, 2):
                 logical.site('X', (1, y, 1))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             logical = RotatedToric3DPauli(self)
             for x in range(1, 4*Lx, 2):
                 logical.site('X', (x, 1, 1))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             logical = RotatedToric3DPauli(self)
             for z in range(0, 2*Lz, 2):
                 logical.site('X', (2, 0, z))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            self._logical_xs = np.array(logicals, dtype=np.uint)
+            self._logical_xs = logicals
 
         return self._logical_xs
 
@@ -61,28 +62,28 @@ class RotatedToricCode3D(IndexedCode):
         """Get the unique logical Z operator."""
         if self._logical_zs.size == 0:
             Lx, Ly, Lz = self.size
-            logicals = []
+            logicals = bsparse.empty_row(2*self.n_k_d[0])
 
             # Z operators on x edges forming surface normal to x (yz plane).
             logical = RotatedToric3DPauli(self)
             for (x, y, z) in self.qubit_index.keys():
                 if z % 2 == 1 and (x + y) % 4 == 2:
                     logical.site('Z', (x, y, z))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             logical = RotatedToric3DPauli(self)
             for (x, y, z) in self.qubit_index.keys():
                 if z % 2 == 1 and (x + y) % 4 == 0:
                     logical.site('Z', (x, y, z))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             logical = RotatedToric3DPauli(self)
             for (x, y, z) in self.qubit_index.keys():
                 if z == 0:
                     logical.site('Z', (x, y, z))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            self._logical_zs = np.array(logicals, dtype=np.uint)
+            self._logical_zs = logicals
 
         return self._logical_zs
 

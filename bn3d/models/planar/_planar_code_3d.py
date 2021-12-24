@@ -1,10 +1,11 @@
 from typing import Tuple
 import numpy as np
-from ..generic._indexed_code import IndexedCode
+from ..generic._indexed_sparse_code import IndexedSparseCode
 from ._planar_3d_pauli import Planar3DPauli
+from ... import bsparse
 
 
-class PlanarCode3D(IndexedCode):
+class PlanarCode3D(IndexedSparseCode):
 
     pauli_class = Planar3DPauli
 
@@ -25,15 +26,15 @@ class PlanarCode3D(IndexedCode):
 
         if self._logical_xs.size == 0:
             Lx, Ly, Lz = self.size
-            logicals = []
+            logicals = bsparse.empty_row(2*self.n_k_d[0])
 
             # X operators along x edges in x direction.
             logical = self.pauli_class(self)
             for x in range(1, 2*Lx+2, 2):
                 logical.site('X', (x, 0, 0))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            self._logical_xs = np.array(logicals, dtype=np.uint)
+            self._logical_xs = logicals
 
         return self._logical_xs
 
@@ -42,16 +43,16 @@ class PlanarCode3D(IndexedCode):
         """Get the 1 logical Z operator."""
         if self._logical_zs.size == 0:
             Lx, Ly, Lz = self.size
-            logicals = []
+            logicals = bsparse.empty_row(2*self.n_k_d[0])
 
             # Z operators on x edges forming surface normal to x (yz plane).
             logical = self.pauli_class(self)
             for y in range(0, 2*Ly, 2):
                 for z in range(0, 2*Lz, 2):
                     logical.site('Z', (1, y, z))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            self._logical_zs = np.array(logicals, dtype=np.uint)
+            self._logical_zs = logicals
 
         return self._logical_zs
 

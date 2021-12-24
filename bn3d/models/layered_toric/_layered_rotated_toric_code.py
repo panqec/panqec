@@ -1,10 +1,11 @@
 from typing import Tuple
 import numpy as np
-from ..generic._indexed_code import IndexedCode
+from ..generic._indexed_sparse_code import IndexedSparseCode
 from ._layered_toric_pauli import LayeredToricPauli
+from ... import bsparse
 
 
-class LayeredRotatedToricCode(IndexedCode):
+class LayeredRotatedToricCode(IndexedSparseCode):
     """Layered Rotated Code for good subthreshold scaling."""
 
     pauli_class = LayeredToricPauli
@@ -29,7 +30,7 @@ class LayeredRotatedToricCode(IndexedCode):
 
         if self._logical_xs.size == 0:
             L_x, L_y, L_z = self.size
-            logicals = []
+            logicals = bsparse.empty_row(2*self.n_k_d[0])
 
             # Even times even.
             if L_x % 2 == 0 and L_y % 2 == 0:
@@ -39,14 +40,14 @@ class LayeredRotatedToricCode(IndexedCode):
                 for x, y, z in self.qubit_index:
                     if y == 1 and z == 1:
                         logical.site('X', (x, y, z))
-                logicals.append(logical.to_bsf())
+                logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
                 # X string operator along x.
                 logical = self.pauli_class(self)
                 for x, y, z in self.qubit_index:
                     if x == 1 and z == 1:
                         logical.site('X', (x, y, z))
-                logicals.append(logical.to_bsf())
+                logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             # Odd times even.
             else:
@@ -85,9 +86,9 @@ class LayeredRotatedToricCode(IndexedCode):
                     else:
                         logical.site('Z', (x, y, z))
                     """
-                logicals.append(logical.to_bsf())
+                logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            self._logical_xs = np.array(logicals, dtype=np.uint)
+            self._logical_xs = logicals
 
         return self._logical_xs
 
@@ -96,7 +97,7 @@ class LayeredRotatedToricCode(IndexedCode):
         """Get the unique logical Z operator."""
         if self._logical_zs.size == 0:
             L_x, L_y, L_z = self.size
-            logicals = []
+            logicals = bsparse.empty_row(2*self.n_k_d[0])
 
             # Even times even.
             if L_x % 2 == 0 and L_y % 2 == 0:
@@ -105,15 +106,13 @@ class LayeredRotatedToricCode(IndexedCode):
                 for x, y, z in self.qubit_index:
                     if x == 1:
                         logical.site('Z', (x, y, z))
-
-                logicals.append(logical.to_bsf())
+                logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
                 logical = self.pauli_class(self)
                 for x, y, z in self.qubit_index:
                     if y == 1:
                         logical.site('Z', (x, y, z))
-
-                logicals.append(logical.to_bsf())
+                logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             # Odd times even.
             else:
@@ -125,9 +124,9 @@ class LayeredRotatedToricCode(IndexedCode):
                     elif L_y % 2 == 1:
                         if x == 1:
                             logical.site('Y', (x, y, z))
-                logicals.append(logical.to_bsf())
+                logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            self._logical_zs = np.array(logicals, dtype=np.uint)
+            self._logical_zs = logicals
 
         return self._logical_zs
 

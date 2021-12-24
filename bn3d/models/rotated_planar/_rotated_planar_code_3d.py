@@ -1,10 +1,11 @@
 from typing import Tuple
 import numpy as np
-from ..generic._indexed_code import IndexedCode
+from ..generic._indexed_sparse_code import IndexedSparseCode
 from ._rotated_planar_3d_pauli import RotatedPlanar3DPauli
+from ... import bsparse
 
 
-class RotatedPlanarCode3D(IndexedCode):
+class RotatedPlanarCode3D(IndexedSparseCode):
 
     pauli_class = RotatedPlanar3DPauli
 
@@ -25,16 +26,16 @@ class RotatedPlanarCode3D(IndexedCode):
 
         if self._logical_xs.size == 0:
             Lx, Ly, Lz = self.size
-            logicals = []
+            logicals = bsparse.empty_row(2*self.n_k_d[0])
 
             # X operators along x edges in x direction.
             logical = RotatedPlanar3DPauli(self)
 
             for x in range(1, 4*Lx+2, 2):
                 logical.site('X', (x, 4*Ly + 2 - x, 1))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            self._logical_xs = np.array(logicals, dtype=np.uint)
+            self._logical_xs = logicals
 
         return self._logical_xs
 
@@ -43,16 +44,16 @@ class RotatedPlanarCode3D(IndexedCode):
         """Get the unique logical Z operator."""
         if self._logical_zs.size == 0:
             Lx, L_y, Lz = self.size
-            logicals = []
+            logicals = bsparse.empty_row(2*self.n_k_d[0])
 
             # Z operators on x edges forming surface normal to x (yz plane).
             logical = RotatedPlanar3DPauli(self)
             for z in range(1, 2*(Lz+1), 2):
                 for x in range(1, 4*Lx+2, 2):
                     logical.site('Z', (x, x, z))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            self._logical_zs = np.array(logicals, dtype=np.uint)
+            self._logical_zs = logicals
 
         return self._logical_zs
 

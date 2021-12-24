@@ -1,10 +1,10 @@
 from typing import Tuple, Optional
 import numpy as np
-from ..generic._indexed_pauli import IndexedCodePauli
+from ..generic._indexed_sparse_pauli import IndexedSparsePauli
 from qecsim.model import StabilizerCode
 
 
-class RhombicPauli(IndexedCodePauli):
+class RhombicPauli(IndexedSparsePauli):
     """Pauli Operator on 3D Toric Code.
 
     Qubit sites are on edges of the lattice.
@@ -52,7 +52,7 @@ class RhombicPauli(IndexedCodePauli):
         vertex = vertex_1 if (x + y + z) % 4 == 0 else vertex_2
 
         for qubit_location in vertex[axis]:
-            mod_location = tuple(np.mod(qubit_location, 2*self.code.size))
+            mod_location = tuple(np.mod(qubit_location, 2*np.array(self.code.size)))
             self.site(operator, mod_location)
 
     def face(
@@ -79,5 +79,5 @@ class RhombicPauli(IndexedCodePauli):
                 (x - 1, y, z + 1), (x + 1, y, z + 1), (x, y - 1, z + 1), (x, y + 1, z + 1)]
 
         for qubit_location in cube:
-            mod_location = tuple(np.mod(qubit_location, 2*self.code.size))
+            mod_location = tuple(np.mod(qubit_location, 2*np.array(self.code.size)))
             self.site(operator, mod_location)

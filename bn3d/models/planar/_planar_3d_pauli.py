@@ -1,10 +1,10 @@
 from typing import Tuple, Optional
 import numpy as np
-from ..generic._indexed_pauli import IndexedCodePauli
+from ..generic._indexed_sparse_pauli import IndexedSparsePauli
 from qecsim.model import StabilizerCode
 
 
-class Planar3DPauli(IndexedCodePauli):
+class Planar3DPauli(IndexedSparsePauli):
     """Pauli Operator on 3D Toric Code.
 
     Qubit sites are on edges of the lattice.

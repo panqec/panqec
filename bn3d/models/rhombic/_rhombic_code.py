@@ -1,11 +1,12 @@
 import itertools
 from typing import Tuple
 import numpy as np
-from ..generic._indexed_code import IndexedCode
+from ..generic._indexed_sparse_code import IndexedSparseCode
 from ._rhombic_pauli import RhombicPauli
+from ... import bsparse
 
 
-class RhombicCode(IndexedCode):
+class RhombicCode(IndexedSparseCode):
 
     pauli_class = RhombicPauli
 
@@ -25,7 +26,7 @@ class RhombicCode(IndexedCode):
 
         if self._logical_xs.size == 0:
             Lx, Ly, Lz = self.size
-            logicals = []
+            logicals = bsparse.empty_row(2*self.n_k_d[0])
 
             # Sheet of X operators normal to the z direction
             logical = self.pauli_class(self)
@@ -33,7 +34,7 @@ class RhombicCode(IndexedCode):
                 for y in range(2*Ly):
                     if (x + y) % 2 == 1:
                         logical.site('X', (x, y, 0))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             # Sheet of X operators normal to the y direction
             logical = self.pauli_class(self)
@@ -41,7 +42,7 @@ class RhombicCode(IndexedCode):
                 for z in range(2*Lz):
                     if (x + z) % 2 == 1:
                         logical.site('X', (x, 0, z))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             # Sheet of X operators normal to the x direction
             logical = self.pauli_class(self)
@@ -49,9 +50,9 @@ class RhombicCode(IndexedCode):
                 for z in range(2*Lz):
                     if (y + z) % 2 == 1:
                         logical.site('X', (0, y, z))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            self._logical_xs = np.array(logicals, dtype=np.uint)
+            self._logical_xs = bsparse.from_array(logicals)
 
         return self._logical_xs
 
@@ -60,27 +61,27 @@ class RhombicCode(IndexedCode):
         """Get the 3 logical Z operators."""
         if self._logical_zs.size == 0:
             Lx, Ly, Lz = self.size
-            logicals = []
+            logicals = bsparse.empty_row(2*self.n_k_d[0])
 
             # Line of parallel Z operators along the x direction
             logical = self.pauli_class(self)
             for x in range(0, 2*Lx, 2):
                 logical.site('Z', (x, 1, 0))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             # Line of parallel Z operators along the y direction
             logical = self.pauli_class(self)
             for y in range(0, 2*Ly, 2):
                 logical.site('Z', (1, y, 0))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             # Line of parallel Z operators along the z direction
             logical = self.pauli_class(self)
             for z in range(0, 2*Lz, 2):
                 logical.site('Z', (0, 1, z))
-            logicals.append(logical.to_bsf())
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            self._logical_zs = np.array(logicals, dtype=np.uint)
+            self._logical_zs = logicals
 
         return self._logical_zs
 

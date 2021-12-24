@@ -18,7 +18,7 @@ class IndexedSparseCode(IndexedCode, metaclass=ABCMeta):
         if L_z is None:
             L_z = L_x
 
-        self._size = np.array([L_x, L_y, L_z])
+        self._size = (L_x, L_y, L_z)
 
         self._stabilizers = bsparse.empty_row(2*self.n_k_d[0])
         self._Hx = bsparse.empty_row(self.n_k_d[0])

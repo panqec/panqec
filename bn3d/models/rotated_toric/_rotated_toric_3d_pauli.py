@@ -1,8 +1,8 @@
 from typing import Tuple
-from ..generic._indexed_pauli import IndexedCodePauli
+from ..generic._indexed_sparse_pauli import IndexedSparsePauli
 
 
-class RotatedToric3DPauli(IndexedCodePauli):
+class RotatedToric3DPauli(IndexedSparsePauli):
     """Pauli Operator on 3D Toric Code.
 
     Qubit sites are on edges of the lattice.
