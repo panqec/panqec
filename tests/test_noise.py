@@ -8,7 +8,8 @@ from bn3d.noise import (
 )
 from bn3d.bpauli import get_bvector_index
 from bn3d.noise import PauliErrorModel, XNoiseOnYZEdgesOnly
-from bn3d.tc3d import ToricCode3D, Toric3DPauli
+from bn3d.models import ToricCode3D, Toric3DPauli
+import bn3d.bsparse as bsparse
 
 
 class TestPauliNoise:
@@ -30,13 +31,13 @@ class TestPauliNoise:
 
     def test_generate(self, code, error_model):
         probability = 0.1
-        error = error_model.generate(code, probability, rng=np.random)
+        error = bsparse.to_array(error_model.generate(code, probability, rng=np.random))
         assert np.any(error != 0), 'Error should be non-trivial'
         assert error.shape == (2*code.n_k_d[0], ), 'Shape incorrect'
 
     def test_probability_zero(self, code, error_model):
         probability = 0
-        error = error_model.generate(code, probability, rng=np.random)
+        error = bsparse.to_array(error_model.generate(code, probability, rng=np.random))
         assert np.all(error == 0), 'Should have no error'
 
     def test_probability_one(self, code, error_model):

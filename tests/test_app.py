@@ -34,7 +34,7 @@ def test_read_json_input(file_name, expected_runs):
     assert len(batch_simulation._simulations) == expected_runs
     parameters = [
         {
-            'code': s.code.size,
+            'code': s.code.size.tolist(),
             'noise': s.error_model.direction,
             'probability': s.error_probability
         }

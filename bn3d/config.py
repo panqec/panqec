@@ -9,18 +9,24 @@ from dotenv import load_dotenv
 from qecsim.models.basic import FiveQubitCode
 from qecsim.models.toric import ToricCode
 from qecsim.models.generic import NaiveDecoder
-from .tc3d import (
-    ToricCode3D, Toric3DPymatchingDecoder, SweepMatchDecoder,
-    RotatedPlanarCode3D, RotatedToricCode3D, RotatedSweepMatchDecoder,
-    RotatedInfiniteZBiasDecoder, LayeredRotatedToricCode,
+from .models import (
+    ToricCode3D,
+    RotatedPlanarCode3D, RotatedToricCode3D,
+    LayeredRotatedToricCode, RhombicCode
 )
-from .rhombic import RhombicCode
-from .bp_os_decoder import BeliefPropagationOSDDecoder
-from .tc2d import Toric2DPymatchingDecoder
-from .deform import (
+from .decoders import (
+    Toric3DPymatchingDecoder, SweepMatchDecoder,
+    RotatedSweepMatchDecoder, RotatedInfiniteZBiasDecoder
+)
+from .decoders.bposd.bp_os_decoder import BeliefPropagationOSDDecoder
+from .decoders.sweepmatch._toric_2d_match_decoder import Toric2DPymatchingDecoder
+from .error_models import (
     DeformedXZZXErrorModel, DeformedXYErrorModel,
-    DeformedSweepMatchDecoder, DeformedRhombicErrorModel,
-    FoliatedMatchingDecoder, DeformedRotatedSweepMatchDecoder,
+    DeformedRhombicErrorModel,
+)
+from .decoders import (
+    DeformedSweepMatchDecoder, FoliatedMatchingDecoder,
+    DeformedRotatedSweepMatchDecoder
 )
 from .noise import PauliErrorModel, XNoiseOnYZEdgesOnly
 

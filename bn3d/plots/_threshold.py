@@ -106,6 +106,8 @@ def detailed_plot(
             ax.legend(loc='best')
     axes[0].set_ylabel('Logical Error Rate')
 
+    fig.suptitle(f"$\eta={eta:.1f}$")
+
     if save_folder:
         filename = os.path.join(save_folder, results_df['label'][0])
         plt.savefig(f'{filename}.png')
