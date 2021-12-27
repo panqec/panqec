@@ -7,7 +7,7 @@ name=det_unrot_bposd_xzzx_zbias
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
 sizes="9,11,13,17"
-wall_time="3-00:00"
+wall_time="6-00:00"
 memory="93GB"
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --lattice kitaev --boundary toric --deformation xzzx --ratio equal  \
@@ -34,12 +34,12 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "1000" --prob "0.18:0.28:0.01"
 bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 23 --memory "$memory" \
-    --wall_time "$wall_time" --trials 5000 --split 2 $sbatch_dir/$name.sbatch
+    --wall_time "$wall_time" --trials 10000 --split 2 $sbatch_dir/$name.sbatch
 
 name=det_unrot_bposd_undef_zbias
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
-wall_time="3-00:00"
+wall_time="6-00:00"
 memory="93GB"
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --lattice rotated --boundary planar --deformation none --ratio equal \
@@ -70,7 +70,7 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "inf" --prob "0.209:0.229:0.002"
 bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 27 --memory "$memory" \
-    --wall_time "$wall_time" --trials 5000 --split 2 $sbatch_dir/$name.sbatch
+    --wall_time "$wall_time" --trials 10000 --split 2 $sbatch_dir/$name.sbatch
 
 
 name=det_rhombic_bposd_undef_xbias
@@ -120,7 +120,7 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
     --eta "100,inf" --prob "0.284:0.304:0.002"
 bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 107 --memory "$memory" \
-    --wall_time "$wall_time" --trials 2500 --split 4 $sbatch_dir/$name.sbatch
+    --wall_time "$wall_time" --trials 10000 --split 4 $sbatch_dir/$name.sbatch
 
 name=det_rhombic_bposd_xzzx_xbias
 rm -rf $paper_dir/$name/inputs
@@ -159,4 +159,4 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --sizes "6,8,10,12" --decoder BeliefPropagationOSDDecoder --bias X \
     --eta "inf" --prob "0.388:0.408:0.002"
 bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 69 --memory "$memory" \
-    --wall_time "$wall_time" --trials 2500 --split 4 $sbatch_dir/$name.sbatch
+    --wall_time "$wall_time" --trials 10000 --split 4 $sbatch_dir/$name.sbatch
