@@ -4,8 +4,74 @@ sbatch_dir=temp/paper/sbatch
 mkdir -p "$sbatch_dir"
 
 ratio=equal
-wall_time="0-23:59"
-queue=defq
+wall_time="0-00:59"
+queue=debugq
+
+# Final runs.
+name=det_unrot_bposd_xzzx_zbias
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="9,11,13,17"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice kitaev --boundary toric --deformation xzzx --ratio equal  \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "0.5" --prob "0.055:0.075:0.002"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice kitaev --boundary toric --deformation xzzx --ratio equal  \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "3" --prob "0.072:0.092:0.002"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice kitaev --boundary toric --deformation xzzx --ratio equal  \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "10" --prob "0.128:0.148:0.002"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice kitaev --boundary toric --deformation xzzx --ratio equal  \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "30" --prob "0.154:0.194:0.004"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice kitaev --boundary toric --deformation xzzx --ratio equal  \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "100" --prob "0.170:0.210:0.004"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice kitaev --boundary toric --deformation xzzx --ratio equal  \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "1000" --prob "0.18:0.28:0.01"
+bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 12 --queue $queue \
+    --wall_time "$wall_time" --trials 10000 --split 2 $sbatch_dir/$name.sbatch
+
+name=det_unrot_bposd_undef_zbias
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice rotated --boundary planar --deformation none --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "0.5" --prob "0.055:0.075:0.002"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice rotated --boundary planar --deformation none --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "3" --prob "0.130:0.150:0.002"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice rotated --boundary planar --deformation none --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "10" --prob "0.226:0.246:0.002"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice rotated --boundary planar --deformation none --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "30" --prob "0.213:0.233:0.002"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice rotated --boundary planar --deformation none --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "100" --prob "0.210:0.230:0.002"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice rotated --boundary planar --deformation none --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "1000" --prob "0.210:0.230:0.002"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --lattice rotated --boundary planar --deformation none --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "inf" --prob "0.209:0.229:0.002"
+bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 14 --queue $queue \
+    --wall_time "$wall_time" --trials 10000 --split 2 $sbatch_dir/$name.sbatch
 
 # Regime where finite-size scaling starts to break down
 : '
@@ -16,10 +82,8 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --eta "60,70,80" --prob "0.30:0.40:0.01"
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 10 --queue $queue \
     --wall_time "$wall_time" --trials 10000 --split 10 $sbatch_dir/$name.sbatch
-'
 
 # Rough runs for new deformed rhombic code
-: '
 name=det_rhombic_bposd_undef_zbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --code_class RhombicCode --noise_class PauliErrorModel \
@@ -37,10 +101,8 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --eta "0.5,1,10,30,100,inf" --prob "0.005:0.025:0.001"
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
     --wall_time "$wall_time" --trials 10000 --split 10 $sbatch_dir/$name.sbatch
-'
 
 # Detailed rhombic code runs. These are final.
-: '
 name=det_rhombic_bposd_undef_xbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --code_class RhombicCode --noise_class PauliErrorModel \
@@ -103,10 +165,8 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --eta "inf" --prob "0.38:0.42:0.005"
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
     --wall_time "$wall_time" --trials 10000  --split 5 $sbatch_dir/$name.sbatch
-'
 
 # Subthreshold scaling.
-: '
 name=lay_coprime_xzzx_zbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
@@ -143,7 +203,6 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
     --wall_time "$wall_time" --trials 10000 --split 10 $sbatch_dir/$name.sbatch
 
-: '
 name=sts_lay_coprime_xzzx_zbias_300_1
 rm -rf "$paper_dir/$name/inputs"
 rm -rf "$paper_dir/$name/logs"
@@ -177,7 +236,6 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 5 --queue $queue \
     --wall_time "$wall_time" --trials 166667 --split 80 $sbatch_dir/$name.sbatch
 
-: '
 name=sts_lay_coprime_undef_zbias
 rm -rf "$paper_dir/$name/inputs"
 rm -rf "$paper_dir/$name/logs"
@@ -206,10 +264,8 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --eta "100" --prob "0.1"
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
     --wall_time "$wall_time" --trials 100000 --split 90 $sbatch_dir/$name.sbatch
-'
 
 # Main runs Z bias
-: '
 name=det_rot_bposd_undef_zbias 
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --lattice kitaev --boundary toric --deformation none --ratio "$ratio" \
@@ -257,9 +313,7 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --eta "100" --prob "0.31:0.38:0.005"
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 10 --queue $queue \
     --wall_time "$wall_time" --trials 10000 --split 1 $sbatch_dir/$name.sbatch
-'
 
-: '
 name=det_rot_sweepmatch_undef_zbias   
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --lattice rotated --boundary planar --deformation none --ratio "$ratio" \
@@ -295,9 +349,7 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --eta "30,100,inf" --prob "0.14:0.24:0.005"
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 5 --queue $queue \
     --wall_time "$wall_time" --trials 10000 --split 6 $sbatch_dir/$name.sbatch
-'
 
-: '
 # Rough runs using InfZ Optimal decoder on rotated code.
 name=rot_infzopt_xzzx_zbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
@@ -306,10 +358,8 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --eta "inf" --prob "0:1:0.01"
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 12 --queue $queue \
     --wall_time "$wall_time" --trials 2000 --split 10 $sbatch_dir/$name.sbatch
-'
 
 # Rough runs using SweepMatch decoder on unrotated code.
-: '
 name=unrot_sweepmatch_undef_zbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --lattice kitaev --boundary toric --deformation none --ratio "$ratio" \
@@ -325,10 +375,8 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --eta "0.5,1,10,100,inf" --prob "0:0.4:0.02"
 bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
     --wall_time "$wall_time" --trials 1000 --split 10 $sbatch_dir/$name.sbatch
-'
 
 # Rough runs using BPOSD decoder on toric code
-: '
 name=unrot_bposd_xzzx_zbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --lattice kitaev --boundary toric --deformation xzzx --ratio "$ratio" \
