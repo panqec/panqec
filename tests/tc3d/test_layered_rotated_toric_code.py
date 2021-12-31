@@ -442,17 +442,18 @@ class TestLayeredDeformation:
         expected_sites.sort(key=lambda x: x[::-1])
         assert deformation_sites == expected_sites
 
-    @pytest.mark.skip()
     def test_stabilizer_matrix(self):
         project_dir = os.path.dirname(
             os.path.dirname(os.path.dirname(__file__))
         )
         entries = []
-        for size in [3]:
+        for size in [3, 6]:
             L_x, L_y, L_z = size, size + 1, size
             print(L_x, L_y, L_z)
             code = LayeredRotatedToricCode(L_x, L_y, L_z)
-            out_json = os.path.join(project_dir, 'temp', 'layered_test.json')
+            out_json = os.path.join(
+                project_dir, 'temp', f'layered_test_L{size}.json'
+            )
             error_model = DeformedXZZXErrorModel(0.2, 0.3, 0.5)
             deformation_index = error_model._get_deformation_indices(code)
             coords_map = {
@@ -481,10 +482,10 @@ class TestLayeredDeformation:
                     ).tolist(),
                 }
             })
-        with open(out_json, 'w') as f:
-            json.dump({
-                'entries': entries
-            }, f)
+            with open(out_json, 'w') as f:
+                json.dump({
+                    'entries': entries
+                }, f)
 
 
 class TestBPOSDOnLayeredToricCodeOddTimesEven:
