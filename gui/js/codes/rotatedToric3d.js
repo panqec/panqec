@@ -1,98 +1,27 @@
 import * as THREE from 'https://cdn.skypack.dev/three@v0.130.1';
 
-import { AbstractCode, stringToArray } from './base.js';
+import { AbstractCubicCode, AbstractRpCubicCode} from './base.js';
 
-export {RotatedToricCode3D};
+export {RotatedToricCode3D, RpRotatedToricCode3D};
 
-class RotatedToricCode3D extends AbstractCode {
+class RotatedToricCode3D extends AbstractCubicCode {
     constructor(size, Hx, Hz, indices, scene) {
-        super(Hx, Hz, scene);
-
-        this.Lx = size[0];
-        this.Ly = size[1];
-        this.Lz = size[2];
-
-
-        this.vertices = new Array(Hx.length);
-        this.faces = new Array(Hz.length);
-
-        this.qubitIndex = indices['qubit'];
-        this.vertexIndex = indices['vertex'];
-        this.faceIndex = indices['face'];
-
-        this.stabilizers['X'] = this.vertices;
-        this.stabilizers['Z'] = this.faces;
-
-        this.toggleStabFn['X'] = this.toggleVertex;
-        this.toggleStabFn['Z'] = this.toggleFace;
-        
-        this.SIZE = {radiusEdge: 0.05, radiusVertex: 0.1, lengthEdge: 1};
-
-        let length = this.SIZE.lengthEdge;
-        this.offset = {x: Math.SQRT2 * length*this.Lx / 2, y: Math.SQRT2 * length*this.Ly / 2, z: length*this.Lz / 2};
+        super(size, Hx, Hz, indices, scene);
     }
 
-    getIndexQubit(x, y, z) {
-        let key = `[${x}, ${y}, ${z}]`;
-        return this.qubitIndex[key];
-    }
-
-    getIndexFace(x, y, z) {
-        let key = `[${x}, ${y}, ${z}]`;
-        return this.faceIndex[key];
-    }
- 
-    getIndexVertex(x, y, z) {
-        let key = `[${x}, ${y}, ${z}]`;
-
-        return this.vertexIndex[key];
-    }
-
-    toggleVertex(vertex, activate) {
-        vertex.isActivated = activate;
-        vertex.material.transparent = !activate;
-        let color = activate ? this.COLOR.activatedVertex : this.COLOR.deactivatedVertex;
-        vertex.material.color.setHex(color);
-    }
-    
-    toggleFace(face, activate) {
-        face.isActivated = activate;
-        face.material.opacity = activate ? this.MAX_OPACITY : 0;
-    }
-
-    changeOpacity() {
-        if (this.currentOpacity == this.MIN_OPACITY) {
-            this.currentOpacity = this.MAX_OPACITY;
-        }
-        else {
-            this.currentOpacity = this.MIN_OPACITY;
-        }
-
-        this.qubits.forEach(q => {
-            if (!q.hasError['X'] && !q.hasError['Z']) {
-                q.material.opacity = this.currentOpacity;
-            }
-        });
-    
-        this.vertices.forEach(v => {
-            if (!v.isActivated) {
-                v.material.opacity = this.currentOpacity;
-            }
-        });
-    }
-
-    buildEdge(x, y, z) {
+    buildQubit(x, y, z) {
         let length = this.SIZE.lengthEdge
         const geometry = new THREE.CylinderGeometry(this.SIZE.radiusEdge, this.SIZE.radiusEdge, this.SIZE.lengthEdge, 32);
     
-        const material = new THREE.MeshPhongMaterial({color: this.COLOR.deactivatedEdge, opacity: this.currentOpacity, transparent: true});
+        const material = new THREE.MeshPhongMaterial({color: this.COLOR.deactivatedEdge, 
+                                                      opacity: this.OPACITY.maxDeactivatedQubit, 
+                                                      transparent: true});
         const edge = new THREE.Mesh(geometry, material);
     
         edge.position.x = (length * Math.SQRT2 / 4) * x - this.offset.x;
         edge.position.y = (length * Math.SQRT2 / 4) * y - this.offset.y;
         edge.position.z = length * z / 2 - this.offset.z;
     
-
         if (z % 2 == 0) {
             edge.rotateX(Math.PI / 2);
         }
@@ -105,10 +34,6 @@ class RotatedToricCode3D extends AbstractCode {
         else {
             console.error("Coordinate (",x, y, z, ") is not correct")
         }
-
-        // edge.position.z += this.SIZE.lengthEdge
-
-        
     
         edge.hasError = {'X': false, 'Z': false};
         let index = this.getIndexQubit(x, y, z)
@@ -123,7 +48,9 @@ class RotatedToricCode3D extends AbstractCode {
         let length = this.SIZE.lengthEdge;
         const geometry = new THREE.SphereGeometry(this.SIZE.radiusVertex, 32, 32);
     
-        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedVertex, opacity: this.currentOpacity, transparent: true});
+        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedVertex, 
+                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['X'], 
+                                                     transparent: true});
         const sphere = new THREE.Mesh(geometry, material);
     
         sphere.position.x = (length * Math.SQRT2 / 4) * x - this.offset.x;
@@ -144,7 +71,10 @@ class RotatedToricCode3D extends AbstractCode {
         let length = this.SIZE.lengthEdge
         const geometry = new THREE.PlaneGeometry(this.SIZE.lengthEdge-0.3, this.SIZE.lengthEdge-0.3);
     
-        const material = new THREE.MeshToonMaterial({color: this.COLOR.activatedFace, opacity: 0, transparent: true, side: THREE.DoubleSide});
+        const material = new THREE.MeshToonMaterial({color: this.COLOR.activatedFace, 
+                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['Z'], 
+                                                     transparent: true, 
+                                                     side: THREE.DoubleSide});
         const face = new THREE.Mesh(geometry, material);
     
         face.position.x = (length * Math.SQRT2 / 4) * x - this.offset.x;
@@ -170,20 +100,101 @@ class RotatedToricCode3D extends AbstractCode {
     
         this.scene.add(face);
     }
+}
 
-    build() {
-        for (const [coord, index] of Object.entries(this.qubitIndex)) {
-            let [x, y, z] = stringToArray(coord)
-            this.buildEdge(x, y, z)
+class RpRotatedToricCode3D extends AbstractRpCubicCode {
+    constructor(size, Hx, Hz, indices, scene) {
+        super(size, Hx, Hz, indices, scene);
+    }
+
+    buildQubit(x, y, z) {
+        let length = this.SIZE.lengthEdge;
+        const geometry = new THREE.SphereGeometry(this.SIZE.radiusVertex, 32, 32);
+
+        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedQubit, 
+                                                     opacity: this.OPACITY.maxDeactivatedQubit,
+                                                     transparent: true});
+        const sphere = new THREE.Mesh(geometry, material);
+
+        sphere.position.x = (length * Math.SQRT2 / 4) * x - this.offset.x;
+        sphere.position.y = (length * Math.SQRT2 / 4) * y - this.offset.y;
+        sphere.position.z = length * z / 2 - this.offset.z;
+
+        sphere.hasError = {'X': false, 'Z': false};
+        let index = this.getIndexQubit(x, y, z)
+        sphere.index = index;
+
+        this.qubits[index] = sphere;
+
+        this.scene.add(sphere);
+    }
+
+    buildOctahedron(x, y, z) {
+        let length = this.SIZE.lengthEdge
+        const geometry = new THREE.OctahedronGeometry(this.SIZE.lengthEdge/2);
+
+        const material = new THREE.MeshToonMaterial({color: this.COLOR.activatedOctahedron, 
+                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['X'], 
+                                                     transparent: true, side: THREE.DoubleSide});
+        const octa = new THREE.Mesh(geometry, material);
+
+        octa.position.x = (length * Math.SQRT2 / 4) * x - this.offset.x;
+        octa.position.y = (length * Math.SQRT2 / 4) * y - this.offset.y;
+        octa.position.z = length * z / 2 - this.offset.z;
+
+        octa.rotateZ(Math.PI/4)
+
+        if (z % 2 == 0) {
+            octa.rotateX(Math.PI/2)
+
+            if ((x + y) % 4 == 2) {
+                octa.rotateY(Math.PI/2)
+            }
         }
-        for (const [coord, index] of Object.entries(this.vertexIndex)) {
-            let [x, y, z] = stringToArray(coord)
-            this.buildVertex(x, y, z)
+
+        let index = this.getIndexOctahedron(x, y, z);
+
+        octa.index = index;
+        octa.isActivated = false;
+
+        this.octahedrons[index] = octa;
+
+        this.scene.add(octa);
+    }
+
+    buildFace(x, y, z) {
+        let length = this.SIZE.lengthEdge
+        const geometry = new THREE.PlaneGeometry(this.SIZE.lengthEdge-0.3, this.SIZE.lengthEdge-0.3);
+
+        const material = new THREE.MeshToonMaterial({color: this.COLOR.activatedFace, 
+                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['Z'], 
+                                                     transparent: true, side: THREE.DoubleSide});
+        const face = new THREE.Mesh(geometry, material);
+
+        face.position.x = (length * Math.SQRT2 / 4) * x - this.offset.x;
+        face.position.y = (length * Math.SQRT2 / 4) * y - this.offset.y;
+        face.position.z = length * z / 2 - this.offset.z;
+
+        if (z % 2 == 0) {
+            face.rotateX(Math.PI/2)
+
+            if ((x + y) % 4 != 2) {
+                face.rotateY(Math.PI/4)
+            }
+            else {
+                face.rotateY(-Math.PI/4)
+            }
+            
+            face.rotateZ(Math.PI/4)
         }
-        for (const [coord, index] of Object.entries(this.faceIndex)) {
-            let [x, y, z] = stringToArray(coord)
-            this.buildFace(x, y, z)
-        }
-        console.log(this.qubits)
+
+        let index = this.getIndexFace(x, y, z);
+
+        face.index = index;
+        face.isActivated = false;
+
+        this.faces[index] = face;
+
+        this.scene.add(face);
     }
 }

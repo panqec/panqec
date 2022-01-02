@@ -4,29 +4,21 @@ import { OutlineEffect } from 'https://cdn.skypack.dev/three@0.130.0/examples/js
 import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat.gui.module';
 
 import { ToricCode2D } from './codes/toric2d.js';
-import { ToricCode3D } from './codes/toric3d.js';
+import { ToricCode3D, RpToricCode3D } from './codes/toric3d.js';
 import { RhombicCode } from './codes/rhombic.js';
-import { RotatedPlanarCode3D } from './codes/rotatedPlanar3d.js';
-import { RotatedToricCode3D } from './codes/rotatedToric3d.js';
-import { RpRotatedPlanarCode3D } from './codes/rpRotatedPlanar3d.js';
-import { PlanarCode3D } from './codes/planar3d.js';
+import { RotatedToricCode3D, RpRotatedToricCode3D } from './codes/rotatedToric3d.js';
 
-
-const MIN_OPACITY = 0.2;
-const MAX_OPACITY = 0.6;
-
-var defaultCode = codeDimension == 2 ? 'toric-2d' : 'rotated-planar-3d';
+var defaultCode = codeDimension == 2 ? 'toric-2d' : 'toric-3d';
 
 const params = {
-    opacity: MAX_OPACITY,
     errorProbability: 0.1,
-    L: 2,
+    L: 3,
     deformation: "None",
     decoder: 'bp-osd-2',
     max_bp_iter: 10,
     errorModel: 'Depolarizing',
     codeName: defaultCode,
-    rotated: false
+    rotated: true
 };
 
 const buttons = {
@@ -156,11 +148,11 @@ async function buildCode() {
 
     // For each code, [unrotated picture class, rotated picture class]
     let codeClass = {'toric-2d': [ToricCode2D, ToricCode2D],
-                     'toric-3d': [ToricCode3D, ToricCode3D],
-                     'planar-3d': [PlanarCode3D, PlanarCode3D],
+                     'toric-3d': [ToricCode3D, RpToricCode3D],
+                     'planar-3d': [ToricCode3D, RpToricCode3D],
                      'rhombic': [RhombicCode, RhombicCode],
-                     'rotated-planar-3d': [RotatedPlanarCode3D, RpRotatedPlanarCode3D],
-                     'rotated-toric-3d': [RotatedToricCode3D, RotatedToricCode3D]}
+                     'rotated-planar-3d': [RotatedToricCode3D, RpRotatedToricCode3D],
+                     'rotated-toric-3d': [RotatedToricCode3D, RpRotatedToricCode3D]}
 
     let rotated = + params.rotated
     code = new codeClass[params.codeName][rotated](size, Hx, Hz, indices, scene);
