@@ -447,7 +447,7 @@ class TestLayeredDeformation:
             os.path.dirname(os.path.dirname(__file__))
         )
         entries = []
-        for size in [3, 6]:
+        for size in [3, 6, 10, 14]:
             L_x, L_y, L_z = size, size + 1, size
             print(L_x, L_y, L_z)
             code = LayeredRotatedToricCode(L_x, L_y, L_z)
