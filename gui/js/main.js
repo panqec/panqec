@@ -15,7 +15,7 @@ import { PlanarCode3D } from './codes/planar3d.js';
 const MIN_OPACITY = 0.2;
 const MAX_OPACITY = 0.6;
 
-var defaultCode = codeDimension == 2 ? 'toric-2d' : 'rp-rotated-planar-3d';
+var defaultCode = codeDimension == 2 ? 'toric-2d' : 'rotated-planar-3d';
 
 const params = {
     opacity: MAX_OPACITY,
@@ -25,7 +25,8 @@ const params = {
     decoder: 'bp-osd-2',
     max_bp_iter: 10,
     errorModel: 'Depolarizing',
-    codeName: defaultCode
+    codeName: defaultCode,
+    rotated: false
 };
 
 const buttons = {
@@ -153,15 +154,16 @@ async function buildCode() {
         var size = [Lx, Ly, Lz]
     }
 
-    let codeClass = {'toric-2d': ToricCode2D,
-                     'toric-3d': ToricCode3D,
-                     'planar-3d': PlanarCode3D,
-                     'rhombic': RhombicCode,
-                     'rotated-planar-3d': RotatedPlanarCode3D,
-                     'rotated-toric-3d': RotatedToricCode3D,
-                     'rp-rotated-planar-3d': RpRotatedPlanarCode3D}
+    // For each code, [unrotated picture class, rotated picture class]
+    let codeClass = {'toric-2d': [ToricCode2D, ToricCode2D],
+                     'toric-3d': [ToricCode3D, ToricCode3D],
+                     'planar-3d': [PlanarCode3D, PlanarCode3D],
+                     'rhombic': [RhombicCode, RhombicCode],
+                     'rotated-planar-3d': [RotatedPlanarCode3D, RpRotatedPlanarCode3D],
+                     'rotated-toric-3d': [RotatedToricCode3D, RotatedToricCode3D]}
 
-    code = new codeClass[params.codeName](size, Hx, Hz, indices, scene);
+    let rotated = + params.rotated
+    code = new codeClass[params.codeName][rotated](size, Hx, Hz, indices, scene);
     code.logical_x = logical_x;
     code.logical_z = logical_z;
     code.build();
@@ -215,11 +217,12 @@ function buildGUI() {
     var codes2d = {'Toric': 'toric-2d'};
     var codes3d = {'Toric 3D': 'toric-3d', 'Rotated Toric 3D': 'rotated-toric-3d',
                    'Rhombic': 'rhombic',
-                   'Planar 3D': 'planar-3d', 'Rotated Planar 3D': 'rotated-planar-3d', 'RP Rotated Planar 3D': 'rp-rotated-planar-3d'};
+                   'Planar 3D': 'planar-3d', 'Rotated Planar 3D': 'rotated-planar-3d'};
 
     var codes = codeDimension == 2 ? codes2d : codes3d;
 
     codeFolder.add(params, 'codeName', codes).name('Code type').onChange(changeLatticeSize);
+    codeFolder.add(params, 'rotated').name('Rotated picture').onChange(changeLatticeSize);
     codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
     codeFolder.open();
 
