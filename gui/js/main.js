@@ -8,13 +8,14 @@ import { ToricCode3D } from './codes/toric3d.js';
 import { RhombicCode } from './codes/rhombic.js';
 import { RotatedPlanarCode3D } from './codes/rotatedPlanar3d.js';
 import { RotatedToricCode3D } from './codes/rotatedToric3d.js';
+import { RpRotatedPlanarCode3D } from './codes/rpRotatedPlanar3d.js';
 import { PlanarCode3D } from './codes/planar3d.js';
 
 
-const MIN_OPACITY = 0.1;
+const MIN_OPACITY = 0.2;
 const MAX_OPACITY = 0.6;
 
-var defaultCode = codeDimension == 2 ? 'toric-2d' : 'toric-3d';
+var defaultCode = codeDimension == 2 ? 'toric-2d' : 'rp-rotated-planar-3d';
 
 const params = {
     opacity: MAX_OPACITY,
@@ -122,7 +123,7 @@ function buildScene3D() {
     document.body.appendChild( renderer.domElement );
 
     effect = new OutlineEffect(renderer);
-    
+
     controls = new OrbitControls( camera, renderer.domElement );
     controls.maxPolarAngle = THREE.Math.degToRad(270);
 
@@ -157,7 +158,8 @@ async function buildCode() {
                      'planar-3d': PlanarCode3D,
                      'rhombic': RhombicCode,
                      'rotated-planar-3d': RotatedPlanarCode3D,
-                     'rotated-toric-3d': RotatedToricCode3D}
+                     'rotated-toric-3d': RotatedToricCode3D,
+                     'rp-rotated-planar-3d': RpRotatedPlanarCode3D}
 
     code = new codeClass[params.codeName](size, Hx, Hz, indices, scene);
     code.logical_x = logical_x;
@@ -179,7 +181,7 @@ function changeLatticeSize() {
         code.stabilizers[pauli].forEach(s => {
             s.material.dispose();
             s.geometry.dispose();
-    
+
             scene.remove(s);
         });
     });
@@ -200,7 +202,7 @@ async function getStabilizerMatrices() {
             'code_name': params.codeName
         })
     });
-    
+
     let data  = await response.json();
 
     return data;
@@ -209,11 +211,11 @@ async function getStabilizerMatrices() {
 function buildGUI() {
     gui = new GUI();
     const codeFolder = gui.addFolder('Code')
-    
+
     var codes2d = {'Toric': 'toric-2d'};
-    var codes3d = {'Toric 3D': 'toric-3d', 'Rhombic': 'rhombic', 
-                   'Rotated Planar 3D': 'rotated-planar-3d', 'Rotated Toric 3D': 'rotated-toric-3d',
-                   'Planar 3D': 'planar-3d'};
+    var codes3d = {'Toric 3D': 'toric-3d', 'Rotated Toric 3D': 'rotated-toric-3d',
+                   'Rhombic': 'rhombic',
+                   'Planar 3D': 'planar-3d', 'Rotated Planar 3D': 'rotated-planar-3d', 'RP Rotated Planar 3D': 'rp-rotated-planar-3d'};
 
     var codes = codeDimension == 2 ? codes2d : codes3d;
 
@@ -261,7 +263,7 @@ function buildInstructions() {
 
     var instructions = document.createElement('div');
     instructions.id = 'instructions';
-    instructions.innerHTML = 
+    instructions.innerHTML =
     "\
         <table style='border-spacing: 10px'>\
         <tr><td><b>Ctrl-left click</b></td><td>X error</td></tr>\
@@ -292,12 +294,12 @@ function onDocumentMouseDown(event) {
         mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 
         raycaster.setFromCamera(mouse, camera);
-                
+
         intersects = raycaster.intersectObjects(code.qubits);
         if (intersects.length == 0) return;
-        
+
         let selectedQubit = intersects[0].object;
-        
+
         if (event.ctrlKey) {
             switch (event.button) {
                 case 0: // left click
@@ -331,7 +333,7 @@ async function getCorrection(syndrome) {
             'code_name': params.codeName
         })
     });
-    
+
     let data  = await response.json();
 
     return data
@@ -353,7 +355,7 @@ async function getRandomErrors() {
             'code_name': params.codeName
         })
     });
-    
+
     let data  = await response.json();
 
     return data;

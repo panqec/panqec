@@ -8,6 +8,7 @@ class AbstractCode {
         this.MIN_OPACITY = 0.1;
         this.MAX_OPACITY = 0.6;
 
+        this.opacityActivated = false;
         this.currentOpacity = this.MAX_OPACITY;
         this.currentIndexLogical = {'X': 0, 'Z': 0}
         
@@ -18,12 +19,27 @@ class AbstractCode {
             deactivatedVertex: 0xf2f28c,
             activatedVertex: 0xf1c232,
             deactivatedEdge: 0xffbcbc,
+            deactivatedQubit: 0xffbcbc,
             activatedFace: 0xf1c232, 
-            errorX: 0xff0000,
-            errorZ: 0x25CCF7,
-            errorY: 0x00ff00
-            // errorY: 0xa55eea
+            activatedOctahedron: 0xfa7921, 
+            errorX: 0xFF4B3E,
+            errorZ: 0x4A5899,
+            errorY: 0x058C42
         };
+        this.OPACITY = {
+            activatedVertex: 1,
+            activatedFace: 0.9,
+            activatedOctahedron: 0.9,
+
+            minDeactivatedFace: 0.1,
+            maxDeactivatedFace: 0.4,
+
+            minDeactivatedOctahedron: 0.1,
+            maxDeactivatedOctahedron: 0.4,
+
+            minDeactivatedVertex: 0.1,
+            maxDeactivatedVertex: 0.4,
+        }
     }
 
     updateStabilizers() {
@@ -56,9 +72,9 @@ class AbstractCode {
     insertError(qubit, pauli) {
         qubit.hasError[pauli] = !qubit.hasError[pauli];
     
-        if (qubit.hasError['X'] || qubit.hasError['Z']) {
-            qubit.material.transparent = false;
-    
+        if (qubit.hasError['X'] || qubit.hasError['Z']) {    
+            qubit.material.opacity = this.OPACITY.activatedVertex;
+
             if (qubit.hasError['X'] && qubit.hasError['Z']) {
                 qubit.material.color.setHex(this.COLOR.errorY);
             }
@@ -70,9 +86,8 @@ class AbstractCode {
             }
         }
         else {
-            qubit.material.transparent = true;
-            qubit.material.opacity = this.currentOpacity;
-            qubit.material.color.setHex(this.COLOR.deactivatedEdge);
+            qubit.material.opacity = this.opacityActivated ? this.OPACITY.minDeactivatedVertex : this.OPACITY.maxDeactivatedVertex;
+            qubit.material.color.setHex(this.COLOR.deactivatedQubit);
         }
     
         this.updateStabilizers();

@@ -14,16 +14,15 @@ from bn3d.noise import PauliErrorModel
 from bn3d.error_models import (
     DeformedXZZXErrorModel, DeformedXYErrorModel, DeformedRhombicErrorModel
 )
-import bn3d.bsparse as bsparse
 
 import webbrowser
 
 code_names = {'2d': ['toric-2d'],
-              '3d': ['toric-3d', 'planar-3d', 'rotated-toric-3d', 'rotated-planar-3d', 'rhombic']}
+              '3d': ['toric-3d', 'planar-3d', 'rotated-toric-3d', 'rotated-planar-3d', 'rhombic', 'rp-rotated-planar-3d']}
 
 code_class = {'toric-2d': ToricCode, 'toric-3d': ToricCode3D,
               'rotated-planar-3d': RotatedPlanarCode3D, 'rotated-toric-3d': RotatedToricCode3D,
-              'rhombic': RhombicCode, 'planar-3d': PlanarCode3D}
+              'rhombic': RhombicCode, 'planar-3d': PlanarCode3D, 'rp-rotated-planar-3d': RotatedPlanarCode3D}
 
 error_model_class = {'None': PauliErrorModel,
                      'XZZX': DeformedXZZXErrorModel,
@@ -113,6 +112,8 @@ def send_stabilizer_matrix():
         indices = {
             'qubit': qubit_index, 'vertex': vertex_index, 'face': face_index
         }
+    else:
+        raise ValueError(f"Code {code_name} not recognized")
 
     n_qubits = code.n_k_d[0]
     logical_z = code.logical_zs
