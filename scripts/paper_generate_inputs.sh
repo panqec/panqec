@@ -2,6 +2,7 @@ paper_dir=temp/paper
 mkdir -p "$paper_dir"
 sbatch_dir=temp/paper/sbatch
 mkdir -p "$sbatch_dir"
+mkdir -p temp/paper/share
 
 ratio=equal
 wall_time="0-00:59"
