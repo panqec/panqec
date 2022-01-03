@@ -12,7 +12,7 @@ var defaultCode = codeDimension == 2 ? 'toric-2d' : 'coprime-3d';
 
 const params = {
     errorProbability: 0.1,
-    Lx: 4,
+    Lx: 3,
     Ly: 3,
     Lz: 3,
     deformation: "None",
@@ -27,6 +27,10 @@ const buttons = {
     'decode': decode,
     'addErrors': addRandomErrors
 };
+
+const COLORS = {
+    background: 0x102542
+}
 
 const KEY_CODE = {'d': 68, 'r': 82, 'backspace': 8, 'o': 79, 'x': 88, 'z': 90}
 
@@ -84,7 +88,7 @@ function buildScene2D() {
 
 function buildScene3D() {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x444488);
+    scene.background = new THREE.Color(COLORS.background);
 
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
     let radius = 4;

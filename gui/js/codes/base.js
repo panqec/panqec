@@ -33,7 +33,7 @@ class AbstractCode {
             activatedFace: 0xf1c232, 
             activatedOctahedron: 0xfa7921, 
             errorX: 0xFF4B3E,
-            errorZ: 0x4A5899,
+            errorZ: 0x4381C1,
             errorY: 0x058C42
         };
 
