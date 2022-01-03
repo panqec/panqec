@@ -18,7 +18,7 @@ const params = {
     max_bp_iter: 10,
     errorModel: 'Depolarizing',
     codeName: defaultCode,
-    rotated: true
+    rotated: false
 };
 
 const buttons = {
@@ -132,7 +132,8 @@ async function buildCode() {
     let stabilizers = await getStabilizerMatrices();
     let Hx = stabilizers['Hx'];
     let Hz = stabilizers['Hz'];
-    let indices = stabilizers['indices'];
+    let qubitIndex = stabilizers['qubit_index'];
+    let stabilizerIndex = stabilizers['stabilizer_index'];
     let logical_z = stabilizers['logical_z'];
     let logical_x = stabilizers['logical_x'];
     let Lx = params.L;
@@ -149,13 +150,14 @@ async function buildCode() {
     // For each code, [unrotated picture class, rotated picture class]
     let codeClass = {'toric-2d': [ToricCode2D, ToricCode2D],
                      'toric-3d': [ToricCode3D, RpToricCode3D],
+                     'coprime-3d': [ToricCode3D, RpToricCode3D],
                      'planar-3d': [ToricCode3D, RpToricCode3D],
                      'rhombic': [RhombicCode, RhombicCode],
                      'rotated-planar-3d': [RotatedToricCode3D, RpRotatedToricCode3D],
                      'rotated-toric-3d': [RotatedToricCode3D, RpRotatedToricCode3D]}
 
     let rotated = + params.rotated
-    code = new codeClass[params.codeName][rotated](size, Hx, Hz, indices, scene);
+    code = new codeClass[params.codeName][rotated](size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
     code.logical_x = logical_x;
     code.logical_z = logical_z;
     code.build();
@@ -171,13 +173,11 @@ function changeLatticeSize() {
         scene.remove(q);
     });
 
-    ['X', 'Z'].forEach(pauli => {
-        code.stabilizers[pauli].forEach(s => {
-            s.material.dispose();
-            s.geometry.dispose();
+    code.stabilizers.forEach(s => {
+        s.material.dispose();
+        s.geometry.dispose();
 
-            scene.remove(s);
-        });
+        scene.remove(s);
     });
 
     buildCode();
@@ -208,7 +208,7 @@ function buildGUI() {
 
     var codes2d = {'Toric': 'toric-2d'};
     var codes3d = {'Toric 3D': 'toric-3d', 'Rotated Toric 3D': 'rotated-toric-3d',
-                   'Rhombic': 'rhombic',
+                   'Rhombic': 'rhombic', 'Coprime 3D': 'coprime-3d',
                    'Planar 3D': 'planar-3d', 'Rotated Planar 3D': 'rotated-planar-3d'};
 
     var codes = codeDimension == 2 ? codes2d : codes3d;

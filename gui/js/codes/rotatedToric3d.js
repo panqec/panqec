@@ -5,8 +5,8 @@ import { AbstractCubicCode, AbstractRpCubicCode} from './base.js';
 export {RotatedToricCode3D, RpRotatedToricCode3D};
 
 class RotatedToricCode3D extends AbstractCubicCode {
-    constructor(size, Hx, Hz, indices, scene) {
-        super(size, Hx, Hz, indices, scene);
+    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
+        super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
     }
 
     buildQubit(x, y, z) {
@@ -49,7 +49,7 @@ class RotatedToricCode3D extends AbstractCubicCode {
         const geometry = new THREE.SphereGeometry(this.SIZE.radiusVertex, 32, 32);
     
         const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedVertex, 
-                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['X'], 
+                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['vertex'], 
                                                      transparent: true});
         const sphere = new THREE.Mesh(geometry, material);
     
@@ -60,9 +60,10 @@ class RotatedToricCode3D extends AbstractCubicCode {
         let index = this.getIndexVertex(x, y, z);
     
         sphere.index = index;
+        sphere.type = 'vertex'
         sphere.isActivated = false;
     
-        this.vertices[index] = sphere;
+        this.stabilizers[index] = sphere;
     
         this.scene.add(sphere);
     }
@@ -72,7 +73,7 @@ class RotatedToricCode3D extends AbstractCubicCode {
         const geometry = new THREE.PlaneGeometry(this.SIZE.lengthEdge-0.3, this.SIZE.lengthEdge-0.3);
     
         const material = new THREE.MeshToonMaterial({color: this.COLOR.activatedFace, 
-                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['Z'], 
+                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['face'], 
                                                      transparent: true, 
                                                      side: THREE.DoubleSide});
         const face = new THREE.Mesh(geometry, material);
@@ -94,17 +95,18 @@ class RotatedToricCode3D extends AbstractCubicCode {
         let index = this.getIndexFace(x, y, z);
     
         face.index = index;
+        face.type = 'face';
         face.isActivated = false;
     
-        this.faces[index] = face;
+        this.stabilizers[index] = face;
     
         this.scene.add(face);
     }
 }
 
 class RpRotatedToricCode3D extends AbstractRpCubicCode {
-    constructor(size, Hx, Hz, indices, scene) {
-        super(size, Hx, Hz, indices, scene);
+    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
+        super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
     }
 
     buildQubit(x, y, z) {
@@ -134,7 +136,7 @@ class RpRotatedToricCode3D extends AbstractRpCubicCode {
         const geometry = new THREE.OctahedronGeometry(this.SIZE.lengthEdge/2);
 
         const material = new THREE.MeshToonMaterial({color: this.COLOR.activatedOctahedron, 
-                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['X'], 
+                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['octahedron'], 
                                                      transparent: true, side: THREE.DoubleSide});
         const octa = new THREE.Mesh(geometry, material);
 
@@ -155,9 +157,10 @@ class RpRotatedToricCode3D extends AbstractRpCubicCode {
         let index = this.getIndexOctahedron(x, y, z);
 
         octa.index = index;
+        octa.type = 'octahedron';
         octa.isActivated = false;
 
-        this.octahedrons[index] = octa;
+        this.stabilizers[index] = octa;
 
         this.scene.add(octa);
     }
@@ -167,7 +170,7 @@ class RpRotatedToricCode3D extends AbstractRpCubicCode {
         const geometry = new THREE.PlaneGeometry(this.SIZE.lengthEdge-0.3, this.SIZE.lengthEdge-0.3);
 
         const material = new THREE.MeshToonMaterial({color: this.COLOR.activatedFace, 
-                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['Z'], 
+                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['face'], 
                                                      transparent: true, side: THREE.DoubleSide});
         const face = new THREE.Mesh(geometry, material);
 
@@ -191,9 +194,10 @@ class RpRotatedToricCode3D extends AbstractRpCubicCode {
         let index = this.getIndexFace(x, y, z);
 
         face.index = index;
+        face.type = 'face';
         face.isActivated = false;
 
-        this.faces[index] = face;
+        this.stabilizers[index] = face;
 
         this.scene.add(face);
     }

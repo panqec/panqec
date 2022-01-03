@@ -5,9 +5,11 @@ function stringToArray(a) {
 }
 
 class AbstractCode {
-    constructor(size, Hx, Hz, indices, scene) {
+    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
         this.H = {'X': Hx, 'Z': Hz};
         this.scene = scene;
+        this.stabilizerIndex = stabilizerIndex
+        this.stabilizerTypes = Object.keys(stabilizerIndex);
 
         this.Lx = size[0];
         this.Ly = size[1];
@@ -16,10 +18,12 @@ class AbstractCode {
         }
 
         this.opacityActivated = false;
-        this.currentIndexLogical = {'X': 0, 'Z': 0}
+        this.currentIndexLogical = {'X': 0, 'Z': 0};
         
-        this.stabilizers = {'X': [], 'Z': []};
-        this.toggleStabFn = {'X': 0, 'Z': 0};
+        this.stabilizers = {};
+        this.toggleStabFn = {};
+        this.stabilizers = [];
+        
         this.qubits = new Array(Hx[0].length);
         this.COLOR = {
             deactivatedVertex: 0xf2f28c,
@@ -40,9 +44,9 @@ class AbstractCode {
 
     updateStabilizers() {
         let nQubitErrors;
-        for (let pauli of ['X' , 'Z']) {
-            for (let iStab=0; iStab < this.H[pauli].length; iStab++) {
-                nQubitErrors = 0
+        for (let iStab=0; iStab < this.H['X'].length; iStab++) {
+            nQubitErrors = 0
+            for (let pauli of ['X' , 'Z']) {
                 for (let iQubit=0; iQubit < this.H[pauli][0].length; iQubit++) {
                     if (this.H[pauli][iStab][iQubit] == 1) {
                         if (this.qubits[iQubit].hasError[pauli]) {
@@ -50,19 +54,17 @@ class AbstractCode {
                         }
                     }
                 }
-                let activate = (nQubitErrors % 2 == 1);
-                this.toggleStabFn[pauli].call(this, this.stabilizers[pauli][iStab], activate);
             }
+            let stabType = this.stabilizers[iStab].type
+            let activate = (nQubitErrors % 2 == 1);
+            this.toggleStabFn[stabType].call(this, this.stabilizers[iStab], activate);
         }
     }
-
+    
     getSyndrome() {
-        let syndrome = {'X': [], 'Z': []};
-        for (let pauli of ['X', 'Z']) {
-            syndrome[pauli] = this.stabilizers[pauli].map(s => + s.isActivated)
-        }
-
-        return syndrome['Z'].concat(syndrome['X'])
+        let syndrome = [];
+        syndrome = this.stabilizers.map(s => + s.isActivated)
+        return syndrome
     }
 
     insertError(qubit, pauli) {
@@ -126,48 +128,43 @@ class AbstractCode {
             }
         });
 
-        ['X', 'Z'].forEach(pauli => {
-            this.stabilizers[pauli].forEach(s => {
-                if (!s.isActivated) {
-                    s.material.opacity = this.opacityActivated ? 
-                    this.OPACITY.minDeactivatedStabilizer[pauli] : this.OPACITY.maxDeactivatedStabilizer[pauli];
-                }
-                else {
-                    s.material.opacity = this.OPACITY.activatedStabilizer[pauli];
-                }
-            });
+        this.stabilizers.forEach(s => {
+            stabType = s.type
+            if (!s.isActivated) {
+                s.material.opacity = this.opacityActivated ? 
+                this.OPACITY.minDeactivatedStabilizer[stabType] : this.OPACITY.maxDeactivatedStabilizer[stabType];
+            }
+            else {
+                s.material.opacity = this.OPACITY.activatedStabilizer[stabType];
+            }
         });
     }
 }
 
 
 class AbstractCubicCode extends AbstractCode {
-    constructor(size, Hx, Hz, indices, scene) {
-        super(size, Hx, Hz, indices, scene);
+    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
+        super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
 
         this.rotatedPicture = false;
 
-        this.vertices = [];
-        this.faces = [];
+        this.qubitIndex = qubitIndex;
+        this.vertexIndex = stabilizerIndex['vertex'];
+        this.faceIndex = stabilizerIndex['face'];
 
-        this.qubitIndex = indices['qubit'];
-        this.vertexIndex = indices['vertex'];
-        this.faceIndex = indices['face'];
+        this.stabilizers = new Array(Hx.length);
 
-        this.stabilizers['X'] = this.vertices;
-        this.stabilizers['Z'] = this.faces;
-
-        this.toggleStabFn['X'] = this.toggleVertex;
-        this.toggleStabFn['Z'] = this.toggleFace;
+        this.toggleStabFn['vertex'] = this.toggleVertex;
+        this.toggleStabFn['face'] = this.toggleFace;
         
         this.OPACITY = {
             activatedQubit: 1,
             minDeactivatedQubit: 0.1,
             maxDeactivatedQubit: 0.6,
 
-            activatedStabilizer: {'X': 1, 'Z': 0.6},
-            minDeactivatedStabilizer: {'X': 0.1, 'Z': 0},
-            maxDeactivatedStabilizer: {'X': 0.6, 'Z': 0}
+            activatedStabilizer: {'vertex': 1, 'face': 0.6},
+            minDeactivatedStabilizer: {'vertex': 0.1, 'face': 0},
+            maxDeactivatedStabilizer: {'vertex': 0.6, 'face': 0}
         }
     }
 
@@ -189,10 +186,10 @@ class AbstractCubicCode extends AbstractCode {
     toggleVertex(vertex, activate) {
         vertex.isActivated = activate;
         if (this.opacityActivated) {
-            vertex.material.opacity = activate ? this.OPACITY.activatedStabilizer['X'] : this.OPACITY.minDeactivatedStabilizer['X'];
+            vertex.material.opacity = activate ? this.OPACITY.activatedStabilizer['vertex'] : this.OPACITY.minDeactivatedStabilizer['vertex'];
         }
         else {
-            vertex.material.opacity = activate ? this.OPACITY.activatedStabilizer['X'] : this.OPACITY.maxDeactivatedStabilizer['X'];
+            vertex.material.opacity = activate ? this.OPACITY.activatedStabilizer['vertex'] : this.OPACITY.maxDeactivatedStabilizer['vertex'];
         }
         let color = activate ? this.COLOR.activatedVertex : this.COLOR.deactivatedVertex;
         vertex.material.color.setHex(color);
@@ -201,15 +198,15 @@ class AbstractCubicCode extends AbstractCode {
     toggleFace(face, activate) {
         face.isActivated = activate;
         if (this.opacityActivated) {
-            face.material.opacity = activate ? this.OPACITY.activatedStabilizer['Z'] : this.OPACITY.minDeactivatedStabilizer['Z'];
+            face.material.opacity = activate ? this.OPACITY.activatedStabilizer['face'] : this.OPACITY.minDeactivatedStabilizer['face'];
         }
         else {
-            face.material.opacity = activate ? this.OPACITY.activatedStabilizer['Z'] : this.OPACITY.maxDeactivatedStabilizer['Z'];
+            face.material.opacity = activate ? this.OPACITY.activatedStabilizer['face'] : this.OPACITY.maxDeactivatedStabilizer['face'];
         }
     }
 
     buildQubit(x, y, z) {
-        throw new Error('You have to implement the method buildEdge!');
+        throw new Error('You have to implement the method buildQubit!');
     }
 
     buildVertex(x, y, z) {
@@ -238,32 +235,31 @@ class AbstractCubicCode extends AbstractCode {
 
 
 class AbstractRpCubicCode extends AbstractCode {
-    constructor(size, Hx, Hz, indices, scene) {
-        super(size, Hx, Hz, indices, scene);
+    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
+        super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
 
         this.rotatedPicture = true;
 
         this.octahedrons = new Array(Hx.length);
         this.faces = new Array(Hz.length);
 
-        this.qubitIndex = indices['qubit'];
-        this.octahedronIndex = indices['vertex'];
-        this.faceIndex = indices['face'];
+        this.qubitIndex = qubitIndex;
+        this.octahedronIndex = stabilizerIndex['vertex'];
+        this.faceIndex = stabilizerIndex['face'];
 
-        this.stabilizers['X'] = this.octahedrons;
-        this.stabilizers['Z'] = this.faces;
+        this.stabilizers = new Array(Hx.length);
 
-        this.toggleStabFn['X'] = this.toggleOctahedron;
-        this.toggleStabFn['Z'] = this.toggleFace;
+        this.toggleStabFn['octahedron'] = this.toggleOctahedron;
+        this.toggleStabFn['face'] = this.toggleFace;
 
         this.OPACITY = {
             activatedQubit: 1,
             minDeactivatedQubit: 0.1,
             maxDeactivatedQubit: 0.4,
 
-            activatedStabilizer: {'X': 0.9, 'Z': 0.9},
-            minDeactivatedStabilizer: {'X': 0.1, 'Z': 0.1},
-            maxDeactivatedStabilizer: {'X': 0.3, 'Z': 0.3}
+            activatedStabilizer: {'octahedron': 0.9, 'face': 0.9},
+            minDeactivatedStabilizer: {'octahedron': 0.1, 'face': 0.1},
+            maxDeactivatedStabilizer: {'octahedron': 0.3, 'face': 0.3}
         }
     }
 
@@ -285,20 +281,20 @@ class AbstractRpCubicCode extends AbstractCode {
     toggleOctahedron(octa, activate) {
         octa.isActivated = activate;
         if (this.opacityActivated) {
-            octa.material.opacity = activate ? this.OPACITY.activatedStabilizer['X'] : this.OPACITY.minDeactivatedStabilizer['X'];
+            octa.material.opacity = activate ? this.OPACITY.activatedStabilizer['octahedron'] : this.OPACITY.minDeactivatedStabilizer['octahedron'];
         }
         else {
-            octa.material.opacity = activate ? this.OPACITY.activatedStabilizer['X'] : this.OPACITY.maxDeactivatedStabilizer['X'];
+            octa.material.opacity = activate ? this.OPACITY.activatedStabilizer['octahedron'] : this.OPACITY.maxDeactivatedStabilizer['octahedron'];
         }
     }
 
     toggleFace(face, activate) {
         face.isActivated = activate;
         if (this.opacityActivated) {
-            face.material.opacity = activate ? this.OPACITY.activatedStabilizer['Z'] : this.OPACITY.minDeactivatedStabilizer['Z'];
+            face.material.opacity = activate ? this.OPACITY.activatedStabilizer['face'] : this.OPACITY.minDeactivatedStabilizer['face'];
         }
         else {
-            face.material.opacity = activate ? this.OPACITY.activatedStabilizer['Z'] : this.OPACITY.maxDeactivatedStabilizer['Z'];
+            face.material.opacity = activate ? this.OPACITY.activatedStabilizer['face'] : this.OPACITY.maxDeactivatedStabilizer['face'];
         }
     }
 
