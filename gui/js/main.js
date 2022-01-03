@@ -150,7 +150,7 @@ async function buildCode() {
     // For each code, [unrotated picture class, rotated picture class]
     let codeClass = {'toric-2d': [ToricCode2D, ToricCode2D],
                      'toric-3d': [ToricCode3D, RpToricCode3D],
-                     'coprime-3d': [ToricCode3D, RpToricCode3D],
+                     'coprime-3d': [RotatedToricCode3D, RpRotatedToricCode3D],
                      'planar-3d': [ToricCode3D, RpToricCode3D],
                      'rhombic': [RhombicCode, RhombicCode],
                      'rotated-planar-3d': [RotatedToricCode3D, RpRotatedToricCode3D],

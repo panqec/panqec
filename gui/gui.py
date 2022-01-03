@@ -179,7 +179,6 @@ def send_correction():
     else:
         raise ValueError(f'Decoder {decoder_name} not recognized')
 
-    print(syndrome)
     correction = decoder.decode(code, syndrome)
 
     correction_x = correction[:n_qubits]

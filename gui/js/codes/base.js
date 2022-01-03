@@ -129,7 +129,7 @@ class AbstractCode {
         });
 
         this.stabilizers.forEach(s => {
-            stabType = s.type
+            let stabType = s.type
             if (!s.isActivated) {
                 s.material.opacity = this.opacityActivated ? 
                 this.OPACITY.minDeactivatedStabilizer[stabType] : this.OPACITY.maxDeactivatedStabilizer[stabType];
