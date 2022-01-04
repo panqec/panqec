@@ -23,7 +23,7 @@ class XCubeCode extends AbstractCode {
 
         this.SIZE = {radiusEdge: 0.05, radiusVertex: 0.1, lengthEdge: 1};
         this.COLOR = Object.assign(this.COLOR, {
-            activatedFace: 0xf1c232,
+            activatedFace: 0xfa7921,
             activatedCube: 0xf1c232,
             deactivatedCube: 0xf2f28c,
             deactivatedFace: 0xf2f2cc,
@@ -35,7 +35,7 @@ class XCubeCode extends AbstractCode {
             minDeactivatedQubit: 0.1,
             maxDeactivatedQubit: 0.6,
 
-            activatedStabilizer: {'face': 1, 'cube': 0.6},
+            activatedStabilizer: {'face': 0.8, 'cube': 0.6},
             minDeactivatedStabilizer: {'face': 0., 'cube': 0},
             maxDeactivatedStabilizer: {'face': 0., 'cube': 0}
         }
@@ -60,12 +60,16 @@ class XCubeCode extends AbstractCode {
         cube.isActivated = activate;
         let color = activate ? this.COLOR.activatedCube : this.COLOR.deactivatedCube;
         cube.material.color.setHex(color);
-        
-        if (this.opacityActivated) {
-            cube.material.opacity = activate ? this.OPACITY.activatedStabilizer['cube'] : this.OPACITY.minDeactivatedStabilizer['cube'];
+
+        if (activate) {
+            cube.material.opacity = this.OPACITY.activatedStabilizer['cube'];
+            cube.children[0].material.opacity = this.OPACITY.activatedStabilizer['cube'];
         }
         else {
-            cube.material.opacity = activate ? this.OPACITY.activatedStabilizer['cube'] : this.OPACITY.maxDeactivatedStabilizer['cube'];
+            cube.material.opacity = this.opacityActivated ? 
+                this.OPACITY.minDeactivatedStabilizer['cube'] : this.OPACITY.maxDeactivatedStabilizer['cube'];
+            cube.children[0].material.opacity = this.opacityActivated ? 
+                this.OPACITY.minDeactivatedStabilizer['cube'] : this.OPACITY.maxDeactivatedStabilizer['cube'];
         }
     }
 
@@ -74,11 +78,14 @@ class XCubeCode extends AbstractCode {
         let color = activate ? this.COLOR.activatedFace : this.COLOR.deactivatedFace;
         face.material.color.setHex(color);
 
-        if (this.opacityActivated) {
-            face.material.opacity = activate ? this.OPACITY.activatedStabilizer['face'] : this.OPACITY.minDeactivatedStabilizer['face'];
+        if (activate) {
+            face.material.opacity = this.OPACITY.activatedStabilizer['face'];
+            face.visible = true;
         }
         else {
-            face.material.opacity = activate ? this.OPACITY.activatedStabilizer['face'] : this.OPACITY.maxDeactivatedStabilizer['face'];
+            face.material.opacity = this.opacityActivated ?
+                this.OPACITY.minDeactivatedStabilizer['face'] : this.OPACITY.maxDeactivatedStabilizer['face'];
+            face.visible = false
         }
     }
 
@@ -123,6 +130,7 @@ class XCubeCode extends AbstractCode {
                                                      transparent: true, 
                                                      side: THREE.DoubleSide});
         const face = new THREE.Mesh(geometry, material);
+        face.visible = false;
     
         face.position.x = x * this.SIZE.lengthEdge / 2;
         face.position.y = y * this.SIZE.lengthEdge / 2;
@@ -157,14 +165,6 @@ class XCubeCode extends AbstractCode {
                                                      transparent: true});
         const cube = new THREE.Mesh(geometry, material);
 
-        var geo = new THREE.EdgesGeometry( cube.geometry );
-        var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 2, 
-                                               opacity: this.OPACITY.maxDeactivatedStabilizer['cube'], 
-                                               transparent: true });
-        var wireframe = new THREE.LineSegments( geo, mat );
-        wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
-        cube.add(wireframe);
-
         cube.position.x = x * this.SIZE.lengthEdge / 2;
         cube.position.y = y * this.SIZE.lengthEdge / 2;
         cube.position.z = z * this.SIZE.lengthEdge / 2;
@@ -174,6 +174,15 @@ class XCubeCode extends AbstractCode {
         cube.type = 'cube';
         cube.isActivated = false;
         this.stabilizers[index] = cube;
+
+        var geo = new THREE.EdgesGeometry( cube.geometry );
+        var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 2, 
+                                               opacity: this.OPACITY.maxDeactivatedStabilizer['cube'], 
+                                               transparent: true });
+
+        var wireframe = new THREE.LineSegments(geo, mat);
+        wireframe.renderOrder = 0; // make sure wireframes are rendered 2nd
+        cube.add(wireframe);
 
         this.scene.add(cube);
     }
@@ -188,11 +197,9 @@ class XCubeCode extends AbstractCode {
             let [x, y, z] = stringToArray(coord)
             this.buildCube(x, y, z)
         }
-        console.log("Before", this.stabilizers)
         for (const [coord, index] of Object.entries(this.faceIndex)) {
             let [axis, x, y, z] = stringToArray(coord)
             this.buildFace(axis, x, y, z)
         }
-        console.log("After", this.stabilizers)
     }
 }

@@ -26,7 +26,7 @@ class AbstractCode {
         
         this.qubits = new Array(Hx[0].length);
         this.COLOR = {
-            deactivatedVertex: 0xf2f28c,
+            deactivatedVertex: 0xf2f2fc,
             activatedVertex: 0xf1c232,
             deactivatedEdge: 0xffbcbc,
             deactivatedQubit: 0xffbcbc,

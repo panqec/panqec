@@ -99,11 +99,6 @@ function buildScene3D() {
     camera.position.y = radius * Math.sin(phi) * Math.sin(theta);
     camera.position.x = radius * Math.cos(phi) * Math.sin(theta);
 
-
-    let dirLight1 = new THREE.DirectionalLight( 0xffffff );
-    dirLight1.position.set( radius * Math.cos(theta), radius * Math.sin(phi) * Math.sin(theta), radius * Math.cos(phi) * Math.sin(theta));
-    scene.add( dirLight1 );
-
     const dirLight2 = new THREE.DirectionalLight( 0x002288 );
     dirLight2.position.set( - 1, - 1, - 1 );
     scene.add( dirLight2 );
@@ -111,6 +106,11 @@ function buildScene3D() {
     const dirLight3 = new THREE.DirectionalLight( 0x002288 );
     dirLight3.position.set(4, 4, 4);
     scene.add( dirLight3 );
+
+    const pointLight = new THREE.PointLight( 0xffffff, 1, 0, 1);
+    scene.add(pointLight);
+    camera.add(pointLight);
+    scene.add(camera);
 
     const ambientLight = new THREE.AmbientLight( 0x222222 );
     scene.add( ambientLight );

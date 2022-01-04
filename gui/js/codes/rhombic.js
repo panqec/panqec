@@ -25,7 +25,7 @@ class RhombicCode extends AbstractCode {
         this.COLOR = Object.assign(this.COLOR, {
             activatedTriangle: 0xf1c232,
             activatedCube: 0xf1c232,
-            deactivatedCube: 0xf2f28c,
+            deactivatedCube: 0xf2f2cc,
             deactivatedTriangle: 0xf2f2cc,
             deactivatedEdge: 0xffbcbc,
         });
@@ -36,8 +36,8 @@ class RhombicCode extends AbstractCode {
             maxDeactivatedQubit: 0.6,
 
             activatedStabilizer: {'triangle': 1, 'cube': 0.6},
-            minDeactivatedStabilizer: {'triangle': 0.1, 'cube': 0},
-            maxDeactivatedStabilizer: {'triangle': 0.6, 'cube': 0}
+            minDeactivatedStabilizer: {'triangle': 0.1, 'cube': 0.1},
+            maxDeactivatedStabilizer: {'triangle': 0.6, 'cube': 0.3}
         }
     }
 
