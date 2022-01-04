@@ -28,28 +28,22 @@ class XCubeCode(IndexedSparseCode):
             Lx, Ly, Lz = self.size
             logicals = bsparse.empty_row(2*self.n_k_d[0])
 
-            # Sheet of X operators normal to the z direction
+            # String of parallel X operators along the x direction
             logical = self.pauli_class(self)
-            for x in range(2*Lx):
-                for y in range(2*Ly):
-                    if (x + y) % 2 == 1:
-                        logical.site('X', (x, y, 0))
+            for x in range(0, 2*Lx, 2):
+                logical.site('X', (x, 1, 0))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            # Sheet of X operators normal to the y direction
+            # String of parallel X operators normal to the y direction
             logical = self.pauli_class(self)
-            for x in range(2*Lx):
-                for z in range(2*Lz):
-                    if (x + z) % 2 == 1:
-                        logical.site('X', (x, 0, z))
+            for y in range(0, 2*Ly, 2):
+                logical.site('X', (1, y, 0))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            # Sheet of X operators normal to the x direction
+            # String of parallel X operators normal to the z direction
             logical = self.pauli_class(self)
-            for y in range(2*Ly):
-                for z in range(2*Lz):
-                    if (y + z) % 2 == 1:
-                        logical.site('X', (0, y, z))
+            for z in range(0, 2*Lz, 2):
+                logical.site('X', (0, 1, z))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             self._logical_xs = bsparse.from_array(logicals)
@@ -65,20 +59,20 @@ class XCubeCode(IndexedSparseCode):
 
             # Line of parallel Z operators along the x direction
             logical = self.pauli_class(self)
-            for x in range(0, 2*Lx, 2):
-                logical.site('Z', (x, 1, 0))
+            for x in range(1, 2*Lx, 2):
+                logical.site('Z', (x, 0, 0))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             # Line of parallel Z operators along the y direction
             logical = self.pauli_class(self)
-            for y in range(0, 2*Ly, 2):
-                logical.site('Z', (1, y, 0))
+            for x in range(1, 2*Lx, 2):
+                logical.site('Z', (0, x, 0))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             # Line of parallel Z operators along the z direction
             logical = self.pauli_class(self)
-            for z in range(0, 2*Lz, 2):
-                logical.site('Z', (0, 1, z))
+            for z in range(1, 2*Lz, 2):
+                logical.site('Z', (0, 0, z))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             self._logical_zs = logicals
