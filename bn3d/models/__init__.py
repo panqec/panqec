@@ -18,6 +18,8 @@ from .rhombic._rhombic_code import RhombicCode  # noqa
 from .rhombic._rhombic_pauli import RhombicPauli  # noqa
 from .layered_toric._layered_rotated_toric_code import LayeredRotatedToricCode  # noqa
 from .layered_toric._layered_toric_pauli import LayeredToricPauli  # noqa
+from .xcube._xcube_code import XCubeCode  # noqa
+from .xcube._xcube_pauli import XCubePauli  # noqa
 
 
 def get_vertex_Z_stabilisers(L: int) -> np.ndarray:

@@ -6,9 +6,10 @@ import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat
 import { ToricCode2D } from './codes/toric2d.js';
 import { ToricCode3D, RpToricCode3D } from './codes/toric3d.js';
 import { RhombicCode } from './codes/rhombic.js';
+import { XCubeCode } from './codes/xcube.js';
 import { RotatedToricCode3D, RpRotatedToricCode3D } from './codes/rotatedToric3d.js';
 
-var defaultCode = codeDimension == 2 ? 'toric-2d' : 'coprime-3d';
+var defaultCode = codeDimension == 2 ? 'toric-2d' : 'xcube';
 
 const params = {
     errorProbability: 0.1,
@@ -156,11 +157,13 @@ async function buildCode() {
     // For each code, [unrotated picture class, rotated picture class]
     let codeClass = {'toric-2d': [ToricCode2D, ToricCode2D],
                      'toric-3d': [ToricCode3D, RpToricCode3D],
+                     'rotated-planar-3d': [RotatedToricCode3D, RpRotatedToricCode3D],
+                     'rotated-toric-3d': [RotatedToricCode3D, RpRotatedToricCode3D],
                      'coprime-3d': [RotatedToricCode3D, RpRotatedToricCode3D],
                      'planar-3d': [ToricCode3D, RpToricCode3D],
                      'rhombic': [RhombicCode, RhombicCode],
-                     'rotated-planar-3d': [RotatedToricCode3D, RpRotatedToricCode3D],
-                     'rotated-toric-3d': [RotatedToricCode3D, RpRotatedToricCode3D]}
+                     'xcube': [XCubeCode, XCubeCode]
+                     }
 
     let rotated = + params.rotated
     code = new codeClass[params.codeName][rotated](size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
@@ -220,8 +223,8 @@ function buildGUI() {
 
     var codes2d = {'Toric': 'toric-2d'};
     var codes3d = {'Toric 3D': 'toric-3d', 'Rotated Toric 3D': 'rotated-toric-3d',
-                   'Rhombic': 'rhombic', 'Coprime 3D': 'coprime-3d',
-                   'Planar 3D': 'planar-3d', 'Rotated Planar 3D': 'rotated-planar-3d'};
+                   'Planar 3D': 'planar-3d', 'Rotated Planar 3D': 'rotated-planar-3d',
+                   'Rhombic': 'rhombic', 'Coprime 3D': 'coprime-3d', 'XCube': 'xcube'};
 
     var codes = codeDimension == 2 ? codes2d : codes3d;
 
