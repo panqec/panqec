@@ -77,7 +77,7 @@ mkdir -p temp/paper/share
 name=det_rhombic_bposd_undef_xbias
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
-sizes="10,12,14,18"
+sizes="10,14,18,22"
 wall_time="14-00:00"
 memory="160GB"
 bn3d generate-input -i "$paper_dir/$name/inputs" \
@@ -126,7 +126,7 @@ bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 55 --memory "$memory" \
 name=det_rhombic_bposd_xzzx_xbias
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
-sizes="10,12,14,18"
+sizes="10,14,18,22"
 wall_time="14-00:00"
 memory="160GB"
 bn3d generate-input -i "$paper_dir/$name/inputs" \
