@@ -79,7 +79,7 @@ rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
 sizes="10,14,18,22"
 wall_time="14-00:00"
-memory="160GB"
+memory="90GB"
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --code_class RhombicCode --noise_class PauliErrorModel \
     --ratio equal \
@@ -128,7 +128,7 @@ rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
 sizes="10,14,18,22"
 wall_time="14-00:00"
-memory="160GB"
+memory="90GB"
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
     --ratio equal \
