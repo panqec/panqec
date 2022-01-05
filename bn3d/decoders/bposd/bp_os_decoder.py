@@ -3,7 +3,7 @@ import numpy as np
 from qecsim.model import Decoder, StabilizerCode, ErrorModel
 from typing import Tuple, List
 import numpy.ma as ma
-from bposd import bposd_decoder
+from ldpc import bposd_decoder
 
 
 def get_rref_mod2(
