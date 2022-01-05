@@ -447,7 +447,7 @@ class TestLayeredDeformation:
             os.path.dirname(os.path.dirname(__file__))
         )
         entries = []
-        for size in [3, 6, 10, 14]:
+        for size in [3, 4, 5, 6, 7, 8, 9, 10]:
             L_x, L_y, L_z = size, size + 1, size
             print(L_x, L_y, L_z)
             code = LayeredRotatedToricCode(L_x, L_y, L_z)
@@ -482,10 +482,10 @@ class TestLayeredDeformation:
                     ).tolist(),
                 }
             })
-            with open(out_json, 'w') as f:
-                json.dump({
-                    'entries': entries
-                }, f)
+        with open(out_json, 'w') as f:
+            json.dump({
+                'entries': entries
+            }, f)
 
 
 class TestBPOSDOnLayeredToricCodeOddTimesEven:
