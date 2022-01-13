@@ -1,11 +1,9 @@
 from typing import Tuple
 import numpy as np
 import pytest
-from bn3d.tc3d import RotatedPlanarCode3D, RotatedPlanar3DPauli
-from bn3d.deform import (
-    DeformedRotatedSweepMatchDecoder,
-    DeformedXZZXErrorModel
-)
+from bn3d.models import RotatedPlanarCode3D, RotatedPlanar3DPauli
+from bn3d.decoders import DeformedRotatedSweepMatchDecoder
+from bn3d.error_models import DeformedXZZXErrorModel
 from bn3d.bpauli import bcommute, get_effective_error
 
 

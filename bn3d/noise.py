@@ -13,7 +13,7 @@ from qecsim import paulitools as pt
 from qecsim.models.generic import SimpleErrorModel
 from qecsim.model import ErrorModel, StabilizerCode
 from .bpauli import barray_to_bvector, bvector_to_barray, get_bvector_index
-from .tc3d import Toric3DPauli
+from .models import Toric3DPauli
 from .utils import nested_map
 
 

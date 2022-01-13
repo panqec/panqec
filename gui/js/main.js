@@ -8,21 +8,22 @@ import { ToricCode3D } from './codes/toric3d.js';
 import { RhombicCode } from './codes/rhombic.js';
 import { RotatedPlanarCode3D } from './codes/rotatedPlanar3d.js';
 import { RotatedToricCode3D } from './codes/rotatedToric3d.js';
+import { PlanarCode3D } from './codes/planar3d.js';
 
 
 const MIN_OPACITY = 0.1;
 const MAX_OPACITY = 0.6;
 
-var defaultCode = codeDimension == 2 ? 'toric-2d' : 'rhombic';
+var defaultCode = codeDimension == 2 ? 'toric-2d' : 'toric-3d';
 
 const params = {
     opacity: MAX_OPACITY,
     errorProbability: 0.1,
-    L: 4,
+    L: 2,
     deformation: "None",
     decoder: 'bp-osd-2',
     max_bp_iter: 10,
-    errorModel: 'Pure X',
+    errorModel: 'Depolarizing',
     codeName: defaultCode
 };
 
@@ -153,9 +154,10 @@ async function buildCode() {
 
     let codeClass = {'toric-2d': ToricCode2D,
                      'toric-3d': ToricCode3D,
+                     'planar-3d': PlanarCode3D,
                      'rhombic': RhombicCode,
-                     'rotated-planar': RotatedPlanarCode3D,
-                     'rotated-toric': RotatedToricCode3D}
+                     'rotated-planar-3d': RotatedPlanarCode3D,
+                     'rotated-toric-3d': RotatedToricCode3D}
 
     code = new codeClass[params.codeName](size, Hx, Hz, indices, scene);
     code.logical_x = logical_x;
@@ -209,7 +211,9 @@ function buildGUI() {
     const codeFolder = gui.addFolder('Code')
     
     var codes2d = {'Toric': 'toric-2d'};
-    var codes3d = {'Cubic': 'toric-3d', 'Rhombic': 'rhombic', 'Rotated Planar': 'rotated-planar', 'Rotated Toric': 'rotated-toric'};
+    var codes3d = {'Toric 3D': 'toric-3d', 'Rhombic': 'rhombic', 
+                   'Rotated Planar 3D': 'rotated-planar-3d', 'Rotated Toric 3D': 'rotated-toric-3d',
+                   'Planar 3D': 'planar-3d'};
 
     var codes = codeDimension == 2 ? codes2d : codes3d;
 

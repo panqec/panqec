@@ -186,6 +186,41 @@ class Simulation:
                 }
             }, f, cls=NumpyEncoder)
 
+    def get_results(self):
+        """Return results as dictionary."""
+
+        success = np.array(self.results['success'])
+        if len(success) > 0:
+            n_fail = np.sum(~success)
+        else:
+            n_fail = 0
+        simulation_data = {
+            'size': self.code.size,
+            'code': self.code.label,
+            'n_k_d': self.code.n_k_d,
+            'error_model': self.error_model.label,
+            'probability': self.error_probability,
+            'n_success': np.sum(success),
+            'n_fail': n_fail,
+            'n_trials': len(success),
+        }
+
+        # Use sample mean as estimator for effective error rate.
+        if simulation_data['n_trials'] != 0:
+            simulation_data['p_est'] = (
+                simulation_data['n_fail']/simulation_data['n_trials']
+            )
+        else:
+            simulation_data['p_est'] = np.nan
+
+        # Use posterior Beta distribution of the effective error rate
+        # standard distribution as standard error.
+        simulation_data['p_se'] = np.sqrt(
+            simulation_data['p_est']*(1 - simulation_data['p_est'])
+            / (simulation_data['n_trials'] + 1)
+        )
+        return simulation_data
+
 
 class BatchSimulation():
 
@@ -291,37 +326,7 @@ class BatchSimulation():
     def get_results(self):
         results = []
         for simulation in self._simulations:
-            success = np.array(simulation.results['success'])
-            if len(success) > 0:
-                n_fail = np.sum(~success)
-            else:
-                n_fail = 0
-            simulation_data = {
-                'size': simulation.code.size,
-                'code': simulation.code.label,
-                'n_k_d': simulation.code.n_k_d,
-                'error_model': simulation.error_model.label,
-                'probability': simulation.error_probability,
-                'n_success': np.sum(success),
-                'n_fail': n_fail,
-                'n_trials': len(success),
-            }
-
-            # Use sample mean as estimator for effective error rate.
-            if simulation_data['n_trials'] != 0:
-                simulation_data['p_est'] = (
-                    simulation_data['n_fail']/simulation_data['n_trials']
-                )
-            else:
-                simulation_data['p_est'] = np.nan
-
-            # Use posterior Beta distribution of the effective error rate
-            # standard distribution as standard error.
-            simulation_data['p_se'] = np.sqrt(
-                simulation_data['p_est']*(1 - simulation_data['p_est'])
-                / (simulation_data['n_trials'] + 1)
-            )
-
+            simulation_data = simulation.get_results()
             results.append(simulation_data)
         return results
 

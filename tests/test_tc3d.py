@@ -1,7 +1,7 @@
 import numpy as np
 from bn3d.bpauli import bcommute, get_effective_error
 from pymatching import Matching
-from bn3d.tc3d import (
+from bn3d.models import (
     get_vertex_Z_stabilisers, get_face_X_stabilisers, get_all_stabilisers,
     get_Z_logicals, get_X_logicals, get_all_logicals,
 )

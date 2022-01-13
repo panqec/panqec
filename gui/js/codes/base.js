@@ -9,6 +9,7 @@ class AbstractCode {
         this.MAX_OPACITY = 0.6;
 
         this.currentOpacity = this.MAX_OPACITY;
+        this.currentIndexLogical = {'X': 0, 'Z': 0}
         
         this.stabilizers = {'X': [], 'Z': []};
         this.toggleStabFn = {'X': 0, 'Z': 0};
@@ -77,12 +78,29 @@ class AbstractCode {
         this.updateStabilizers();
     }
 
-    displayLogical(logical, pauli, indexLogical=0) {
-        for(let i=0; i < logical[indexLogical].length; i++) {
-            if (logical[indexLogical][i]) {
-                this.insertError(this.qubits[i], pauli)
+    displayLogical(logical, pauli) {
+        let index = this.currentIndexLogical[pauli]
+        
+        // Remove previous logical
+        if (index != 0) {
+            for(let i=0; i < logical[index - 1].length; i++) {
+                if (logical[index - 1][i]) {
+                    this.insertError(this.qubits[i], pauli)
+                }
             }
         }
+        // If index is equal to logical.length, we display no logicals
+        if (index != logical.length) {
+            // Insert new logical
+            for(let i=0; i < logical[index].length; i++) {
+                if (logical[index][i]) {
+                    this.insertError(this.qubits[i], pauli)
+                }
+            }
+        }
+
+        this.currentIndexLogical[pauli] += 1
+        this.currentIndexLogical[pauli] %= (logical.length + 1)
     }
 }
 
