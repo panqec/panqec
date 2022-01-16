@@ -1,6 +1,5 @@
 from typing import Dict, Tuple, Optional
 from abc import ABCMeta
-import numpy as np
 from ._indexed_code import IndexedCode
 from ... import bsparse
 
@@ -18,7 +17,10 @@ class IndexedSparseCode(IndexedCode, metaclass=ABCMeta):
         if L_z is None:
             L_z = L_x
 
-        self._size = (L_x, L_y, L_z)
+        if self.dimension == 2:
+            self._size = (L_x, L_y)
+        else:
+            self._size = (L_x, L_y, L_z)
 
         self._qubit_index = self._create_qubit_indices()
         self._vertex_index = self._create_vertex_indices()

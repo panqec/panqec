@@ -1,6 +1,6 @@
 import * as THREE from 'https://cdn.skypack.dev/three@v0.130.1';
 
-import { AbstractCode, stringToArray } from './base.js';
+import { AbstractCode, stringToArray } from './base/abstractCode.js';
 
 export {RhombicCode};
 

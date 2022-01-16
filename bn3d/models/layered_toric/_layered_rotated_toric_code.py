@@ -25,6 +25,10 @@ class LayeredRotatedToricCode(IndexedSparseCode):
         return (len(self.qubit_index), k, min(L_x, L_y))
 
     @property
+    def dimension(self) -> int:
+        return 3
+
+    @property
     def logical_xs(self) -> np.ndarray:
         """Get the unique logical X operator."""
 

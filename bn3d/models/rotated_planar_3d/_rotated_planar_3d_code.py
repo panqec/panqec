@@ -17,6 +17,10 @@ class RotatedPlanarCode3D(IndexedSparseCode):
         return (n_horizontals + n_verticals, 1, 2*min(Lx, Ly, Lz) + 1)
 
     @property
+    def dimension(self) -> int:
+        return 3
+
+    @property
     def label(self) -> str:
         return 'Rotated Planar {}x{}x{}'.format(*self.size)
 
@@ -65,7 +69,7 @@ class RotatedPlanarCode3D(IndexedSparseCode):
 
         if (z % 2 == 0):
             axis = self.Z_AXIS
-        elif (x + y) % 2 == 2:
+        elif (x + y) % 2 == 1:
             axis = self.X_AXIS
         elif (x + y) % 2 == 0:
             axis = self.Y_AXIS

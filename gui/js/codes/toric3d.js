@@ -1,6 +1,6 @@
 import * as THREE from 'https://cdn.skypack.dev/three@v0.130.1';
 
-import { AbstractCubicCode, AbstractRpCubicCode} from './base.js';
+import { AbstractCubicCode, AbstractRpCubicCode} from './base/abstractCubicCode.js';
 
 export {ToricCode3D, RpToricCode3D};
 

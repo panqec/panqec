@@ -31,7 +31,11 @@ class IndexedCode(StabilizerCode, metaclass=ABCMeta):
         if L_z is None:
             L_z = L_x
 
-        self._size = (L_x, L_y, L_z)
+        if self.dimension == 2:
+            self._size = (L_x, L_y)
+        else:
+            self._size = (L_x, L_y, L_z)
+
         self._qubit_index = self._create_qubit_indices()
         self._vertex_index = self._create_vertex_indices()
         self._face_index = self._create_face_indices()

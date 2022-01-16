@@ -3,19 +3,21 @@ import { OrbitControls } from 'https://cdn.skypack.dev/three@0.130.0/examples/js
 import { OutlineEffect } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/effects/OutlineEffect.js';
 import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat.gui.module';
 
-import { ToricCode2D } from './codes/toric2d.js';
+import { ToricCode2D, RpToricCode2D } from './codes/toric2d.js';
+import { RotatedToricCode2D, RpRotatedToricCode2D } from './codes/rotatedToric2d.js';
 import { ToricCode3D, RpToricCode3D } from './codes/toric3d.js';
 import { RhombicCode } from './codes/rhombic.js';
 import { XCubeCode } from './codes/xcube.js';
 import { RotatedToricCode3D, RpRotatedToricCode3D } from './codes/rotatedToric3d.js';
 
-var defaultCode = codeDimension == 2 ? 'toric-2d' : 'xcube';
+var defaultCode = codeDimension == 2 ? 'rotated-planar-2d' : 'xcube';
+var defaultSize = codeDimension == 2 ? 6 : 3;
 
 const params = {
     errorProbability: 0.1,
-    Lx: 3,
-    Ly: 3,
-    Lz: 3,
+    Lx: defaultSize,
+    Ly: defaultSize,
+    Lz: defaultSize,
     deformation: "None",
     decoder: 'bp-osd-2',
     max_bp_iter: 10,
@@ -62,7 +64,7 @@ function init() {
 function buildScene2D() {
     // Create scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color( 0x444488 );
+    scene.background = new THREE.Color( COLORS.background );
 
     // Camera
     camera = new THREE.PerspectiveCamera( 10, window.innerWidth / window.innerHeight, 0.1, 1000 );
@@ -155,10 +157,10 @@ async function buildCode() {
     }
 
     // For each code, [unrotated picture class, rotated picture class]
-    let codeClass = {'toric-2d': [ToricCode2D, ToricCode2D],
+    let codeClass = {'toric-2d': [ToricCode2D, RpToricCode2D],
+                     'rotated-planar-2d': [RotatedToricCode2D, RpRotatedToricCode2D],
                      'toric-3d': [ToricCode3D, RpToricCode3D],
                      'rotated-planar-3d': [RotatedToricCode3D, RpRotatedToricCode3D],
-                     'rotated-toric-3d': [RotatedToricCode3D, RpRotatedToricCode3D],
                      'coprime-3d': [RotatedToricCode3D, RpRotatedToricCode3D],
                      'planar-3d': [ToricCode3D, RpToricCode3D],
                      'rhombic': [RhombicCode, RhombicCode],
@@ -221,9 +223,9 @@ function buildGUI() {
     gui = new GUI();
     const codeFolder = gui.addFolder('Code')
 
-    var codes2d = {'Toric': 'toric-2d'};
-    var codes3d = {'Toric 3D': 'toric-3d', 'Rotated Toric 3D': 'rotated-toric-3d',
-                   'Planar 3D': 'planar-3d', 'Rotated Planar 3D': 'rotated-planar-3d',
+    var codes2d = {'Toric': 'toric-2d', 'Planar': 'rotated-planar-2d'};
+    var codes3d = {'Toric 3D': 'toric-3d', 'Planar 3D': 'planar-3d', 
+                   'Rotated Planar 3D': 'rotated-planar-3d',
                    'Rhombic': 'rhombic', 'Coprime 3D': 'coprime-3d', 'XCube': 'xcube'};
 
     var codes = codeDimension == 2 ? codes2d : codes3d;

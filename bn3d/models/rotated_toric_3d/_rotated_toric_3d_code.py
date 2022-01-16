@@ -27,6 +27,10 @@ class RotatedToricCode3D(IndexedSparseCode):
         return (n_horizontals + n_verticals, 3, -1)
 
     @property
+    def dimension(self) -> int:
+        return 3
+
+    @property
     def label(self) -> str:
         return 'Rotated Toric {}x{}x{}'.format(*self.size)
 

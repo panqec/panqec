@@ -2,11 +2,18 @@ import * as THREE from 'https://cdn.skypack.dev/three@v0.130.1';
 
 import { AbstractSurfaceCode, AbstractRpSurfaceCode} from './base/abstractSurfaceCode.js';
 
-export {ToricCode2D, RpToricCode2D};
+export {RotatedToricCode2D, RpRotatedToricCode2D};
 
-class ToricCode2D extends AbstractSurfaceCode {
+class RotatedToricCode2D extends AbstractSurfaceCode {
     constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
         super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
+
+        this.SIZE = {radiusEdge: 0.05 / (this.Lx/4), radiusVertex: 0.1 / (this.Lx/4), lengthEdge: 0.5 / (0.05 + this.Lx/4)};
+
+        this.offset = {
+            x: this.SIZE.lengthEdge * (this.Lx) / 2 - this.SIZE.lengthEdge/4,
+            y: this.SIZE.lengthEdge * (this.Ly) / 2 - this.SIZE.lengthEdge/4
+        };
     }
 
     buildQubit(x, y) {
@@ -20,10 +27,13 @@ class ToricCode2D extends AbstractSurfaceCode {
         edge.position.x = x * this.SIZE.lengthEdge / 2 - this.offset.x;
         edge.position.y = y * this.SIZE.lengthEdge / 2 - this.offset.y;
 
-        let x_axis = (x % 2 == 1);
+        let x_axis = ((x + y) % 4 == 2);
     
         if (x_axis) {
-            edge.rotateZ(Math.PI / 2)
+            edge.rotateZ(Math.PI / 4)
+        }
+        else {
+            edge.rotateZ(-Math.PI / 4)
         }
     
         edge.hasError = {'X': false, 'Z': false};
@@ -59,7 +69,7 @@ class ToricCode2D extends AbstractSurfaceCode {
     }
 
     buildFace(x, y) {
-        const geometry = new THREE.PlaneGeometry(this.SIZE.lengthEdge/2*Math.sqrt(2), this.SIZE.lengthEdge/2*Math.sqrt(2));
+        const geometry = new THREE.PlaneGeometry(this.SIZE.lengthEdge*Math.sqrt(2), this.SIZE.lengthEdge*Math.sqrt(2));
     
         const material = new THREE.MeshToonMaterial({color: this.COLOR.activatedFace, 
                                                      opacity: this.OPACITY.maxDeactivatedStabilizer['face'], 
@@ -69,6 +79,8 @@ class ToricCode2D extends AbstractSurfaceCode {
     
         face.position.x = x * this.SIZE.lengthEdge / 2 - this.offset.x;
         face.position.y = y * this.SIZE.lengthEdge / 2 - this.offset.y;
+
+        face.rotateZ(Math.PI / 4)
 
         let index = this.getIndexFace(x, y);
     
@@ -83,7 +95,7 @@ class ToricCode2D extends AbstractSurfaceCode {
 }
 
 
-class RpToricCode2D extends AbstractRpSurfaceCode {
+class RpRotatedToricCode2D extends AbstractRpSurfaceCode {
     constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
         super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
     }
@@ -111,7 +123,7 @@ class RpToricCode2D extends AbstractRpSurfaceCode {
     buildVertex(x, y) {
         // In the rotated picture, vertices are represented by faces with a different colors
 
-        const geometry = new THREE.PlaneGeometry(this.SIZE.lengthEdge/2*Math.sqrt(2), this.SIZE.lengthEdge/2*Math.sqrt(2));
+        const geometry = new THREE.PlaneGeometry(this.SIZE.lengthEdge, this.SIZE.lengthEdge);
     
         const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedVertex, 
                                                      opacity: this.OPACITY.maxDeactivatedStabilizer['vertex'], 
@@ -121,7 +133,7 @@ class RpToricCode2D extends AbstractRpSurfaceCode {
         vertex.position.x = x * this.SIZE.lengthEdge / 2 - this.offset.x;
         vertex.position.y = y * this.SIZE.lengthEdge / 2 - this.offset.y;
 
-        vertex.rotateZ(Math.PI/4)
+        // vertex.rotateZ(Math.PI/4)
 
         let index = this.getIndexVertex(x, y);
     
@@ -135,7 +147,7 @@ class RpToricCode2D extends AbstractRpSurfaceCode {
     }
 
     buildFace(x, y) {
-        const geometry = new THREE.PlaneGeometry(this.SIZE.lengthEdge/2*Math.sqrt(2), this.SIZE.lengthEdge/2*Math.sqrt(2));
+        const geometry = new THREE.PlaneGeometry(this.SIZE.lengthEdge, this.SIZE.lengthEdge);
     
         const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedFace, 
                                                      opacity: this.OPACITY.maxDeactivatedStabilizer['face'], 
@@ -146,7 +158,7 @@ class RpToricCode2D extends AbstractRpSurfaceCode {
         face.position.x = x * this.SIZE.lengthEdge / 2 - this.offset.x;
         face.position.y = y * this.SIZE.lengthEdge / 2 - this.offset.y;
 
-        face.rotateZ(Math.PI/4)
+        // face.rotateZ(Math.PI/4)
 
         let index = this.getIndexFace(x, y);
     

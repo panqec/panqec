@@ -17,6 +17,10 @@ class XCubeCode(IndexedSparseCode):
         return (len(self.qubit_index), -1, -1)
 
     @property
+    def dimension(self) -> int:
+        return 3
+
+    @property
     def label(self) -> str:
         return 'XCube {}x{}x{}'.format(*self.size)
 
