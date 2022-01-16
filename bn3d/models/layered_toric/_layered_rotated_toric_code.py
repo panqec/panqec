@@ -53,6 +53,11 @@ class LayeredRotatedToricCode(IndexedSparseCode):
             else:
                 logical = self.pauli_class(self)
                 for x, y, z in self.qubit_index:
+                    if z == 1:
+                        if (x + y) % 4 == 0:
+                            logical.site('X', (x, y, z))
+                        elif (x + y) % 4 == 2:
+                            logical.site('Z', (x, y, z))
                     # Z on every layer in deformed code. (FAIL, in stabilizer)
                     """
                     if z % 2 == 1:
@@ -63,18 +68,18 @@ class LayeredRotatedToricCode(IndexedSparseCode):
                     """
 
                     # X string operator in undeformed code. (OK)
-                    if L_x % 2 == 1:
-                        if z == 1 and x == 1:
-                            if (x + y) % 4 == 2:
-                                logical.site('X', (x, y, z))
-                            else:
-                                logical.site('X', (x, y, z))
-                    else:
-                        if z == 1 and y == 1:
-                            if (x + y) % 4 == 2:
-                                logical.site('X', (x, y, z))
-                            else:
-                                logical.site('X', (x, y, z))
+                    # if L_x % 2 == 1:
+                    #     if z == 1 and x == 1:
+                    #         if (x + y) % 4 == 2:
+                    #             logical.site('X', (x, y, z))
+                    #         else:
+                    #             logical.site('X', (x, y, z))
+                    # else:
+                    #     if z == 1 and y == 1:
+                    #         if (x + y) % 4 == 2:
+                    #             logical.site('X', (x, y, z))
+                    #         else:
+                    #             logical.site('X', (x, y, z))
 
                     # Z everywhere in deformed (FAIL, actually in stabilizer)
                     """
@@ -118,12 +123,17 @@ class LayeredRotatedToricCode(IndexedSparseCode):
             else:
                 logical = self.pauli_class(self)
                 for x, y, z in self.qubit_index:
-                    if L_x % 2 == 1:
-                        if y == 1:
-                            logical.site('Y', (x, y, z))
-                    elif L_y % 2 == 1:
-                        if x == 1:
-                            logical.site('Y', (x, y, z))
+                    if z == 1:
+                        if (x + y) % 4 == 0:
+                            logical.site('X', (x, y, z))
+                        elif (x + y) % 4 == 2:
+                            logical.site('Z', (x, y, z))
+                    # if L_x % 2 == 1:
+                    #     if y == 1:
+                    #         logical.site('Y', (x, y, z))
+                    # elif L_y % 2 == 1:
+                    #     if x == 1:
+                    #         logical.site('Y', (x, y, z))
                 logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             self._logical_zs = logicals
