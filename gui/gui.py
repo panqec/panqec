@@ -2,7 +2,7 @@ import numpy as np
 
 from flask import Flask, send_from_directory, request, json, render_template
 from bn3d.models import (
-    ToricCode2D, RotatedPlanar2DCode,
+    ToricCode2D, RotatedPlanar2DCode, Planar2DCode,
     ToricCode3D, RotatedPlanarCode3D, RotatedToricCode3D, RhombicCode,
     PlanarCode3D, LayeredRotatedToricCode, XCubeCode
 )
@@ -18,10 +18,10 @@ from bn3d.error_models import (
 
 import webbrowser
 
-code_names = {'2d': ['toric-2d', 'rotated-planar-2d'],
+code_names = {'2d': ['toric-2d', 'rotated-planar-2d', 'planar-2d'],
               '3d': ['toric-3d', 'planar-3d', 'rotated-toric-3d', 'rotated-planar-3d', 'rhombic', 'coprime-3d', 'xcube']}
 
-code_class = {'toric-2d': ToricCode2D, 'rotated-planar-2d': RotatedPlanar2DCode,
+code_class = {'toric-2d': ToricCode2D, 'planar-2d': Planar2DCode, 'rotated-planar-2d': RotatedPlanar2DCode,
               'toric-3d': ToricCode3D, 'coprime-3d': LayeredRotatedToricCode,
               'rotated-planar-3d': RotatedPlanarCode3D, 'rotated-toric-3d': RotatedToricCode3D,
               'rhombic': RhombicCode, 'planar-3d': PlanarCode3D, 'rp-rotated-planar-3d': RotatedPlanarCode3D,

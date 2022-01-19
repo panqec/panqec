@@ -10,7 +10,7 @@ import { RhombicCode } from './codes/rhombic.js';
 import { XCubeCode } from './codes/xcube.js';
 import { RotatedToricCode3D, RpRotatedToricCode3D } from './codes/rotatedToric3d.js';
 
-var defaultCode = codeDimension == 2 ? 'rotated-planar-2d' : 'xcube';
+var defaultCode = codeDimension == 2 ? 'toric-2d' : 'toric-3d';
 var defaultSize = codeDimension == 2 ? 6 : 3;
 
 const params = {
@@ -23,7 +23,7 @@ const params = {
     max_bp_iter: 10,
     errorModel: 'Depolarizing',
     codeName: defaultCode,
-    rotated: true
+    rotated: false
 };
 
 const buttons = {
@@ -158,6 +158,7 @@ async function buildCode() {
 
     // For each code, [unrotated picture class, rotated picture class]
     let codeClass = {'toric-2d': [ToricCode2D, RpToricCode2D],
+                     'planar-2d': [ToricCode2D, RpToricCode2D],
                      'rotated-planar-2d': [RotatedToricCode2D, RpRotatedToricCode2D],
                      'toric-3d': [ToricCode3D, RpToricCode3D],
                      'rotated-planar-3d': [RotatedToricCode3D, RpRotatedToricCode3D],
@@ -223,7 +224,7 @@ function buildGUI() {
     gui = new GUI();
     const codeFolder = gui.addFolder('Code')
 
-    var codes2d = {'Toric': 'toric-2d', 'Planar': 'rotated-planar-2d'};
+    var codes2d = {'Toric': 'toric-2d', 'Planar': 'planar-2d', 'Rotated planar': 'rotated-planar-2d'};
     var codes3d = {'Toric 3D': 'toric-3d', 'Planar 3D': 'planar-3d', 
                    'Rotated Planar 3D': 'rotated-planar-3d',
                    'Rhombic': 'rhombic', 'Coprime 3D': 'coprime-3d', 'XCube': 'xcube'};

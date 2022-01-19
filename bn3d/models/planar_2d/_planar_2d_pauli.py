@@ -2,7 +2,7 @@ from typing import Tuple
 from ..generic._indexed_sparse_pauli import IndexedSparsePauli
 
 
-class Toric2DPauli(IndexedSparsePauli):
+class Planar2DPauli(IndexedSparsePauli):
     """Pauli Operator on 2D Toric Code.
 
     Qubit sites are on edges of the lattice.
@@ -33,7 +33,6 @@ class Toric2DPauli(IndexedSparsePauli):
              .       .
         """
 
-        Lx, Ly = self.code.size
         x, y = location
 
         if (x, y) not in self.code.vertex_index:
@@ -42,7 +41,9 @@ class Toric2DPauli(IndexedSparsePauli):
         delta = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
         for i in range(len(delta)):
-            self.site(operator, ((x + delta[i][0]) % (2*Lx), (y + delta[i][1]) % (2*Ly)))
+            location = (x + delta[i][0], y + delta[i][1])
+            if location in self.code.qubit_index:
+                self.site(operator, location)
 
     def face(
         self, operator: str,
@@ -75,7 +76,6 @@ class Toric2DPauli(IndexedSparsePauli):
 
         # Location modulo lattice shape, to handle edge cases.
         x, y = location
-        Lx, Ly = self.code.size
 
         if (x, y) not in self.code.face_index:
             raise ValueError(f"Invalid coordinate {location} for a face")
@@ -83,4 +83,6 @@ class Toric2DPauli(IndexedSparsePauli):
         delta = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
         for i in range(len(delta)):
-            self.site(operator, ((x + delta[i][0]) % (2*Lx), (y + delta[i][1]) % (2*Ly)))
+            location = (x + delta[i][0], y + delta[i][1])
+            if location in self.code.qubit_index:
+                self.site(operator, location)
