@@ -129,7 +129,6 @@ class XCubeCode(IndexedSparseCode):
 
         ranges = [range(1, 2*Lx, 2), range(1, 2*Ly, 2), range(1, 2*Lz, 2)]
         coordinates = []
-        print(list(itertools.product(*ranges)))
         for x, y, z in itertools.product(*ranges):
             coordinates.append((x, y, z))
 
