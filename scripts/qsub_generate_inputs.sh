@@ -50,7 +50,7 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --ratio equal \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
     --eta "100,inf" --prob "0.284:0.304:0.002"
-bn3d generate_qsub --data_dir "$paper_dir/$name" --n_array 55 --memory "$memory" \
+bn3d generate-qsub --data_dir "$paper_dir/$name" --n_array 55 --memory "$memory" \
     --wall_time "$wall_time" --trials 10000 --split 20 $sbatch_dir/$name.qsub
 
 name=det_rhombic_bposd_xzzx_xbias
