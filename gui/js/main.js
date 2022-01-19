@@ -15,9 +15,7 @@ var defaultSize = codeDimension == 2 ? 6 : 3;
 
 const params = {
     errorProbability: 0.1,
-    Lx: defaultSize,
-    Ly: defaultSize,
-    Lz: defaultSize,
+    L: defaultSize,
     deformation: "None",
     decoder: 'bp-osd-2',
     max_bp_iter: 10,
@@ -25,6 +23,8 @@ const params = {
     codeName: defaultCode,
     rotated: false
 };
+
+let codeSize = {Lx: defaultSize, Ly: defaultSize, Lz: defaultSize}
 
 const buttons = {
     'decode': decode,
@@ -145,9 +145,9 @@ async function buildCode() {
     let stabilizerIndex = stabilizers['stabilizer_index'];
     let logical_z = stabilizers['logical_z'];
     let logical_x = stabilizers['logical_x'];
-    let Lx = params.Lx;
-    let Ly = params.Ly;
-    let Lz = params.Lz;
+    let Lx = codeSize.Lx;
+    let Ly = codeSize.Ly;
+    let Lz = codeSize.Lz;
 
     if (codeDimension == 2) {
         var size = [Lx, Ly];
@@ -177,12 +177,12 @@ async function buildCode() {
 }
 
 function changeLatticeSize() {
-    params.Lx = parseInt(params.Lx)
-    params.Ly = parseInt(params.Lx)
-    params.Lz = parseInt(params.Lx)
+    codeSize.Lx = parseInt(params.L);
+    codeSize.Ly = parseInt(params.L);
+    codeSize.Lz = parseInt(params.L);
 
     if (params.codeName == 'coprime-3d')
-        params.Lx = parseInt(params.Lx) + 1
+        codeSize.Lx = parseInt(params.L) + 1;
 
     code.qubits.forEach(q => {
         q.material.dispose();
@@ -208,9 +208,9 @@ async function getStabilizerMatrices() {
           },
         method: 'POST',
         body: JSON.stringify({
-            'Lx': params.Lx,
-            'Ly': params.Ly,
-            'Lz': params.Lz,
+            'Lx': codeSize.Lx,
+            'Ly': codeSize.Ly,
+            'Lz': codeSize.Lz,
             'code_name': params.codeName
         })
     });
@@ -233,7 +233,7 @@ function buildGUI() {
 
     codeFolder.add(params, 'codeName', codes).name('Code type').onChange(changeLatticeSize);
     codeFolder.add(params, 'rotated').name('Rotated picture').onChange(changeLatticeSize);
-    codeFolder.add(params, 'Lx', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
+    codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
     codeFolder.open();
 
     const errorModelFolder = gui.addFolder('Error Model')
@@ -334,9 +334,9 @@ async function getCorrection(syndrome) {
           },
         method: 'POST',
         body: JSON.stringify({
-            'Lx': params.Lx,
-            'Ly': params.Ly,
-            'Lz': params.Lz,
+            'Lx': codeSize.Lx,
+            'Ly': codeSize.Ly,
+            'Lz': codeSize.Lz,
             'p': params.errorProbability,
             'max_bp_iter': params.max_bp_iter,
             'syndrome': syndrome,
@@ -359,9 +359,9 @@ async function getRandomErrors() {
           },
         method: 'POST',
         body: JSON.stringify({
-            'Lx': params.Lx,
-            'Ly': params.Ly,
-            'Lz': params.Lz,
+            'Lx': codeSize.Lx,
+            'Ly': codeSize.Ly,
+            'Lz': codeSize.Lz,
             'p': params.errorProbability,
             'deformation': params.deformation,
             'error_model': params.errorModel,
