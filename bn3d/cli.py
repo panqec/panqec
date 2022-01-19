@@ -496,6 +496,22 @@ def nist_sbatch(
     print(f'Wrote to {sbatch_file}')
 
 
+@click.command()
+@click.argument('qsub_file', required=True)
+@click.option('-d', '--data_dir', type=click.Path(exists=True), required=True)
+@click.option('-n', '--n_array', default=6, type=click.INT, show_default=True)
+@click.option(
+    '-w', '--wall_time', default='0-23:00', type=str, show_default=True
+)
+@click.option(
+    '-m', '--memory', default='32GB', type=str, show_default=True
+)
+@click.option(
+    '-t', '--trials', default=1000, type=click.INT, show_default=True
+)
+@click.option(
+    '-s', '--split', default=1, type=click.INT, show_default=True
+)
 @click.option('-p', '--partition', default='pml', type=str, show_default=True)
 def generate_qsub(
     qsub_file, data_dir, n_array, wall_time, memory, trials, split, partition
