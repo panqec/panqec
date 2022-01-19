@@ -20,6 +20,7 @@ conda activate bn3d
 trials=${TRIALS}
 data_dir=${DATADIR}
 n_split=${SPLIT}
+script_dir='/home/ucapacp/bn3d/scripts'
 
 # The input directory.
 input_dir="$data_dir/inputs"
@@ -43,7 +44,7 @@ n_tasks=$SGE_TASK_COUNT
 i_task=$SGE_TASK_ID
 
 # Run a CPU and RAM usage logging script in the background.
-python scripts/monitor.py "$log_dir/usage_${JOB_ID}_${i_task}.txt" &
+python $script_dir/monitor.py "$log_dir/usage_${JOB_ID}_${i_task}.txt" &
 
 # Function that prints out tab-separated values with columns input name,
 # results directory name and number of trials to do for that split.
