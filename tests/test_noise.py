@@ -235,6 +235,7 @@ class TestGetDeformedWeights:
         assert np.any(weights[x_edge_indices] != weights[z_edge_indices])
 
 
+@pytest.mark.skip(reason='sparse')
 class TestXNoiseOnYZEdgesOnly:
 
     @pytest.fixture(autouse=True)

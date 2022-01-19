@@ -236,10 +236,16 @@ def generate_input(
                     for L in L_list
                 ]
             else:
-                code_parameters = [
-                    {"L_x": L, "L_y": L, "L_z": L}
-                    for L in L_list
-                ]
+                if code_model == 'RotatedPlanarCode3D':
+                    code_parameters = [
+                        {"L_x": L, "L_y": L, "L_z": 2*L}
+                        for L in L_list
+                    ]
+                else:
+                    code_parameters = [
+                        {"L_x": L, "L_y": L, "L_z": L}
+                        for L in L_list
+                    ]
             code_dict = {
                 "model": code_model,
                 "parameters": code_parameters

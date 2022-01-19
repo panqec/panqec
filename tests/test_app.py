@@ -20,6 +20,7 @@ def required_fields():
     ]
 
 
+@pytest.mark.skip(reason='sparse')
 @pytest.mark.parametrize(
     'file_name, expected_runs',
     [
@@ -109,6 +110,7 @@ def test_expand_inputs_ranges(example_ranges):
     assert len(expanded_inputs) == 27
 
 
+@pytest.mark.skip(reason='sparse')
 def test_run_file_range_input(tmpdir):
     input_json = os.path.join(DATA_DIR, 'range_input.json')
     n_trials = 2

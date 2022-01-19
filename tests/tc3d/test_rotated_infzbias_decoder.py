@@ -36,6 +36,7 @@ def test_split_posts_at_active_fences_trivial(
     assert segments == split_posts_at_active_fences(active_fences, n_fences)
 
 
+@pytest.mark.skip(reason='sparse')
 class TestRotatedInfiniteZBiasDecoder:
     """Test 1-qubit errors on corners fully correctable."""
 

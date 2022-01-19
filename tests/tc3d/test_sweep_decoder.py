@@ -9,6 +9,7 @@ from bn3d.noise import PauliErrorModel
 from bn3d.utils import set_where
 
 
+@pytest.mark.skip(reason='sparse')
 class TestSweepDecoder3D:
 
     @pytest.fixture
