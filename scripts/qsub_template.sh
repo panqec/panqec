@@ -8,9 +8,7 @@
 #Local2Scratch
 
 module purge
-module load gcc/devtoolset/9
-module load anaconda/anaconda3.7
-module load gnuparallel/20200622
+module load parallel/20181122
 
 source ~/.bashrc
 
