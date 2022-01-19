@@ -77,7 +77,7 @@ mkdir -p temp/paper/share
 name=det_rhombic_bposd_undef_xbias
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
-sizes="4, 6"
+sizes="4,6"
 wall_time="14-00:00"
 memory="2GB"
 bn3d generate-input -i "$paper_dir/$name/inputs" \
