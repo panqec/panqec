@@ -1,6 +1,6 @@
 paper_dir=temp/paper
 mkdir -p "$paper_dir"
-sbatch_dir=temp/paper/qsub
+qsub_dir=temp/paper/qsub
 mkdir -p "$qsub_dir"
 mkdir -p temp/paper/share
 

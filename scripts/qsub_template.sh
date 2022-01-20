@@ -3,7 +3,7 @@
 #$ -l h_rt=${TIME}
 #$ -l mem=${MEMORY}
 #$ -l tmpfs=1G
-#$ -t -t 1-${NARRAY}
+#$ -t 1-${NARRAY}
 #$ -N ${NAME}
 #$ -wd /home/ucapacp/Scratch/output
 #Local2Scratch
@@ -40,8 +40,8 @@ mkdir -p $log_dir
 # printenv
 # date
 
-n_tasks=$NARRAY
-i_task=$SGE_TASK_ID
+n_tasks=${NARRAY}
+i_task=`echo $SGE_TASK_ID`
 
 echo "Task: $i_tasks / $n_tasks"
 
