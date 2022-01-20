@@ -3,7 +3,8 @@
 #$ -l h_rt=${TIME}
 #$ -l mem=${MEMORY}
 #$ -l tmpfs=1G
-#$ -N RhombicJob
+#$ -t -t 1-${NARRAY}
+#$ -N ${NAME}
 #$ -wd /home/ucapacp/Scratch/output
 #Local2Scratch
 
@@ -36,12 +37,13 @@ log_dir="$data_dir/logs"
 mkdir -p $log_dir
 
 # Print out the environmental variables and the time.
-printenv
-date
+# printenv
+# date
 
-SGE_TASK_COUNT=$(($SGE_TASK_LAST-$SGE_TASK_FIRST+1))
 n_tasks=$SGE_TASK_COUNT
 i_task=$SGE_TASK_ID
+
+echo "Task: $i_tasks / $n_tasks"
 
 # Run a CPU and RAM usage logging script in the background.
 python $script_dir/monitor.py "$log_dir/usage_${JOB_ID}_${i_task}.txt" &
