@@ -41,55 +41,55 @@ mkdir -p $log_dir
 # date
 
 n_tasks=${NARRAY}
-i_task=`echo $SGE_TASK_ID`
+i_task=$SGE_TASK_ID
 
-echo "Task: $i_tasks / $n_tasks"
+echo "Task: $i_task / $n_tasks"
 
 # Run a CPU and RAM usage logging script in the background.
-# python $script_dir/monitor.py "$log_dir/usage_${JOB_ID}_${i_task}.txt" &
+python $script_dir/monitor.py "$log_dir/usage_${JOB_ID}_${i_task}.txt" &
 
-# # Function that prints out tab-separated values with columns input name,
-# # results directory name and number of trials to do for that split.
-# function filter_input {
-#     counter=0
+# Function that prints out tab-separated values with columns input name,
+# results directory name and number of trials to do for that split.
+function filter_input {
+    counter=0
     
-#     # Iterate through files in the input directory.
-#     for filename in $input_dir/*.json; do
+    # Iterate through files in the input directory.
+    for filename in $input_dir/*.json; do
 
-#         # Just the file name without directory and extension.
-#         input_name=$(basename -s .json $filename)
+        # Just the file name without directory and extension.
+        input_name=$(basename -s .json $filename)
 
-#         # Each array job gets assigned some input files.
-#         if [[ $(( counter % n_tasks + 1 )) -eq $i_task ]]; then
+        # Each array job gets assigned some input files.
+        if [[ $(( counter % n_tasks + 1 )) -eq $i_task ]]; then
 
-#             # Name the results directory 'results' if no splitting.
-#             if [ $n_split -eq 1 ]; then
-#                 results_dir=results
-#                 split_trials=$trials
-#                 echo -e "$input_name\t$results_dir\t$split_trials"
+            # Name the results directory 'results' if no splitting.
+            if [ $n_split -eq 1 ]; then
+                results_dir=results
+                split_trials=$trials
+                echo -e "$input_name\t$results_dir\t$split_trials"
 
-#             # Split the results over directories results_1, results_2, etc.
-#             else
-#                 for i_split in $(seq 1 $n_split); do
-#                     results_dir="results_$i_split"
-#                     mkdir -p $data_dir/$results_dir
-#                     split_trials=$(( (trials - trials % n_split)/n_split ))
-#                     if [ $i_split -eq $n_split ]; then
-#                         split_trials=$(( split_trials + trials % n_split ))
-#                     fi
-#                     echo -e "$input_name\t$results_dir\t$split_trials"
-#                 done
-#             fi
-#         fi
-#         counter=$(( counter + 1 ))
-#     done
-# }
+            # Split the results over directories results_1, results_2, etc.
+            else
+                for i_split in $(seq 1 $n_split); do
+                    results_dir="results_$i_split"
+                    mkdir -p $data_dir/$results_dir
+                    split_trials=$(( (trials - trials % n_split)/n_split ))
+                    if [ $i_split -eq $n_split ]; then
+                        split_trials=$(( split_trials + trials % n_split ))
+                    fi
+                    echo -e "$input_name\t$results_dir\t$split_trials"
+                done
+            fi
+        fi
+        counter=$(( counter + 1 ))
+    done
+}
 
-# # Write filtered input into GNU parallel to text file in logs.
-# filter_input  >> $log_dir/filter_${JOB_ID}_${i_task}.txt
+# Write filtered input into GNU parallel to text file in logs.
+filter_input  >> $log_dir/filter_${JOB_ID}_${i_task}.txt
 
-# # Run in parallel.
-# filter_input | parallel --colsep '\t' --results $log_dir "$bash_command"
+# Run in parallel.
+filter_input | parallel --colsep '\t' --results $log_dir "$bash_command"
 
-# # Print out the date when done.
-# date
+# Print out the date when done.
+date
