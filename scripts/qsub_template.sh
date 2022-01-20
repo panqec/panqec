@@ -40,7 +40,7 @@ mkdir -p $log_dir
 # printenv
 # date
 
-n_tasks=$SGE_TASK_COUNT
+n_tasks=$NARRAY
 i_task=$SGE_TASK_ID
 
 echo "Task: $i_tasks / $n_tasks"
