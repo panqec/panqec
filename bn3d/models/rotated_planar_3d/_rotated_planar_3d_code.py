@@ -69,9 +69,9 @@ class RotatedPlanarCode3D(IndexedSparseCode):
 
         if (z % 2 == 0):
             axis = self.Z_AXIS
-        elif (x + y) % 2 == 1:
+        elif (x + y) % 4 == 2:
             axis = self.X_AXIS
-        elif (x + y) % 2 == 0:
+        elif (x + y) % 4 == 0:
             axis = self.Y_AXIS
 
         return axis

@@ -149,8 +149,19 @@ class LayeredRotatedToricCode(IndexedSparseCode):
         return self._logical_zs
 
     def axis(self, location):
-        # TODO: implement the actual method
-        return self.X_AXIS
+        x, y, z = location
+
+        if location not in self.qubit_index:
+            raise ValueError(f'Location {location} does not correspond to a qubit')
+
+        if z % 2 == 0:
+            axis = self.Z_AXIS
+        elif (x + y) % 4 == 2:
+            axis = self.X_AXIS
+        elif (x + y) % 4 == 0:
+            axis = self.Y_AXIS
+
+        return axis
 
     def _create_qubit_indices(self):
         L_x, L_y, L_z = self.size
