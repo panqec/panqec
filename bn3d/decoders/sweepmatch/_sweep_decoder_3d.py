@@ -12,7 +12,7 @@ class SweepDecoder3D(Decoder):
     _rng: np.random.Generator
     max_sweep_factor: int
 
-    def __init__(self, seed: int = 0, max_sweep_factor: int = 4):
+    def __init__(self, seed: int = 0, max_sweep_factor: int = 32):
         self._rng = np.random.default_rng(seed)
         self.max_sweep_factor = max_sweep_factor
 
