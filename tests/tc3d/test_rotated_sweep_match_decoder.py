@@ -1,15 +1,14 @@
 import pytest
 from itertools import combinations
 import numpy as np
-from qecsim.paulitools import bsf_wt
 from bn3d.bpauli import bcommute
+from bn3d.bpauli import bsf_wt
 from bn3d.models import (
     RotatedPlanarCode3D, RotatedPlanar3DPauli
 )
 from bn3d.decoders import RotatedSweepMatchDecoder, RotatedSweepDecoder3D
 
 
-@pytest.mark.skip(reason='sparse')
 class TestRotatedSweepMatchDecoder:
 
     @pytest.fixture
@@ -25,9 +24,9 @@ class TestRotatedSweepMatchDecoder:
         assert decoder.decode is not None
 
     def test_decode_trivial_syndrome(self, decoder, code):
-        syndrome = np.zeros(shape=len(code.stabilizers), dtype=np.uint)
+        syndrome = np.zeros(shape=code.stabilizers.shape[0], dtype=np.uint)
         correction = decoder.decode(code, syndrome)
-        assert correction.shape[0] == 2*code.n_k_d[0]
+        assert correction.shape == (1, 2*code.n_k_d[0])
         assert np.all(bcommute(code.stabilizers, correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 
@@ -174,7 +173,6 @@ class TestRotatedSweepMatchDecoder:
             assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
 
-@pytest.mark.skip(reason='sparse')
 class TestSweepMatch1x1x1:
     """Test cases found to be failing on the GUI."""
 
@@ -213,7 +211,6 @@ class TestSweepMatch1x1x1:
         )
 
 
-@pytest.mark.skip(reason='sparse')
 class TestSweepMatch2x2x2:
     """Test cases found to be failing on the GUI."""
 
@@ -313,7 +310,6 @@ class TestSweepMatch2x2x2:
         )
 
 
-@pytest.mark.skip(reason='sparse')
 class TestSweepCorners:
     """Test 1-qubit errors on corners fully correctable."""
 
@@ -415,7 +411,6 @@ class TestSweepCorners:
         )
 
 
-@pytest.mark.skip(reason='sparse')
 class TestRotatedSweepDecoder3D:
 
     @pytest.fixture

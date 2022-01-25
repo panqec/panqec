@@ -27,7 +27,7 @@ class TestSweepDecoder3D:
     def test_decode_trivial_syndrome(self, decoder, code):
         syndrome = np.zeros(shape=len(code.stabilizers), dtype=np.uint)
         correction = decoder.decode(code, syndrome)
-        assert correction.shape == 2*code.n_k_d[0]
+        assert correction.shape == (1, 2*code.n_k_d[0])
         assert np.all(bcommute(code.stabilizers, correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 
