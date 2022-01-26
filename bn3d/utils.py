@@ -121,3 +121,7 @@ def hash_json(dictionary):
     }
     json_string = json.dumps(dict_no_hash, sort_keys=True, indent=2)
     return hashlib.md5(json_string.encode('utf-8')).hexdigest()
+
+
+def dict_where(signs):
+    return set([k for k, v in signs.items() if v])

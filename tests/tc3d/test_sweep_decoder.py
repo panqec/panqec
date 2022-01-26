@@ -5,7 +5,7 @@ from bn3d.models import ToricCode3D, Toric3DPauli
 from bn3d.decoders import SweepDecoder3D
 from bn3d.bpauli import bcommute, bsf_wt
 from bn3d.noise import PauliErrorModel
-from bn3d.utils import set_where
+from bn3d.utils import dict_where, set_where
 
 
 class TestSweepDecoder3D:
@@ -29,10 +29,15 @@ class TestSweepDecoder3D:
         assert np.all(bcommute(code.stabilizers, correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 
-    @pytest.mark.skip(reason='sparse')
-    def test_decode_Z_error(self, decoder, code):
+    @pytest.mark.parametrize('site', [
+        (2, 1, 2),
+        (1, 2, 0),
+        (2, 1, 0),
+        (0, 0, 7),
+    ])
+    def test_decode_Z_error(self, decoder, code, site):
         error = Toric3DPauli(code)
-        error.site('Z', (2, 1, 2))
+        error.site('Z', site)
         assert bsf_wt(error.to_bsf()) == 1
 
         # Measure the syndrome and ensure non-triviality.
@@ -40,25 +45,23 @@ class TestSweepDecoder3D:
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (error.to_bsf() + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        total_error = (error.to_bsf().toarray() + correction.toarray()) % 2
+        assert np.all(bcommute(code.stabilizers.toarray(), total_error) == 0)
 
-    @pytest.mark.skip(reason='sparse')
     def test_decode_many_Z_errors(self, decoder, code):
         error = Toric3DPauli(code)
-        error.site('Z', (1, 0, 0))
-        error.site('Z', (0, 1, 0))
-        error.site('Z', (0, 0, 3))
+        error.site('Z', (1, 2, 0))
+        error.site('Z', (2, 1, 0))
+        error.site('Z', (0, 0, 7))
         assert bsf_wt(error.to_bsf()) == 3
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (error.to_bsf() + correction) % 2
+        total_error = (error.to_bsf().todense() + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
-    @pytest.mark.skip(reason='sparse')
     def test_unable_to_decode_X_error(self, decoder, code):
         error = Toric3DPauli(code)
         error.site('X', (1, 0, 2))
@@ -68,14 +71,13 @@ class TestSweepDecoder3D:
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        assert np.all(correction == 0)
+        assert np.all(correction.todense() == 0)
 
-        total_error = (error.to_bsf() + correction) % 2
+        total_error = (error.to_bsf().todense() + correction) % 2
         assert np.all(error.to_bsf() == total_error)
 
         assert np.any(bcommute(code.stabilizers, total_error) != 0)
 
-    @pytest.mark.skip(reason='sparse')
     def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
 
         codes = [
@@ -95,10 +97,9 @@ class TestSweepDecoder3D:
             error.site('Z', site)
             syndrome = code.measure_syndrome(error)
             correction = decoder.decode(code, syndrome)
-            total_error = (error.to_bsf() + correction) % 2
+            total_error = (error.to_bsf().todense() + correction) % 2
             assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
-    @pytest.mark.skip(reason='sparse')
     def test_decode_error_on_two_edges_sharing_same_vertex(self):
         code = ToricCode3D(3, 3, 3)
         decoder = SweepDecoder3D()
@@ -108,10 +109,9 @@ class TestSweepDecoder3D:
         error = error_pauli.to_bsf()
         syndrome = bcommute(code.stabilizers, error)
         correction = decoder.decode(code, syndrome)
-        total_error = (error + correction) % 2
+        total_error = (error.todense() + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
-    @pytest.mark.skip(reason='sparse')
     def test_decode_with_general_Z_noise(self):
         code = ToricCode3D(3, 3, 3)
         decoder = SweepDecoder3D()
@@ -134,27 +134,28 @@ class TestSweepDecoder3D:
         # least some of them ended up in the code space.
         assert any(in_codespace)
 
-    @pytest.mark.skip(reason='sparse')
     @pytest.mark.parametrize(
         'edge_location, faces_flipped',
         [
-            ((0, 0, 0, 0), {
-                (1, 0, 0, 0), (1, 0, 0, 2), (2, 0, 0, 0), (2, 0, 2, 0)
+            ((1, 0, 0), {
+                (1, 1, 0), (1, 5, 0), (1, 0, 1), (1, 0, 5)
             }),
-            ((1, 0, 0, 0), {
-                (0, 0, 0, 0), (0, 0, 0, 2), (2, 0, 0, 0), (2, 2, 0, 0)
+            ((0, 1, 0), {
+                (1, 1, 0), (5, 1, 0), (0, 1, 1), (0, 1, 5)
             }),
-            ((2, 0, 0, 0), {
-                (0, 0, 0, 0), (0, 0, 2, 0), (1, 0, 0, 0), (1, 2, 0, 0)
+            ((0, 0, 1), {
+                (1, 0, 1), (5, 0, 1), (0, 1, 1), (0, 5, 1)
             }),
         ]
     )
     def test_flip_edge(self, edge_location, faces_flipped):
         code = ToricCode3D(3, 3, 3)
         decoder = SweepDecoder3D()
-        signs = np.zeros(code.shape, dtype=np.uint)
-        decoder.flip_edge(edge_location, signs)
-        assert set_where(signs) == faces_flipped
+        signs = decoder.get_initial_state(
+            code, np.zeros(code.stabilizers.shape[0])
+        )
+        decoder.flip_edge(edge_location, signs, code)
+        assert dict_where(signs) == faces_flipped
 
     @pytest.mark.skip(reason='sparse')
     def test_decode_loop_step_by_step(self):
@@ -167,7 +168,7 @@ class TestSweepDecoder3D:
         ]
         for site in sites:
             error_pauli.site('Z', site)
-        assert set_where(error_pauli._zs) == set(sites)
+        assert dict_where(error_pauli._zs) == set(sites)
         error = error_pauli.to_bsf()
 
         # Intialize the correction.
@@ -181,25 +182,25 @@ class TestSweepDecoder3D:
             newshape=code.shape
         )
         assert np.all(signs.reshape(code.n_k_d[0]) == syndrome[:code.n_k_d[0]])
-        assert set_where(signs) == {
+        assert dict_where(signs) == {
             (0, 0, 0, 0), (0, 0, 0, 2), (0, 1, 0, 0), (0, 1, 0, 2),
             (1, 0, 0, 0), (1, 0, 0, 2), (1, 0, 1, 0), (1, 0, 1, 2),
             (2, 0, 1, 0), (2, 0, 2, 0), (2, 1, 0, 0), (2, 2, 0, 0),
         }
 
         signs = decoder.sweep_move(signs, correction)
-        assert set_where(correction._zs) == {
+        assert dict_where(correction._zs) == {
             (0, 0, 1, 0), (1, 1, 0, 0),
             (2, 0, 0, 0), (2, 0, 0, 2),
         }
-        assert set_where(signs) == {
+        assert dict_where(signs) == {
             (0, 0, 2, 0), (0, 0, 2, 2),
             (1, 2, 0, 0), (1, 2, 0, 2),
             (2, 2, 0, 0), (2, 0, 2, 0),
         }
 
         signs = decoder.sweep_move(signs, correction)
-        assert set_where(correction._zs) == {
+        assert dict_where(correction._zs) == {
             (0, 0, 1, 0), (1, 1, 0, 0),
             (2, 0, 0, 0), (2, 0, 0, 2),
             (0, 2, 0, 0), (1, 0, 2, 0)
@@ -213,37 +214,52 @@ class TestSweepDecoder3D:
 
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
-    @pytest.mark.skip(reason='sparse')
     def test_decode_loop_ok(self):
         code = ToricCode3D(3, 3, 3)
         decoder = SweepDecoder3D()
 
         error_pauli = Toric3DPauli(code)
+        """
         sites = [
             (0, 0, 0, 0), (1, 1, 0, 0), (0, 0, 1, 0), (1, 0, 0, 0)
         ]
+        """
+        sites = [(1, 0, 0), (2, 1, 0), (1, 2, 0), (0, 1, 0)]
         for site in sites:
             error_pauli.site('Z', site)
-        assert set_where(error_pauli._zs) == set(sites)
+        assert set([
+            location
+            for location, index in code.qubit_index.items()
+            if index in np.where(error_pauli._zs.toarray()[0])[0]
+        ]) == set(sites)
         error = error_pauli.to_bsf()
 
         # Compute the syndrome.
         syndrome = bcommute(code.stabilizers, error)
 
-        signs = np.reshape(
-            decoder.get_face_syndromes(code, syndrome),
-            newshape=code.shape
-        )
-        assert set_where(signs) == {
+        signs = decoder.get_initial_state(code, syndrome)
+        """
+        assert dict_where(signs) == {
             (0, 0, 0, 0), (0, 0, 0, 2), (0, 1, 0, 0), (0, 1, 0, 2),
             (1, 0, 0, 0), (1, 0, 0, 2), (1, 0, 1, 0), (1, 0, 1, 2),
             (2, 0, 1, 0), (2, 0, 2, 0), (2, 1, 0, 0), (2, 2, 0, 0)
         }
+        """
+        assert dict_where(signs) == {
+            (1, 2, 1), (2, 1, 1), (1, 0, 1), (3, 1, 0), (1, 5, 0), (1, 0, 5),
+            (0, 1, 5), (1, 2, 5), (2, 1, 5), (5, 1, 0), (1, 3, 0), (0, 1, 1)
+        }
 
-        assert np.all(signs.reshape(code.n_k_d[0]) == syndrome[:code.n_k_d[0]])
+        reconstructed_syndrome = np.zeros_like(syndrome)
+        for location, index in code.face_index.items():
+            if signs[location]:
+                reconstructed_syndrome[index] = 1
+        assert np.all(
+            reconstructed_syndrome[:code.n_k_d[0]] == syndrome[:code.n_k_d[0]]
+        )
 
         correction = decoder.decode(code, syndrome)
-        total_error = (error + correction) % 2
+        total_error = (error.todense() + correction) % 2
 
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
