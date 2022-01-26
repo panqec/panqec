@@ -1,15 +1,13 @@
 import itertools
 import pytest
 import numpy as np
-from qecsim.paulitools import bsf_wt
 from bn3d.models import ToricCode3D, Toric3DPauli
 from bn3d.decoders import SweepDecoder3D
-from bn3d.bpauli import bcommute
+from bn3d.bpauli import bcommute, bsf_wt
 from bn3d.noise import PauliErrorModel
 from bn3d.utils import set_where
 
 
-@pytest.mark.skip(reason='sparse')
 class TestSweepDecoder3D:
 
     @pytest.fixture
@@ -25,12 +23,13 @@ class TestSweepDecoder3D:
         assert decoder.decode is not None
 
     def test_decode_trivial_syndrome(self, decoder, code):
-        syndrome = np.zeros(shape=len(code.stabilizers), dtype=np.uint)
+        syndrome = np.zeros(shape=code.stabilizers.shape[0], dtype=np.uint)
         correction = decoder.decode(code, syndrome)
         assert correction.shape == (1, 2*code.n_k_d[0])
         assert np.all(bcommute(code.stabilizers, correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 
+    @pytest.mark.skip(reason='sparse')
     def test_decode_Z_error(self, decoder, code):
         error = Toric3DPauli(code)
         error.site('Z', (2, 1, 2))
@@ -44,6 +43,7 @@ class TestSweepDecoder3D:
         total_error = (error.to_bsf() + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
+    @pytest.mark.skip(reason='sparse')
     def test_decode_many_Z_errors(self, decoder, code):
         error = Toric3DPauli(code)
         error.site('Z', (1, 0, 0))
@@ -58,6 +58,7 @@ class TestSweepDecoder3D:
         total_error = (error.to_bsf() + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
+    @pytest.mark.skip(reason='sparse')
     def test_unable_to_decode_X_error(self, decoder, code):
         error = Toric3DPauli(code)
         error.site('X', (1, 0, 2))
@@ -74,6 +75,7 @@ class TestSweepDecoder3D:
 
         assert np.any(bcommute(code.stabilizers, total_error) != 0)
 
+    @pytest.mark.skip(reason='sparse')
     def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
 
         codes = [
@@ -96,6 +98,7 @@ class TestSweepDecoder3D:
             total_error = (error.to_bsf() + correction) % 2
             assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
+    @pytest.mark.skip(reason='sparse')
     def test_decode_error_on_two_edges_sharing_same_vertex(self):
         code = ToricCode3D(3, 3, 3)
         decoder = SweepDecoder3D()
@@ -108,6 +111,7 @@ class TestSweepDecoder3D:
         total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
+    @pytest.mark.skip(reason='sparse')
     def test_decode_with_general_Z_noise(self):
         code = ToricCode3D(3, 3, 3)
         decoder = SweepDecoder3D()
@@ -130,6 +134,7 @@ class TestSweepDecoder3D:
         # least some of them ended up in the code space.
         assert any(in_codespace)
 
+    @pytest.mark.skip(reason='sparse')
     @pytest.mark.parametrize(
         'edge_location, faces_flipped',
         [
@@ -151,6 +156,7 @@ class TestSweepDecoder3D:
         decoder.flip_edge(edge_location, signs)
         assert set_where(signs) == faces_flipped
 
+    @pytest.mark.skip(reason='sparse')
     def test_decode_loop_step_by_step(self):
         code = ToricCode3D(3, 3, 3)
         decoder = SweepDecoder3D()
@@ -207,6 +213,7 @@ class TestSweepDecoder3D:
 
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
+    @pytest.mark.skip(reason='sparse')
     def test_decode_loop_ok(self):
         code = ToricCode3D(3, 3, 3)
         decoder = SweepDecoder3D()
@@ -240,6 +247,7 @@ class TestSweepDecoder3D:
 
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
+    @pytest.mark.skip(reason='sparse')
     def test_oscillating_cycle_fail(self):
         code = ToricCode3D(3, 3, 3)
         decoder = SweepDecoder3D()
@@ -283,6 +291,7 @@ class TestSweepDecoder3D:
         total_error = (error + correction.to_bsf()) % 2
         assert np.any(bcommute(code.stabilizers, total_error) != 0)
 
+    @pytest.mark.skip(reason='sparse')
     def test_never_ending_staircase_fails(self):
         code = ToricCode3D(3, 3, 3)
         decoder = SweepDecoder3D()
@@ -325,6 +334,7 @@ class TestSweepDecoder3D:
         # Assert that decoding has failed.
         np.any(bcommute(code.stabilizers, total_error))
 
+    @pytest.mark.skip(reason='sparse')
     def test_sweep_move_two_edges(self):
         code = ToricCode3D(3, 3, 3)
         decoder = SweepDecoder3D()

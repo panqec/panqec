@@ -1,9 +1,10 @@
 import itertools
-from typing import Tuple
+from typing import Tuple, Dict
 import numpy as np
 from qecsim.model import Decoder
 from ...models import ToricCode3D
 from ...models import Toric3DPauli
+Indexer = Dict[Tuple[int, int, int], int]
 
 
 class SweepDecoder3D(Decoder):
@@ -66,11 +67,15 @@ class SweepDecoder3D(Decoder):
         direction = int(self._rng.choice([0, 1, 2], size=1))
         return direction
 
-    def get_sign_array(self, code: ToricCode3D, syndrome: np.ndarray):
-        signs = np.reshape(
-            self.get_face_syndromes(code, syndrome),
-            newshape=code.size
-        )
+    def get_initial_state(
+        self, code: ToricCode3D, syndrome: np.ndarray
+    ) -> Indexer:
+        """Get initial cellular automaton state from syndrome."""
+        n_faces = len(code.face_index)
+        face_syndromes = syndrome[:n_faces]
+        signs = dict()
+        for face, index in code.face_index.items():
+            signs[face] = int(face_syndromes[index])
         return signs
 
     def decode(
@@ -82,7 +87,7 @@ class SweepDecoder3D(Decoder):
         max_sweeps = self.max_sweep_factor*int(max(code.size))
 
         # The syndromes represented as an array of 0s and 1s.
-        signs = self.get_sign_array(code, syndrome)
+        signs = self.get_initial_state(code, syndrome)
 
         # Keep track of the correction needed.
         correction = Toric3DPauli(code)
@@ -91,15 +96,15 @@ class SweepDecoder3D(Decoder):
         i_sweep = 0
 
         # Keep sweeping until there are no syndromes.
-        while np.any(signs) and i_sweep < max_sweeps:
+        while any(signs.values()) and i_sweep < max_sweeps:
             signs = self.sweep_move(signs, correction)
             i_sweep += 1
 
         return correction.to_bsf()
 
     def sweep_move(
-        self, signs: np.ndarray, correction: Toric3DPauli
-    ) -> np.ndarray:
+        self, signs: Indexer, correction: Toric3DPauli
+    ) -> Indexer:
         """Apply the sweep move once."""
 
         new_signs = signs.copy()
