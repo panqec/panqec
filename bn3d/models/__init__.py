@@ -18,8 +18,6 @@ from .planar_3d._planar_3d_code import PlanarCode3D  # noqa
 from .planar_3d._planar_3d_pauli import Planar3DPauli  # noqa
 from .rotated_planar_3d._rotated_planar_3d_code import RotatedPlanarCode3D  # noqa
 from .rotated_planar_3d._rotated_planar_3d_pauli import RotatedPlanar3DPauli  # noqa
-from .rotated_toric_3d._rotated_toric_3d_code import RotatedToricCode3D  # noqa
-from .rotated_toric_3d._rotated_toric_3d_pauli import RotatedToric3DPauli  # noqa
 from .rhombic._rhombic_code import RhombicCode  # noqa
 from .rhombic._rhombic_pauli import RhombicPauli  # noqa
 from .layered_toric._layered_rotated_toric_code import LayeredRotatedToricCode  # noqa

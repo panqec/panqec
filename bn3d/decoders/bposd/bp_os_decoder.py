@@ -380,24 +380,48 @@ class BeliefPropagationOSDDecoder(Decoder):
 
 def test_decoder():
     from bn3d.models import ToricCode3D
-    import qecsim.paulitools as pt
-    from bn3d.noise import PauliErrorModel
+    from bn3d.bpauli import bcommute, get_effective_error
+    # from bn3d.noise import PauliErrorModel
+    from bn3d.error_models import DeformedRandomErrorModel
+    import time
+    rng = np.random.default_rng()
 
-    L = 12
+    L = 20
     code = ToricCode3D(L, L, L)
+    code.stabilizers
 
     probability = 0.1
     r_x, r_y, r_z = [0.1, 0.1, 0.8]
-
-    error_model = PauliErrorModel(r_x, r_y, r_z)
-    errors = error_model.generate(code, probability)
-    syndrome = pt.bsp(errors, code.stabilizers.T)
+    error_model = DeformedRandomErrorModel(r_x, r_y, r_z, p_xz=0.5, p_yz=0.5)
 
     decoder = BeliefPropagationOSDDecoder(
         error_model, probability, joschka=True
     )
 
-    correction = decoder.decode(code, syndrome)
+    # Start timer
+    start = time.time()
+
+    n_iter = 5
+    for i in range(n_iter):
+        print(f"\nRun {code.label} {i}...")
+        print("Generate errors")
+        error = error_model.generate(code, probability=probability, rng=rng)
+        print("Calculate syndrome")
+        syndrome = bcommute(code.stabilizers, error)
+        print("Decode")
+        correction = decoder.decode(code, syndrome)
+        print("Get total error")
+        total_error = (correction + error) % 2
+        print("Get effective error")
+        effective_error = get_effective_error(
+            total_error, code.logical_xs, code.logical_zs
+        )
+        print("Check codespace")
+        codespace = bool(np.all(bcommute(code.stabilizers, total_error) == 0))
+        success = bool(np.all(effective_error == 0)) and codespace
+        print(success)
+
+    print("Average time per iteration", (time.time() - start) / n_iter)
 
 
 if __name__ == '__main__':
