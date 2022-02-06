@@ -1,7 +1,7 @@
 import itertools
 import pytest
 import numpy as np
-from qecsim.paulitools import bsf_wt
+from bn3d.bpauli import bsf_wt
 from bn3d.bpauli import bcommute
 from bn3d.models import ToricCode3D, Toric3DPauli
 from bn3d.decoders import SweepMatchDecoder
@@ -31,9 +31,9 @@ class TestSweepMatchDecoder:
     @pytest.mark.parametrize(
         'pauli, location',
         [
-            ('X', (0, 2, 2, 2)),
-            ('Y', (1, 2, 0, 3)),
-            ('Z', (2, 1, 2, 3)),
+            ('X', (5, 4, 4)),
+            ('Y', (4, 1, 6)),
+            ('Z', (2, 4, 7)),
         ]
     )
     def test_decode_single_error(self, decoder, code, pauli, location):
@@ -53,14 +53,14 @@ class TestSweepMatchDecoder:
         'paulis_locations',
         [
             [
-                ('X', (0, 2, 2, 2)),
-                ('Y', (1, 2, 0, 3)),
-                ('Z', (2, 1, 2, 3)),
+                ('X', (5, 4, 4)),
+                ('Y', (4, 1, 6)),
+                ('Z', (2, 4, 7)),
             ],
             [
-                ('Y', (0, 2, 1, 1)),
-                ('Y', (1, 2, 0, 3)),
-                ('Y', (2, 1, 2, 3)),
+                ('Y', (5, 2, 2)),
+                ('Y', (4, 1, 6)),
+                ('Y', (2, 4, 7)),
             ],
         ]
     )
@@ -86,9 +86,9 @@ class TestSweepMatchDecoder:
         ]
 
         sites = [
-            (1, 2, 2, 2),
-            (0, 1, 0, 2),
-            (2, 1, 1, 1)
+            (4, 5, 4),
+            (3, 0, 4),
+            (2, 2, 1)
         ]
 
         for code, site in itertools.product(codes, sites):
