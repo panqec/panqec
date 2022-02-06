@@ -349,7 +349,6 @@ class TestSweepDecoder3D:
         # Assert that decoding has failed.
         assert np.any(bcommute(code.stabilizers, total_error))
 
-    @pytest.mark.skip(reason='sparse')
     def test_sweep_move_two_edges(self):
         code = ToricCode3D(3, 3, 3)
         decoder = SweepDecoder3D()
@@ -363,48 +362,40 @@ class TestSweepDecoder3D:
         correction = Toric3DPauli(code)
 
         # Syndrome from errors on x edge and y edge on vertex (0, 0, 0).
-        signs = np.zeros((3, 3, 3, 3), dtype=np.uint)
-        signs[1, 1, 1, 1] = 1
-        signs[1, 1, 1, 0] = 1
-        signs[0, 1, 1, 1] = 1
-        signs[0, 1, 1, 0] = 1
-        signs[2, 1, 0, 1] = 1
-        signs[2, 0, 1, 1] = 1
-        n_faces = code.n_k_d[0]
-        assert np.all(syndrome[:n_faces].reshape(signs.shape) == signs)
+        signs = {k: 0 for k in code.face_index}
+        faces = [
+            (1, 5, 0), (0, 1, 1), (0, 1, 5),
+            (5, 1, 0), (1, 0, 1), (1, 0, 5),
+        ]
+        for face in faces:
+            signs[face] = 1
+
+        assert decoder.get_initial_state(code, syndrome) == signs
 
         # Expected signs after one sweep.
-        expected_signs_1 = np.zeros((3, 3, 3, 3), dtype=np.uint)
-        expected_signs_1[2, 1, 0, 1] = 1
-        expected_signs_1[2, 0, 1, 1] = 1
-        expected_signs_1[0, 1, 0, 1] = 1
-        expected_signs_1[0, 1, 0, 0] = 1
-        expected_signs_1[1, 0, 1, 1] = 1
-        expected_signs_1[1, 0, 1, 0] = 1
-        signs_1 = decoder.sweep_move(signs, correction)
-        assert np.all(expected_signs_1 == signs_1)
+        expected_faces_1 = [
+            (0, 5, 1), (0, 5, 5),
+            (1, 5, 0),
+            (5, 0, 1), (5, 0, 5),
+            (5, 1, 0),
+        ]
+        signs_1 = decoder.sweep_move(signs, correction, code)
+        faces_1 = [k for k, v in signs_1.items() if v]
+        assert set(expected_faces_1) == set(faces_1)
 
         # Expected signs after two sweeps, should be all gone.
-        signs_2 = decoder.sweep_move(signs_1, correction)
-        assert np.all(signs_2 == 0)
+        signs_2 = decoder.sweep_move(signs_1, correction, code)
+        assert all(np.array(list(signs_2.values())) == 0)
 
         expected_correction = Toric3DPauli(code)
-        expected_correction.site('Z', (2, 1, 1, 1))
-        expected_correction.site('Z', (0, 0, 1, 1))
-        expected_correction.site('Z', (1, 1, 0, 1))
-        expected_correction.site('Z', (2, 1, 1, 0))
+        expected_correction.site('Z', (0, 5, 0))
+        expected_correction.site('Z', (5, 0, 0))
+        expected_correction.site('Z', (0, 0, 1))
+        expected_correction.site('Z', (0, 0, 5))
 
-        # Only need to compare the Z block because sweep only corrects Z block
-        # anyway.
-        correction_edges = set(
-            map(tuple, np.array(np.where(correction._zs)).T)
-        )
-        expected_correction_edges = set(
-            map(tuple, np.array(np.where(expected_correction._zs)).T)
-        )
-
-        assert correction_edges == expected_correction_edges
-        assert np.all(correction._zs == expected_correction._zs)
+        assert np.all((
+            correction.to_bsf() == expected_correction.to_bsf()
+        ).toarray())
 
 
 def find_sites(error_pauli):
