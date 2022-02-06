@@ -393,8 +393,8 @@ class TestSweepDecoder3D:
         expected_correction.site('Z', (0, 0, 1))
         expected_correction.site('Z', (0, 0, 5))
 
-        assert np.all((
-            correction.to_bsf() == expected_correction.to_bsf()
+        assert not np.any((
+            correction.to_bsf() != expected_correction.to_bsf()
         ).toarray())
 
 
