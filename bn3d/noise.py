@@ -91,15 +91,11 @@ class XNoiseOnYZEdgesOnly(ErrorModel):
         probabilities = [1 - probability, probability]
 
         # Generate errors on y edge and z edge.
-        y_edge_errors = rng.choice(choices, size=code.size, p=probabilities)
-        z_edge_errors = rng.choice(choices, size=code.size, p=probabilities)
-
-        ranges = [range(length) for length in code.size]
-        for x, y, z in itertools.product(*ranges):
-            if y_edge_errors[x, y, z]:
-                pauli.site('X', (1, x, y, z))
-            if z_edge_errors[x, y, z]:
-                pauli.site('X', (2, x, y, z))
+        for edge in code.qubit_index.keys():
+            edge_direction = tuple(np.mod(edge, 2).tolist())
+            if edge_direction in [(0, 1, 0), (0, 0, 1)]:
+                if rng.choice(choices, p=probabilities):
+                    pauli.site('X', edge)
 
         # Convert to binary sympectic form.
         error = pauli.to_bsf()

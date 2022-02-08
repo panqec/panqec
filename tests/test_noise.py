@@ -1,11 +1,12 @@
 import numpy as np
 import itertools
 import pytest
-from qecsim.paulitools import bsf_to_pauli, bsf_wt
+from qecsim.paulitools import bsf_to_pauli
 from bn3d.noise import (
     generate_pauli_noise, deform_operator, get_deformed_weights,
     get_direction_from_bias_ratio
 )
+from bn3d.bpauli import bsf_wt
 from bn3d.bpauli import get_bvector_index
 from bn3d.noise import PauliErrorModel, XNoiseOnYZEdgesOnly
 from bn3d.models import ToricCode3D, Toric3DPauli
@@ -235,7 +236,6 @@ class TestGetDeformedWeights:
         assert np.any(weights[x_edge_indices] != weights[z_edge_indices])
 
 
-@pytest.mark.skip(reason='sparse')
 class TestXNoiseOnYZEdgesOnly:
 
     @pytest.fixture(autouse=True)
@@ -255,29 +255,36 @@ class TestXNoiseOnYZEdgesOnly:
 
     def test_generate_zero_probability(self, code, error_model, rng):
         error = error_model.generate(code, probability=0, rng=rng)
-        assert np.all(error == 0)
+
+        # Sparse array number of non-zero elements is zero.
+        assert error.nnz == 0
 
     def test_generate_probability_half(self, code, error_model, rng):
         probability = 0.5
         error = error_model.generate(code, probability=probability, rng=rng)
         pauli = Toric3DPauli(code, bsf=error)
-        indices = list(itertools.product(*[
-            range(length) for length in code.size
-        ]))
-        for x, y, z in indices:
-            assert pauli.operator((0, x, y, z)) == 'I', (
-                'All x edges should have no error'
-            )
-            assert pauli.operator((1, x, y, z)) in ['I', 'X'], (
-                'Any error on y edge must be only X error'
-            )
-            assert pauli.operator((2, x, y, z)) in ['I', 'X'], (
-                'Any error on z edge must be only X error'
-            )
 
-        assert any(error), 'Error should be non-trivial'
+        number_of_yz_edges = 0
 
-        number_of_yz_edges = 2*len(indices)
+        for edge in code.qubit_index:
+            direction = tuple(np.mod(edge, 2).tolist())
+            if direction == (1, 0, 0):
+                assert pauli.operator(edge) == 'I', (
+                    'All x edges should have no error'
+                )
+            elif direction == (0, 1, 0):
+                number_of_yz_edges += 1
+                assert pauli.operator(edge) in ['I', 'X'], (
+                    'Any error on y edge must be only X error'
+                )
+            elif direction == (0, 0, 1):
+                number_of_yz_edges += 1
+                assert pauli.operator(edge) in ['I', 'X'], (
+                    'Any error on z edge must be only X error'
+                )
+
+        assert error.nnz != 0, 'Error should be non-trivial'
+
         number_of_errors = bsf_wt(error)
         proportion_of_errors = number_of_errors/number_of_yz_edges
         assert abs(probability - proportion_of_errors) < 0.1, (
@@ -287,19 +294,20 @@ class TestXNoiseOnYZEdgesOnly:
     def test_generate_probability_one(self, code, error_model, rng):
         error = error_model.generate(code, probability=1, rng=rng)
         pauli = Toric3DPauli(code, bsf=error)
-        indices = itertools.product(*[
-            range(length) for length in code.size
-        ])
-        for x, y, z in indices:
-            assert pauli.operator((0, x, y, z)) == 'I', (
-                'All x edges should have no error'
-            )
-            assert pauli.operator((1, x, y, z)) == 'X', (
-                'All y edges should have X'
-            )
-            assert pauli.operator((2, x, y, z)) == 'X', (
-                'All z edges should have X'
-            )
+        for edge in code.qubit_index:
+            direction = tuple(np.mod(edge, 2).tolist())
+            if direction == (1, 0, 0):
+                assert pauli.operator(edge) == 'I', (
+                    'All x edges should have no error'
+                )
+            elif direction == (0, 1, 0):
+                assert pauli.operator(edge) == 'X', (
+                    'All y edges should have X'
+                )
+            elif direction == (0, 0, 1):
+                assert pauli.operator(edge) == 'X', (
+                    'All z edges should have X'
+                )
 
 
 @pytest.mark.parametrize('pauli,bias,expected', [
