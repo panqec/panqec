@@ -1,5 +1,5 @@
 from typing import Tuple
-from ..rotated_planar._rotated_planar_3d_pauli import RotatedPlanar3DPauli
+from ..rotated_planar_3d._rotated_planar_3d_pauli import RotatedPlanar3DPauli
 
 
 class LayeredToricPauli(RotatedPlanar3DPauli):

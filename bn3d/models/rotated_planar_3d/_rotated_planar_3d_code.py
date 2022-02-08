@@ -1,34 +1,28 @@
-from typing import Tuple, Dict
+from typing import Tuple
 import numpy as np
-from ._rotated_toric_3d_pauli import RotatedToric3DPauli
 from ..generic._indexed_sparse_code import IndexedSparseCode
+from ._rotated_planar_3d_pauli import RotatedPlanar3DPauli
 from ... import bsparse
 
 
-class RotatedToricCode3D(IndexedSparseCode):
+class RotatedPlanarCode3D(IndexedSparseCode):
 
-    _size: Tuple[int, int, int]
-    _qubit_index: Dict[Tuple[int, int, int], int]
-    _vertex_index: Dict[Tuple[int, int, int], int]
-    _face_index: Dict[Tuple[int, int, int], int]
-    _stabilizers = np.array([])
-    _Hx = np.array([])
-    _Hz = np.array([])
-    _logical_xs = np.array([])
-    _logical_zs = np.array([])
-    pauli_class = RotatedToric3DPauli
+    pauli_class = RotatedPlanar3DPauli
 
-    # StabilizerCode interface methods.
     @property
     def n_k_d(self) -> Tuple[int, int, int]:
         Lx, Ly, Lz = self.size
-        n_horizontals = 2*Ly*(2*Lx + 1)*Lz
-        n_verticals = (2*Lx*Ly)*Lz
-        return (n_horizontals + n_verticals, 3, -1)
+        n_horizontals = (2*Lx + 1) * (2*Ly + 1) * (Lz+1)
+        n_verticals = (Lx + 1) * 2*Ly * Lz
+        return (n_horizontals + n_verticals, 1, 2*min(Lx, Ly, Lz) + 1)
+
+    @property
+    def dimension(self) -> int:
+        return 3
 
     @property
     def label(self) -> str:
-        return 'Rotated Toric {}x{}x{}'.format(*self.size)
+        return 'Rotated Planar {}x{}x{}'.format(*self.size)
 
     @property
     def logical_xs(self) -> np.ndarray:
@@ -38,19 +32,11 @@ class RotatedToricCode3D(IndexedSparseCode):
             Lx, Ly, Lz = self.size
             logicals = bsparse.empty_row(2*self.n_k_d[0])
 
-            logical = RotatedToric3DPauli(self)
-            for y in range(1, 4*Ly, 2):
-                logical.site('X', (1, y, 1))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+            # X operators along x edges in x direction.
+            logical = RotatedPlanar3DPauli(self)
 
-            logical = RotatedToric3DPauli(self)
-            for x in range(1, 4*Lx, 2):
-                logical.site('X', (x, 1, 1))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
-
-            logical = RotatedToric3DPauli(self)
-            for z in range(0, 2*Lz, 2):
-                logical.site('X', (2, 0, z))
+            for x in range(1, 4*Lx+2, 2):
+                logical.site('X', (x, 4*Ly + 2 - x, 1))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             self._logical_xs = logicals
@@ -61,26 +47,14 @@ class RotatedToricCode3D(IndexedSparseCode):
     def logical_zs(self) -> np.ndarray:
         """Get the unique logical Z operator."""
         if self._logical_zs.size == 0:
-            Lx, Ly, Lz = self.size
+            Lx, L_y, Lz = self.size
             logicals = bsparse.empty_row(2*self.n_k_d[0])
 
             # Z operators on x edges forming surface normal to x (yz plane).
-            logical = RotatedToric3DPauli(self)
-            for (x, y, z) in self.qubit_index.keys():
-                if z % 2 == 1 and (x + y) % 4 == 2:
-                    logical.site('Z', (x, y, z))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
-
-            logical = RotatedToric3DPauli(self)
-            for (x, y, z) in self.qubit_index.keys():
-                if z % 2 == 1 and (x + y) % 4 == 0:
-                    logical.site('Z', (x, y, z))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
-
-            logical = RotatedToric3DPauli(self)
-            for (x, y, z) in self.qubit_index.keys():
-                if z == 0:
-                    logical.site('Z', (x, y, z))
+            logical = RotatedPlanar3DPauli(self)
+            for z in range(1, 2*(Lz+1), 2):
+                for x in range(1, 4*Lx+2, 2):
+                    logical.site('Z', (x, x, z))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             self._logical_zs = logicals
@@ -95,9 +69,9 @@ class RotatedToricCode3D(IndexedSparseCode):
 
         if (z % 2 == 0):
             axis = self.Z_AXIS
-        elif (x + y) % 2 == 2:
+        elif (x + y) % 4 == 2:
             axis = self.X_AXIS
-        elif (x + y) % 2 == 0:
+        elif (x + y) % 4 == 0:
             axis = self.Y_AXIS
 
         return axis
@@ -109,14 +83,14 @@ class RotatedToricCode3D(IndexedSparseCode):
 
         # Horizontal
         for x in range(1, 4*Lx+2, 2):
-            for y in range(1, 4*Ly, 2):
-                for z in range(1, 2*Lz, 2):
+            for y in range(1, 4*Ly+2, 2):
+                for z in range(1, 2*(Lz+1), 2):
                     coordinates.append((x, y, z))
 
         # Vertical
-        for x in range(2, 4*Lx+2, 2):
-            for y in range(0, 4*Ly, 2):
-                for z in range(0, 2*Lz, 2):
+        for x in range(2, 4*Lx+1, 2):
+            for y in range(0, 4*Ly+3, 2):
+                for z in range(2, 2*(Lz+1), 2):
                     if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
 
@@ -129,9 +103,9 @@ class RotatedToricCode3D(IndexedSparseCode):
 
         coordinates = []
 
-        for z in range(1, 2*Lz, 2):
+        for z in range(1, 2*(Lz+1), 2):
             for x in range(2, 4*Lx+1, 2):
-                for y in range(0, 4*Ly, 2):
+                for y in range(0, 4*Ly+3, 2):
                     if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
 
@@ -146,14 +120,14 @@ class RotatedToricCode3D(IndexedSparseCode):
 
         # Horizontal faces
         for x in range(0, 4*Lx+3, 2):
-            for y in range(0, 4*Ly-1, 2):
-                for z in range(1, 2*Lz, 2):
+            for y in range(2, 4*Ly+1, 2):
+                for z in range(1, 2*(Lz+1), 2):
                     if (x + y) % 4 == 0:
                         coordinates.append((x, y, z))
         # Vertical faces
-        for x in range(1, 4*Lx+2, 2):
-            for y in range(1, 4*Ly, 2):
-                for z in range(0, 2*Lz, 2):
+        for x in range(1, 4*Lx+3, 2):
+            for y in range(1, 4*Ly+2, 2):
+                for z in range(2, 2*(Lz+1), 2):
                     coordinates.append((x, y, z))
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
@@ -162,6 +136,6 @@ class RotatedToricCode3D(IndexedSparseCode):
 
 
 if __name__ == "__main__":
-    code = RotatedToricCode3D(2)
+    code = RotatedPlanarCode3D(2)
 
     print("Vertices", code.face_index)

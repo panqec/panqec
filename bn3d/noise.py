@@ -47,7 +47,9 @@ class PauliErrorModel(SimpleErrorModel):
             p=[p_i[i], p_x[i], p_y[i], p_z[i]]
         ) for i in range(n_qubits)])
 
-        return pt.pauli_to_bsf(error_pauli)
+        bsf = pt.pauli_to_bsf(error_pauli)
+
+        return bsf
 
     @functools.lru_cache()
     def probability_distribution(

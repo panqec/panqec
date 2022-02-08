@@ -89,14 +89,12 @@ def bcommute(a, b) -> np.ndarray:
         n = int(a.shape[1]/2)
 
         # Commute commutator by binary symplectic form.
-        commutes = np.zeros((a.shape[0], b.shape[0]), dtype=np.uint)
-        for i_a in range(a.shape[0]):
-            for i_b in range(b.shape[0]):
-                a_X = a[i_a, :n]
-                a_Z = a[i_a, n:]
-                b_X = b[i_b, :n]
-                b_Z = b[i_b, n:]
-                commutes[i_a, i_b] = np.sum(a_X*b_Z + a_Z*b_X) % 2
+        a_X = a[:, :n]
+        a_Z = a[:, n:]
+        b_X = b[:, :n]
+        b_Z = b[:, n:]
+
+        commutes = (a_X.dot(b_Z.T) + a_Z.dot(b_X.T)) % 2
 
         if output_shape is not None:
             commutes = commutes.reshape(output_shape)
@@ -109,19 +107,22 @@ def _bcommute_sparse(a, b):
 
     # Commute commutator by binary symplectic form.
     n = int(a.shape[1]/2)
-    commutes = np.zeros((a.shape[0], b.shape[0]), dtype=np.uint8)
-    for i_a in range(a.shape[0]):
-        for i_b in range(b.shape[0]):
-            a_X = a[i_a, :n]
-            a_Z = a[i_a, n:]
-            b_X = b[i_b, :n]
-            b_Z = b[i_b, n:]
-            commutes[i_a, i_b] = (
-                bsparse.dot(a_X, b_Z) + bsparse.dot(a_Z, b_X)
-            ) % 2
+
+    if not bsparse.is_sparse(a):
+        a = bsparse.from_array(a)
+    if not bsparse.is_sparse(b):
+        b = bsparse.from_array(b)
+
+    a_X = a[:, :n]
+    a_Z = a[:, n:]
+    b_X = b[:, :n]
+    b_Z = b[:, n:]
+
+    commutes = (a_X.dot(b_Z.T) + a_Z.dot(b_X.T))
+    commutes.data %= 2
 
     if commutes.shape[0] == 1 or commutes.shape[1] == 1:
-        commutes = commutes.flatten()
+        commutes = bsparse.to_array(commutes).flatten()
 
     return commutes
 

@@ -25,7 +25,8 @@ def empty_row(n_cols: int):
 def from_array(array):
     if isinstance(array, list):
         array = np.array(array)
-    return csr_matrix(array, dtype='uint8')
+    sparse_matrix = csr_matrix(array, dtype='uint8')
+    return sparse_matrix
 
 
 def to_array(matrix):

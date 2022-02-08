@@ -1,14 +1,13 @@
-import itertools
 from typing import Tuple
 import numpy as np
 from ..generic._indexed_sparse_code import IndexedSparseCode
-from ._rhombic_pauli import RhombicPauli
+from ._toric_3d_pauli import Toric3DPauli
 from ... import bsparse
 
 
-class RhombicCode(IndexedSparseCode):
+class ToricCode3D(IndexedSparseCode):
 
-    pauli_class = RhombicPauli
+    pauli_class = Toric3DPauli
 
     # StabilizerCode interface methods.
 
@@ -22,7 +21,7 @@ class RhombicCode(IndexedSparseCode):
 
     @property
     def label(self) -> str:
-        return 'Rhombic {}x{}x{}'.format(*self.size)
+        return 'Toric {}x{}x{}'.format(*self.size)
 
     @property
     def logical_xs(self) -> np.ndarray:
@@ -32,31 +31,25 @@ class RhombicCode(IndexedSparseCode):
             Lx, Ly, Lz = self.size
             logicals = bsparse.empty_row(2*self.n_k_d[0])
 
-            # Sheet of X operators normal to the z direction
+            # X operators along x edges in x direction.
             logical = self.pauli_class(self)
-            for x in range(2*Lx):
-                for y in range(2*Ly):
-                    if (x + y) % 2 == 1:
-                        logical.site('X', (x, y, 0))
+            for x in range(1, 2*Lx, 2):
+                logical.site('X', (x, 0, 0))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            # Sheet of X operators normal to the y direction
+            # X operators along y edges in y direction.
             logical = self.pauli_class(self)
-            for x in range(2*Lx):
-                for z in range(2*Lz):
-                    if (x + z) % 2 == 1:
-                        logical.site('X', (x, 0, z))
+            for y in range(1, 2*Ly, 2):
+                logical.site('X', (0, y, 0))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            # Sheet of X operators normal to the x direction
+            # X operators along z edges in z direction
             logical = self.pauli_class(self)
-            for y in range(2*Ly):
-                for z in range(2*Lz):
-                    if (y + z) % 2 == 1:
-                        logical.site('X', (0, y, z))
+            for z in range(1, 2*Lz, 2):
+                logical.site('X', (0, 0, z))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            self._logical_xs = bsparse.from_array(logicals)
+            self._logical_xs = logicals
 
         return self._logical_xs
 
@@ -67,22 +60,25 @@ class RhombicCode(IndexedSparseCode):
             Lx, Ly, Lz = self.size
             logicals = bsparse.empty_row(2*self.n_k_d[0])
 
-            # Line of parallel Z operators along the x direction
-            logical = self.pauli_class(self)
-            for x in range(0, 2*Lx, 2):
-                logical.site('Z', (x, 1, 0))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
-
-            # Line of parallel Z operators along the y direction
+            # Z operators on x edges forming surface normal to x (yz plane).
             logical = self.pauli_class(self)
             for y in range(0, 2*Ly, 2):
-                logical.site('Z', (1, y, 0))
+                for z in range(0, 2*Lz, 2):
+                    logical.site('Z', (1, y, z))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            # Line of parallel Z operators along the z direction
+            # Z operators on y edges forming surface normal to y (zx plane).
             logical = self.pauli_class(self)
             for z in range(0, 2*Lz, 2):
-                logical.site('Z', (0, 1, z))
+                for x in range(0, 2*Lx, 2):
+                    logical.site('Z', (x, 1, z))
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+
+            # Z operators on z edges forming surface normal to z (xy plane).
+            logical = self.pauli_class(self)
+            for x in range(0, 2*Lx, 2):
+                for y in range(0, 2*Ly, 2):
+                    logical.site('Z', (x, y, 1))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             self._logical_zs = logicals
@@ -130,29 +126,39 @@ class RhombicCode(IndexedSparseCode):
         return coord_to_index
 
     def _create_vertex_indices(self):
-        """ Vertex = triangle stabilizer"""
         coordinates = []
         Lx, Ly, Lz = self.size
 
         for x in range(0, 2*Lx, 2):
             for y in range(0, 2*Ly, 2):
                 for z in range(0, 2*Lz, 2):
-                    for axis in range(4):
-                        coordinates.append((axis, x, y, z))
+                    coordinates.append((x, y, z))
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 
         return coord_to_index
 
     def _create_face_indices(self):
-        """ Face = cube stabilizer"""
+        coordinates = []
         Lx, Ly, Lz = self.size
 
-        ranges = [range(1, 2*Lx, 2), range(1, 2*Ly, 2), range(1, 2*Lz, 2)]
-        coordinates = []
-        for x, y, z in itertools.product(*ranges):
-            if (x + y + z) % 4 == 1:
-                coordinates.append((x, y, z))
+        # Face in xy plane
+        for x in range(1, 2*Lx, 2):
+            for y in range(1, 2*Ly, 2):
+                for z in range(0, 2*Lz, 2):
+                    coordinates.append((x, y, z))
+
+        # Face in yz plane
+        for x in range(0, 2*Lx, 2):
+            for y in range(1, 2*Ly, 2):
+                for z in range(1, 2*Lz, 2):
+                    coordinates.append((x, y, z))
+
+        # Face in xz plane
+        for x in range(1, 2*Lx, 2):
+            for y in range(0, 2*Ly, 2):
+                for z in range(1, 2*Lz, 2):
+                    coordinates.append((x, y, z))
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 

@@ -1,55 +1,82 @@
+import itertools
 from typing import Tuple
 import numpy as np
 from ..generic._indexed_sparse_code import IndexedSparseCode
-from ._planar_3d_pauli import Planar3DPauli
+from ._xcube_pauli import XCubePauli
 from ... import bsparse
 
 
-class PlanarCode3D(IndexedSparseCode):
+class XCubeCode(IndexedSparseCode):
 
-    pauli_class = Planar3DPauli
+    pauli_class = XCubePauli
 
     # StabilizerCode interface methods.
 
     @property
     def n_k_d(self) -> Tuple[int, int, int]:
-        Lx, Ly, Lz = self.size
-        return (3 * Lx*Ly*Lz + Ly*Lz - Lx*Lz - Lx*Ly, 1, Lx + 1)
+        return (len(self.qubit_index), -1, -1)
+
+    @property
+    def dimension(self) -> int:
+        return 3
 
     @property
     def label(self) -> str:
-        return 'Planar {}x{}x{}'.format(*self.size)
+        return 'XCube {}x{}x{}'.format(*self.size)
 
     @property
     def logical_xs(self) -> np.ndarray:
-        """The 1 logical X operator."""
+        """The 3 logical X operators."""
 
         if self._logical_xs.size == 0:
             Lx, Ly, Lz = self.size
             logicals = bsparse.empty_row(2*self.n_k_d[0])
 
-            # X operators along x edges in x direction.
+            # String of parallel X operators along the x direction
             logical = self.pauli_class(self)
-            for x in range(1, 2*Lx+2, 2):
-                logical.site('X', (x, 0, 0))
+            for x in range(0, 2*Lx, 2):
+                logical.site('X', (x, 1, 0))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            self._logical_xs = logicals
+            # String of parallel X operators normal to the y direction
+            logical = self.pauli_class(self)
+            for y in range(0, 2*Ly, 2):
+                logical.site('X', (1, y, 0))
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+
+            # String of parallel X operators normal to the z direction
+            logical = self.pauli_class(self)
+            for z in range(0, 2*Lz, 2):
+                logical.site('X', (0, 1, z))
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+
+            self._logical_xs = bsparse.from_array(logicals)
 
         return self._logical_xs
 
     @property
     def logical_zs(self) -> np.ndarray:
-        """Get the 1 logical Z operator."""
+        """Get the 3 logical Z operators."""
         if self._logical_zs.size == 0:
             Lx, Ly, Lz = self.size
             logicals = bsparse.empty_row(2*self.n_k_d[0])
 
-            # Z operators on x edges forming surface normal to x (yz plane).
+            # Line of parallel Z operators along the x direction
             logical = self.pauli_class(self)
-            for y in range(0, 2*Ly, 2):
-                for z in range(0, 2*Lz, 2):
-                    logical.site('Z', (1, y, z))
+            for x in range(1, 2*Lx, 2):
+                logical.site('Z', (x, 0, 0))
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+
+            # Line of parallel Z operators along the y direction
+            logical = self.pauli_class(self)
+            for x in range(1, 2*Lx, 2):
+                logical.site('Z', (0, x, 0))
+            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+
+            # Line of parallel Z operators along the z direction
+            logical = self.pauli_class(self)
+            for z in range(1, 2*Lz, 2):
+                logical.site('Z', (0, 0, z))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             self._logical_zs = logicals
@@ -75,21 +102,21 @@ class PlanarCode3D(IndexedSparseCode):
         Lx, Ly, Lz = self.size
 
         # Qubits along e_x
-        for x in range(1, 2*Lx+3, 2):
+        for x in range(1, 2*Lx, 2):
             for y in range(0, 2*Ly, 2):
                 for z in range(0, 2*Lz, 2):
                     coordinates.append((x, y, z))
 
         # Qubits along e_y
-        for x in range(2, 2*Lx+1, 2):
-            for y in range(1, 2*Ly-1, 2):
+        for x in range(0, 2*Lx, 2):
+            for y in range(1, 2*Ly, 2):
                 for z in range(0, 2*Lz, 2):
                     coordinates.append((x, y, z))
 
         # Qubits along e_z
-        for x in range(2, 2*Lx+1, 2):
+        for x in range(0, 2*Lx, 2):
             for y in range(0, 2*Ly, 2):
-                for z in range(1, 2*Lz-1, 2):
+                for z in range(1, 2*Lz, 2):
                     coordinates.append((x, y, z))
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
@@ -97,39 +124,29 @@ class PlanarCode3D(IndexedSparseCode):
         return coord_to_index
 
     def _create_vertex_indices(self):
-        coordinates = []
+        """ Vertex = cube stabilizer"""
         Lx, Ly, Lz = self.size
 
-        for x in range(2, 2*Lx+1, 2):
-            for y in range(0, 2*Ly, 2):
-                for z in range(0, 2*Lz, 2):
-                    coordinates.append((x, y, z))
+        ranges = [range(1, 2*Lx, 2), range(1, 2*Ly, 2), range(1, 2*Lz, 2)]
+        coordinates = []
+        for x, y, z in itertools.product(*ranges):
+            coordinates.append((x, y, z))
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 
         return coord_to_index
 
     def _create_face_indices(self):
+        """ Face stabilizer (three at each vertex)"""
+
         coordinates = []
         Lx, Ly, Lz = self.size
 
-        # Face in xy plane
-        for x in range(1, 2*Lx+2, 2):
-            for y in range(1, 2*Ly-1, 2):
-                for z in range(0, 2*Lz, 2):
-                    coordinates.append((x, y, z))
-
-        # Face in yz plane
-        for x in range(2, 2*Lx+1, 2):
-            for y in range(1, 2*Ly-1, 2):
-                for z in range(1, 2*Lz, 2):
-                    coordinates.append((x, y, z))
-
-        # Face in xz plane
-        for x in range(1, 2*Lx+2, 2):
+        for x in range(0, 2*Lx, 2):
             for y in range(0, 2*Ly, 2):
-                for z in range(1, 2*Lz-1, 2):
-                    coordinates.append((x, y, z))
+                for z in range(0, 2*Lz, 2):
+                    for axis in range(3):
+                        coordinates.append((axis, x, y, z))
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 
