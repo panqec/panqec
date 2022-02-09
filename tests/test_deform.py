@@ -25,7 +25,6 @@ def rng():
     return np.random
 
 
-@pytest.mark.skip(reason='sparse')
 class TestDeformedXZZXErrorModel:
 
     @pytest.mark.parametrize(
@@ -40,45 +39,41 @@ class TestDeformedXZZXErrorModel:
         error_model = DeformedXZZXErrorModel(*noise)
         error = error_model.generate(code, probability=1, rng=rng)
         pauli = Toric3DPauli(code, bsf=error)
-        ranges = [range(length) for length in code.shape]
-        for edge, x, y, z in itertools.product(*ranges):
-            if edge == code.X_AXIS:
-                assert pauli.operator((edge, x, y, z)) == deformed
+        for edge in code.qubit_index:
+            if code.axis(edge) == code.Z_AXIS:
+                assert pauli.operator(edge) == deformed
             else:
-                assert pauli.operator((edge, x, y, z)) == original
+                assert pauli.operator(edge) == original
 
     def test_original_all_X_becomes_Z_on_deformed_axis(self, code):
         error_model = DeformedXZZXErrorModel(1, 0, 0)
         error = error_model.generate(code, probability=1)
         pauli = Toric3DPauli(code, bsf=error)
 
-        ranges = [range(length) for length in code.shape]
-        for axis, x, y, z in itertools.product(*ranges):
-            if axis == 0:
-                assert pauli.operator((axis, x, y, z)) == 'Z'
+        for edge in code.qubit_index:
+            if code.axis(edge) == code.Z_AXIS:
+                assert pauli.operator(edge) == 'Z'
             else:
-                assert pauli.operator((axis, x, y, z)) == 'X'
+                assert pauli.operator(edge) == 'X'
 
     def test_original_all_Z_becomes_X_on_deformed_axis(self, code):
         error_model = DeformedXZZXErrorModel(0, 0, 1)
         error = error_model.generate(code, probability=1)
         pauli = Toric3DPauli(code, bsf=error)
 
-        ranges = [range(length) for length in code.shape]
-        for axis, x, y, z in itertools.product(*ranges):
-            if axis == 0:
-                assert pauli.operator((axis, x, y, z)) == 'X'
+        for edge in code.qubit_index:
+            if code.axis(edge) == code.Z_AXIS:
+                assert pauli.operator(edge) == 'X'
             else:
-                assert pauli.operator((axis, x, y, z)) == 'Z'
+                assert pauli.operator(edge) == 'Z'
 
     def test_all_Y_deformed_is_still_all_Y(self, code):
         error_model = DeformedXZZXErrorModel(0, 1, 0)
         error = error_model.generate(code, probability=1)
         pauli = Toric3DPauli(code, bsf=error)
 
-        ranges = [range(length) for length in code.shape]
-        for axis, x, y, z in itertools.product(*ranges):
-            assert pauli.operator((axis, x, y, z)) == 'Y'
+        for edge in code.qubit_index:
+            assert pauli.operator(edge) == 'Y'
 
     def test_label(self, code):
         error_model = DeformedXZZXErrorModel(1, 0, 0)
