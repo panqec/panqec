@@ -14,9 +14,9 @@ class DeformedRandomErrorModel(PauliErrorModel):
     def __init__(self, r_x, r_y, r_z, p_xz, p_yz):
         super().__init__(r_x, r_y, r_z)
 
-        self.p_xz = p_xz
-        self.p_yz = p_yz
-        self.p_id = 1 - p_xz - p_yz
+        self.p_xz = np.around(p_xz, 15)
+        self.p_yz = np.around(p_yz, 15)
+        self.p_id = np.around(1 - p_xz - p_yz, 15)
 
     @property
     def label(self) -> str:
