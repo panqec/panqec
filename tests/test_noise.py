@@ -267,17 +267,17 @@ class TestXNoiseOnYZEdgesOnly:
         number_of_yz_edges = 0
 
         for edge in code.qubit_index:
-            direction = tuple(np.mod(edge, 2).tolist())
-            if direction == (1, 0, 0):
+            axis = code.axis(edge)
+            if axis == code.X_AXIS:
                 assert pauli.operator(edge) == 'I', (
                     'All x edges should have no error'
                 )
-            elif direction == (0, 1, 0):
+            elif axis == code.Y_AXIS:
                 number_of_yz_edges += 1
                 assert pauli.operator(edge) in ['I', 'X'], (
                     'Any error on y edge must be only X error'
                 )
-            elif direction == (0, 0, 1):
+            elif axis == code.Z_AXIS:
                 number_of_yz_edges += 1
                 assert pauli.operator(edge) in ['I', 'X'], (
                     'Any error on z edge must be only X error'
