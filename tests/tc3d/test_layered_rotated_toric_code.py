@@ -454,7 +454,14 @@ class TestLayeredDeformation:
         expected_sites.sort(key=lambda x: x[::-1])
         assert deformation_sites == expected_sites
 
+    @pytest.mark.skip(reason='analytics')
     def test_stabilizer_matrix(self):
+        """Run this to generate stabilizer matrix for SageMath.
+
+        The data will be saved as json files in the temp directory.
+        The data can then be used as input for a SageMath notebook
+        to find the lowest-weight Z-only logical operators by brute force.
+        """
         project_dir = os.path.dirname(
             os.path.dirname(os.path.dirname(__file__))
         )
