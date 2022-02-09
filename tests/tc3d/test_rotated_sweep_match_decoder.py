@@ -1,12 +1,12 @@
 import pytest
 from itertools import combinations
 import numpy as np
-from qecsim.paulitools import bsf_wt
 from bn3d.bpauli import bcommute
-from bn3d.tc3d import (
-    RotatedPlanarCode3D, RotatedSweepMatchDecoder, RotatedPlanar3DPauli
+from bn3d.bpauli import bsf_wt
+from bn3d.models import (
+    RotatedPlanarCode3D, RotatedPlanar3DPauli
 )
-from bn3d.tc3d._rotated_sweep_decoder import RotatedSweepDecoder3D
+from bn3d.decoders import RotatedSweepMatchDecoder, RotatedSweepDecoder3D
 
 
 class TestRotatedSweepMatchDecoder:
@@ -24,9 +24,9 @@ class TestRotatedSweepMatchDecoder:
         assert decoder.decode is not None
 
     def test_decode_trivial_syndrome(self, decoder, code):
-        syndrome = np.zeros(shape=len(code.stabilizers), dtype=np.uint)
+        syndrome = np.zeros(shape=code.stabilizers.shape[0], dtype=np.uint)
         correction = decoder.decode(code, syndrome)
-        assert correction.shape[0] == 2*code.n_k_d[0]
+        assert correction.shape == (1, 2*code.n_k_d[0])
         assert np.all(bcommute(code.stabilizers, correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 

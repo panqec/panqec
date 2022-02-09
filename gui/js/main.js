@@ -3,33 +3,37 @@ import { OrbitControls } from 'https://cdn.skypack.dev/three@0.130.0/examples/js
 import { OutlineEffect } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/effects/OutlineEffect.js';
 import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat.gui.module';
 
-import { ToricCode2D } from './codes/toric2d.js';
-import { ToricCode3D } from './codes/toric3d.js';
+import { ToricCode2D, RpToricCode2D } from './codes/toric2d.js';
+import { RotatedToricCode2D, RpRotatedToricCode2D } from './codes/rotatedToric2d.js';
+import { ToricCode3D, RpToricCode3D } from './codes/toric3d.js';
 import { RhombicCode } from './codes/rhombic.js';
-import { RotatedPlanarCode3D } from './codes/rotatedPlanar3d.js';
-import { RotatedToricCode3D } from './codes/rotatedToric3d.js';
+import { XCubeCode } from './codes/xcube.js';
+import { RotatedToricCode3D, RpRotatedToricCode3D } from './codes/rotatedToric3d.js';
 
-
-const MIN_OPACITY = 0.1;
-const MAX_OPACITY = 0.6;
-
-var defaultCode = codeDimension == 2 ? 'toric-2d' : 'rhombic';
+var defaultCode = codeDimension == 2 ? 'toric-2d' : 'toric-3d';
+var defaultSize = codeDimension == 2 ? 6 : 3;
 
 const params = {
-    opacity: MAX_OPACITY,
     errorProbability: 0.1,
-    L: 4,
+    L: defaultSize,
     deformation: "None",
     decoder: 'bp-osd-2',
     max_bp_iter: 10,
-    errorModel: 'Pure X',
-    codeName: defaultCode
+    errorModel: 'Depolarizing',
+    codeName: defaultCode,
+    rotated: false
 };
+
+let codeSize = {Lx: defaultSize, Ly: defaultSize, Lz: defaultSize}
 
 const buttons = {
     'decode': decode,
     'addErrors': addRandomErrors
 };
+
+const COLORS = {
+    background: 0x102542
+}
 
 const KEY_CODE = {'d': 68, 'r': 82, 'backspace': 8, 'o': 79, 'x': 88, 'z': 90}
 
@@ -60,7 +64,7 @@ function init() {
 function buildScene2D() {
     // Create scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color( 0x444488 );
+    scene.background = new THREE.Color( COLORS.background );
 
     // Camera
     camera = new THREE.PerspectiveCamera( 10, window.innerWidth / window.innerHeight, 0.1, 1000 );
@@ -87,7 +91,7 @@ function buildScene2D() {
 
 function buildScene3D() {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x444488);
+    scene.background = new THREE.Color(COLORS.background);
 
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
     let radius = 4;
@@ -97,11 +101,6 @@ function buildScene3D() {
     camera.position.y = radius * Math.sin(phi) * Math.sin(theta);
     camera.position.x = radius * Math.cos(phi) * Math.sin(theta);
 
-
-    let dirLight1 = new THREE.DirectionalLight( 0xffffff );
-    dirLight1.position.set( radius * Math.cos(theta), radius * Math.sin(phi) * Math.sin(theta), radius * Math.cos(phi) * Math.sin(theta));
-    scene.add( dirLight1 );
-
     const dirLight2 = new THREE.DirectionalLight( 0x002288 );
     dirLight2.position.set( - 1, - 1, - 1 );
     scene.add( dirLight2 );
@@ -109,6 +108,11 @@ function buildScene3D() {
     const dirLight3 = new THREE.DirectionalLight( 0x002288 );
     dirLight3.position.set(4, 4, 4);
     scene.add( dirLight3 );
+
+    const pointLight = new THREE.PointLight( 0xffffff, 1, 0, 1);
+    scene.add(pointLight);
+    camera.add(pointLight);
+    scene.add(camera);
 
     const ambientLight = new THREE.AmbientLight( 0x222222 );
     scene.add( ambientLight );
@@ -121,7 +125,7 @@ function buildScene3D() {
     document.body.appendChild( renderer.domElement );
 
     effect = new OutlineEffect(renderer);
-    
+
     controls = new OrbitControls( camera, renderer.domElement );
     controls.maxPolarAngle = THREE.Math.degToRad(270);
 
@@ -137,12 +141,13 @@ async function buildCode() {
     let stabilizers = await getStabilizerMatrices();
     let Hx = stabilizers['Hx'];
     let Hz = stabilizers['Hz'];
-    let indices = stabilizers['indices'];
+    let qubitIndex = stabilizers['qubit_index'];
+    let stabilizerIndex = stabilizers['stabilizer_index'];
     let logical_z = stabilizers['logical_z'];
     let logical_x = stabilizers['logical_x'];
-    let Lx = params.L;
-    let Ly = params.L;
-    let Lz = params.L;
+    let Lx = codeSize.Lx;
+    let Ly = codeSize.Ly;
+    let Lz = codeSize.Lz;
 
     if (codeDimension == 2) {
         var size = [Lx, Ly];
@@ -151,13 +156,20 @@ async function buildCode() {
         var size = [Lx, Ly, Lz]
     }
 
-    let codeClass = {'toric-2d': ToricCode2D,
-                     'toric-3d': ToricCode3D,
-                     'rhombic': RhombicCode,
-                     'rotated-planar': RotatedPlanarCode3D,
-                     'rotated-toric': RotatedToricCode3D}
+    // For each code, [unrotated picture class, rotated picture class]
+    let codeClass = {'toric-2d': [ToricCode2D, RpToricCode2D],
+                     'planar-2d': [ToricCode2D, RpToricCode2D],
+                     'rotated-planar-2d': [RotatedToricCode2D, RpRotatedToricCode2D],
+                     'toric-3d': [ToricCode3D, RpToricCode3D],
+                     'rotated-planar-3d': [RotatedToricCode3D, RpRotatedToricCode3D],
+                     'coprime-3d': [RotatedToricCode3D, RpRotatedToricCode3D],
+                     'planar-3d': [ToricCode3D, RpToricCode3D],
+                     'rhombic': [RhombicCode, RhombicCode],
+                     'xcube': [XCubeCode, XCubeCode]
+                     }
 
-    code = new codeClass[params.codeName](size, Hx, Hz, indices, scene);
+    let rotated = + params.rotated
+    code = new codeClass[params.codeName][rotated](size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
     code.logical_x = logical_x;
     code.logical_z = logical_z;
     code.build();
@@ -165,7 +177,13 @@ async function buildCode() {
 }
 
 function changeLatticeSize() {
-    params.L = parseInt(params.L)
+    codeSize.Lx = parseInt(params.L);
+    codeSize.Ly = parseInt(params.L);
+    codeSize.Lz = parseInt(params.L);
+
+    if (params.codeName == 'coprime-3d')
+        codeSize.Lx = parseInt(params.L) + 1;
+
     code.qubits.forEach(q => {
         q.material.dispose();
         q.geometry.dispose();
@@ -173,13 +191,11 @@ function changeLatticeSize() {
         scene.remove(q);
     });
 
-    ['X', 'Z'].forEach(pauli => {
-        code.stabilizers[pauli].forEach(s => {
-            s.material.dispose();
-            s.geometry.dispose();
-    
-            scene.remove(s);
-        });
+    code.stabilizers.forEach(s => {
+        s.material.dispose();
+        s.geometry.dispose();
+
+        scene.remove(s);
     });
 
     buildCode();
@@ -192,13 +208,13 @@ async function getStabilizerMatrices() {
           },
         method: 'POST',
         body: JSON.stringify({
-            'Lx': params.L,
-            'Ly': params.L,
-            'Lz': params.L,
+            'Lx': codeSize.Lx,
+            'Ly': codeSize.Ly,
+            'Lz': codeSize.Lz,
             'code_name': params.codeName
         })
     });
-    
+
     let data  = await response.json();
 
     return data;
@@ -207,13 +223,16 @@ async function getStabilizerMatrices() {
 function buildGUI() {
     gui = new GUI();
     const codeFolder = gui.addFolder('Code')
-    
-    var codes2d = {'Toric': 'toric-2d'};
-    var codes3d = {'Cubic': 'toric-3d', 'Rhombic': 'rhombic', 'Rotated Planar': 'rotated-planar', 'Rotated Toric': 'rotated-toric'};
+
+    var codes2d = {'Toric': 'toric-2d', 'Planar': 'planar-2d', 'Rotated planar': 'rotated-planar-2d'};
+    var codes3d = {'Toric 3D': 'toric-3d', 'Planar 3D': 'planar-3d', 
+                   'Rotated Planar 3D': 'rotated-planar-3d',
+                   'Rhombic': 'rhombic', 'Coprime 3D': 'coprime-3d', 'XCube': 'xcube'};
 
     var codes = codeDimension == 2 ? codes2d : codes3d;
 
     codeFolder.add(params, 'codeName', codes).name('Code type').onChange(changeLatticeSize);
+    codeFolder.add(params, 'rotated').name('Rotated picture').onChange(changeLatticeSize);
     codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
     codeFolder.open();
 
@@ -257,7 +276,7 @@ function buildInstructions() {
 
     var instructions = document.createElement('div');
     instructions.id = 'instructions';
-    instructions.innerHTML = 
+    instructions.innerHTML =
     "\
         <table style='border-spacing: 10px'>\
         <tr><td><b>Ctrl-left click</b></td><td>X error</td></tr>\
@@ -288,12 +307,12 @@ function onDocumentMouseDown(event) {
         mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 
         raycaster.setFromCamera(mouse, camera);
-                
+
         intersects = raycaster.intersectObjects(code.qubits);
         if (intersects.length == 0) return;
-        
+
         let selectedQubit = intersects[0].object;
-        
+
         if (event.ctrlKey) {
             switch (event.button) {
                 case 0: // left click
@@ -315,9 +334,9 @@ async function getCorrection(syndrome) {
           },
         method: 'POST',
         body: JSON.stringify({
-            'Lx': params.L,
-            'Ly': params.L,
-            'Lz': params.L,
+            'Lx': codeSize.Lx,
+            'Ly': codeSize.Ly,
+            'Lz': codeSize.Lz,
             'p': params.errorProbability,
             'max_bp_iter': params.max_bp_iter,
             'syndrome': syndrome,
@@ -327,7 +346,7 @@ async function getCorrection(syndrome) {
             'code_name': params.codeName
         })
     });
-    
+
     let data  = await response.json();
 
     return data
@@ -340,16 +359,16 @@ async function getRandomErrors() {
           },
         method: 'POST',
         body: JSON.stringify({
-            'Lx': params.L,
-            'Ly': params.L,
-            'Lz': params.L,
+            'Lx': codeSize.Lx,
+            'Ly': codeSize.Ly,
+            'Lz': codeSize.Lz,
             'p': params.errorProbability,
             'deformation': params.deformation,
             'error_model': params.errorModel,
             'code_name': params.codeName
         })
     });
-    
+
     let data  = await response.json();
 
     return data;

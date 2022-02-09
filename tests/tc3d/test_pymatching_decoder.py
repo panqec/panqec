@@ -1,9 +1,9 @@
 import itertools
 import pytest
 import numpy as np
-from qecsim.paulitools import bsf_wt
-from bn3d.bpauli import bcommute
-from bn3d.tc3d import Toric3DPymatchingDecoder, ToricCode3D, Toric3DPauli
+from bn3d.bpauli import bcommute, bsf_wt
+from bn3d.models import ToricCode3D, Toric3DPauli
+from bn3d.decoders import Toric3DPymatchingDecoder
 
 
 class TestToric3DPymatchingDecoder:
@@ -21,7 +21,7 @@ class TestToric3DPymatchingDecoder:
         assert decoder.decode is not None
 
     def test_decode_trivial_syndrome(self, decoder, code):
-        syndrome = np.zeros(shape=len(code.stabilizers), dtype=np.uint)
+        syndrome = np.zeros(shape=code.stabilizers.shape[0], dtype=np.uint)
         correction = decoder.decode(code, syndrome)
         assert correction.shape == 2*code.n_k_d[0]
         assert np.all(bcommute(code.stabilizers, correction) == 0)
@@ -29,7 +29,7 @@ class TestToric3DPymatchingDecoder:
 
     def test_decode_X_error(self, decoder, code):
         error = Toric3DPauli(code)
-        error.site('X', (0, 2, 2, 2))
+        error.site('X', (2, 1, 2))
         assert bsf_wt(error.to_bsf()) == 1
 
         # Measure the syndrome and ensure non-triviality.
@@ -38,13 +38,14 @@ class TestToric3DPymatchingDecoder:
 
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
+
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
     def test_decode_many_X_errors(self, decoder, code):
         error = Toric3DPauli(code)
-        error.site('X', (0, 2, 2, 2))
-        error.site('X', (1, 2, 2, 2))
-        error.site('X', (2, 2, 2, 2))
+        error.site('X', (1, 0, 0))
+        error.site('X', (0, 1, 0))
+        error.site('X', (0, 0, 3))
         assert bsf_wt(error.to_bsf()) == 3
 
         syndrome = code.measure_syndrome(error)
@@ -56,7 +57,8 @@ class TestToric3DPymatchingDecoder:
 
     def test_unable_to_decode_Z_error(self, decoder, code):
         error = Toric3DPauli(code)
-        error.site('Z', (0, 2, 2, 2))
+        error.site('Z', (1, 0, 2))
+
         assert bsf_wt(error.to_bsf()) == 1
 
         syndrome = code.measure_syndrome(error)
@@ -79,9 +81,9 @@ class TestToric3DPymatchingDecoder:
         ]
 
         sites = [
-            (1, 2, 2, 2),
-            (0, 1, 0, 2),
-            (2, 1, 1, 1)
+            (0, 0, 1),
+            (1, 0, 0),
+            (0, 1, 0)
         ]
 
         for code, site in itertools.product(codes, sites):

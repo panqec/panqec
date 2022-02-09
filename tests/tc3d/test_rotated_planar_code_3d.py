@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from bn3d.tc3d import RotatedPlanarCode3D
+from bn3d.models import RotatedPlanarCode3D
 from .indexed_code_test import IndexedCodeTest
 
 

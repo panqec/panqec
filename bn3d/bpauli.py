@@ -9,6 +9,8 @@ routines are useful specifically for dealing with the 3D code.
 """
 from typing import Union, List
 import numpy as np
+from . import bsparse
+from scipy.sparse import csr_matrix
 
 
 def barray_to_bvector(a: np.ndarray, L: int) -> np.ndarray:
@@ -42,12 +44,14 @@ def new_barray(L: int) -> np.ndarray:
     return np.zeros((3, L, L, L, 2), dtype=np.uint)
 
 
-def bcommute(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+def bcommute(a, b) -> np.ndarray:
     """Array of 0 for commutes and 1 for anticommutes bvectors."""
 
-    # Convert to arrays.
-    a = np.array(a)
-    b = np.array(b)
+    # If lists, convert to numpy
+    if isinstance(a, list):
+        a = np.array(a, dtype='uint8')
+    if isinstance(b, list):
+        b = np.array(b, dtype='uint8')
 
     # Determine the output shape.
     # In particular, flatten array where needed.
@@ -78,21 +82,47 @@ def bcommute(a: np.ndarray, b: np.ndarray) -> np.ndarray:
             'composed with length {b.shape[1]}'
         )
 
-    # Number of qubits.
-    n = int(a.shape[1]/2)
+    if bsparse.is_sparse(a) or bsparse.is_sparse(b):
+        commutes = _bcommute_sparse(a, b)
+    else:
+        # Number of qubits.
+        n = int(a.shape[1]/2)
+
+        # Commute commutator by binary symplectic form.
+        a_X = a[:, :n]
+        a_Z = a[:, n:]
+        b_X = b[:, :n]
+        b_Z = b[:, n:]
+
+        commutes = (a_X.dot(b_Z.T) + a_Z.dot(b_X.T)) % 2
+
+        if output_shape is not None:
+            commutes = commutes.reshape(output_shape)
+
+    return commutes
+
+
+def _bcommute_sparse(a, b):
+    """Array of 0 for commutes and 1 for anticommutes bvectors."""
 
     # Commute commutator by binary symplectic form.
-    commutes = np.zeros((a.shape[0], b.shape[0]), dtype=np.uint)
-    for i_a in range(a.shape[0]):
-        for i_b in range(b.shape[0]):
-            a_X = a[i_a, :n]
-            a_Z = a[i_a, n:]
-            b_X = b[i_b, :n]
-            b_Z = b[i_b, n:]
-            commutes[i_a, i_b] = np.sum(a_X*b_Z + a_Z*b_X) % 2
+    n = int(a.shape[1]/2)
 
-    if output_shape is not None:
-        commutes = commutes.reshape(output_shape)
+    if not bsparse.is_sparse(a):
+        a = bsparse.from_array(a)
+    if not bsparse.is_sparse(b):
+        b = bsparse.from_array(b)
+
+    a_X = a[:, :n]
+    a_Z = a[:, n:]
+    b_X = b[:, :n]
+    b_Z = b[:, n:]
+
+    commutes = (a_X.dot(b_Z.T) + a_Z.dot(b_X.T))
+    commutes.data %= 2
+
+    if commutes.shape[0] == 1 or commutes.shape[1] == 1:
+        commutes = bsparse.to_array(commutes).flatten()
 
     return commutes
 
@@ -131,9 +161,9 @@ def bvector_to_pauli_string(bvector: np.ndarray) -> str:
 
 
 def get_effective_error(
-    total_error: np.ndarray,
-    logical_xs: np.ndarray,
-    logical_zs: np.ndarray,
+    total_error,
+    logical_xs,
+    logical_zs,
 ) -> np.ndarray:
     """Effective Pauli error on logical qubits after decoding."""
 
@@ -222,6 +252,8 @@ def gf2_rank(rows):
 def brank(matrix):
     """Rank of a binary matrix."""
 
+    matrix = bsparse.to_array(matrix)
+
     # Convert to list of binary numbers.
     rows = [int(''.join(map(str, row)), 2) for row in matrix.astype(int)]
     return gf2_rank(rows)
@@ -261,3 +293,78 @@ def apply_deformation(
                 deformed[:, i] = bsf[:, i]
                 deformed[:, i + n] = bsf[:, i + n]
     return deformed
+
+
+def bsf_wt(bsf):
+    """
+    Return weight of given binary symplectic form.
+    :param bsf: Binary symplectic vector or matrix.
+    :type bsf: numpy.array (1d or 2d) or csr_matrix
+    :return: Weight
+    :rtype: int
+    """
+    if isinstance(bsf, np.ndarray):
+        assert np.array_equal(bsf % 2, bsf), \
+                'BSF {} is not in binary form'.format(bsf)
+        return np.count_nonzero(sum(np.hsplit(bsf, 2)))
+
+    elif isinstance(bsf, csr_matrix):
+        assert np.all(bsf.data == 1), \
+                'BSF {} is not in binary form'.format(bsf)
+
+        n = bsf.shape[1] // 2
+        x_indices = bsf.indices[bsf.indices < n]
+        z_indices = bsf.indices[bsf.indices >= n] - n
+
+        return len(np.union1d(x_indices, z_indices))
+    else:
+        raise TypeError(
+            f"bsf matrix should be a numpy array or "
+            f"csr_matrix, not {type(bsf)}"
+        )
+
+
+def bsf_to_pauli(bsf):
+    """
+    Convert the given binary symplectic form to Pauli operator(s).
+    (1 0 0 0 1 | 0 0 1 0 1) -> XIZIY
+    Assumptions:
+    * bsf is a numpy.array (1d or 2d) in binary symplectic form.
+    :param bsf: Binary symplectic vector or matrix.
+    :type bsf: numpy.array (1d or 2d)
+    :return: Pauli operators.
+    :rtype: str or list of str
+    """
+
+    if isinstance(bsf, np.ndarray):
+        assert np.array_equal(bsf % 2, bsf), \
+                'BSF {} is not in binary form'.format(bsf)
+
+        def _to_pauli(b, t=str.maketrans('0123', 'IXZY')):  # noqa: B008,E501 (deliberately reuse t)
+            xs, zs = np.hsplit(b, 2)
+            ps = (xs + zs * 2).astype(str)  # 0=I, 1=X, 2=Z, 3=Y
+            return ''.join(ps).translate(t)
+
+        if bsf.ndim == 1:
+            return _to_pauli(bsf)
+        else:
+            return [_to_pauli(b) for b in bsf]
+    else:
+        assert np.all(bsf.data == 1), \
+                'BSF {} is not in binary form'.format(bsf)
+
+        def _to_pauli(b):
+            n = bsf.shape[1] // 2
+            pauli_string = ['I' for _ in range(n)]
+            for i in b.indices:
+                if i < n:
+                    pauli_string[i] = 'X'
+                elif i >= n:
+                    if pauli_string[i - n] == 'X':
+                        pauli_string[i - n] = 'Y'
+                    else:
+                        pauli_string[i - n] = 'Z'
+
+            return ''.join(pauli_string)
+
+        return [_to_pauli(b) for b in bsf]

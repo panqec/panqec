@@ -30,7 +30,7 @@ def run_once(
         raise ValueError('Error probability must be in [0, 1].')
 
     if rng is None:
-        rng = np.random
+        rng = np.random.default_rng()
 
     error = error_model.generate(code, probability=error_probability, rng=rng)
     syndrome = bcommute(code.stabilizers, error)
@@ -443,6 +443,7 @@ def _parse_decoder_dict(
 
 def parse_run(run: Dict[str, Any]) -> Simulation:
     """Parse a single dict describing the run."""
+    print("Parse run")
     code = _parse_code_dict(run['code'])
     error_model = _parse_error_model_dict(run['noise'])
     probability = run['probability']
