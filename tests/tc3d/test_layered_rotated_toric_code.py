@@ -4,6 +4,7 @@ from typing import Tuple, List
 from abc import ABCMeta, abstractmethod
 import pytest
 import numpy as np
+from scipy.sparse import find
 from tqdm import tqdm
 from itertools import combinations
 from qecsim.model import StabilizerCode
@@ -11,6 +12,7 @@ from bn3d.models import LayeredRotatedToricCode, LayeredToricPauli
 from bn3d.bpauli import (
     bcommute, bvector_to_pauli_string, brank, apply_deformation
 )
+from bn3d.bsparse import is_sparse, to_array
 from bn3d.error_models import DeformedXZZXErrorModel
 from bn3d.decoders import BeliefPropagationOSDDecoder
 from scipy.special import comb
@@ -43,11 +45,18 @@ def print_non_commuting(
     name_1: str, name_2: str,
     max_print: int = 5
 ):
-    non_commuting = set([
-        (i, j)
-        for i, j in np.array(np.where(commutators)).T
-        if i <= j
-    ])
+    if is_sparse(commutators):
+        non_commuting = set([
+            (i, j)
+            for i, j in np.array(find(commutators))[:2].T
+            if i <= j
+        ])
+    else:
+        non_commuting = set([
+            (i, j)
+            for i, j in np.array(np.where(commutators)).T
+            if i <= j
+        ])
 
     # Print the first few non-commuting stabilizers if any found.
     if non_commuting:
@@ -75,7 +84,6 @@ def print_non_commuting(
                 break
 
 
-@pytest.mark.skip(reason='sparse')
 class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
 
     @property
@@ -155,7 +163,7 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
         )
 
         # There should be no non-commuting pairs of stabilizers.
-        assert np.all(commutators == 0)
+        assert np.all(commutators.data == 0)
 
     def test_n_indepdent_stabilizers_equals_n_minus_k(self, code):
         n, k, _ = code.n_k_d
@@ -174,10 +182,14 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
 
     def test_logical_operators_anticommute_pairwise(self, code):
         k = code.n_k_d[1]
-        assert np.all(bcommute(code.logical_xs, code.logical_xs) == 0)
-        assert np.all(bcommute(code.logical_zs, code.logical_zs) == 0)
+        assert np.all(
+            to_array(bcommute(code.logical_xs, code.logical_xs)) == 0
+        )
+        assert np.all(
+            to_array(bcommute(code.logical_zs, code.logical_zs)) == 0
+        )
         commutators = bcommute(code.logical_xs, code.logical_zs)
-        assert np.all(commutators == np.eye(k)), (
+        assert np.all(to_array(commutators) == np.eye(k)), (
             f'Not pairwise anticommuting {commutators}'
         )
 
@@ -192,10 +204,10 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
             code, z_commutators, code.logical_zs, code.stabilizers,
             'logicalZ', 'stabilizer'
         )
-        assert np.all(x_commutators == 0), (
+        assert np.all(to_array(x_commutators) == 0), (
             'logicalX not commuting with stabilizers'
         )
-        assert np.all(z_commutators == 0), (
+        assert np.all(to_array(z_commutators) == 0), (
             'logicalZ not commuting with stabilizers'
         )
 
@@ -209,9 +221,9 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
         assert rank == n - k
 
         matrix_with_logicals = np.concatenate([
-            matrix,
-            code.logical_xs,
-            code.logical_zs,
+            to_array(matrix),
+            to_array(code.logical_xs),
+            to_array(code.logical_zs),
         ])
 
         rank_with_logicals = brank(matrix_with_logicals)
@@ -244,7 +256,7 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
                 codespace = np.all(bcommute(matrix, logical) == 0)
                 if codespace:
                     matrix_with_logical = np.concatenate([
-                        matrix,
+                        to_array(matrix),
                         [logical]
                     ])
                     if brank(matrix_with_logical) == n - k + 1:
@@ -254,7 +266,6 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
                         return
 
 
-@pytest.mark.skip(reason='sparse')
 class TestLayeredRotatedToricCode2x2x1(IndexedCodeTestWithCoordinates):
     size = (2, 2, 1)
     expected_plane_edges_xy = [
@@ -271,7 +282,6 @@ class TestLayeredRotatedToricCode2x2x1(IndexedCodeTestWithCoordinates):
     expected_vertical_z = [2]
 
 
-@pytest.mark.skip(reason='sparse')
 class TestLayeredRotatedToricCode3x2x1(IndexedCodeTestWithCoordinates):
     size = (3, 2, 1)
     expected_plane_edges_xy = [
@@ -310,7 +320,6 @@ class TestLayeredRotatedToricCode3x3x3(IndexedCodeTestWithCoordinates):
     expected_vertical_z = [2, 4, 6]
 
 
-@pytest.mark.skip(reason='sparse')
 class TestLayeredRotatedToricCode4x3x3(IndexedCodeTestWithCoordinates):
     size = (4, 3, 3)
     expected_plane_edges_xy = [
@@ -332,7 +341,6 @@ class TestLayeredRotatedToricCode4x3x3(IndexedCodeTestWithCoordinates):
     expected_vertical_z = [2, 4, 6]
 
 
-@pytest.mark.skip(reason='sparse')
 class TestLayeredRotatedToricCode3x4x3(IndexedCodeTestWithCoordinates):
     size = (3, 4, 3)
     expected_plane_edges_xy = [
@@ -354,7 +362,6 @@ class TestLayeredRotatedToricCode3x4x3(IndexedCodeTestWithCoordinates):
     expected_vertical_z = [2, 4, 6]
 
 
-@pytest.mark.skip(reason='sparse')
 class TestLayeredRotatedToricCode4x4x3(IndexedCodeTestWithCoordinates):
     size = (4, 4, 3)
     expected_plane_edges_xy = [
@@ -379,7 +386,6 @@ class TestLayeredRotatedToricCode4x4x3(IndexedCodeTestWithCoordinates):
     expected_vertical_z = [2, 4, 6]
 
 
-@pytest.mark.skip(reason='sparse')
 class TestLayeredRotatedToricPauli:
 
     size = (4, 3, 3)
@@ -398,7 +404,7 @@ class TestLayeredRotatedToricPauli:
         for vertex in vertices:
             operator = LayeredToricPauli(code)
             operator.vertex('Z', vertex)
-            assert sum(operator.to_bsf()) == 6
+            assert operator.to_bsf().sum() == 6
 
     def test_vertex_operator_on_boundary_has_weight_5(self, code):
         vertices = [
@@ -409,7 +415,7 @@ class TestLayeredRotatedToricPauli:
         for vertex in vertices:
             operator = LayeredToricPauli(code)
             operator.vertex('Z', vertex)
-            assert sum(operator.to_bsf()) == 5
+            assert operator.to_bsf().sum() == 5
 
     def test_every_face_operator_in_bulk_has_weight_4(self, code):
         for face in code.face_index:
@@ -417,10 +423,9 @@ class TestLayeredRotatedToricPauli:
             if x > 1 and y > 1 and z > 1 and z < 2*self.size[2] + 1:
                 operator = LayeredToricPauli(code)
                 operator.face('X', face)
-                assert sum(operator.to_bsf()) == 4
+                assert operator.to_bsf().sum() == 4
 
 
-@pytest.mark.skip(reason='sparse')
 class TestLayeredDeformation:
 
     def test_deformation_index(self):
@@ -449,7 +454,6 @@ class TestLayeredDeformation:
         expected_sites.sort(key=lambda x: x[::-1])
         assert deformation_sites == expected_sites
 
-    @pytest.mark.skip(reason='sparse')
     def test_stabilizer_matrix(self):
         project_dir = os.path.dirname(
             os.path.dirname(os.path.dirname(__file__))
@@ -471,20 +475,20 @@ class TestLayeredDeformation:
                 'coords': coords,
                 'undeformed': {
                     'n_k_d': code.n_k_d,
-                    'stabilizers': code.stabilizers.tolist(),
-                    'logical_xs': code.logical_xs.tolist(),
-                    'logical_zs': code.logical_zs.tolist(),
+                    'stabilizers': to_array(code.stabilizers).tolist(),
+                    'logical_xs': to_array(code.logical_xs).tolist(),
+                    'logical_zs': to_array(code.logical_zs).tolist(),
                 },
                 'deformed': {
                     'n_k_d': code.n_k_d,
                     'stabilizers': apply_deformation(
-                        deformation_index, code.stabilizers
+                        deformation_index, to_array(code.stabilizers)
                     ).tolist(),
                     'logical_xs': apply_deformation(
-                        deformation_index, code.logical_xs
+                        deformation_index, to_array(code.logical_xs)
                     ).tolist(),
                     'logical_zs': apply_deformation(
-                        deformation_index, code.logical_zs
+                        deformation_index, to_array(code.logical_zs)
                     ).tolist(),
                 }
             })
@@ -494,7 +498,6 @@ class TestLayeredDeformation:
             }, f)
 
 
-@pytest.mark.skip(reason='sparse')
 class TestBPOSDOnLayeredToricCodeOddTimesEven:
 
     @pytest.mark.parametrize('pauli', ['X', 'Y', 'Z'])
