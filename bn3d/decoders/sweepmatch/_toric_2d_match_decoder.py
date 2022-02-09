@@ -17,14 +17,14 @@ class Toric2DPymatchingDecoder(Decoder):
     def _new_matchers(self, code: ToricCode) -> Tuple[Matching, Matching]:
         """Return a new tuple of Matching objects."""
         # Get the number of X stabilizers (faces).
-        n_vertices = int(np.product(code.size))
-        n_qubits = code.n_k_d[0]
+        # n_vertices = int(np.product(code.size))
+        # n_qubits = code.n_k_d[0]
 
         # Matcher for Z stabilizers to detect X errors.
-        H_z = code.stabilizers[:n_vertices, n_qubits:]
-
+        H_z = code.Hz
         # Matcher for X stabilizers to detect Z errors.
-        H_x = code.stabilizers[n_vertices:, :n_qubits]
+        H_x = code.Hx
+
         return Matching(H_z), Matching(H_x)
 
     def get_matchers(self, code: ToricCode) -> Tuple[Matching, Matching]:
@@ -62,7 +62,7 @@ class Toric2DPymatchingDecoder(Decoder):
         correction_z = matcher_x.decode(syndromes_x, num_neighbours=None)
 
         # Load it into the X block of the full bsf.
-        correction[:n_qubits] = correction_x
-        correction[n_qubits:] = correction_z
+        correction[n_qubits:] = correction_x
+        correction[:n_qubits] = correction_z
 
         return correction
