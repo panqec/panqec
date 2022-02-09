@@ -10,7 +10,7 @@ from qecsim.models.basic import FiveQubitCode
 from qecsim.models.generic import NaiveDecoder
 from .models import (
     ToricCode3D, ToricCode2D,
-    RotatedPlanarCode3D,
+    RotatedPlanarCode3D, XCubeCode,
     LayeredRotatedToricCode, RhombicCode
 )
 from .decoders import (
@@ -62,6 +62,7 @@ CODES = {
     'RotatedPlanarCode3D': RotatedPlanarCode3D,
     'FiveQubitCode': FiveQubitCode,
     'LayeredRotatedToricCode': LayeredRotatedToricCode,
+    'XCubeCode': XCubeCode
 }
 ERROR_MODELS = {
     'PauliErrorModel': PauliErrorModel,
