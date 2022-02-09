@@ -8,7 +8,7 @@ from bn3d.models import (
 )
 from bn3d.decoders import (
     Toric2DPymatchingDecoder, RotatedSweepMatchDecoder,
-    RotatedInfiniteZBiasDecoder, SweepMatchDecoder
+    RotatedInfiniteZBiasDecoder, SweepMatchDecoder, Toric2DPymatchingDecoder
 )
 from bn3d.decoders import BeliefPropagationOSDDecoder, DeformedSweepMatchDecoder
 from bn3d.noise import PauliErrorModel
