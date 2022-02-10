@@ -19,6 +19,7 @@ for repeat in $(seq 1 10); do
         --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
         --eta "300" --prob "0.19:0.23:0.01"
     bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 6 --partition $queue \
+        --memory "$memory" \
         --wall_time "$wall_time" --trials 50000 --split 40 $sbatch_dir/$name.sbatch
 done
 
@@ -36,6 +37,7 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "30,100,inf" --prob "0:0.55:0.05"
 bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 39 --partition $queue \
+    --memory "$memory" \
     --wall_time "$wall_time" --trials 10000 --split 40 $sbatch_dir/$name.sbatch
 
 # Final runs.
