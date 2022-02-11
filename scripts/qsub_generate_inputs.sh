@@ -12,13 +12,13 @@ wall_time="14:00:00"
 memory="2G"
 
 bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class XCodeCode --noise_class PauliErrorModel \
+    --code_class XCubeCode --noise_class PauliErrorModel \
     --ratio equal \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
     --eta "0.5" --prob "0.001:0.5:0.01"
 
 bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class XCodeCode --noise_class PauliErrorModel \
+    --code_class XCubeCode --noise_class PauliErrorModel \
     --ratio equal \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
     --eta "100" --prob "0.001:0.5:0.01"
