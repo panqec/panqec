@@ -49,7 +49,7 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "inf" --prob "0.07:0.17:0.005"
 
-bn3d generate-qsub --data_dir "$paper_dir/$name" --n_array 205 --memory "$memory" \
+bn3d generate-qsub --data_dir "$paper_dir/$name" --n_array 126 --memory "$memory" \
     --wall_time "$wall_time" --trials 10000 --split 36 "$qsub_dir/$name.qsub"
 
 
@@ -98,5 +98,5 @@ bn3d generate-input -i "$paper_dir/$name/inputs" \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "inf" --prob "0.001:0.5:0.01"
 
-bn3d generate-qsub --data_dir "$paper_dir/$name" --n_array 126 --memory "$memory" \
+bn3d generate-qsub --data_dir "$paper_dir/$name" --n_array 205 --memory "$memory" \
     --wall_time "$wall_time" --trials 10000 --split 36 "$qsub_dir/$name.qsub"
