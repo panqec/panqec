@@ -60,7 +60,7 @@ rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
 sizes="9,13,17,21"
 wall_time="48:00:00"
-memory="150G"
+memory="5G"
 
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
