@@ -5,67 +5,63 @@ mkdir -p "$sbatch_dir"
 mkdir -p temp/paper/share
 
 # Sweepmatch undeformed
-for repeat in $(seq 1 10); do
-    name=unrot_sweepmatch_undef_zbias_$repeat
-    rm -rf $paper_dir/$name/inputs
-    rm -rf $paper_dir/$name/logs
-    sizes="9,11,13,17,21"
-    wall_time="3-00:00"
-    memory="93GB"
-    queue=pml
-    bn3d generate-input -i "$paper_dir/$name/inputs" \
-        --code_class ToricCode3D --noise_class PauliErrorModel \
-        --ratio equal \
-        --sizes "$sizes" --decoder SweepMatchDecoder --bias Z \
-        --eta "0.5,1" --prob "0:0.1:0.01"
-    bn3d generate-input -i "$paper_dir/$name/inputs" \
-        --code_class ToricCode3D --noise_class PauliErrorModel \
-        --ratio equal \
-        --sizes "$sizes" --decoder SweepMatchDecoder --bias Z \
-        --eta "3" --prob "0.08:0.18:0.01"
-    bn3d generate-input -i "$paper_dir/$name/inputs" \
-        --code_class ToricCode3D --noise_class PauliErrorModel \
-        --ratio equal \
-        --sizes "$sizes" --decoder SweepMatchDecoder --bias Z \
-        --eta "10,30,100,1000,inf" --prob "0.1:0.2:0.01"
-    bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 80 --partition $queue \
-        --memory "$memory" \
-        --wall_time "$wall_time" --trials 1000 --split 40 $sbatch_dir/$name.sbatch
-done
+name=unrot_sweepmatch_undef_zbias
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="9,11,13,17,21"
+wall_time="5-00:00"
+memory="93GB"
+queue=pml
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class ToricCode3D --noise_class PauliErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder SweepMatchDecoder --bias Z \
+    --eta "0.5,1" --prob "0:0.1:0.01"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class ToricCode3D --noise_class PauliErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder SweepMatchDecoder --bias Z \
+    --eta "3" --prob "0.08:0.18:0.01"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class ToricCode3D --noise_class PauliErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder SweepMatchDecoder --bias Z \
+    --eta "10,30,100,1000,inf" --prob "0.1:0.2:0.01"
+bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 93 --partition $queue \
+    --memory "$memory" \
+    --wall_time "$wall_time" --trials 10000 --split 40 $sbatch_dir/$name.sbatch
 
 # Sweepmatch XZZX
-for repeat in $(seq 1 10); do
-    name=unrot_sweepmatch_xzzx_zbias_$repeat
-    rm -rf $paper_dir/$name/inputs
-    rm -rf $paper_dir/$name/logs
-    sizes="9,11,13,17,21"
-    wall_time="3-00:00"
-    memory="93GB"
-    queue=pml
-    bn3d generate-input -i "$paper_dir/$name/inputs" \
-        --code_class ToricCode3D --noise_class DeformedXZZXErrorModel \
-        --ratio equal \
-        --sizes "$sizes" --decoder DeformedSweepMatchDecoder --bias Z \
-        --eta "0.5,1" --prob "0:0.1:0.01"
-    bn3d generate-input -i "$paper_dir/$name/inputs" \
-        --code_class ToricCode3D --noise_class DeformedXZZXErrorModel \
-        --ratio equal \
-        --sizes "$sizes" --decoder DeformedSweepMatchDecoder --bias Z \
-        --eta "3" --prob "0.03:0.13:0.01"
-    bn3d generate-input -i "$paper_dir/$name/inputs" \
-        --code_class ToricCode3D --noise_class DeformedXZZXErrorModel  \
-        --ratio equal \
-        --sizes "$sizes" --decoder DeformedSweepMatchDecoder --bias Z \
-        --eta "10" --prob "0.09:0.19:0.01"
-    bn3d generate-input -i "$paper_dir/$name/inputs" \
-        --code_class ToricCode3D --noise_class DeformedXZZXErrorModel \
-        --ratio equal \
-        --sizes "$sizes" --decoder DeformedSweepMatchDecoder --bias Z \
-        --eta "30,100,1000,inf" --prob "0.16:0.26:0.01"
-    bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 80 --partition $queue \
-        --memory "$memory" \
-        --wall_time "$wall_time" --trials 1000 --split 40 $sbatch_dir/$name.sbatch
-done
+name=unrot_sweepmatch_xzzx_zbias
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="9,11,13,17,21"
+wall_time="5-00:00"
+memory="93GB"
+queue=pml
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class ToricCode3D --noise_class DeformedXZZXErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder DeformedSweepMatchDecoder --bias Z \
+    --eta "0.5,1" --prob "0:0.1:0.01"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class ToricCode3D --noise_class DeformedXZZXErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder DeformedSweepMatchDecoder --bias Z \
+    --eta "3" --prob "0.03:0.13:0.01"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class ToricCode3D --noise_class DeformedXZZXErrorModel  \
+    --ratio equal \
+    --sizes "$sizes" --decoder DeformedSweepMatchDecoder --bias Z \
+    --eta "10" --prob "0.09:0.19:0.01"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class ToricCode3D --noise_class DeformedXZZXErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder DeformedSweepMatchDecoder --bias Z \
+    --eta "30,100,1000,inf" --prob "0.16:0.26:0.01"
+bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 94 --partition $queue \
+    --memory "$memory" \
+    --wall_time "$wall_time" --trials 10000 --split 40 $sbatch_dir/$name.sbatch
 
 
 # # Subthreshold scaling coprime 4k+2 runs for scaling with distance.
