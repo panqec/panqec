@@ -170,85 +170,85 @@ bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 94 --partition $queue \
 #     --eta "inf" --prob "0.209:0.229:0.002"
 # bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 14 --queue $queue \
 
-# name=det_rhombic_bposd_undef_xbias
-# rm -rf $paper_dir/$name/inputs
-# rm -rf $paper_dir/$name/logs
-# sizes="10,14,18,22"
-# wall_time="14-00:00"
-# memory="90GB"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "0.5" --prob "0.010:0.020:0.001"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "3" --prob "0.026:0.046:0.002"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "10" --prob "0.070:0.130:0.005"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "20" --prob "0.15:0.22:0.006"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "30" --prob "0.25:0.32:0.006"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "100,inf" --prob "0.25:0.30:0.005"
-# bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 42 --memory "$memory" \
-#     --wall_time "$wall_time" --trials 10000 --split 20 $sbatch_dir/$name.sbatch
-# 
-# name=det_rhombic_bposd_xzzx_xbias
-# rm -rf $paper_dir/$name/inputs
-# rm -rf $paper_dir/$name/logs
-# sizes="10,14,18,22"
-# wall_time="14-00:00"
-# memory="90GB"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "0.5" --prob "0.010:0.020:0.001"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "3" --prob "0.025:0.035:0.001"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "10" --prob "0.05:0.07:0.002"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "30" --prob "0.07:0.11:0.004"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "100" --prob "0.09:0.18:0.01"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "1000" --prob "0.10:0.50:0.02"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "inf" --prob "0.30:0.50:0.02"
-# bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 45 --memory "$memory" \
-#     --wall_time "$wall_time" --trials 10000 --split 8 $sbatch_dir/$name.sbatch
+name=det_rhombic_bposd_undef_xbias
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="10,14,18,22"
+wall_time="14-00:00"
+memory="90GB"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class RhombicCode --noise_class PauliErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+    --eta "0.5" --prob "0.010:0.020:0.001"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class RhombicCode --noise_class PauliErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+    --eta "3" --prob "0.026:0.046:0.002"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class RhombicCode --noise_class PauliErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+    --eta "10" --prob "0.070:0.130:0.005"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class RhombicCode --noise_class PauliErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+    --eta "20" --prob "0.15:0.22:0.006"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class RhombicCode --noise_class PauliErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+    --eta "30" --prob "0.25:0.32:0.006"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class RhombicCode --noise_class PauliErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+    --eta "100,inf" --prob "0.25:0.30:0.005"
+bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 42 --memory "$memory" \
+    --wall_time "$wall_time" --trials 10000 --split 20 $sbatch_dir/$name.sbatch
+
+name=det_rhombic_bposd_xzzx_xbias
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="10,14,18,22"
+wall_time="14-00:00"
+memory="90GB"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+    --eta "0.5" --prob "0.010:0.020:0.001"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+    --eta "3" --prob "0.025:0.035:0.001"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+    --eta "10" --prob "0.05:0.07:0.002"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+    --eta "30" --prob "0.07:0.11:0.004"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+    --eta "100" --prob "0.09:0.18:0.01"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+    --eta "1000" --prob "0.10:0.50:0.02"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+    --eta "inf" --prob "0.30:0.50:0.02"
+bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 45 --memory "$memory" \
+    --wall_time "$wall_time" --trials 10000 --split 8 $sbatch_dir/$name.sbatch
