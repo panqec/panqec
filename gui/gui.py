@@ -10,7 +10,7 @@ from bn3d.decoders import (
     Toric2DPymatchingDecoder, RotatedSweepMatchDecoder,
     RotatedInfiniteZBiasDecoder, SweepMatchDecoder, Toric2DPymatchingDecoder
 )
-from bn3d.decoders import BeliefPropagationOSDDecoder, DeformedSweepMatchDecoder
+from bn3d.decoders import BeliefPropagationOSDDecoder, MemoryBeliefPropagationDecoder, DeformedSweepMatchDecoder
 from bn3d.noise import PauliErrorModel
 from bn3d.error_models import (
     DeformedXZZXErrorModel, DeformedXYErrorModel, DeformedRhombicErrorModel
@@ -31,6 +31,7 @@ error_model_class = {'None': PauliErrorModel,
                      'Rhombic': DeformedRhombicErrorModel}
 
 noise_directions = {'Pure X': (1, 0, 0),
+                    'Pure Y': (0, 1, 0),
                     'Pure Z': (0, 0, 1),
                     'Depolarizing': (1/3, 1/3, 1/3)}
 
@@ -162,6 +163,9 @@ def send_correction():
         decoder = BeliefPropagationOSDDecoder(error_model, p,
                                               max_bp_iter=max_bp_iter,
                                               joschka=True)
+    elif decoder_name == 'mbp':
+        decoder = MemoryBeliefPropagationDecoder(error_model, p,
+                                                 max_bp_iter=max_bp_iter)
     elif decoder_name == 'matching':
         decoder = Toric2DPymatchingDecoder()
     elif decoder_name == 'sweepmatch':

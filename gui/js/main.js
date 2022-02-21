@@ -17,7 +17,7 @@ const params = {
     errorProbability: 0.1,
     L: defaultSize,
     deformation: "None",
-    decoder: 'bp-osd-2',
+    decoder: 'mbp',
     max_bp_iter: 10,
     errorModel: 'Depolarizing',
     codeName: defaultCode,
@@ -237,7 +237,7 @@ function buildGUI() {
     codeFolder.open();
 
     const errorModelFolder = gui.addFolder('Error Model')
-    errorModelFolder.add(params, 'errorModel', {'Pure X': 'Pure X', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}).name('Model');
+    errorModelFolder.add(params, 'errorModel', {'Pure X': 'Pure X', 'Pure Y': 'Pure Y', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}).name('Model');
     errorModelFolder.add(params, 'errorProbability', 0, 0.5).name('Probability');
     errorModelFolder.add(params, 'deformation', {'None': 'None', 'XZZX': 'XZZX', 'XY': 'XY', 'Rhombic': 'Rhombic'}).name('Deformation');
     errorModelFolder.add(buttons, 'addErrors').name('▶ Add errors (r)');
@@ -245,7 +245,7 @@ function buildGUI() {
 
     const decoderFolder = gui.addFolder('Decoder')
     decoderFolder.add(params, 'decoder', {
-        'BP-OSD': 'bp-osd', 'BP-OSD-2': 'bp-osd-2',
+        'BP-OSD': 'bp-osd', 'BP-OSD-2': 'bp-osd-2', 'MBP': 'mbp',
         'SweepMatch': 'sweepmatch', 'InfZOpt': 'infzopt',
         'Matching 2D': 'matching'
     }).name('Decoder');

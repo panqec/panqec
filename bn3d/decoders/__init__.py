@@ -18,4 +18,5 @@ from .optimal._rotated_infzbias_decoder import (  # noqa
 )
 
 from .bposd.bp_os_decoder import BeliefPropagationOSDDecoder  # noqa
+from .bposd.mbp_decoder import MemoryBeliefPropagationDecoder  # noqa
 from .foliated._foliated_decoder import FoliatedMatchingDecoder  # noqa

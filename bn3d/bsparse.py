@@ -16,6 +16,12 @@ def zero_row(n_cols: int):
     return csr_matrix((np.array([]), (np.array([]), np.array([]))), shape=(1, n_cols), dtype='uint8')
 
 
+def zero_matrix(shape):
+    """Create a zero sparse matrix in the csr format"""
+
+    return csr_matrix((np.array([]), (np.array([]), np.array([]))), shape=shape, dtype='uint8')
+
+
 def empty_row(n_cols: int):
     """Create an empty sparse row in the csr format"""
 
