@@ -4,90 +4,99 @@ qsub_dir=temp/paper/qsub
 mkdir -p "$qsub_dir"
 mkdir -p temp/paper/share
 
-name=det_rhombic_bposd_undef_xbias
+# ============== Undeformed ==============
+
+name=det_xcube_bposd_undef_zbias
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
-sizes="4,6"
-wall_time="14:00:00"
-memory="2G"
-bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class RhombicCode --noise_class PauliErrorModel \
-    --ratio equal \
-    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "0.5" --prob "0.010:0.020:0.001"
-bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class RhombicCode --noise_class PauliErrorModel \
-    --ratio equal \
-    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "3" --prob "0.036:0.046:0.001"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "10" --prob "0.103:0.123:0.002"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "15" --prob "0.148:0.168:0.002"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "20" --prob "0.205:0.225:0.002"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "25" --prob "0.255:0.275:0.002"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "30" --prob "0.290:0.310:0.002"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "100,inf" --prob "0.284:0.304:0.002"
-bn3d generate-qsub --data_dir "$paper_dir/$name" --n_array 23 --memory "$memory" \
-    --wall_time "$wall_time" --trials 100 --split 10 $sbatch_dir/$name.qsub
+sizes="9,13,17,21"
+wall_time="48:00:00"
+memory="5G"
 
-# name=det_rhombic_bposd_xzzx_xbias
-# rm -rf $paper_dir/$name/inputs
-# rm -rf $paper_dir/$name/logs
-# sizes="4,6"
-# wall_time="14:00:00"
-# memory="2G"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "0.5" --prob "0.010:0.020:0.001"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "3" --prob "0.025:0.035:0.001"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "10" --prob "0.05:0.07:0.002"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "30" --prob "0.09:0.13:0.004"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "100" --prob "0.185:0.205:0.002"
-# bn3d generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-#     --ratio equal \
-#     --sizes "6,8,10,12" --decoder BeliefPropagationOSDDecoder --bias X \
-#     --eta "inf" --prob "0.388:0.408:0.002"
-# bn3d generate-qsub --data_dir "$paper_dir/$name" --n_array 35 --memory "$memory" \
-#     --wall_time "$wall_time" --trials 100 --split 8 $sbatch_dir/$name.qsub
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class XCubeCode --noise_class PauliErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "0.5" --prob "0.05:0.15:0.005"
+
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class XCubeCode --noise_class PauliErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "3" --prob "0.08:0.18:0.005"
+
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class XCubeCode --noise_class PauliErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "10" --prob "0.07:0.17:0.005"
+
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class XCubeCode --noise_class PauliErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "30" --prob "0.07:0.17:0.005"
+
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class XCubeCode --noise_class PauliErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "100" --prob "0.07:0.17:0.005"
+
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class XCubeCode --noise_class PauliErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "inf" --prob "0.07:0.17:0.005"
+
+bn3d generate-qsub --data_dir "$paper_dir/$name" --n_array 126 --memory "$memory" \
+    --wall_time "$wall_time" --trials 10000 --split 36 "$qsub_dir/$name.qsub"
+
+
+# ============== Deformed ==============
+
+name=det_xcube_bposd_xzzx_zbias
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="9,13,17,21"
+wall_time="48:00:00"
+memory="5G"
+
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "0.5" --prob "0.05:0.15:0.005"
+
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "3" --prob "0.06:0.15:0.005"
+
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "10" --prob "0.08:0.2:0.005"
+
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "30" --prob "0.1:0.25:0.005"
+
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "100" --prob "0.015:0.3:0.005"
+
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "inf" --prob "0.001:0.5:0.01"
+
+bn3d generate-qsub --data_dir "$paper_dir/$name" --n_array 205 --memory "$memory" \
+    --wall_time "$wall_time" --trials 10000 --split 36 "$qsub_dir/$name.qsub"

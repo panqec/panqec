@@ -297,12 +297,14 @@ class BeliefPropagationOSDDecoder(Decoder):
         probabilities = np.hstack([probabilities_z, probabilities_x])
 
         if self._joschka:
+            # Load saved decoders
             if code.label in self._x_decoder.keys():
                 x_decoder = self._x_decoder[code.label]
                 z_decoder = self._z_decoder[code.label]
             elif code.label in self._decoder.keys():
                 decoder = self._decoder[code.label]
 
+            # Initialize new decoders otherwise
             else:
                 if is_css:
                     z_decoder = bposd_decoder(
@@ -342,18 +344,30 @@ class BeliefPropagationOSDDecoder(Decoder):
                     self._decoder[code.label] = decoder
 
             if is_css:
+                # Update probabilities (in case the distribution is new at each iteration)
+                x_decoder.update_channel_probs(probabilities_x)
+                z_decoder.update_channel_probs(probabilities_z)
+
+                # Decode Z errors
                 z_decoder.decode(syndrome_z)
                 z_correction = z_decoder.osdw_decoding
 
+                # Bayes update of the probability
                 new_x_probs = self.update_probabilities(
                     z_correction, px, py, pz, direction="z->x"
                 )
                 x_decoder.update_channel_probs(new_x_probs)
+
+                # Decode X errors
                 x_decoder.decode(syndrome_x)
                 x_correction = x_decoder.osdw_decoding
 
                 correction = np.concatenate([x_correction, z_correction])
             else:
+                # Update probabilities (in case the distribution is new at each iteration)
+                decoder.update_channel_probs(probabilities_x)
+
+                # Decode all errors
                 decoder.decode(syndrome)
                 correction = decoder.osdw_decoding
                 correction = np.concatenate([correction[n_qubits:], correction[:n_qubits]])

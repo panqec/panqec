@@ -7,11 +7,10 @@ Settings from environmental variables and config files.
 import os
 from dotenv import load_dotenv
 from qecsim.models.basic import FiveQubitCode
-from qecsim.models.toric import ToricCode
 from qecsim.models.generic import NaiveDecoder
 from .models import (
-    ToricCode3D,
-    RotatedPlanarCode3D,
+    ToricCode3D, ToricCode2D,
+    RotatedPlanarCode3D, XCubeCode,
     LayeredRotatedToricCode, RhombicCode
 )
 from .decoders import (
@@ -57,12 +56,13 @@ if os.getenv('BN3D_DIR') is not None:
 
 # Register your models here.
 CODES = {
-    'ToricCode': ToricCode,
+    'ToricCode2D': ToricCode2D,
     'ToricCode3D': ToricCode3D,
     'RhombicCode': RhombicCode,
     'RotatedPlanarCode3D': RotatedPlanarCode3D,
     'FiveQubitCode': FiveQubitCode,
     'LayeredRotatedToricCode': LayeredRotatedToricCode,
+    'XCubeCode': XCubeCode
 }
 ERROR_MODELS = {
     'PauliErrorModel': PauliErrorModel,
