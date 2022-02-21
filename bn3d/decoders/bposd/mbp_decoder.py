@@ -32,15 +32,21 @@ def symplectic_to_pauli(H):
     return new_H
 
 
-def pauli_to_symplectic(a):
+def pauli_to_symplectic(a, reverse=False):
     n = a.shape[0]
     new_a = np.zeros(2*n, dtype='uint8')
 
     for i in range(n):
-        if a[i] == 3 or a[i] == 2:
-            new_a[i] = 1
-        if a[i] == 1 or a[i] == 2:
-            new_a[i + n] = 1
+        if not reverse:
+            if a[i] == 1 or a[i] == 2:
+                new_a[i] = 1
+            if a[i] == 3 or a[i] == 2:
+                new_a[i + n] = 1
+        else:
+            if a[i] == 3 or a[i] == 2:
+                new_a[i] = 1
+            if a[i] == 1 or a[i] == 2:
+                new_a[i + n] = 1
 
     return new_a
 
@@ -108,32 +114,39 @@ def mbp_decoder(H,
     for iter in range(max_bp_iter):
         print(f"\nIter {iter+1} / {max_bp_iter}")
 
-        # ---------------- Horizontal step ----------------
-        for m in range(n_stabs):
-            neighboring_qubits = H_pauli[m].nonzero()[1]
+        gamma_q = np.zeros((3, n_qubits))
+        for n in range(n_qubits):
+            neighboring_stabs = H_pauli[:, n].nonzero()[0]
 
-            for n in neighboring_qubits:
+            # ---------------- Horizontal step ----------------
+            for m in neighboring_stabs:
+                neighboring_qubits = H_pauli[m].nonzero()[1]
+
                 lambda_neighbor = np.array([log_exp_bias(H_pauli[m, n_prime]-1, gamma_q2s[:, n_prime, m])
                                             for n_prime in neighboring_qubits if n_prime != n])
 
                 delta_s2q[m, n] = (-1)**syndrome[m] * tanh_prod(lambda_neighbor)
 
-        # print("Delta\n", delta_s2q)
+            # ---------------- Vertical step ----------------
 
-        # ---------------- Vertical step ----------------
-
-        gamma_q = np.zeros((3, n_qubits))
-        for n in range(n_qubits):
-            neighboring_stabs = H_pauli[:, n].nonzero()[0]
             # print(f"Neighbor of {n}", neighboring_stabs)
 
             for w in range(3):
-                sum_same_pauli = np.sum([delta_s2q[m, n] for m in neighboring_stabs if H_pauli[m, n] == w + 1])
-                sum_diff_pauli = np.sum([delta_s2q[m, n] for m in neighboring_stabs if H_pauli[m, n] != w + 1])
+                sum_same_pauli = np.sum([delta_s2q[m_prime, n]
+                                         for m_prime in neighboring_stabs if H_pauli[m_prime, n] == w + 1])
+
+                sum_diff_pauli = np.sum([delta_s2q[m_prime, n]
+                                         for m_prime in neighboring_stabs if H_pauli[m_prime, n] != w + 1])
 
                 # print("Diff pauli", sum_diff_pauli)
 
                 gamma_q[w, n] = lambda_channel[w, n] + 1 / alpha * sum_diff_pauli - beta * sum_same_pauli
+
+                gamma_q2s[w, n, m] = gamma_q[w, n]
+
+                # for m in neighboring_stabs:
+                #     if 1 + w != H_pauli[m, n]:
+                #         gamma_q2s[w, n, m] -= delta_s2q[m, n]
 
         # ---------------- Hard decision ----------------
 
@@ -147,7 +160,7 @@ def mbp_decoder(H,
 
         correction_symplectic = pauli_to_symplectic(correction)
 
-        new_syndrome = bcommute(H, correction_symplectic)
+        new_syndrome = bcommute(correction_symplectic, H)
         if np.all(new_syndrome == syndrome):
             print("Syndrome reached\n")
             break
@@ -162,11 +175,13 @@ def mbp_decoder(H,
                     if 1 + w != H_pauli[m, n]:
                         gamma_q2s[w, n, m] -= delta_s2q[m, n]
 
-        # print("Gamma\n", gamma_q)
+        print("Gamma\n", gamma_q)
         print("Correction", correction)
         print("Correction symplectic", correction_symplectic)
         print("New syndrome", new_syndrome)
         print("Old syndrome", syndrome)
+
+    correction_symplectic = pauli_to_symplectic(correction, reverse=True)
 
     return correction_symplectic
 
@@ -237,7 +252,7 @@ def test_decoder():
     rng = np.random.default_rng()
 
     L = 3
-    max_bp_iter = 10
+    max_bp_iter = 20
     alpha = 0.75
     code = Planar2DCode(L, L)
     # code = ToricCode2D(L, L)
@@ -260,8 +275,8 @@ def test_decoder():
         print("Generate errors")
         error = error_model.generate(code, probability=probability, rng=rng)
         error = np.zeros(len(error), dtype='uint8')
-        error[0] = 1
-        error[4] = 1
+        error[2] = 1
+        # error[4] = 1
         print(error)
         print("Calculate syndrome")
         syndrome = bcommute(code.stabilizers, error)
