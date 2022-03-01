@@ -19,6 +19,7 @@ const params = {
     deformation: "None",
     decoder: 'mbp',
     max_bp_iter: 10,
+    alpha: 0.75,
     errorModel: 'Depolarizing',
     codeName: defaultCode,
     rotated: false
@@ -250,6 +251,7 @@ function buildGUI() {
         'Matching 2D': 'matching'
     }).name('Decoder');
     decoderFolder.add(params, 'max_bp_iter', 1, 100, 1).name('Max iterations BP');
+    decoderFolder.add(params, 'alpha', 0.01, 2, 0.01).name('Alpha');
     decoderFolder.add(buttons, 'decode').name("▶ Decode (d)");
     decoderFolder.open();
 }
@@ -317,9 +319,11 @@ function onDocumentMouseDown(event) {
         if (event.ctrlKey) {
             switch (event.button) {
                 case 0: // left click
+                    console.log('Selected qubit', selectedQubit.index);
                     code.insertError(selectedQubit, 'X');
                     break;
                 case 2:
+                    console.log('Selected qubit', selectedQubit.index);
                     code.insertError(selectedQubit, 'Z');
                     break;
             }
@@ -340,6 +344,7 @@ async function getCorrection(syndrome) {
             'Lz': codeSize.Lz,
             'p': params.errorProbability,
             'max_bp_iter': params.max_bp_iter,
+            'alpha': params.alpha,
             'syndrome': syndrome,
             'deformation': params.deformation,
             'decoder': params.decoder,

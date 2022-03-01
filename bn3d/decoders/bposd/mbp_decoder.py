@@ -56,12 +56,12 @@ def tanh_prod(a, eps=1e-8):
 
     prod = np.prod(np.tanh(a/2))
     if prod >= 1:
-        prod -= eps
+        prod = 1 - eps
     elif prod <= -1:
-        prod += eps
+        prod = -1 + eps
 
     # print("Tanh prod", 2 * np.arctanh(np.prod(np.tanh(a/2))))
-    return 2 * np.arctanh(np.prod(np.tanh(a/2)))
+    return 2 * np.arctanh(prod)
 
 
 def log_exp_bias(pauli, gamma, eps=1e-8):
@@ -69,7 +69,8 @@ def log_exp_bias(pauli, gamma, eps=1e-8):
 
     denominator = np.sum(np.exp(-gamma), axis=0)
     denominator -= np.exp(-gamma[pauli])
-    denominator += eps
+    if denominator <= 0:
+        denominator = eps
     # print("Denominator", denominator)
 
     return np.log(eps + (1 + np.exp(-gamma[pauli])) / denominator)
@@ -79,7 +80,7 @@ def mbp_decoder(H,
                 syndrome: np.ndarray,
                 p_channel: Dict[str, np.ndarray],
                 max_bp_iter=10,
-                alpha=0.65,
+                alpha=0.75,
                 beta=0,
                 eps=1e-8) -> Tuple[np.ndarray, np.ndarray]:
     """Belief propagation decoder.
@@ -96,7 +97,7 @@ def mbp_decoder(H,
 
     # Create channel log ratios lambda
     lambda_channel = np.log((p_channel[0] + eps) / p_channel[1:])
-    print("Lambda channel", lambda_channel)
+    # print("Lambda channel", lambda_channel)
 
     # Initialize vertical messages gamma
     gamma_q2s = np.zeros((3, n_qubits, n_stabs))
@@ -124,29 +125,32 @@ def mbp_decoder(H,
 
                 lambda_neighbor = np.array([log_exp_bias(H_pauli[m, n_prime]-1, gamma_q2s[:, n_prime, m])
                                             for n_prime in neighboring_qubits if n_prime != n])
+                # print(f"Lambda neighbor of {n}, {m}: ", lambda_neighbor)
 
                 delta_s2q[m, n] = (-1)**syndrome[m] * tanh_prod(lambda_neighbor)
+                # print(f"Delta s2q of {n}, {m}: ", delta_s2q[m, n])
 
             # ---------------- Vertical step ----------------
 
             # print(f"Neighbor of {n}", neighboring_stabs)
 
             for w in range(3):
-                sum_same_pauli = np.sum([delta_s2q[m_prime, n]
-                                         for m_prime in neighboring_stabs if H_pauli[m_prime, n] == w + 1])
+                sum_same_pauli = np.sum([delta_s2q[m, n]
+                                         for m in neighboring_stabs if H_pauli[m, n] == w + 1])
 
-                sum_diff_pauli = np.sum([delta_s2q[m_prime, n]
-                                         for m_prime in neighboring_stabs if H_pauli[m_prime, n] != w + 1])
+                sum_diff_pauli = np.sum([delta_s2q[m, n]
+                                         for m in neighboring_stabs if H_pauli[m, n] != w + 1])
 
                 # print("Diff pauli", sum_diff_pauli)
 
                 gamma_q[w, n] = lambda_channel[w, n] + 1 / alpha * sum_diff_pauli - beta * sum_same_pauli
 
-                gamma_q2s[w, n, m] = gamma_q[w, n]
+                for m in neighboring_stabs:
+                    gamma_q2s[w, n, m] = gamma_q[w, n]
+                    if 1 + w != H_pauli[m, n]:
+                        gamma_q2s[w, n, m] -= delta_s2q[m, n]
 
-                # for m in neighboring_stabs:
-                #     if 1 + w != H_pauli[m, n]:
-                #         gamma_q2s[w, n, m] -= delta_s2q[m, n]
+            # print(f"Delta s2q of {n}, {m}: ", delta_s2q[m, n])
 
         # ---------------- Hard decision ----------------
 
@@ -167,19 +171,20 @@ def mbp_decoder(H,
 
         # ---------------- Inhibition ----------------
 
-        for n in range(n_qubits):
-            neighboring_stabs = H_pauli[:, n].nonzero()[0]
-            for m in neighboring_stabs:
-                for w in range(3):
-                    gamma_q2s[w, n, m] = gamma_q[w, n]
-                    if 1 + w != H_pauli[m, n]:
-                        gamma_q2s[w, n, m] -= delta_s2q[m, n]
+        # for n in range(n_qubits):
+        #     neighboring_stabs = H_pauli[:, n].nonzero()[0]
+        #     for m in neighboring_stabs:
+        #         for w in range(3):
+        #             gamma_q2s[w, n, m] = gamma_q[w, n]
+        #             if 1 + w != H_pauli[m, n]:
+        #                 gamma_q2s[w, n, m] -= delta_s2q[m, n]
 
-        print("Gamma\n", gamma_q)
-        print("Correction", correction)
-        print("Correction symplectic", correction_symplectic)
-        print("New syndrome", new_syndrome)
-        print("Old syndrome", syndrome)
+        # print("Delta", np.unique(delta_s2q, return_counts=True))
+        # print("Gamma\n", np.unique(gamma_q, return_counts=True))
+        # print("Correction", correction)
+        # print("Correction symplectic", correction_symplectic)
+        # print("New syndrome", new_syndrome)
+        # print("Old syndrome", syndrome)
 
     correction_symplectic = pauli_to_symplectic(correction, reverse=True)
 
@@ -252,14 +257,15 @@ def test_decoder():
     rng = np.random.default_rng()
 
     L = 3
-    max_bp_iter = 20
+    max_bp_iter = 10
     alpha = 0.75
-    code = Planar2DCode(L, L)
-    # code = ToricCode2D(L, L)
+    # code = Planar2DCode(L, L)
+    code = ToricCode2D(L, L)
     code.stabilizers
+    n = code.n_k_d[0]
 
-    probability = 0.2
-    r_x, r_y, r_z = [0.3, 0.3, 0.4]
+    probability = 0.01
+    r_x, r_y, r_z = [0.333, 0.333, 0.334]
     error_model = PauliErrorModel(r_x, r_y, r_z)
 
     decoder = MemoryBeliefPropagationDecoder(
@@ -271,16 +277,46 @@ def test_decoder():
 
     n_iter = 1
     for i in range(n_iter):
-        print(f"\nRun {code.label} {i}...")
+        print(f"\n\nRun {code.label} {i}...")
         print("Generate errors")
         error = error_model.generate(code, probability=probability, rng=rng)
         error = np.zeros(len(error), dtype='uint8')
-        error[2] = 1
-        # error[4] = 1
+
+        error[1] = 1
+        error[12] = 1
+
+        print("Error", error)
+        print("Calculate syndrome")
+        syndrome = bcommute(code.stabilizers, error)
+        print("Syndrome", syndrome)
+        print(np.unique(syndrome, return_index=True))
+        print("Decode")
+        correction = decoder.decode(code, syndrome)
+        print("Get total error")
+        total_error = (correction + error) % 2
+        print("Get effective error")
+        effective_error = get_effective_error(
+            total_error, code.logical_xs, code.logical_zs
+        )
+        print("Check codespace")
+        codespace = bool(np.all(bcommute(code.stabilizers, total_error) == 0))
+        success = bool(np.all(effective_error == 0)) and codespace
+        print("Success:", success)
+
+    for i in range(n_iter):
+        print(f"\n\nRun {code.label} {i}...")
+        print("Generate errors")
+        error = error_model.generate(code, probability=probability, rng=rng)
+        error = np.zeros(len(error), dtype='uint8')
+
+        error[n+1] = 1
+        error[n+12] = 1
+
         print(error)
         print("Calculate syndrome")
         syndrome = bcommute(code.stabilizers, error)
         print(syndrome)
+        print(np.unique(syndrome, return_index=True))
         print("Decode")
         correction = decoder.decode(code, syndrome)
         print("Get total error")

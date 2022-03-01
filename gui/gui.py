@@ -132,6 +132,7 @@ def send_correction():
     p = content['p']
     deformation = content['deformation']
     max_bp_iter = content['max_bp_iter']
+    alpha = content['alpha']
     decoder_name = content['decoder']
     error_model_name = content['error_model']
     code_name = content['code_name']
@@ -165,7 +166,8 @@ def send_correction():
                                               joschka=True)
     elif decoder_name == 'mbp':
         decoder = MemoryBeliefPropagationDecoder(error_model, p,
-                                                 max_bp_iter=max_bp_iter)
+                                                 max_bp_iter=max_bp_iter,
+                                                 alpha=alpha)
     elif decoder_name == 'matching':
         decoder = Toric2DPymatchingDecoder()
     elif decoder_name == 'sweepmatch':
