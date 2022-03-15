@@ -4,6 +4,7 @@ from qecsim.models.toric import ToricCode
 from qecsim.paulitools import bsf_wt
 from bn3d.decoders import Toric2DPymatchingDecoder
 from bn3d.bpauli import bcommute
+from bn3d.bsparse import to_array
 
 
 @pytest.fixture
@@ -37,7 +38,7 @@ class TestToric2DPymatchingDecoder:
             assert sum(syndromes) == 4, 'Should be 4 syndromes if Y error'
         correction = decoder.decode(code, syndromes)
         assert bsf_wt(correction) == 1, 'Correction should be weight 1'
-        total_error = (error + correction) % 2
+        total_error = to_array(error + correction) % 2
         assert np.all(bcommute(code.stabilizers, total_error) == 0), (
             'Total error should be in code space'
         )
