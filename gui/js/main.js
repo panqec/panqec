@@ -17,9 +17,10 @@ const params = {
     errorProbability: 0.1,
     L: defaultSize,
     noise_deformation: 'None',
-    decoder: 'mbp',
+    decoder: 'bp-osd-2',
     max_bp_iter: 10,
     alpha: 0.75,
+    channel_update: false,
     errorModel: 'Depolarizing',
     codeName: defaultCode,
     rotated: false,
@@ -224,7 +225,7 @@ async function getStabilizerMatrices() {
 }
 
 function buildGUI() {
-    gui = new GUI();
+    gui = new GUI({width: 300});
     const codeFolder = gui.addFolder('Code')
 
     var codes2d = {'Toric': 'toric-2d', 'Planar': 'planar-2d', 'Rotated planar': 'rotated-planar-2d'};
@@ -258,8 +259,9 @@ function buildGUI() {
         'SweepMatch': 'sweepmatch', 'InfZOpt': 'infzopt',
         'Matching 2D': 'matching'
     }).name('Decoder');
-    decoderFolder.add(params, 'max_bp_iter', 1, 100, 1).name('Max iterations BP');
-    decoderFolder.add(params, 'alpha', 0.01, 2, 0.01).name('Alpha');
+    decoderFolder.add(params, 'max_bp_iter', 1, 100, 1).name('Max iterations (BP)');
+    decoderFolder.add(params, 'channel_update').name('Channel update (BP)');
+    decoderFolder.add(params, 'alpha', 0.01, 2, 0.01).name('Alpha (MBP)');
     decoderFolder.add(buttons, 'decode').name("▶ Decode (d)");
     decoderFolder.open();
 }
@@ -353,6 +355,7 @@ async function getCorrection(syndrome) {
             'p': params.errorProbability,
             'max_bp_iter': params.max_bp_iter,
             'alpha': params.alpha,
+            'channel_update': params.channel_update,
             'syndrome': syndrome,
             'noise_deformation': params.noise_deformation,
             'decoder': params.decoder,

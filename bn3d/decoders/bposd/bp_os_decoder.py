@@ -219,12 +219,14 @@ class BeliefPropagationOSDDecoder(Decoder):
     def __init__(self, error_model: ErrorModel,
                  probability: float,
                  max_bp_iter: int = 10,
-                 joschka: bool = True):
+                 joschka: bool = True,
+                 channel_update: bool = False):
         super().__init__()
         self._error_model = error_model
         self._probability = probability
         self._max_bp_iter = max_bp_iter
         self._joschka = joschka
+        self._channel_update = channel_update
 
         self._x_decoder: Dict = dict()
         self._z_decoder: Dict = dict()
@@ -353,10 +355,11 @@ class BeliefPropagationOSDDecoder(Decoder):
                 z_correction = z_decoder.osdw_decoding
 
                 # Bayes update of the probability
-                new_x_probs = self.update_probabilities(
-                    z_correction, px, py, pz, direction="z->x"
-                )
-                x_decoder.update_channel_probs(new_x_probs)
+                if self._channel_update:
+                    new_x_probs = self.update_probabilities(
+                        z_correction, px, py, pz, direction="z->x"
+                    )
+                    x_decoder.update_channel_probs(new_x_probs)
 
                 # Decode X errors
                 x_decoder.decode(syndrome_x)
@@ -376,7 +379,10 @@ class BeliefPropagationOSDDecoder(Decoder):
                 z_correction = bp_osd_decoder(
                     code.Hz, syndrome_z, probabilities_z, max_bp_iter=self._max_bp_iter
                 )
-                new_x_probs = self.update_probabilities(z_correction, px, py, pz)
+                if self._channel_update:
+                    new_x_probs = self.update_probabilities(z_correction, px, py, pz)
+                else:
+                    new_x_probs = probabilities_x
                 x_correction = bp_osd_decoder(
                     code.Hx, syndrome_x, new_x_probs, max_bp_iter=self._max_bp_iter
                 )
