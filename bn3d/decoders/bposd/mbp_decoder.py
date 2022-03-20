@@ -212,6 +212,14 @@ def mbp_decoder(H,
 
     correction_symplectic = pauli_to_symplectic(correction, reverse=True)
 
+    # print("Gamma\n", gamma_q)
+    print("Correction", correction)
+    print("Correction symplectic", correction_symplectic)
+    print("New syndrome", new_syndrome)
+    print("Old syndrome", syndrome)
+
+    correction_symplectic = pauli_to_symplectic(correction, reverse=True)
+
     return correction_symplectic
 
 
