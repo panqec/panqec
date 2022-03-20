@@ -838,6 +838,13 @@ def subthreshold_scaling(results_df, chosen_probabilities=None):
             w=w
         )
 
+        # Fit to ansatz log(p_est) = c_0 + c_3*d**3
+        cubic_coefficients = polyfit(
+            d_values, log_p_est_values,
+            deg=3,
+            w=w
+        )
+
         # The slope of the linear fit.
         linear_fit_gradient = linear_coefficients[-1]
         sts_properties.append({
@@ -847,6 +854,7 @@ def subthreshold_scaling(results_df, chosen_probabilities=None):
             'p_se': p_se_values,
             'linear_coefficients': linear_coefficients,
             'quadratic_coefficients': quadratic_coefficients,
+            'cubic_coefficients': cubic_coefficients,
             'linear_fit_gradient': linear_fit_gradient,
             'log_p_on_1_minus_p': np.log(probability/(1 - probability)),
         })
