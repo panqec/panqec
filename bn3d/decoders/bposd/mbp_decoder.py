@@ -51,20 +51,20 @@ def pauli_to_symplectic(a, reverse=False):
     return new_a
 
 
-def tanh_prod(a, eps=1e-8):
+def tanh_prod(a):
     """ Square cross product defined in II.B of arXiv:2104.13659"""
 
     prod = np.prod(np.tanh(a/2))
     if prod >= 1:
-        prod = 1 - eps
+        prod = 1
     elif prod <= -1:
-        prod = -1 + eps
+        prod = -1
 
     # print("Tanh prod", 2 * np.arctanh(np.prod(np.tanh(a/2))))
     return 2 * np.arctanh(prod)
 
 
-def log_exp_bias(pauli, gamma, eps=1e-8):
+def log_exp_bias(pauli, gamma, eps=1e-12):
     """ Function lambda defined in II.B of arXiv:2104.13659"""
 
     denominator = np.sum(np.exp(-gamma), axis=0)
@@ -188,6 +188,14 @@ def mbp_decoder(H,
 
     correction_symplectic = pauli_to_symplectic(correction, reverse=True)
 
+    # print("Gamma\n", gamma_q)
+    print("Correction", correction)
+    print("Correction symplectic", correction_symplectic)
+    print("New syndrome", new_syndrome)
+    print("Old syndrome", syndrome)
+
+    correction_symplectic = pauli_to_symplectic(correction, reverse=True)
+
     return correction_symplectic
 
 
@@ -257,10 +265,11 @@ def test_decoder():
     rng = np.random.default_rng()
 
     L = 3
-    max_bp_iter = 10
+    max_bp_iter = 20
     alpha = 0.75
     # code = Planar2DCode(L, L)
     code = ToricCode2D(L, L)
+
     code.stabilizers
     n = code.n_k_d[0]
 
