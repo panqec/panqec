@@ -17,6 +17,7 @@ from bn3d.error_models import (
 )
 
 import webbrowser
+import argparse
 
 code_names = {'2d': ['toric-2d', 'rotated-planar-2d', 'planar-2d'],
               '3d': ['toric-3d', 'planar-3d', 'rotated-planar-3d', 'rhombic', 'coprime-3d', 'xcube']}
@@ -252,13 +253,15 @@ def send_random_errors():
     return json.dumps(errors.tolist())
 
 
-if __name__ == '__main__':
-    import sys
-
-    if len(sys.argv) > 1:
-        port = int(sys.argv[1])
-    else:
-        port = 5000
-    # Timer(1, open_browser, [port]).start()
+def run_gui():
+    parser = argparse.ArgumentParser(description='Run GUI server')
+    parser.add_argument('--port', '-p', type=int, default=5000,
+                        help='Port where to run the server')
+    args = parser.parse_args()
+    port = args.port
 
     app.run(port=port)
+
+
+if __name__ == '__main__':
+    run_gui()
