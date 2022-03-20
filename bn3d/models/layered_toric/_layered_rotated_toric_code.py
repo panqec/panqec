@@ -58,22 +58,6 @@ class LayeredRotatedToricCode(IndexedSparseCode):
                 logical = self.pauli_class(self)
 
                 for x, y, z in self.qubit_index:
-                    # Error on half of the qubits (toy purpose, not a logical)
-                    # if z == 1:
-                    #     if (x + y) % 4 == 0:
-                    #         logical.site('X', (x, y, z))
-                    #     elif (x + y) % 4 == 2:
-                    #         logical.site('Z', (x, y, z))
-
-                    # Z on every layer in deformed code. (FAIL, in stabilizer)
-                    """
-                    if z % 2 == 1:
-                        if (x + y) % 4 == 2:
-                            logical.site('X', (x, y, z))
-                        else:
-                            logical.site('Z', (x, y, z))
-                    """
-
                     # X string operator in undeformed code. (OK)
                     if Lx % 2 == 1:
                         if z == 1 and x == 1:
@@ -88,16 +72,6 @@ class LayeredRotatedToricCode(IndexedSparseCode):
                             else:
                                 logical.site('X', (x, y, z))
 
-                    # Z everywhere in deformed (FAIL, actually in stabilizer)
-                    """
-                    if z % 2 == 1:
-                        if (x + y) % 4 == 2:
-                            logical.site('X', (x, y, z))
-                        else:
-                            logical.site('Z', (x, y, z))
-                    else:
-                        logical.site('Z', (x, y, z))
-                    """
                 logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             self._logical_xs = logicals
@@ -130,12 +104,6 @@ class LayeredRotatedToricCode(IndexedSparseCode):
             else:
                 logical = self.pauli_class(self)
                 for x, y, z in self.qubit_index:
-                    # Error on half of the qubits (toy purpose, not a logical)
-                    # if z == 1:
-                    #     if (x + y) % 4 == 0:
-                    #         logical.site('X', (x, y, z))
-                    #     elif (x + y) % 4 == 2:
-                    #         logical.site('Z', (x, y, z))
                     if Lx % 2 == 1:
                         if y == 1:
                             logical.site('Y', (x, y, z))

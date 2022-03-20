@@ -20,9 +20,10 @@ class LayeredToricPauli(RotatedPlanar3DPauli):
         x, y, z = location
 
         defect_x_boundary, defect_y_boundary = self.on_defect_boundary(Lx, Ly, x, y)
+        defect_operator = {'X': 'Z', 'Y': 'Y', 'Z': 'X'}[operator]
 
-        if defect_x_boundary or defect_y_boundary:
-            defect_operator = {'X': 'Z', 'Y': 'Y', 'Z': 'X'}[operator]
+        deformed_operator = {'X': 'Z', 'Z': 'X'}[operator]
+        deformed_defect_operator = {'X': 'Z', 'Z': 'X'}[defect_operator]
 
         delta = [(1, -1, 0), (-1, 1, 0), (1, 1, 0), (-1, -1, 0), (0, 0, 1), (0, 0, -1)]
 
@@ -33,21 +34,30 @@ class LayeredToricPauli(RotatedPlanar3DPauli):
             if self.code.is_qubit(qubit_location):
                 defect_x_on_edge = defect_x_boundary and qubit_location[0] == 1
                 defect_y_on_edge = defect_y_boundary and qubit_location[1] == 1
+                is_deformed = (self.code.axis(qubit_location) == deformed_axis)
+
                 if defect_x_on_edge != defect_y_on_edge:
-                    self.site(defect_operator, qubit_location)
+                    if is_deformed:
+                        self.site(deformed_defect_operator, qubit_location)
+                    else:
+                        self.site(defect_operator, qubit_location)
                 else:
-                    self.site(operator, qubit_location)
+                    if is_deformed:
+                        self.site(deformed_operator, qubit_location)
+                    else:
+                        self.site(operator, qubit_location)
 
     def face(self, operator: str, location: Tuple[int, int, int], deformed_axis=None):
         Lx, Ly, Lz = self.code.size
         x, y, z = location
-        print("Face", location)
 
         defect_x_boundary, defect_y_boundary = self.on_defect_boundary(
             Lx, Ly, x, y
         )
-        if defect_x_boundary or defect_y_boundary:
-            defect_operator = {'X': 'Z', 'Y': 'Y', 'Z': 'X'}[operator]
+        defect_operator = {'X': 'Z', 'Y': 'Y', 'Z': 'X'}[operator]
+
+        deformed_operator = {'X': 'Z', 'Z': 'X'}[operator]
+        deformed_defect_operator = {'X': 'Z', 'Z': 'X'}[defect_operator]
 
         # z-normal so face is xy-plane.
         if z % 2 == 1:
@@ -73,7 +83,15 @@ class LayeredToricPauli(RotatedPlanar3DPauli):
             if self.code.is_qubit(qubit_location):
                 defect_x_on_edge = defect_x_boundary and qubit_location[0] == 1
                 defect_y_on_edge = defect_y_boundary and qubit_location[1] == 1
+                is_deformed = (self.code.axis(qubit_location) == deformed_axis)
+
                 if defect_x_on_edge != defect_y_on_edge:
-                    self.site(defect_operator, qubit_location)
+                    if is_deformed:
+                        self.site(deformed_defect_operator, qubit_location)
+                    else:
+                        self.site(defect_operator, qubit_location)
                 else:
-                    self.site(operator, qubit_location)
+                    if is_deformed:
+                        self.site(deformed_operator, qubit_location)
+                    else:
+                        self.site(operator, qubit_location)
