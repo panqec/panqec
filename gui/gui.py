@@ -80,11 +80,14 @@ def send_stabilizer_matrix():
     if 'Lz' in request.json:
         Lz = request.json['Lz']
     code_name = request.json['code_name']
+    deformed_axis = request.json['deformed_axis']
+
+    deformed_axis = {'x': 0, 'y': 1, 'z': 2, 'None': None}[deformed_axis]
 
     if code_name in code_names['2d']:
-        code = code_class[code_name](Lx, Ly)
+        code = code_class[code_name](Lx, Ly, deformed_axis=deformed_axis)
     elif code_name in code_names['3d']:
-        code = code_class[code_name](Lx, Ly, Lz)
+        code = code_class[code_name](Lx, Ly, Lz, deformed_axis=deformed_axis)
     else:
         raise ValueError(f'Code {code_name} not recognized')
 
@@ -130,17 +133,20 @@ def send_correction():
     if 'Lz' in content:
         Lz = content['Lz']
     p = content['p']
-    deformation = content['deformation']
+    noise_deformation = content['noise_deformation']
     max_bp_iter = content['max_bp_iter']
     alpha = content['alpha']
     decoder_name = content['decoder']
     error_model_name = content['error_model']
     code_name = content['code_name']
+    deformed_axis = content['deformed_axis']
+
+    deformed_axis = {'x': 0, 'y': 1, 'z': 2, 'None': None}[deformed_axis]
 
     if code_name in code_names['2d']:
-        code = code_class[code_name](Lx, Ly)
+        code = code_class[code_name](Lx, Ly, deformed_axis=deformed_axis)
     elif code_name in code_names['3d']:
-        code = code_class[code_name](Lx, Ly, Lz)
+        code = code_class[code_name](Lx, Ly, Lz, deformed_axis=deformed_axis)
     else:
         raise ValueError(f'Code {code_name} not recognized')
 
@@ -151,10 +157,10 @@ def send_correction():
     else:
         raise ValueError(f'Error model {error_model_name} not recognized')
 
-    if deformation in error_model_class.keys():
-        error_model = error_model_class[deformation](rx, ry, rz)
+    if noise_deformation in error_model_class.keys():
+        error_model = error_model_class[noise_deformation](rx, ry, rz)
     else:
-        raise ValueError(f'Deformation {deformation} not recognized')
+        raise ValueError(f'Deformation {noise_deformation} not recognized')
 
     if decoder_name == 'bp-osd':
         decoder = BeliefPropagationOSDDecoder(error_model, p,
@@ -173,11 +179,11 @@ def send_correction():
     elif decoder_name == 'sweepmatch':
         if "Rotated" in code.label:
             decoder = RotatedSweepMatchDecoder()
-        elif deformation == "XZZX":
+        elif noise_deformation == "XZZX":
             decoder = DeformedSweepMatchDecoder(error_model, p)
-        elif deformation == "None":
+        elif noise_deformation == "None":
             decoder = SweepMatchDecoder()
-        elif deformation == "XY":
+        elif noise_deformation == "XY":
             raise NotImplementedError("No SweepMatch decoder for XY code")
         else:
             raise ValueError("Deformation not recognized")
@@ -202,14 +208,17 @@ def send_random_errors():
     if 'Lz' in content:
         Lz = content['Lz']
     p = content['p']
-    deformation = content['deformation']
+    noise_deformation = content['noise_deformation']
     error_model_name = content['error_model']
     code_name = content['code_name']
+    deformed_axis = content['deformed_axis']
+
+    deformed_axis = {'x': 0, 'y': 1, 'z': 2, 'None': None}[deformed_axis]
 
     if code_name in code_names['2d']:
-        code = code_class[code_name](Lx, Ly)
+        code = code_class[code_name](Lx, Ly, deformed_axis=deformed_axis)
     elif code_name in code_names['3d']:
-        code = code_class[code_name](Lx, Ly, Lz)
+        code = code_class[code_name](Lx, Ly, Lz, deformed_axis=deformed_axis)
     else:
         raise ValueError(f'Code {code_name} not recognized')
 
@@ -218,10 +227,10 @@ def send_random_errors():
     else:
         raise ValueError(f'Error model {error_model_name} not recognized')
 
-    if deformation in error_model_class.keys():
-        error_model = error_model_class[deformation](rx, ry, rz)
+    if noise_deformation in error_model_class.keys():
+        error_model = error_model_class[noise_deformation](rx, ry, rz)
     else:
-        raise ValueError(f'Deformation {deformation} not recognized')
+        raise ValueError(f'Deformation {noise_deformation} not recognized')
 
     errors = error_model.generate(code, p)
 
@@ -244,7 +253,12 @@ def send_random_errors():
 
 
 if __name__ == '__main__':
-    port = 5000
+    import sys
+
+    if len(sys.argv) > 1:
+        port = int(sys.argv[1])
+    else:
+        port = 5000
     # Timer(1, open_browser, [port]).start()
 
     app.run(port=port)

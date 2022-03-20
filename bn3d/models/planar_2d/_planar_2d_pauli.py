@@ -1,5 +1,6 @@
 from typing import Tuple
 from ..generic._indexed_sparse_pauli import IndexedSparsePauli
+import numpy as np
 
 
 class Planar2DPauli(IndexedSparsePauli):
@@ -8,8 +9,8 @@ class Planar2DPauli(IndexedSparsePauli):
     Qubit sites are on edges of the lattice.
     """
 
-    def vertex(self, operator: str, location: Tuple[int, int]):
-        r"""Apply operator on sites neighbouring vertex.
+    def vertex(self, operator: str, location: Tuple[int, int], deformed_axis=None):
+        r"""Apply operator on sites neighboring vertex.
 
         Parameters
         ----------
@@ -38,17 +39,23 @@ class Planar2DPauli(IndexedSparsePauli):
         if (x, y) not in self.code.vertex_index:
             raise ValueError(f"Invalid coordinate {location} for a vertex")
 
+        deformed_map = {'X': 'Z', 'Z': 'X'}
+        deformed_operator = deformed_map[operator]
+
         delta = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
-        for i in range(len(delta)):
-            location = (x + delta[i][0], y + delta[i][1])
-            if location in self.code.qubit_index:
-                self.site(operator, location)
+        for d in delta:
+            qubit_location = tuple(np.add(location, d))
 
-    def face(
-        self, operator: str,
-        location: Tuple[int, int]
-    ):
+            if self.code.is_qubit(qubit_location):
+                is_deformed = (self.code.axis(qubit_location) == deformed_axis)
+
+                if is_deformed:
+                    self.site(deformed_operator, qubit_location)
+                else:
+                    self.site(operator, qubit_location)
+
+    def face(self, operator: str, location: Tuple[int, int], deformed_axis=None):
         r"""Apply operator on sites on face normal to direction at location.
 
         Parameters
@@ -80,9 +87,18 @@ class Planar2DPauli(IndexedSparsePauli):
         if (x, y) not in self.code.face_index:
             raise ValueError(f"Invalid coordinate {location} for a face")
 
+        deformed_map = {'X': 'Z', 'Z': 'X'}
+        deformed_operator = deformed_map[operator]
+
         delta = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
-        for i in range(len(delta)):
-            location = (x + delta[i][0], y + delta[i][1])
-            if location in self.code.qubit_index:
-                self.site(operator, location)
+        for d in delta:
+            qubit_location = tuple(np.add(location, d))
+
+            if self.code.is_qubit(qubit_location):
+                is_deformed = (self.code.axis(qubit_location) == deformed_axis)
+
+                if is_deformed:
+                    self.site(deformed_operator, qubit_location)
+                else:
+                    self.site(operator, qubit_location)

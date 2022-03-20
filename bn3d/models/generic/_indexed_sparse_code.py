@@ -10,12 +10,15 @@ class IndexedSparseCode(IndexedCode, metaclass=ABCMeta):
     def __init__(
         self, L_x: int,
         L_y: Optional[int] = None,
-        L_z: Optional[int] = None
+        L_z: Optional[int] = None,
+        deformed_axis: Optional[int] = None
     ):
         if L_y is None:
             L_y = L_x
         if L_z is None:
             L_z = L_x
+
+        self._deformed_axis = deformed_axis
 
         if self.dimension == 2:
             self._size = (L_x, L_y)
@@ -48,7 +51,7 @@ class IndexedSparseCode(IndexedCode, metaclass=ABCMeta):
 
         for vertex_location in self.vertex_index.keys():
             operator = self.pauli_class(self)
-            operator.vertex('Z', vertex_location)
+            operator.vertex('Z', vertex_location, deformed_axis=self._deformed_axis)
             vertex_stabilizers = bsparse.vstack([vertex_stabilizers, operator.to_bsf()])
 
         return vertex_stabilizers
@@ -58,7 +61,7 @@ class IndexedSparseCode(IndexedCode, metaclass=ABCMeta):
 
         for face_location in self.face_index.keys():
             operator = self.pauli_class(self)
-            operator.face('X', face_location)
+            operator.face('X', face_location, deformed_axis=self._deformed_axis)
             face_stabilizers = bsparse.vstack([face_stabilizers, operator.to_bsf()])
 
         return face_stabilizers

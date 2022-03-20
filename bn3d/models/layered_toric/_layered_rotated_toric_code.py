@@ -16,13 +16,13 @@ class LayeredRotatedToricCode(IndexedSparseCode):
 
     @property
     def n_k_d(self) -> Tuple[int, int, int]:
-        L_x, L_y, L_z = self.size
-        x_odd = L_x % 2 == 1
-        y_odd = L_y % 2 == 1
+        Lx, Ly, Lz = self.size
+        x_odd = Lx % 2 == 1
+        y_odd = Ly % 2 == 1
         k = 2
         if x_odd or y_odd:
             k = 1
-        return (len(self.qubit_index), k, min(L_x, L_y))
+        return (len(self.qubit_index), k, min(Lx, Ly))
 
     @property
     def dimension(self) -> int:
@@ -33,11 +33,11 @@ class LayeredRotatedToricCode(IndexedSparseCode):
         """Get the unique logical X operator."""
 
         if self._logical_xs.size == 0:
-            L_x, L_y, L_z = self.size
+            Lx, Ly, Lz = self.size
             logicals = bsparse.empty_row(2*self.n_k_d[0])
 
             # Even times even.
-            if L_x % 2 == 0 and L_y % 2 == 0:
+            if Lx % 2 == 0 and Ly % 2 == 0:
 
                 # X string operator along y.
                 logical = self.pauli_class(self)
@@ -75,7 +75,7 @@ class LayeredRotatedToricCode(IndexedSparseCode):
                     """
 
                     # X string operator in undeformed code. (OK)
-                    if L_x % 2 == 1:
+                    if Lx % 2 == 1:
                         if z == 1 and x == 1:
                             if (x + y) % 4 == 2:
                                 logical.site('X', (x, y, z))
@@ -108,11 +108,11 @@ class LayeredRotatedToricCode(IndexedSparseCode):
     def logical_zs(self) -> np.ndarray:
         """Get the unique logical Z operator."""
         if self._logical_zs.size == 0:
-            L_x, L_y, L_z = self.size
+            Lx, Ly, Lz = self.size
             logicals = bsparse.empty_row(2*self.n_k_d[0])
 
             # Even times even.
-            if L_x % 2 == 0 and L_y % 2 == 0:
+            if Lx % 2 == 0 and Ly % 2 == 0:
 
                 logical = self.pauli_class(self)
                 for x, y, z in self.qubit_index:
@@ -136,10 +136,10 @@ class LayeredRotatedToricCode(IndexedSparseCode):
                     #         logical.site('X', (x, y, z))
                     #     elif (x + y) % 4 == 2:
                     #         logical.site('Z', (x, y, z))
-                    if L_x % 2 == 1:
+                    if Lx % 2 == 1:
                         if y == 1:
                             logical.site('Y', (x, y, z))
-                    elif L_y % 2 == 1:
+                    elif Ly % 2 == 1:
                         if x == 1:
                             logical.site('Y', (x, y, z))
                 logicals = bsparse.vstack([logicals, logical.to_bsf()])
@@ -164,20 +164,20 @@ class LayeredRotatedToricCode(IndexedSparseCode):
         return axis
 
     def _create_qubit_indices(self):
-        L_x, L_y, L_z = self.size
+        Lx, Ly, Lz = self.size
 
         coordinates = []
 
         # Horizontal
-        for x in range(1, 2*L_x, 2):
-            for y in range(1, 2*L_y, 2):
-                for z in range(1, 2*L_z + 2, 2):
+        for x in range(1, 2*Lx, 2):
+            for y in range(1, 2*Ly, 2):
+                for z in range(1, 2*Lz + 2, 2):
                     coordinates.append((x, y, z))
 
         # Vertical
-        for x in range(2, 2*L_x + 1, 2):
-            for y in range(2, 2*L_y + 1, 2):
-                for z in range(2, 2*L_z + 2, 2):
+        for x in range(2, 2*Lx + 1, 2):
+            for y in range(2, 2*Ly + 1, 2):
+                for z in range(2, 2*Lz + 2, 2):
                     if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
 
@@ -186,13 +186,13 @@ class LayeredRotatedToricCode(IndexedSparseCode):
         return coord_to_index
 
     def _create_vertex_indices(self):
-        L_x, L_y, L_z = self.size
+        Lx, Ly, Lz = self.size
 
         coordinates = []
 
-        for x in range(2, 2*L_x + 1, 2):
-            for y in range(2, 2*L_y + 1, 2):
-                for z in range(1, 2*L_z + 2, 2):
+        for x in range(2, 2*Lx + 1, 2):
+            for y in range(2, 2*Ly + 1, 2):
+                for z in range(1, 2*Lz + 2, 2):
                     if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
 
@@ -201,22 +201,23 @@ class LayeredRotatedToricCode(IndexedSparseCode):
         return coord_to_index
 
     def _create_face_indices(self):
-        L_x, L_y, L_z = self.size
+        Lx, Ly, Lz = self.size
 
         coordinates = []
 
         # Horizontal faces
-        for x in range(2, 2*L_x + 1, 2):
-            for y in range(2, 2*L_y + 1, 2):
-                for z in range(1, 2*L_z + 2, 2):
+        for x in range(2, 2*Lx + 1, 2):
+            for y in range(2, 2*Ly + 1, 2):
+                for z in range(1, 2*Lz + 2, 2):
                     if (x + y) % 4 == 0:
                         coordinates.append((x, y, z))
 
         # Vertical faces
-        for x in range(1, 2*L_x, 2):
-            for y in range(1, 2*L_y, 2):
-                for z in range(2, 2*L_z + 2, 2):
-                    coordinates.append((x, y, z))
+        for x in range(1, 2*Lx, 2):
+            for y in range(1, 2*Ly, 2):
+                for z in range(2, 2*Lz + 2, 2):
+                    if not ((Lx % 2 == 0 and y == 1) or (Ly % 2 == 0 and x == 1)):
+                        coordinates.append((x, y, z))
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 

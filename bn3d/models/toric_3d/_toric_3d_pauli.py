@@ -1,5 +1,6 @@
 from typing import Tuple
 from ..generic._indexed_sparse_pauli import IndexedSparsePauli
+import numpy as np
 
 
 class Toric3DPauli(IndexedSparsePauli):
@@ -8,8 +9,8 @@ class Toric3DPauli(IndexedSparsePauli):
     Qubit sites are on edges of the lattice.
     """
 
-    def vertex(self, operator: str, location: Tuple[int, int, int]):
-        r"""Apply operator on sites neighbouring vertex.
+    def vertex(self, operator: str, location: Tuple[int, int, int], deformed_axis=None):
+        r"""Apply operator on sites neighboring vertex.
 
         Parameters
         ----------
@@ -33,30 +34,25 @@ class Toric3DPauli(IndexedSparsePauli):
              .       .
         """
 
-        Lx, Ly, Lz = self.code.size
-        x, y, z = location
+        if not self.code.is_vertex(location):
+            raise ValueError(f"Incorrect coordinate {location} for a vertex")
 
-        if (x + y + z) % 2 == 1:
-            raise ValueError(f"Invalid coordinate {location} for a vertex")
+        delta = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
 
-        # Apply operator on each of the six neighbouring edges.
+        deformed_map = {'X': 'Z', 'Z': 'X'}
+        deformed_operator = deformed_map[operator]
 
-        # x-edge.
-        self.site(operator, ((x + 1) % (2*Lx), y, z))
-        self.site(operator, ((x - 1) % (2*Lx), y, z))
+        for d in delta:
+            qubit_location = tuple(np.add(location, d) % (2*np.array(self.code.size)))
 
-        # y-edge.
-        self.site(operator, (x, (y + 1) % (2*Ly), z))
-        self.site(operator, (x, (y - 1) % (2*Ly), z))
+            is_deformed = (self.code.axis(qubit_location) == deformed_axis)
 
-        # z-edge.
-        self.site(operator, (x, y, (z + 1) % (2*Lz)))
-        self.site(operator, (x, y, (z - 1) % (2*Lz)))
+            if is_deformed:
+                self.site(deformed_operator, qubit_location)
+            else:
+                self.site(operator, qubit_location)
 
-    def face(
-        self, operator: str,
-        location: Tuple[int, int, int]
-    ):
+    def face(self, operator: str, location: Tuple[int, int, int], deformed_axis=None):
         r"""Apply operator on sites on face normal to direction at location.
 
         Parameters
@@ -86,25 +82,27 @@ class Toric3DPauli(IndexedSparsePauli):
         x, y, z = location
         Lx, Ly, Lz = self.code.size
 
+        if not self.code.is_face(location):
+            raise ValueError(f"Incorrect coordinate {location} for a face")
+
         # z-normal so face is xy-plane.
         if z % 2 == 0:
-            self.site(operator, ((x - 1) % (2*Lx), y, z))
-            self.site(operator, ((x + 1) % (2*Lx), y, z))
-            self.site(operator, (x, (y - 1) % (2*Ly), z))
-            self.site(operator, (x, (y + 1) % (2*Ly), z))
-
+            delta = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0)]
         # x-normal so face is in yz-plane.
         elif (x % 2 == 0):
-            self.site(operator, (x, (y - 1) % (2*Ly), z))
-            self.site(operator, (x, (y + 1) % (2*Ly), z))
-            self.site(operator, (x, y, (z - 1) % (2*Lz)))
-            self.site(operator, (x, y, (z + 1) % (2*Lz)))
-
+            delta = [(0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
         # y-normal so face is in zx-plane.
         elif (y % 2 == 0):
-            self.site(operator, (x, y, (z - 1) % (2*Lz)))
-            self.site(operator, (x, y, (z + 1) % (2*Lz)))
-            self.site(operator, ((x - 1) % (2*Lx), y, z))
-            self.site(operator, ((x + 1) % (2*Lx), y, z))
-        else:
-            raise ValueError(f"Invalid coordinate {location} for a face")
+            delta = [(-1, 0, 0), (1, 0, 0), (0, 0, -1), (0, 0, 1)]
+
+        deformed_map = {'X': 'Z', 'Z': 'X'}
+        deformed_operator = deformed_map[operator]
+
+        for d in delta:
+            qubit_location = tuple(np.add(location, d) % (2*np.array(self.code.size)))
+            is_deformed = (self.code.axis(qubit_location) == deformed_axis)
+
+            if is_deformed:
+                self.site(deformed_operator, qubit_location)
+            else:
+                self.site(operator, qubit_location)

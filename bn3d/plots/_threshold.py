@@ -428,28 +428,32 @@ def plot_threshold_vs_bias(
 
         errors_left = df_filt[p_th_key] - df_filt[p_th_left_key]
         errors_right = df_filt[p_th_right_key] - df_filt[p_th_key]
-        errors = np.array([errors_left, errors_right])
+        # errors = np.array([errors_left, errors_right])
+        errors = np.zeros(df_filt[p_th_key].shape)
         plt.errorbar(
             df_filt[eta_key], df_filt[p_th_key], errors,
             linestyle=main_linestyle,
             color=color,
             alpha=alpha,
             label=label,
-            marker=marker
+            marker=marker,
+            markersize=8,
+            linewidth=2
         )
 
         plt.text(
-            inf_replacement,
-            p_th_inf + 0.01,
-            '{:.3f}'.format(p_th_inf),
+            inf_replacement - 100,
+            p_th_inf + 0.03,
+            '{:.2f}'.format(p_th_inf),
             color=color,
-            ha='center'
+            ha='center',
+            fontsize=15
         )
 
         # Show label for depolarizing data point.
         if depolarizing_label:
             p_th_dep = error_model_df[np.isclose(error_model_df[eta_key], 0.5)].iloc[0][p_th_key]
-            plt.text(0.5, p_th_dep + 0.02, f'{p_th_dep:.3f}', ha='center', color=color)
+            plt.text(0.5 + 0.05, p_th_dep + 0.03, f'{p_th_dep:.2f}', ha='center', color=color, fontsize=15)
 
     # Plot the hashing bound curve.
     if hashing:
@@ -469,19 +473,23 @@ def plot_threshold_vs_bias(
         eta_interp = np.append(eta_interp, [inf_replacement])
         hb_interp = np.append(hb_interp, [get_hashing_bound((0, 0, 1))])
 
-        plt.plot(eta_interp, hb_interp, '-.', color='black', label='HB', alpha=0.5)
+        plt.plot(eta_interp, hb_interp, '-.', color='black', label='Hashing bound', alpha=0.5, linewidth=2)
 
-    plt.legend()
     plt.xscale('log')
+
+    plt.xlabel(r'$\eta$', fontsize=27)
+    plt.ylabel(r'$p_{\mathrm{th}}$', fontsize=27)
+
+    plt.ylim(0, 0.5)
+    plt.legend(fontsize=16, loc='upper left')
+
     draw_tick_symbol(plt, Line2D, log=True)
     plt.xticks(
         ticks=[0.5, 1e0, 1e1, 1e2, inf_replacement],
-        labels=['0.5', '1', '10', ' '*13 + '100' + ' '*10 + '...', r'$\infty$']
+        labels=['0.5', '1', '10', ' '*13 + '100' + ' '*10 + '...', r'$\infty$'],
+        fontsize=17
     )
-    plt.xlabel(r'$\eta$', fontsize=16)
-    plt.ylabel(r'$p_{\mathrm{th}}$', fontsize=16)
-    if png is not None:
-        plt.savefig(png)
+    plt.yticks(fontsize=17)
 
 
 def plot_thresholds_on_triangle(
@@ -551,7 +559,7 @@ def plot_combined_threshold_vs_bias(plt, Line2D, thresholds_df,
                                     linestyles=['-', '--'],
                                     depolarizing_labels=[True, False],
                                     pdf=None):
-    n_plots = len(labels)
+    n_plots = len(thresholds_df)
 
     for i_plot in range(n_plots):
         hashing = hashing and (i_plot == 0)
@@ -567,8 +575,7 @@ def plot_combined_threshold_vs_bias(plt, Line2D, thresholds_df,
             hashing=hashing
         )
 
-    plt.ylim(0, 0.5)
-    plt.legend()
+    plt.rcParams['figure.figsize'] = (5, 4)
 
     if pdf:
         plt.savefig(pdf, bbox_inches='tight')

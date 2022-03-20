@@ -1,5 +1,6 @@
 from typing import Tuple
 from ..generic._indexed_sparse_pauli import IndexedSparsePauli
+import numpy as np
 
 
 class RotatedPlanar3DPauli(IndexedSparsePauli):
@@ -8,8 +9,8 @@ class RotatedPlanar3DPauli(IndexedSparsePauli):
     Qubit sites are on edges of the lattice.
     """
 
-    def vertex(self, operator: str, location: Tuple[int, int, int]):
-        r"""Apply operator on sites neighbouring vertex.
+    def vertex(self, operator: str, location: Tuple[int, int, int], deformed_axis=None):
+        r"""Apply operator on sites neighboring vertex.
 
         Parameters
         ----------
@@ -33,29 +34,26 @@ class RotatedPlanar3DPauli(IndexedSparsePauli):
              .       .
         """
 
-        x, y, z = location
-        Lx, Ly, Lz = self.code.size
-
-        if (x + y) % 4 != 2 or z % 2 == 0:
+        if not self.code.is_vertex(location):
             raise ValueError(f"Incorrect coordinate {location} for a vertex")
 
-        # Four horizontal edges (at most)
-        if x - 1 >= 0 and y - 1 >= 0:
-            self.site(operator, (x - 1, y - 1, z))
-        if x + 1 <= 4*Lx+1 and y + 1 <= 4*Ly+2:
-            self.site(operator, (x + 1, y + 1, z))
-        if x - 1 > 0 and y + 1 <= 4*Ly+2:
-            self.site(operator, (x - 1, y + 1, z))
-        if x + 1 <= 4*Lx+1 and y - 1 >= 0:
-            self.site(operator, (x + 1, y - 1, z))
+        deformed_map = {'X': 'Z', 'Z': 'X'}
+        deformed_operator = deformed_map[operator]
 
-        # Two vertical edges
-        if z - 1 >= 1:
-            self.site(operator, (x, y, z - 1))
-        if z + 1 < 2*Lz+1:
-            self.site(operator, (x, y, z + 1))
+        delta = [(-1, -1, 0), (-1, 1, 0), (1, -1, 0), (1, 1, 0), (0, 0, -1), (0, 0, 1)]
 
-    def face(self, operator: str, location: Tuple[int, int, int]):
+        for d in delta:
+            qubit_location = tuple(np.add(location, d))
+
+            if self.code.is_qubit(qubit_location):
+                is_deformed = (self.code.axis(qubit_location) == deformed_axis)
+
+                if is_deformed:
+                    self.site(deformed_operator, qubit_location)
+                else:
+                    self.site(operator, qubit_location)
+
+    def face(self, operator: str, location: Tuple[int, int, int], deformed_axis=None):
         r"""Apply operator on sites on face normal to direction at location.
 
         Parameters
@@ -88,36 +86,30 @@ class RotatedPlanar3DPauli(IndexedSparsePauli):
 
         # Location modulo lattice shape, to handle edge cases.
         x, y, z = location
-        Lx, Ly, Lz = self.code.size
 
-        # Horizontal face
+        if not self.code.is_face(location):
+            raise ValueError(f"Incorrect coordinate {location} for a face")
+
+        deformed_map = {'X': 'Z', 'Z': 'X'}
+        deformed_operator = deformed_map[operator]
+
+        # z-normal so face is xy-plane.
         if z % 2 == 1:
-            if x - 1 >= 0 and y - 1 >= 0:
-                self.site(operator, (x - 1, y - 1, z))
-            if x + 1 <= 4*Lx+2 and y + 1 <= 4*Ly+2:
-                self.site(operator, (x + 1, y + 1, z))
-            if x - 1 > 0 and y + 1 <= 4*Ly+2:
-                self.site(operator, (x - 1, y + 1, z))
-            if x + 1 <= 4*Lx+2 and y - 1 >= 0:
-                self.site(operator, (x + 1, y - 1, z))
-
-        # Vertical face (axis /)
+            delta = [(-1, -1, 0), (1, 1, 0), (-1, 1, 0), (1, -1, 0)]
+        # x-normal so face is in yz-plane.
         elif (x + y) % 4 == 0:
-            self.site(operator, (x, y, z - 1))
-            self.site(operator, (x, y, z + 1))
-            if x - 1 > 0 and y - 1 >= 0:
-                self.site(operator, (x - 1, y - 1, z))
-            if x + 1 <= 4*Lx+1 and y + 1 <= 4*Ly+2:
-                self.site(operator, (x + 1, y + 1, z))
-
-        # Vertical face (axis \)
+            delta = [(-1, -1, 0), (1, 1, 0), (0, 0, -1), (0, 0, 1)]
+        # y-normal so face is in zx-plane.
         elif (x + y) % 4 == 2:
-            self.site(operator, (x, y, z - 1))
-            self.site(operator, (x, y, z + 1))
-            if x - 1 > 0 and y + 1 <= 4*Ly+2:
-                self.site(operator, (x - 1, y + 1, z))
-            if x + 1 <= 4*Lx+1 and y - 1 >= 0:
-                self.site(operator, (x + 1, y - 1, z))
+            delta = [(-1, 1, 0), (1, -1, 0), (0, 0, -1), (0, 0, 1)]
 
-        else:
-            raise ValueError(f"Invalid coordinate {location} for a face")
+        for d in delta:
+            qubit_location = tuple(np.add(location, d))
+
+            if self.code.is_qubit(qubit_location):
+                is_deformed = (self.code.axis(qubit_location) == deformed_axis)
+
+                if is_deformed:
+                    self.site(deformed_operator, qubit_location)
+                else:
+                    self.site(operator, qubit_location)

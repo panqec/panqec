@@ -18,10 +18,7 @@ class XCubePauli(IndexedSparsePauli):
 
         super().__init__(code, bsf=bsf)
 
-    def vertex(
-        self, operator: str,
-        location: Tuple[int, int, int]
-    ):
+    def vertex(self, operator: str, location: Tuple[int, int, int], deformed_axis=None):
         r"""Apply cube operator on sites around cubes.
 
         Parameters
@@ -37,18 +34,25 @@ class XCubePauli(IndexedSparsePauli):
         if not self.code.is_vertex(location):
             raise ValueError(f'Location {location} does not correspond to a cube')
 
-        cube = [(x + 1, y + 1, z), (x - 1, y - 1, z), (x + 1, y - 1, z), (x - 1, y + 1, z),
-                (x - 1, y, z - 1), (x + 1, y, z - 1), (x, y - 1, z - 1), (x, y + 1, z - 1),
-                (x - 1, y, z + 1), (x + 1, y, z + 1), (x, y - 1, z + 1), (x, y + 1, z + 1)]
+        delta = [(1, 1, 0), (-1, -1, 0), (1, -1, 0), (-1, 1, 0),
+                 (-1, 0, -1), (1, 0, -1), (0, -1, -1), (0, 1, -1),
+                 (-1, 0, 1), (1, 0, 1), (0, -1, 1), (0, 1, 1)]
 
-        for qubit_location in cube:
-            mod_location = tuple(np.mod(qubit_location, 2*np.array(self.code.size)))
-            self.site(operator, mod_location)
+        deformed_map = {'X': 'Z', 'Z': 'X'}
+        deformed_operator = deformed_map[operator]
 
-    def face(
-        self, operator: str, location: Tuple[int, int, int, int]
-    ):
-        r"""Apply face operator on sites neighbouring vertex.
+        for d in delta:
+            qubit_location = tuple(np.add(location, d) % (2*np.array(self.code.size)))
+
+            is_deformed = (self.code.axis(qubit_location) == deformed_axis)
+
+            if is_deformed:
+                self.site(deformed_operator, qubit_location)
+            else:
+                self.site(operator, qubit_location)
+
+    def face(self, operator: str, location: Tuple[int, int, int, int], deformed_axis=None):
+        r"""Apply face operator on sites neighboring vertex.
 
         Parameters
         ----------
@@ -63,12 +67,21 @@ class XCubePauli(IndexedSparsePauli):
         if not self.code.is_face(location):
             raise ValueError(f'Location {location} does not correspond to a face')
 
-        face = [[], [], []]
+        delta = [[], [], []]
 
-        face[self.code.X_AXIS] = [(x, y+1, z), (x, y-1, z), (x, y, z+1), (x, y, z-1)]
-        face[self.code.Y_AXIS] = [(x+1, y, z), (x-1, y, z), (x, y, z+1), (x, y, z-1)]
-        face[self.code.Z_AXIS] = [(x+1, y, z), (x-1, y, z), (x, y+1, z), (x, y-1, z)]
+        delta[self.code.X_AXIS] = [(0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
+        delta[self.code.Y_AXIS] = [(1, 0, 0), (-1, 0, 0), (0, 0, 1), (0, 0, -1)]
+        delta[self.code.Z_AXIS] = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0)]
 
-        for qubit_location in face[axis]:
-            mod_location = tuple(np.mod(qubit_location, 2*np.array(self.code.size)))
-            self.site(operator, mod_location)
+        deformed_map = {'X': 'Z', 'Z': 'X'}
+        deformed_operator = deformed_map[operator]
+
+        for d in delta[axis]:
+            qubit_location = tuple(np.add([x, y, z], d) % (2*np.array(self.code.size)))
+
+            is_deformed = (self.code.axis(qubit_location) == deformed_axis)
+
+            if is_deformed:
+                self.site(deformed_operator, qubit_location)
+            else:
+                self.site(operator, qubit_location)

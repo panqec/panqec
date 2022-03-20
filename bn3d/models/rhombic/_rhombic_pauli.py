@@ -18,10 +18,8 @@ class RhombicPauli(IndexedSparsePauli):
 
         super().__init__(code, bsf=bsf)
 
-    def vertex(
-        self, operator: str, location: Tuple[int, int, int, int]
-    ):
-        r"""Apply triangle operator on sites neighbouring vertex (3-body terms).
+    def vertex(self, operator: str, location: Tuple[int, int, int, int], deformed_axis=None):
+        r"""Apply triangle operator on sites neighboring vertex (3-body terms).
 
         Parameters
         ----------
@@ -32,35 +30,41 @@ class RhombicPauli(IndexedSparsePauli):
         """
 
         axis, x, y, z = location
-        
+
         if not self.code.is_vertex(location):
             raise ValueError(f'Location {location} does not correspond to a triangle')
 
         # Vertices of type 1 have neighboring cube stabs on the top left and bottom right
         # vertex_1[axis] contains the 3 qubits (i.e. 3 locations) in the corresponding triangle
-        vertex_1 = [[(x + 1, y, z), (x, y + 1, z), (x, y, z + 1)],
-                    [(x - 1, y, z), (x, y - 1, z), (x, y, z + 1)],
-                    [(x + 1, y, z), (x, y - 1, z), (x, y, z - 1)],
-                    [(x - 1, y, z), (x, y + 1, z), (x, y, z - 1)]]
+        delta_1 = [[(1, 0, 0), (0, 1, 0), (0, 0, 1)],
+                   [(-1, 0, 0), (0, -1, 0), (0, 0, 1)],
+                   [(1, 0, 0), (0, -1, 0), (0, 0, -1)],
+                   [(-1, 0, 0), (0, 1, 0), (0, 0, -1)]]
 
         # Vertices of type 2 have neighboring cube stabs on the top right and bottom left
-        vertex_2 = [[(x + 1, y, z), (x, y + 1, z), (x, y, z - 1)],
-                    [(x - 1, y, z), (x, y - 1, z), (x, y, z - 1)],
-                    [(x + 1, y, z), (x, y - 1, z), (x, y, z + 1)],
-                    [(x - 1, y, z), (x, y + 1, z), (x, y, z + 1)]]
+        delta_2 = [[(1, 0, 0), (0, 1, 0), (0, 0, -1)],
+                   [(-1, 0, 0), (0, -1, 0), (0, 0, -1)],
+                   [(1, 0, 0), (0, -1, 0), (0, 0, 1)],
+                   [(-1, 0, 0), (0, 1, 0), (0, 0, 1)]]
 
-        vertex = vertex_1 if (x + y + z) % 4 == 0 else vertex_2
+        delta = delta_1 if (x + y + z) % 4 == 0 else delta_2
 
-        for qubit_location in vertex[axis]:
-            mod_location = tuple(np.mod(qubit_location, 2*np.array(self.code.size)))
-            self.site(operator, mod_location)
+        deformed_map = {'X': 'Z', 'Z': 'X'}
+        deformed_operator = deformed_map[operator]
 
-    def face(
-        self, operator: str,
-        location: Tuple[int, int, int]
-    ):
+        for d in delta[axis]:
+            qubit_location = tuple(np.add([x, y, z], d) % (2*np.array(self.code.size)))
+            qx, qy, qz = qubit_location
+
+            is_deformed = ((qx + qy + qz) % 4 == 1 and self.code.axis(qubit_location) == deformed_axis)
+
+            if is_deformed:
+                self.site(deformed_operator, qubit_location)
+            else:
+                self.site(operator, qubit_location)
+
+    def face(self, operator: str, location: Tuple[int, int, int], deformed_axis=None):
         r"""Apply cube operator on sites around cubes.
-
         Parameters
         ----------
         operator: str
@@ -69,15 +73,23 @@ class RhombicPauli(IndexedSparsePauli):
             The (x, y, z) location of the cube
         """
 
-        x, y, z = location
-
         if not self.code.is_face(location):
             raise ValueError(f'Location {location} does not correspond to a cube')
 
-        cube = [(x + 1, y + 1, z), (x - 1, y - 1, z), (x + 1, y - 1, z), (x - 1, y + 1, z),
-                (x - 1, y, z - 1), (x + 1, y, z - 1), (x, y - 1, z - 1), (x, y + 1, z - 1),
-                (x - 1, y, z + 1), (x + 1, y, z + 1), (x, y - 1, z + 1), (x, y + 1, z + 1)]
+        delta = [(1, 1, 0), (-1, -1, 0), (1, -1, 0), (-1, 1, 0),
+                 (1, 0, 1), (-1, 0, -1), (1, 0, -1), (-1, 0, 1),
+                 (0, 1, 1), (0, -1, -1), (0, -1, 1), (0, 1, -1)]
 
-        for qubit_location in cube:
-            mod_location = tuple(np.mod(qubit_location, 2*np.array(self.code.size)))
-            self.site(operator, mod_location)
+        deformed_map = {'X': 'Z', 'Z': 'X'}
+        deformed_operator = deformed_map[operator]
+
+        for d in delta:
+            qubit_location = tuple(np.add(location, d) % (2*np.array(self.code.size)))
+            qx, qy, qz = qubit_location
+
+            is_deformed = ((qx + qy + qz) % 4 == 1 and self.code.axis(qubit_location) == deformed_axis)
+
+            if is_deformed:
+                self.site(deformed_operator, qubit_location)
+            else:
+                self.site(operator, qubit_location)

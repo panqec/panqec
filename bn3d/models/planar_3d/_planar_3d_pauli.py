@@ -18,8 +18,8 @@ class Planar3DPauli(IndexedSparsePauli):
 
         super().__init__(code, bsf=bsf)
 
-    def vertex(self, operator: str, location: Tuple[int, int, int]):
-        r"""Apply operator on sites neighbouring vertex.
+    def vertex(self, operator: str, location: Tuple[int, int, int], deformed_axis=None):
+        r"""Apply operator on sites neighboring vertex.
 
         Parameters
         ----------
@@ -45,19 +45,26 @@ class Planar3DPauli(IndexedSparsePauli):
 
         x, y, z = location
 
-        if (x + y + z) % 2 == 1:
-            raise ValueError(f"Invalid coordinate {location} for a vertex")
+        if not self.code.is_vertex(location):
+            raise ValueError(f"Incorrect coordinate {location} for a vertex")
 
-        vertex = [(x + 1, y, z), (x - 1, y, z), (x, y + 1, z), (x, y - 1, z), (x, y, z + 1), (x, y, z - 1)]
+        delta = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
 
-        for qubit_location in vertex:
-            if qubit_location in self.code.qubit_index:
-                self.site(operator, qubit_location)
+        deformed_map = {'X': 'Z', 'Z': 'X'}
+        deformed_operator = deformed_map[operator]
 
-    def face(
-        self, operator: str,
-        location: Tuple[int, int, int]
-    ):
+        for d in delta:
+            qubit_location = (x + d[0], y + d[1], z + d[2])
+
+            if self.code.is_qubit(qubit_location):
+                is_deformed = (self.code.axis(qubit_location) == deformed_axis)
+
+                if is_deformed:
+                    self.site(deformed_operator, qubit_location)
+                else:
+                    self.site(operator, qubit_location)
+
+    def face(self, operator: str, location: Tuple[int, int, int], deformed_axis=None):
         r"""Apply operator on sites on face normal to direction at location.
 
         Parameters
@@ -85,21 +92,29 @@ class Planar3DPauli(IndexedSparsePauli):
 
         x, y, z = location
 
-        z_face = [(x - 1, y, z), (x + 1, y, z), (x, y - 1, z), (x, y + 1, z)]  # zy-plane
-        x_face = [(x, y - 1, z), (x, y + 1, z), (x, y, z - 1), (x, y, z + 1)]  # xz-plane
-        y_face = [(x - 1, y, z), (x + 1, y, z), (x, y, z - 1), (x, y, z + 1)]  # xy-plane
+        if not self.code.is_face(location):
+            raise ValueError(f"Incorrect coordinate {location} for a face")
 
-        # Choose the right face orientation depending on its position
+        # z-normal so face is xy-plane.
         if z % 2 == 0:
-            face = z_face
+            delta = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0)]
+        # x-normal so face is in yz-plane.
         elif (x % 2 == 0):
-            face = x_face
+            delta = [(0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
+        # y-normal so face is in zx-plane.
         elif (y % 2 == 0):
-            face = y_face
-        else:
-            raise ValueError(f"Invalid coordinate {location} for a face")
+            delta = [(-1, 0, 0), (1, 0, 0), (0, 0, -1), (0, 0, 1)]
 
-        # Place the qubits
-        for index in face:
-            if index in self.code.qubit_index:
-                self.site(operator, index)
+        deformed_map = {'X': 'Z', 'Z': 'X'}
+        deformed_operator = deformed_map[operator]
+
+        for d in delta:
+            qubit_location = (x + d[0], y + d[1], z + d[2])
+
+            if self.code.is_qubit(qubit_location):
+                is_deformed = (self.code.axis(qubit_location) == deformed_axis)
+
+                if is_deformed:
+                    self.site(deformed_operator, qubit_location)
+                else:
+                    self.site(operator, qubit_location)

@@ -16,13 +16,14 @@ var defaultSize = codeDimension == 2 ? 6 : 3;
 const params = {
     errorProbability: 0.1,
     L: defaultSize,
-    deformation: "None",
+    noise_deformation: 'None',
     decoder: 'mbp',
     max_bp_iter: 10,
     alpha: 0.75,
     errorModel: 'Depolarizing',
     codeName: defaultCode,
-    rotated: false
+    rotated: false,
+    deformed_axis: 'None'
 };
 
 let codeSize = {Lx: defaultSize, Ly: defaultSize, Lz: defaultSize}
@@ -212,7 +213,8 @@ async function getStabilizerMatrices() {
             'Lx': codeSize.Lx,
             'Ly': codeSize.Ly,
             'Lz': codeSize.Lz,
-            'code_name': params.codeName
+            'code_name': params.codeName,
+            'deformed_axis': params.deformed_axis
         })
     });
 
@@ -226,7 +228,7 @@ function buildGUI() {
     const codeFolder = gui.addFolder('Code')
 
     var codes2d = {'Toric': 'toric-2d', 'Planar': 'planar-2d', 'Rotated planar': 'rotated-planar-2d'};
-    var codes3d = {'Toric 3D': 'toric-3d', 'Planar 3D': 'planar-3d', 
+    var codes3d = {'Toric 3D': 'toric-3d', 'Planar 3D': 'planar-3d',
                    'Rotated Planar 3D': 'rotated-planar-3d',
                    'Rhombic': 'rhombic', 'Coprime 3D': 'coprime-3d', 'XCube': 'xcube'};
 
@@ -235,12 +237,18 @@ function buildGUI() {
     codeFolder.add(params, 'codeName', codes).name('Code type').onChange(changeLatticeSize);
     codeFolder.add(params, 'rotated').name('Rotated picture').onChange(changeLatticeSize);
     codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
+
+    let deformed_options = {'None': 'None', 'x axis': 'x', 'y axis': 'y'};
+    if (codeDimension == 3)
+        deformed_options['z axis'] = 'z';
+
+    codeFolder.add(params, 'deformed_axis', deformed_options).name('Deformation').onChange(changeLatticeSize);
     codeFolder.open();
 
     const errorModelFolder = gui.addFolder('Error Model')
     errorModelFolder.add(params, 'errorModel', {'Pure X': 'Pure X', 'Pure Y': 'Pure Y', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}).name('Model');
     errorModelFolder.add(params, 'errorProbability', 0, 0.5).name('Probability');
-    errorModelFolder.add(params, 'deformation', {'None': 'None', 'XZZX': 'XZZX', 'XY': 'XY', 'Rhombic': 'Rhombic'}).name('Deformation');
+    errorModelFolder.add(params, 'noise_deformation', {'None': 'None', 'XZZX': 'XZZX', 'XY': 'XY', 'Rhombic': 'Rhombic'}).name('Deformation');
     errorModelFolder.add(buttons, 'addErrors').name('▶ Add errors (r)');
     errorModelFolder.open();
 
@@ -346,10 +354,11 @@ async function getCorrection(syndrome) {
             'max_bp_iter': params.max_bp_iter,
             'alpha': params.alpha,
             'syndrome': syndrome,
-            'deformation': params.deformation,
+            'noise_deformation': params.noise_deformation,
             'decoder': params.decoder,
             'error_model': params.errorModel,
-            'code_name': params.codeName
+            'code_name': params.codeName,
+            'deformed_axis': params.deformed_axis
         })
     });
 
@@ -369,9 +378,10 @@ async function getRandomErrors() {
             'Ly': codeSize.Ly,
             'Lz': codeSize.Lz,
             'p': params.errorProbability,
-            'deformation': params.deformation,
+            'noise_deformation': params.noise_deformation,
             'error_model': params.errorModel,
-            'code_name': params.codeName
+            'code_name': params.codeName,
+            'deformed_axis': params.deformed_axis
         })
     });
 
