@@ -365,7 +365,7 @@ class BeliefPropagationOSDDecoder(Decoder):
                 correction = np.concatenate([x_correction, z_correction])
             else:
                 # Update probabilities (in case the distribution is new at each iteration)
-                decoder.update_channel_probs(probabilities_x)
+                decoder.update_channel_probs(probabilities)
 
                 # Decode all errors
                 decoder.decode(syndrome)
