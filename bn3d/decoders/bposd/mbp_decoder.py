@@ -196,6 +196,14 @@ def mbp_decoder(H,
 
     correction_symplectic = pauli_to_symplectic(correction, reverse=True)
 
+    # print("Gamma\n", gamma_q)
+    print("Correction", correction)
+    print("Correction symplectic", correction_symplectic)
+    print("New syndrome", new_syndrome)
+    print("Old syndrome", syndrome)
+
+    correction_symplectic = pauli_to_symplectic(correction, reverse=True)
+
     return correction_symplectic
 
 
@@ -267,6 +275,7 @@ def test_decoder():
     L = 3
     max_bp_iter = 20
     alpha = 0.75
+
     # code = Planar2DCode(L, L)
     code = ToricCode2D(L, L)
 
@@ -320,6 +329,9 @@ def test_decoder():
 
         error[n+1] = 1
         error[n+12] = 1
+
+        error[0] = 1
+        error[1] = 1
 
         print(error)
         print("Calculate syndrome")
