@@ -14,7 +14,7 @@ class XCubeCode(IndexedSparseCode):
 
     @property
     def n_k_d(self) -> Tuple[int, int, int]:
-        return (len(self.qubit_index), -1, -1)
+        return (len(self.qubit_index), 3, min(self.size))
 
     @property
     def dimension(self) -> int:

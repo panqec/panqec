@@ -2,9 +2,10 @@
 # Request ten minutes of wallclock time (format hours:minutes:seconds).
 #$ -l h_rt=${TIME}
 #$ -l mem=${MEMORY}
-#$ -l tmpfs=1G
+#$ -l tmpfs=10G
 #$ -t 1-${NARRAY}
 #$ -N ${NAME}
+#$ -pe smp 36
 #$ -wd /home/ucapacp/Scratch/output
 #Local2Scratch
 
