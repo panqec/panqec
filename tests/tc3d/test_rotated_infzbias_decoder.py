@@ -4,7 +4,7 @@ import numpy as np
 from qecsim.paulitools import bsf_wt
 from bn3d.bpauli import bcommute
 from bn3d.decoders import split_posts_at_active_fences
-from bn3d.models import RotatedPlanarCode3D, RotatedPlanar3DPauli
+from bn3d.models import RotatedPlanar3DCode, RotatedPlanar3DPauli
 from bn3d.decoders import RotatedInfiniteZBiasDecoder
 
 
@@ -42,7 +42,7 @@ class TestRotatedInfiniteZBiasDecoder:
 
     @pytest.fixture
     def code(self):
-        return RotatedPlanarCode3D(2, 2, 2)
+        return RotatedPlanar3DCode(2, 2, 2)
 
     @pytest.fixture
     def decoder(self):

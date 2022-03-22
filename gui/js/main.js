@@ -24,6 +24,7 @@ const params = {
     errorModel: 'Depolarizing',
     codeName: defaultCode,
     rotated: false,
+    coprime: false,
     deformed_axis: 'None'
 };
 
@@ -165,7 +166,7 @@ async function buildCode() {
                      'rotated-planar-2d': [RotatedToric2DCode, RpRotatedToric2DCode],
                      'toric-3d': [Toric3DCode, RpToric3DCode],
                      'rotated-planar-3d': [RotatedToric3DCode, RpRotatedToric3DCode],
-                     'coprime-3d': [RotatedToric3DCode, RpRotatedToric3DCode],
+                     'rotated-toric-3d': [RotatedToric3DCode, RpRotatedToric3DCode],
                      'planar-3d': [Toric3DCode, RpToric3DCode],
                      'rhombic': [RhombicCode, RhombicCode],
                      'xcube': [XCubeCode, XCubeCode]
@@ -184,8 +185,8 @@ function changeLatticeSize() {
     codeSize.Ly = parseInt(params.L);
     codeSize.Lz = parseInt(params.L);
 
-    if (params.codeName == 'coprime-3d')
-        codeSize.Lx = parseInt(params.L) + 1;
+    if (params.coprime)
+        codeSize.Lx += 1;
 
     code.qubits.forEach(q => {
         q.material.dispose();
@@ -231,12 +232,13 @@ function buildGUI() {
     var codes2d = {'Toric': 'toric-2d', 'Planar': 'planar-2d', 'Rotated planar': 'rotated-planar-2d'};
     var codes3d = {'Toric 3D': 'toric-3d', 'Planar 3D': 'planar-3d',
                    'Rotated Planar 3D': 'rotated-planar-3d',
-                   'Rhombic': 'rhombic', 'Coprime 3D': 'coprime-3d', 'XCube': 'xcube'};
+                   'Rhombic': 'rhombic', 'Rotated Toric 3D': 'rotated-toric-3d', 'XCube': 'xcube'};
 
     var codes = codeDimension == 2 ? codes2d : codes3d;
 
     codeFolder.add(params, 'codeName', codes).name('Code type').onChange(changeLatticeSize);
     codeFolder.add(params, 'rotated').name('Rotated picture').onChange(changeLatticeSize);
+    codeFolder.add(params, 'coprime').name('Coprime dimensions').onChange(changeLatticeSize);
     codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
 
     let deformed_options = {'None': 'None', 'x axis': 'x', 'y axis': 'y'};

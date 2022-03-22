@@ -4,7 +4,7 @@ import numpy as np
 from qecsim.paulitools import bsf_wt
 from bn3d.bpauli import bcommute
 from bn3d.models import (
-    RotatedPlanarCode3D, RotatedPlanar3DPauli
+    RotatedPlanar3DCode, RotatedPlanar3DPauli
 )
 from bn3d.decoders import RotatedSweepMatchDecoder, RotatedSweepDecoder3D
 
@@ -14,7 +14,7 @@ class TestRotatedSweepMatchDecoder:
 
     @pytest.fixture
     def code(self):
-        return RotatedPlanarCode3D(4, 4, 4)
+        return RotatedPlanar3DCode(4, 4, 4)
 
     @pytest.fixture
     def decoder(self):
@@ -159,9 +159,9 @@ class TestRotatedSweepMatchDecoder:
     def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
 
         codes_sites = [
-            (RotatedPlanarCode3D(3, 3, 3), (7, 9, 3)),
-            (RotatedPlanarCode3D(4, 4, 4), (3, 5, 7)),
-            (RotatedPlanarCode3D(5, 5, 5), (1, 3, 5)),
+            (RotatedPlanar3DCode(3, 3, 3), (7, 9, 3)),
+            (RotatedPlanar3DCode(4, 4, 4), (3, 5, 7)),
+            (RotatedPlanar3DCode(5, 5, 5), (1, 3, 5)),
         ]
 
         for code, site in codes_sites:
@@ -180,7 +180,7 @@ class TestSweepMatch1x1x1:
 
     @pytest.fixture
     def code(self):
-        return RotatedPlanarCode3D(1, 1, 1)
+        return RotatedPlanar3DCode(1, 1, 1)
 
     @pytest.fixture
     def decoder(self):
@@ -219,7 +219,7 @@ class TestSweepMatch2x2x2:
 
     @pytest.fixture
     def code(self):
-        return RotatedPlanarCode3D(2, 2, 2)
+        return RotatedPlanar3DCode(2, 2, 2)
 
     @pytest.fixture
     def decoder(self):
@@ -319,7 +319,7 @@ class TestSweepCorners:
 
     @pytest.fixture
     def code(self):
-        return RotatedPlanarCode3D(2, 2, 2)
+        return RotatedPlanar3DCode(2, 2, 2)
 
     @pytest.fixture
     def decoder(self):
@@ -420,7 +420,7 @@ class TestRotatedSweepDecoder3D:
 
     @pytest.fixture
     def code(self):
-        return RotatedPlanarCode3D(2, 2, 2)
+        return RotatedPlanar3DCode(2, 2, 2)
 
     @pytest.fixture
     def decoder(self):

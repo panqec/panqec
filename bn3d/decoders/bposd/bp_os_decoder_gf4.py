@@ -299,14 +299,14 @@ class BeliefPropagationOSDDecoder(Decoder):
 
 
 if __name__ == "__main__":
-    from bn3d.models import RotatedPlanarCode3D
+    from bn3d.models import RotatedPlanar3DCode
     import qecsim.paulitools as pt
     from bn3d.noise import PauliErrorModel
 
     np.random.seed(42)
 
     L = 1
-    code = RotatedPlanarCode3D(L, L, L)
+    code = RotatedPlanar3DCode(L, L, L)
     n_qubits = code.n_k_d[0]
 
     probability = 0.1

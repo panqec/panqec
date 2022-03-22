@@ -80,11 +80,7 @@ def mbp_decoder(H,
                 syndrome: np.ndarray,
                 p_channel: Dict[str, np.ndarray],
                 max_bp_iter=10,
-<<<<<<< Updated upstream
                 alpha=0.75,
-=======
-                alpha=0.5,
->>>>>>> Stashed changes
                 beta=0,
                 eps=1e-8) -> Tuple[np.ndarray, np.ndarray]:
     """Belief propagation decoder.

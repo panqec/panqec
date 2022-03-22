@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from bn3d.models import RotatedPlanarCode3D
+from bn3d.models import RotatedPlanar3DCode
 from .indexed_code_test import IndexedCodeTest
 
 
@@ -14,11 +14,11 @@ from .indexed_code_test import IndexedCodeTest
     (2, 2, 3),
 ])
 def test_n_qubits_equals_len_qubit_index(L_x, L_y, L_z):
-    code = RotatedPlanarCode3D(L_x, L_y, L_z)
+    code = RotatedPlanar3DCode(L_x, L_y, L_z)
     assert code.n_k_d[0] == len(code.qubit_index)
 
 
-class TestRotatedPlanarCode3D(IndexedCodeTest):
+class TestRotatedPlanar3DCode(IndexedCodeTest):
 
     L_x = 4
     L_y = 4
@@ -27,7 +27,7 @@ class TestRotatedPlanarCode3D(IndexedCodeTest):
     @pytest.fixture
     def code(self):
         """Example code with non-uniform dimensions."""
-        new_code = RotatedPlanarCode3D(self.L_x, self.L_y, self.L_z)
+        new_code = RotatedPlanar3DCode(self.L_x, self.L_y, self.L_z)
         return new_code
 
     def test_vertex_index_corner_region(self, code):

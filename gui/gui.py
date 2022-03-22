@@ -20,10 +20,10 @@ import webbrowser
 import argparse
 
 code_names = {'2d': ['toric-2d', 'rotated-planar-2d', 'planar-2d'],
-              '3d': ['toric-3d', 'planar-3d', 'rotated-planar-3d', 'rhombic', 'coprime-3d', 'xcube']}
+              '3d': ['toric-3d', 'planar-3d', 'rotated-planar-3d', 'rhombic', 'rotated-toric-3d', 'xcube']}
 
 code_class = {'toric-2d': Toric2DCode, 'planar-2d': Planar2DCode, 'rotated-planar-2d': RotatedPlanar2DCode,
-              'toric-3d': Toric3DCode, 'coprime-3d': RotatedToric3DCode, 'rotated-planar-3d': RotatedPlanar3DCode,
+              'toric-3d': Toric3DCode, 'rotated-toric-3d': RotatedToric3DCode, 'rotated-planar-3d': RotatedPlanar3DCode,
               'rhombic': RhombicCode, 'planar-3d': Planar3DCode, 'xcube': XCubeCode}
 
 error_model_class = {'None': PauliErrorModel,

@@ -1,7 +1,7 @@
 from typing import Tuple
 import numpy as np
 import pytest
-from bn3d.models import RotatedPlanarCode3D, RotatedPlanar3DPauli
+from bn3d.models import RotatedPlanar3DCode, RotatedPlanar3DPauli
 from bn3d.decoders import DeformedRotatedSweepMatchDecoder
 from bn3d.error_models import DeformedXZZXErrorModel
 from bn3d.bpauli import bcommute, get_effective_error
@@ -15,7 +15,7 @@ class TestDeformedRotatedPlanarPymatchingDecoder:
 
     @pytest.fixture
     def code(self):
-        return RotatedPlanarCode3D(*self.size)
+        return RotatedPlanar3DCode(*self.size)
 
     @pytest.fixture
     def error_model(self):

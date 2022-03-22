@@ -1,7 +1,7 @@
 from typing import Tuple, Dict
 import numpy as np
 from qecsim.model import Decoder
-from ...models import RotatedPlanarCode3D
+from ...models import RotatedPlanar3DCode
 from ...models import RotatedPlanar3DPauli
 Indexer = Dict[Tuple[int, int, int], int]
 
@@ -25,7 +25,7 @@ class RotatedSweepDecoder3D(Decoder):
         return tuple(all_index.max(axis=0))
 
     def get_initial_state(
-        self, code: RotatedPlanarCode3D, syndrome: np.ndarray
+        self, code: RotatedPlanar3DCode, syndrome: np.ndarray
     ) -> Indexer:
         """Get initial cellular automaton state from syndrome."""
         n_faces = len(code.face_index)
@@ -36,7 +36,7 @@ class RotatedSweepDecoder3D(Decoder):
         return signs
 
     def decode(
-        self, code: RotatedPlanarCode3D, syndrome: np.ndarray
+        self, code: RotatedPlanar3DCode, syndrome: np.ndarray
     ) -> np.ndarray:
         """Get Z corrections given measured syndrome."""
 
@@ -126,7 +126,7 @@ class RotatedSweepDecoder3D(Decoder):
 
     def sweep_move(
         self, signs: Indexer, correction: RotatedPlanar3DPauli,
-        sweep_direction: Tuple[int, int, int], code: RotatedPlanarCode3D
+        sweep_direction: Tuple[int, int, int], code: RotatedPlanar3DCode
     ) -> Indexer:
         """Apply the sweep move once along a particular direciton."""
 
@@ -190,7 +190,7 @@ class RotatedSweepDecoder3D(Decoder):
         return new_signs
 
     def flip_edge(
-        self, edge: Tuple, signs: Indexer, code: RotatedPlanarCode3D
+        self, edge: Tuple, signs: Indexer, code: RotatedPlanar3DCode
     ):
         """Flip signs at index and update correction."""
 

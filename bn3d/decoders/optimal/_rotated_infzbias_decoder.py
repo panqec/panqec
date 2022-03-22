@@ -2,7 +2,7 @@ from typing import Dict, Tuple, List
 import numpy as np
 from qecsim.model import Decoder
 from pymatching import Matching
-from ...models import RotatedPlanarCode3D
+from ...models import RotatedPlanar3DCode
 from ...models import RotatedPlanar3DPauli
 from ..sweepmatch._rotated_sweep_decoder import RotatedSweepDecoder3D
 Indexer = Dict[Tuple[int, int, int], int]
@@ -11,14 +11,14 @@ Indexer = Dict[Tuple[int, int, int], int]
 class ZMatchingDecoder(RotatedSweepDecoder3D):
     label = 'Rotated Infinite Z Bias Loop Sector Decoder'
 
-    def get_edges_xy(self, code: RotatedPlanarCode3D):
+    def get_edges_xy(self, code: RotatedPlanar3DCode):
         xy = [
             (x, y) for x, y, z in code.face_index if z == 2
         ]
         return xy
 
     def decode(
-        self, code: RotatedPlanarCode3D, syndrome: np.ndarray
+        self, code: RotatedPlanar3DCode, syndrome: np.ndarray
     ) -> np.ndarray:
         correction = RotatedPlanar3DPauli(code)
         signs = self.get_initial_state(code, syndrome)
@@ -39,7 +39,7 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
 
     def match_horizontal_plane(
         self, signs: Indexer, correction: RotatedPlanar3DPauli,
-        code: RotatedPlanarCode3D, z_plane: int
+        code: RotatedPlanar3DCode, z_plane: int
     ):
         """Do 2D matching on top and bottom boundary surfaces."""
         edges = sorted([
@@ -86,7 +86,7 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
 
     def decode_vertical_line(
         self, signs: Indexer, correction: RotatedPlanar3DPauli,
-        code: RotatedPlanarCode3D, xy: Tuple[int, int]
+        code: RotatedPlanar3DCode, xy: Tuple[int, int]
     ):
         """Do 1D matching along a vertical line."""
         L_z = code.size[2]
@@ -135,7 +135,7 @@ class XLineDecoder(Decoder):
     label = 'Rotated Infinite Z Bias Point Sector Decoder'
 
     def decode_line(
-        self, code: RotatedPlanarCode3D, syndrome: np.ndarray,
+        self, code: RotatedPlanar3DCode, syndrome: np.ndarray,
         xy: Tuple[int, int]
     ) -> np.ndarray:
         x, y = xy
@@ -182,7 +182,7 @@ class XLineDecoder(Decoder):
         return x_correction
 
     def decode(
-        self, code: RotatedPlanarCode3D, syndrome: np.ndarray
+        self, code: RotatedPlanar3DCode, syndrome: np.ndarray
     ) -> np.ndarray:
         """Get X corrections given code and measured syndrome."""
 
@@ -215,7 +215,7 @@ class RotatedInfiniteZBiasDecoder(Decoder):
         self._sweeper = ZMatchingDecoder()
 
     def decode(
-        self, code: RotatedPlanarCode3D, syndrome: np.ndarray
+        self, code: RotatedPlanar3DCode, syndrome: np.ndarray
     ) -> np.ndarray:
 
         z_correction = self._sweeper.decode(code, syndrome)

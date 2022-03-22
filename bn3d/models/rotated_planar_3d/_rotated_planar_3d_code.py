@@ -136,6 +136,6 @@ class RotatedPlanar3DCode(IndexedSparseCode):
 
 
 if __name__ == "__main__":
-    code = RotatedPlanarCode3D(2)
+    code = RotatedPlanar3DCode(2)
 
     print("Vertices", code.face_index)
