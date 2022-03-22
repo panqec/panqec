@@ -66,8 +66,7 @@ class IndexedCodePauli(metaclass=ABCMeta):
     @property
     def code(self):
         """
-        The rotated toric code.
-        :rtype: RotatedToricCode
+        Return the code instance
         """
         return self._code
 
@@ -100,7 +99,7 @@ class IndexedCodePauli(metaclass=ABCMeta):
         Returns a copy of this Pauli that references the same code but is
         backed by a copy of the bsf.
         :return: A copy of this Pauli.
-        :rtype: ToricPauli
+        :rtype: IndexedCodePauli
         """
         return self.code.new_pauli(bsf=np.copy(self.to_bsf()))
 

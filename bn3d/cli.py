@@ -173,7 +173,7 @@ def read_range_input(specification: str) -> List[float]:
 @click.option(
     '--code_class', default=None, type=str,
     show_default=True,
-    help='Explicitly specify the code class, e.g. ToricCode3D'
+    help='Explicitly specify the code class, e.g. Toric3DCode'
 )
 @click.option(
     '--noise_class', default=None, type=str,
@@ -223,7 +223,7 @@ def generate_input(
                 code_model += 'Toric'
             else:
                 code_model += 'Planar'
-            code_model += 'Code3D'
+            code_model += '3DCode'
 
             # Explicit override.
             if code_class is not None:
@@ -236,7 +236,7 @@ def generate_input(
                     for L in L_list
                 ]
             else:
-                if code_model == 'RotatedPlanarCode3D':
+                if code_model == 'RotatedPlanar3DCode':
                     code_parameters = [
                         {"L_x": L, "L_y": L, "L_z": 2*L}
                         for L in L_list

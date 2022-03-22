@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from qecsim.models.toric import ToricCode
+from bn3d.models import Toric2DCode
 from qecsim.paulitools import bsf_wt
 from bn3d.decoders import Toric2DPymatchingDecoder
 from bn3d.bpauli import bcommute
@@ -8,7 +8,7 @@ from bn3d.bpauli import bcommute
 
 @pytest.fixture
 def code():
-    return ToricCode(4, 5)
+    return Toric2DCode(4, 5)
 
 
 class TestToric2DPymatchingDecoder:

@@ -5,7 +5,7 @@ from typing import Dict
 import numpy as np
 from qecsim.model import StabilizerCode
 from pymatching import Matching
-from ...models import ToricCode3D
+from ...models import Toric3DCode
 from ._pymatching_decoder import Toric3DPymatchingDecoder
 
 
@@ -33,7 +33,7 @@ class RotatedPlanarPymatchingDecoder(Toric3DPymatchingDecoder):
         return Matching(code.Hx[:, :n_qubits])
 
     def get_vertex_syndromes(
-        self, code: ToricCode3D, full_syndrome: np.ndarray
+        self, code: Toric3DCode, full_syndrome: np.ndarray
     ) -> np.ndarray:
         """Get only the syndromes for the vertex Z stabilizers.
 
@@ -43,7 +43,7 @@ class RotatedPlanarPymatchingDecoder(Toric3DPymatchingDecoder):
         vertex_syndromes = full_syndrome[n_faces:]
         return vertex_syndromes
 
-    def decode(self, code: ToricCode3D, syndrome: np.ndarray) -> np.ndarray:
+    def decode(self, code: Toric3DCode, syndrome: np.ndarray) -> np.ndarray:
         """Get X corrections given code and measured syndrome."""
 
         # Initialize correction as full bsf.

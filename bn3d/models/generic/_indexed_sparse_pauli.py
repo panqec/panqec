@@ -70,10 +70,7 @@ class IndexedSparsePauli(metaclass=ABCMeta):
 
     @property
     def code(self):
-        """
-        The rotated toric code.
-        :rtype: RotatedToricCode
-        """
+        """Return code instance"""
         return self._code
 
     def operator(self, coord):
@@ -105,7 +102,7 @@ class IndexedSparsePauli(metaclass=ABCMeta):
         Returns a copy of this Pauli that references the same code but is
         backed by a copy of the bsf.
         :return: A copy of this Pauli.
-        :rtype: ToricPauli
+        :rtype: IndexedSparsePauli
         """
         return self.code.pauli_class(self.code, bsf=self.to_bsf())
 

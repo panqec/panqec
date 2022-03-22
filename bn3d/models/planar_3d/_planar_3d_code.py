@@ -5,7 +5,7 @@ from ._planar_3d_pauli import Planar3DPauli
 from ... import bsparse
 
 
-class PlanarCode3D(IndexedSparseCode):
+class Planar3DCode(IndexedSparseCode):
 
     pauli_class = Planar3DPauli
 

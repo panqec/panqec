@@ -170,7 +170,7 @@ bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
 # Subthreshold scaling.
 name=lay_coprime_xzzx_zbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
+    --code_class RotatedToric3DCode --noise_class DeformedXZZXErrorModel \
     --ratio coprime \
     --sizes "4,6,8,10,12" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "0.5,10,100,inf" --prob "0:0.5:0.02"
@@ -179,7 +179,7 @@ bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
 
 name=lay_coprime_undef_zbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class LayeredRotatedToricCode --noise_class PauliErrorModel \
+    --code_class RotatedToric3DCode --noise_class PauliErrorModel \
     --ratio coprime \
     --sizes "4,6,8,10,12" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "0.5,10,100,inf" --prob "0:0.5:0.02"
@@ -188,7 +188,7 @@ bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
 
 name=lay_equal_xzzx_zbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
+    --code_class RotatedToric3DCode --noise_class DeformedXZZXErrorModel \
     --ratio equal \
     --sizes "4,6,8,10,12" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "0.5,10,100,inf" --prob "0:0.5:0.02"
@@ -197,7 +197,7 @@ bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
 
 name=lay_equal_undef_zbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class LayeredRotatedToricCode --noise_class PauliErrorModel \
+    --code_class RotatedToric3DCode --noise_class PauliErrorModel \
     --ratio equal \
     --sizes "4,6,8,10,12" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "0.5,10,100,inf" --prob "0:0.5:0.02"
@@ -208,7 +208,7 @@ name=sts_lay_coprime_xzzx_zbias_300_1
 rm -rf "$paper_dir/$name/inputs"
 rm -rf "$paper_dir/$name/logs"
 bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
+    --code_class RotatedToric3DCode --noise_class DeformedXZZXErrorModel \
     --ratio coprime \
     --sizes "7,9,11,13,15" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "300" --prob "0.19:0.23:0.01"
@@ -219,7 +219,7 @@ name=sts_lay_coprime_xzzx_zbias_300_2
 rm -rf "$paper_dir/$name/inputs"
 rm -rf "$paper_dir/$name/logs"
 bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
+    --code_class RotatedToric3DCode --noise_class DeformedXZZXErrorModel \
     --ratio coprime \
     --sizes "7,9,11,13,15" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "300" --prob "0.19:0.23:0.01"
@@ -230,7 +230,7 @@ name=sts_lay_coprime_xzzx_zbias_300_3
 rm -rf "$paper_dir/$name/inputs"
 rm -rf "$paper_dir/$name/logs"
 bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
+    --code_class RotatedToric3DCode --noise_class DeformedXZZXErrorModel \
     --ratio coprime \
     --sizes "7,9,11,13,15" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "300" --prob "0.19:0.23:0.01"
@@ -241,7 +241,7 @@ name=sts_lay_coprime_undef_zbias
 rm -rf "$paper_dir/$name/inputs"
 rm -rf "$paper_dir/$name/logs"
 bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class LayeredRotatedToricCode --noise_class PauliErrorModel \
+    --code_class RotatedToric3DCode --noise_class PauliErrorModel \
     --ratio coprime \
     --sizes "7,9,11,13,15" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "100" --prob "0.19:0.23:0.01"
@@ -250,7 +250,7 @@ bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 4 --queue $queue \
 
 name=sts_lay_equal_xzzx_zbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
+    --code_class RotatedToric3DCode --noise_class DeformedXZZXErrorModel \
     --ratio equal \
     --sizes "2,4,6,8,10,12" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "100" --prob "0.1"
@@ -259,7 +259,7 @@ bn3d pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
 
 name=sts_lay_equal_undef_zbias
 bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class LayeredRotatedToricCode --noise_class PauliErrorModel \
+    --code_class RotatedToric3DCode --noise_class PauliErrorModel \
     --ratio equal \
     --sizes "2,4,6,8,10,12" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "100" --prob "0.1"

@@ -280,7 +280,7 @@ class BeliefPropagationOSDDecoder(Decoder):
 
         is_css = hasattr(code, 'Hz')
 
-        if 'Layered Rotated' in code.label:
+        if 'Rotated Toric' in code.label:
             L_x, L_y, L_z = code.size
             is_css = (L_x % 2 == 0 and L_y % 2 == 0)
 
@@ -399,7 +399,7 @@ class BeliefPropagationOSDDecoder(Decoder):
 
 
 def test_decoder():
-    from bn3d.models import ToricCode3D
+    from bn3d.models import Toric3DCode
     from bn3d.bpauli import bcommute, get_effective_error
     # from bn3d.noise import PauliErrorModel
     from bn3d.error_models import DeformedRandomErrorModel
@@ -407,7 +407,7 @@ def test_decoder():
     rng = np.random.default_rng()
 
     L = 20
-    code = ToricCode3D(L, L, L)
+    code = Toric3DCode(L, L, L)
     code.stabilizers
 
     probability = 0.1

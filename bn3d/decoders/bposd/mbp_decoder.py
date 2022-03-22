@@ -80,7 +80,11 @@ def mbp_decoder(H,
                 syndrome: np.ndarray,
                 p_channel: Dict[str, np.ndarray],
                 max_bp_iter=10,
+<<<<<<< Updated upstream
                 alpha=0.75,
+=======
+                alpha=0.5,
+>>>>>>> Stashed changes
                 beta=0,
                 eps=1e-8) -> Tuple[np.ndarray, np.ndarray]:
     """Belief propagation decoder.
@@ -220,6 +224,14 @@ def mbp_decoder(H,
 
     correction_symplectic = pauli_to_symplectic(correction, reverse=True)
 
+    # print("Gamma\n", gamma_q)
+    print("Correction", correction)
+    print("Correction symplectic", correction_symplectic)
+    print("New syndrome", new_syndrome)
+    print("Old syndrome", syndrome)
+
+    correction_symplectic = pauli_to_symplectic(correction, reverse=True)
+
     return correction_symplectic
 
 
@@ -255,9 +267,6 @@ class MemoryBeliefPropagationDecoder(Decoder):
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
-        if 'Layered Rotated' in code.label:
-            L_x, L_y, L_z = code.size
-
         n_qubits = code.n_k_d[0]
         syndrome = np.array(syndrome, dtype=int)
 
@@ -282,7 +291,7 @@ def test_symplectic_to_pauli():
 
 
 def test_decoder():
-    from bn3d.models import Planar2DCode, ToricCode2D
+    from bn3d.models import Planar2DCode, Toric2DCode
     from bn3d.bpauli import get_effective_error
     from bn3d.noise import PauliErrorModel
     import time
@@ -293,7 +302,7 @@ def test_decoder():
     alpha = 0.75
 
     # code = Planar2DCode(L, L)
-    code = ToricCode2D(L, L)
+    code = Toric2DCode(L, L)
 
     code.stabilizers
     n = code.n_k_d[0]

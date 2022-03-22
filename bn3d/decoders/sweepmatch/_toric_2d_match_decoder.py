@@ -2,7 +2,7 @@ from typing import Dict, Tuple
 import numpy as np
 from pymatching import Matching
 from qecsim.model import Decoder
-from qecsim.models.toric import ToricCode
+from bn3d.models import Toric2DCode
 
 
 class Toric2DPymatchingDecoder(Decoder):
@@ -14,7 +14,7 @@ class Toric2DPymatchingDecoder(Decoder):
     def __init__(self):
         self._matchers = {}
 
-    def _new_matchers(self, code: ToricCode) -> Tuple[Matching, Matching]:
+    def _new_matchers(self, code: Toric2DCode) -> Tuple[Matching, Matching]:
         """Return a new tuple of Matching objects."""
         # Get the number of X stabilizers (faces).
         # n_vertices = int(np.product(code.size))
@@ -27,7 +27,7 @@ class Toric2DPymatchingDecoder(Decoder):
 
         return Matching(H_z), Matching(H_x)
 
-    def get_matchers(self, code: ToricCode) -> Tuple[Matching, Matching]:
+    def get_matchers(self, code: Toric2DCode) -> Tuple[Matching, Matching]:
         """Get the matchers for Z and X stabilizers given the code.
 
         Matching objects are only instantiated once for the same code.
@@ -39,7 +39,7 @@ class Toric2DPymatchingDecoder(Decoder):
             self._matchers[code.label] = self._new_matchers(code)
         return self._matchers[code.label]
 
-    def decode(self, code: ToricCode, syndrome: np.ndarray) -> np.ndarray:
+    def decode(self, code: Toric2DCode, syndrome: np.ndarray) -> np.ndarray:
         """Get X corrections given code and measured syndrome."""
 
         # The number of qubits.

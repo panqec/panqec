@@ -41,14 +41,14 @@ class DeformedXYErrorModel(PauliErrorModel):
         """Undeformed noise direction (r_X, r_Y, r_Z) for qubits."""
         is_deformed = [False for _ in range(code.n_k_d[0])]
 
-        deformed_axis = {'ToricCode3D': code.Z_AXIS,
-                         'PlanarCode3D': code.Z_AXIS,
+        deformed_axis = {'Toric3DCode': code.Z_AXIS,
+                         'Planar3DCode': code.Z_AXIS,
                          'XCubeCode': code.Z_AXIS,
-                         'LayeredRotatedToricCode': code.X_AXIS,
-                         'RotatedPlanarCode3D': code.Z_AXIS,
+                         'RotatedToric3DCode': code.X_AXIS,
+                         'RotatedPlanar3DCode': code.Z_AXIS,
                          'RhombicCode': code.Z_AXIS,
 
-                         'ToricCode2D': code.X_AXIS,
+                         'Toric2DCode': code.X_AXIS,
                          'Planar2DCode': code.X_AXIS,
                          'RotatedPlanar2DCode': code.X_AXIS}
 

@@ -1,9 +1,9 @@
 from typing import Tuple
-from ..rotated_planar_3d._rotated_planar_3d_pauli import RotatedPlanar3DPauli
+from ..generic._indexed_sparse_pauli import IndexedSparsePauli
 import numpy as np
 
 
-class LayeredToricPauli(RotatedPlanar3DPauli):
+class RotatedToric3DPauli(IndexedSparsePauli):
 
     def on_defect_boundary(self, Lx, Ly, x, y):
         """Determine whether or not to defect each boundary."""

@@ -6,7 +6,7 @@ Tests for custom implementation of pauli bit strings.
 """
 import pytest
 import numpy as np
-from qecsim.models.toric import ToricCode
+from bn3d.models import Toric2DCode
 from bn3d.bpauli import (
     pauli_string_to_bvector, bvector_to_pauli_string, bvector_to_barray,
     barray_to_bvector, bcommute, get_effective_error, bvector_to_int,
@@ -158,7 +158,7 @@ def test_ints_to_bvectors():
 
 
 def test_get_effective_error_toric_code_logicals():
-    code = ToricCode(3, 5)
+    code = Toric2DCode(3, 5)
     logical_operators = {
         'X1': code.logical_xs[0],
         'X2': code.logical_xs[1],
@@ -183,7 +183,7 @@ def test_get_effective_error_toric_code_logicals():
 
 
 def test_get_effective_error_toric_code_logicals_many():
-    code = ToricCode(3, 5)
+    code = Toric2DCode(3, 5)
     logical_operators = np.array([
         code.logical_xs[0],
         code.logical_xs[1],

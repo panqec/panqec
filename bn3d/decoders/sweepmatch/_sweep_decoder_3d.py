@@ -2,7 +2,7 @@ import itertools
 from typing import Tuple
 import numpy as np
 from qecsim.model import Decoder
-from ...models import ToricCode3D
+from ...models import Toric3DCode
 from ...models import Toric3DPauli
 
 
@@ -17,7 +17,7 @@ class SweepDecoder3D(Decoder):
         self.max_sweep_factor = max_sweep_factor
 
     def get_face_syndromes(
-        self, code: ToricCode3D, full_syndrome: np.ndarray
+        self, code: Toric3DCode, full_syndrome: np.ndarray
     ) -> np.ndarray:
         """Get only the syndromes for the vertex Z stabilizers.
 
@@ -66,7 +66,7 @@ class SweepDecoder3D(Decoder):
         direction = int(self._rng.choice([0, 1, 2], size=1))
         return direction
 
-    def get_sign_array(self, code: ToricCode3D, syndrome: np.ndarray):
+    def get_sign_array(self, code: Toric3DCode, syndrome: np.ndarray):
         signs = np.reshape(
             self.get_face_syndromes(code, syndrome),
             newshape=code.size
@@ -74,7 +74,7 @@ class SweepDecoder3D(Decoder):
         return signs
 
     def decode(
-        self, code: ToricCode3D, syndrome: np.ndarray
+        self, code: Toric3DCode, syndrome: np.ndarray
     ) -> np.ndarray:
         """Get Z corrections given measured syndrome."""
 

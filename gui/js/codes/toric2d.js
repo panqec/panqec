@@ -2,9 +2,9 @@ import * as THREE from 'https://cdn.skypack.dev/three@v0.130.1';
 
 import { AbstractSurfaceCode, AbstractRpSurfaceCode} from './base/abstractSurfaceCode.js';
 
-export {ToricCode2D, RpToricCode2D};
+export {Toric2DCode, RpToric2DCode};
 
-class ToricCode2D extends AbstractSurfaceCode {
+class Toric2DCode extends AbstractSurfaceCode {
     constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
         super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
     }
@@ -83,7 +83,7 @@ class ToricCode2D extends AbstractSurfaceCode {
 }
 
 
-class RpToricCode2D extends AbstractRpSurfaceCode {
+class RpToric2DCode extends AbstractRpSurfaceCode {
     constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
         super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
     }

@@ -2,9 +2,9 @@ import numpy as np
 
 from flask import Flask, send_from_directory, request, json, render_template
 from bn3d.models import (
-    ToricCode2D, RotatedPlanar2DCode, Planar2DCode,
-    ToricCode3D, RotatedPlanarCode3D, RhombicCode,
-    PlanarCode3D, LayeredRotatedToricCode, XCubeCode
+    Toric2DCode, RotatedPlanar2DCode, Planar2DCode,
+    Toric3DCode, RotatedPlanar3DCode, RhombicCode,
+    Planar3DCode, RotatedToric3DCode, XCubeCode
 )
 from bn3d.decoders import (
     Toric2DPymatchingDecoder, RotatedSweepMatchDecoder,
@@ -22,9 +22,9 @@ import argparse
 code_names = {'2d': ['toric-2d', 'rotated-planar-2d', 'planar-2d'],
               '3d': ['toric-3d', 'planar-3d', 'rotated-planar-3d', 'rhombic', 'coprime-3d', 'xcube']}
 
-code_class = {'toric-2d': ToricCode2D, 'planar-2d': Planar2DCode, 'rotated-planar-2d': RotatedPlanar2DCode,
-              'toric-3d': ToricCode3D, 'coprime-3d': LayeredRotatedToricCode, 'rotated-planar-3d': RotatedPlanarCode3D,
-              'rhombic': RhombicCode, 'planar-3d': PlanarCode3D, 'xcube': XCubeCode}
+code_class = {'toric-2d': Toric2DCode, 'planar-2d': Planar2DCode, 'rotated-planar-2d': RotatedPlanar2DCode,
+              'toric-3d': Toric3DCode, 'coprime-3d': RotatedToric3DCode, 'rotated-planar-3d': RotatedPlanar3DCode,
+              'rhombic': RhombicCode, 'planar-3d': Planar3DCode, 'xcube': XCubeCode}
 
 error_model_class = {'None': PauliErrorModel,
                      'XZZX': DeformedXZZXErrorModel,

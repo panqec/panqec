@@ -8,7 +8,7 @@ from bn3d.noise import (
 )
 from bn3d.bpauli import get_bvector_index
 from bn3d.noise import PauliErrorModel, XNoiseOnYZEdgesOnly
-from bn3d.models import ToricCode3D, Toric3DPauli
+from bn3d.models import Toric3DCode, Toric3DPauli
 import bn3d.bsparse as bsparse
 
 
@@ -20,7 +20,7 @@ class TestPauliNoise:
 
     @pytest.fixture
     def code(self):
-        return ToricCode3D(3, 4, 5)
+        return Toric3DCode(3, 4, 5)
 
     @pytest.fixture
     def error_model(self):
@@ -244,7 +244,7 @@ class TestXNoiseOnYZEdgesOnly:
 
     @pytest.fixture
     def code(self):
-        return ToricCode3D(3, 4, 5)
+        return Toric3DCode(3, 4, 5)
 
     @pytest.fixture
     def error_model(self):

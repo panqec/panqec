@@ -5,7 +5,7 @@ from ._toric_2d_pauli import Toric2DPauli
 from ... import bsparse
 
 
-class ToricCode2D(IndexedSparseCode):
+class Toric2DCode(IndexedSparseCode):
 
     pauli_class = Toric2DPauli
 

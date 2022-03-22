@@ -3,12 +3,12 @@ import { OrbitControls } from 'https://cdn.skypack.dev/three@0.130.0/examples/js
 import { OutlineEffect } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/effects/OutlineEffect.js';
 import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat.gui.module';
 
-import { ToricCode2D, RpToricCode2D } from './codes/toric2d.js';
-import { RotatedToricCode2D, RpRotatedToricCode2D } from './codes/rotatedToric2d.js';
-import { ToricCode3D, RpToricCode3D } from './codes/toric3d.js';
+import { Toric2DCode, RpToric2DCode } from './codes/toric2d.js';
+import { RotatedToric2DCode, RpRotatedToric2DCode } from './codes/rotatedToric2d.js';
+import { Toric3DCode, RpToric3DCode } from './codes/toric3d.js';
 import { RhombicCode } from './codes/rhombic.js';
 import { XCubeCode } from './codes/xcube.js';
-import { RotatedToricCode3D, RpRotatedToricCode3D } from './codes/rotatedToric3d.js';
+import { RotatedToric3DCode, RpRotatedToric3DCode } from './codes/rotatedToric3d.js';
 
 var defaultCode = codeDimension == 2 ? 'toric-2d' : 'toric-3d';
 var defaultSize = codeDimension == 2 ? 6 : 3;
@@ -160,13 +160,13 @@ async function buildCode() {
     }
 
     // For each code, [unrotated picture class, rotated picture class]
-    let codeClass = {'toric-2d': [ToricCode2D, RpToricCode2D],
-                     'planar-2d': [ToricCode2D, RpToricCode2D],
-                     'rotated-planar-2d': [RotatedToricCode2D, RpRotatedToricCode2D],
-                     'toric-3d': [ToricCode3D, RpToricCode3D],
-                     'rotated-planar-3d': [RotatedToricCode3D, RpRotatedToricCode3D],
-                     'coprime-3d': [RotatedToricCode3D, RpRotatedToricCode3D],
-                     'planar-3d': [ToricCode3D, RpToricCode3D],
+    let codeClass = {'toric-2d': [Toric2DCode, RpToric2DCode],
+                     'planar-2d': [Toric2DCode, RpToric2DCode],
+                     'rotated-planar-2d': [RotatedToric2DCode, RpRotatedToric2DCode],
+                     'toric-3d': [Toric3DCode, RpToric3DCode],
+                     'rotated-planar-3d': [RotatedToric3DCode, RpRotatedToric3DCode],
+                     'coprime-3d': [RotatedToric3DCode, RpRotatedToric3DCode],
+                     'planar-3d': [Toric3DCode, RpToric3DCode],
                      'rhombic': [RhombicCode, RhombicCode],
                      'xcube': [XCubeCode, XCubeCode]
                      }

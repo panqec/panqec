@@ -1,23 +1,23 @@
 import numpy as np
 import pytest
 from bn3d.bpauli import bcommute, brank, bsf_wt, bsf_to_pauli
-from bn3d.models import ToricCode3D
+from bn3d.models import Toric3DCode
 import bn3d.bsparse as bsparse
 from scipy.sparse import csr_matrix
 
 
-class TestToricCode3D:
+class TestToric3DCode:
 
     @pytest.fixture()
     def code(self):
         """Example code with non-uniform dimensions."""
         L_x, L_y, L_z = 5, 6, 7
-        new_code = ToricCode3D(L_x, L_y, L_z)
+        new_code = Toric3DCode(L_x, L_y, L_z)
         return new_code
 
     @pytest.mark.skip(reason='sparse')
     def test_cubic_code(self):
-        code = ToricCode3D(5)
+        code = Toric3DCode(5)
         assert np.all(code.size == [5, 5, 5])
 
     def test_get_vertex_Z_stabilizers(self, code):
@@ -128,13 +128,13 @@ class TestToricCode3D:
     #     assert rank == n - k
 
 
-class TestCommutationRelationsToricCode3D:
+class TestCommutationRelationsToric3DCode:
 
     @pytest.fixture()
     def code(self):
         """Example code with non-uniform dimensions."""
         L_x, L_y, L_z = 3, 4, 5
-        new_code = ToricCode3D(L_x, L_y, L_z)
+        new_code = Toric3DCode(L_x, L_y, L_z)
         return new_code
 
     def test_stabilizers_commute_with_each_other(self, code):

@@ -2,7 +2,7 @@ import itertools
 import pytest
 import numpy as np
 from bn3d.bpauli import bcommute, bsf_wt
-from bn3d.models import ToricCode3D, Toric3DPauli
+from bn3d.models import Toric3DCode, Toric3DPauli
 from bn3d.decoders import Toric3DPymatchingDecoder
 
 
@@ -10,7 +10,7 @@ class TestToric3DPymatchingDecoder:
 
     @pytest.fixture
     def code(self):
-        return ToricCode3D(3, 4, 5)
+        return Toric3DCode(3, 4, 5)
 
     @pytest.fixture
     def decoder(self):
@@ -75,9 +75,9 @@ class TestToric3DPymatchingDecoder:
     def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
 
         codes = [
-            ToricCode3D(3, 4, 5),
-            ToricCode3D(3, 3, 3),
-            ToricCode3D(5, 4, 3),
+            Toric3DCode(3, 4, 5),
+            Toric3DCode(3, 3, 3),
+            Toric3DCode(5, 4, 3),
         ]
 
         sites = [

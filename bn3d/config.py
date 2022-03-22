@@ -9,9 +9,9 @@ from dotenv import load_dotenv
 from qecsim.models.basic import FiveQubitCode
 from qecsim.models.generic import NaiveDecoder
 from .models import (
-    ToricCode3D, ToricCode2D,
-    RotatedPlanarCode3D, XCubeCode,
-    LayeredRotatedToricCode, RhombicCode
+    Toric3DCode, Toric2DCode,
+    RotatedPlanar3DCode, XCubeCode,
+    RotatedToric3DCode, RhombicCode
 )
 from .decoders import (
     Toric3DPymatchingDecoder, SweepMatchDecoder,
@@ -56,12 +56,12 @@ if os.getenv('BN3D_DIR') is not None:
 
 # Register your models here.
 CODES = {
-    'ToricCode2D': ToricCode2D,
-    'ToricCode3D': ToricCode3D,
+    'Toric2DCode': Toric2DCode,
+    'Toric3DCode': Toric3DCode,
     'RhombicCode': RhombicCode,
-    'RotatedPlanarCode3D': RotatedPlanarCode3D,
+    'RotatedPlanar3DCode': RotatedPlanar3DCode,
     'FiveQubitCode': FiveQubitCode,
-    'LayeredRotatedToricCode': LayeredRotatedToricCode,
+    'RotatedToric3DCode': RotatedToric3DCode,
     'XCubeCode': XCubeCode
 }
 ERROR_MODELS = {

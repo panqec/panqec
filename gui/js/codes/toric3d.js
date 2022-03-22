@@ -2,9 +2,9 @@ import * as THREE from 'https://cdn.skypack.dev/three@v0.130.1';
 
 import { AbstractCubicCode, AbstractRpCubicCode} from './base/abstractCubicCode.js';
 
-export {ToricCode3D, RpToricCode3D};
+export {Toric3DCode, RpToric3DCode};
 
-class ToricCode3D extends AbstractCubicCode {
+class Toric3DCode extends AbstractCubicCode {
     constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
         super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
     }
@@ -102,7 +102,7 @@ class ToricCode3D extends AbstractCubicCode {
     }
 }
 
-class RpToricCode3D extends AbstractRpCubicCode {
+class RpToric3DCode extends AbstractRpCubicCode {
     constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
         super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
     }

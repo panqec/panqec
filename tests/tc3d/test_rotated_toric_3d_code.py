@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm
 from itertools import combinations
 from qecsim.model import StabilizerCode
-from bn3d.models import LayeredRotatedToricCode, LayeredToricPauli
+from bn3d.models import RotatedToric3DCode, RotatedToric3DPauli
 from bn3d.bpauli import (
     bcommute, bvector_to_pauli_string, brank, apply_deformation
 )
@@ -110,7 +110,7 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
 
     @pytest.fixture
     def code(self):
-        return LayeredRotatedToricCode(*self.size)
+        return RotatedToric3DCode(*self.size)
 
     def test_qubit_indices(self, code):
         locations = set(code.qubit_index.keys())
@@ -255,7 +255,7 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
 
 
 @pytest.mark.skip(reason='sparse')
-class TestLayeredRotatedToricCode2x2x1(IndexedCodeTestWithCoordinates):
+class TestRotatedToric3DCode2x2x1(IndexedCodeTestWithCoordinates):
     size = (2, 2, 1)
     expected_plane_edges_xy = [
         (1, 1), (3, 1),
@@ -272,7 +272,7 @@ class TestLayeredRotatedToricCode2x2x1(IndexedCodeTestWithCoordinates):
 
 
 @pytest.mark.skip(reason='sparse')
-class TestLayeredRotatedToricCode3x2x1(IndexedCodeTestWithCoordinates):
+class TestRotatedToric3DCode3x2x1(IndexedCodeTestWithCoordinates):
     size = (3, 2, 1)
     expected_plane_edges_xy = [
         (1, 1), (3, 1), (5, 1),
@@ -289,7 +289,7 @@ class TestLayeredRotatedToricCode3x2x1(IndexedCodeTestWithCoordinates):
 
 
 @pytest.mark.skip(reason='odd by odd')
-class TestLayeredRotatedToricCode3x3x3(IndexedCodeTestWithCoordinates):
+class TestRotatedToric3DCode3x3x3(IndexedCodeTestWithCoordinates):
     size = (3, 3, 3)
     expected_plane_edges_xy = [
         (1, 1), (3, 1), (5, 1),
@@ -311,7 +311,7 @@ class TestLayeredRotatedToricCode3x3x3(IndexedCodeTestWithCoordinates):
 
 
 @pytest.mark.skip(reason='sparse')
-class TestLayeredRotatedToricCode4x3x3(IndexedCodeTestWithCoordinates):
+class TestRotatedToric3DCode4x3x3(IndexedCodeTestWithCoordinates):
     size = (4, 3, 3)
     expected_plane_edges_xy = [
         (1, 1), (3, 1), (5, 1), (7, 1),
@@ -333,7 +333,7 @@ class TestLayeredRotatedToricCode4x3x3(IndexedCodeTestWithCoordinates):
 
 
 @pytest.mark.skip(reason='sparse')
-class TestLayeredRotatedToricCode3x4x3(IndexedCodeTestWithCoordinates):
+class TestRotatedToric3DCode3x4x3(IndexedCodeTestWithCoordinates):
     size = (3, 4, 3)
     expected_plane_edges_xy = [
         (1, 1), (1, 3), (1, 5), (1, 7),
@@ -355,7 +355,7 @@ class TestLayeredRotatedToricCode3x4x3(IndexedCodeTestWithCoordinates):
 
 
 @pytest.mark.skip(reason='sparse')
-class TestLayeredRotatedToricCode4x4x3(IndexedCodeTestWithCoordinates):
+class TestRotatedToric3DCode4x4x3(IndexedCodeTestWithCoordinates):
     size = (4, 4, 3)
     expected_plane_edges_xy = [
         (1, 1), (1, 3), (1, 5), (1, 7),
@@ -380,14 +380,14 @@ class TestLayeredRotatedToricCode4x4x3(IndexedCodeTestWithCoordinates):
 
 
 @pytest.mark.skip(reason='sparse')
-class TestLayeredRotatedToricPauli:
+class TestRotatedToric3DPauli:
 
     size = (4, 3, 3)
 
     @pytest.fixture
     def code(self):
         """Example code with co-prime x and y dimensions."""
-        return LayeredRotatedToricCode(*self.size)
+        return RotatedToric3DCode(*self.size)
 
     def test_vertex_operator_in_bulk_has_weight_6(self, code):
         vertices = [
@@ -396,7 +396,7 @@ class TestLayeredRotatedToricPauli:
             if z in [3, 5]
         ]
         for vertex in vertices:
-            operator = LayeredToricPauli(code)
+            operator = RotatedToric3DPauli(code)
             operator.vertex('Z', vertex)
             assert sum(operator.to_bsf()) == 6
 
@@ -407,7 +407,7 @@ class TestLayeredRotatedToricPauli:
             if z in [1, 7]
         ]
         for vertex in vertices:
-            operator = LayeredToricPauli(code)
+            operator = RotatedToric3DPauli(code)
             operator.vertex('Z', vertex)
             assert sum(operator.to_bsf()) == 5
 
@@ -415,16 +415,16 @@ class TestLayeredRotatedToricPauli:
         for face in code.face_index:
             x, y, z = face
             if x > 1 and y > 1 and z > 1 and z < 2*self.size[2] + 1:
-                operator = LayeredToricPauli(code)
+                operator = RotatedToric3DPauli(code)
                 operator.face('X', face)
                 assert sum(operator.to_bsf()) == 4
 
 
 @pytest.mark.skip(reason='sparse')
-class TestLayeredDeformation:
+class TestRotatedToric3DDeformation:
 
     def test_deformation_index(self):
-        code = LayeredRotatedToricCode(3, 4, 3)
+        code = RotatedToric3DCode(3, 4, 3)
         error_model = DeformedXZZXErrorModel(0.2, 0.3, 0.5)
         deformation_index = error_model._get_deformation_indices(code)
         coords_map = {
@@ -458,8 +458,8 @@ class TestLayeredDeformation:
         for size in [3]:
             L_x, L_y, L_z = size, size + 1, size
             print(L_x, L_y, L_z)
-            code = LayeredRotatedToricCode(L_x, L_y, L_z)
-            out_json = os.path.join(project_dir, 'temp', 'layered_test.json')
+            code = RotatedToric3DCode(L_x, L_y, L_z)
+            out_json = os.path.join(project_dir, 'temp', 'rotated_toric_3d_test.json')
             error_model = DeformedXZZXErrorModel(0.2, 0.3, 0.5)
             deformation_index = error_model._get_deformation_indices(code)
             coords_map = {
@@ -495,18 +495,18 @@ class TestLayeredDeformation:
 
 
 @pytest.mark.skip(reason='sparse')
-class TestBPOSDOnLayeredToricCodeOddTimesEven:
+class TestBPOSDOnRotatedToric3DCodeOddTimesEven:
 
     @pytest.mark.parametrize('pauli', ['X', 'Y', 'Z'])
     def test_decode_single_qubit_error(self, pauli):
-        code = LayeredRotatedToricCode(3, 4, 3)
+        code = RotatedToric3DCode(3, 4, 3)
         error_model = DeformedXZZXErrorModel(1/3, 1/3, 1/3)
         probability = 0.1
         decoder = BeliefPropagationOSDDecoder(error_model, probability)
 
         failing_cases: List[Tuple[int, int, int]] = []
         for site in code.qubit_index:
-            error_pauli = LayeredToricPauli(code)
+            error_pauli = RotatedToric3DPauli(code)
             error_pauli.site(pauli, site)
             error = error_pauli.to_bsf()
             syndrome = bcommute(code.stabilizers, error)

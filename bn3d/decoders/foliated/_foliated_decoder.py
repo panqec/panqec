@@ -9,7 +9,7 @@ from typing import Dict, List
 import numpy as np
 from pymatching import Matching
 from qecsim.model import StabilizerCode, Decoder
-from ...models import ToricCode3D
+from ...models import Toric3DCode
 
 
 class FoliatedMatchingDecoder(Decoder):
@@ -73,7 +73,7 @@ class FoliatedMatchingDecoder(Decoder):
         return self._matchers[code.label]
 
     def get_vertex_syndromes(
-        self, code: ToricCode3D, full_syndrome: np.ndarray
+        self, code: Toric3DCode, full_syndrome: np.ndarray
     ) -> np.ndarray:
         """Get only the syndromes for the vertex Z stabilizers.
 
@@ -84,7 +84,7 @@ class FoliatedMatchingDecoder(Decoder):
         return vertex_syndromes
 
     def get_layer_syndromes(
-        self, code: ToricCode3D, vertex_syndromes: np.ndarray
+        self, code: Toric3DCode, vertex_syndromes: np.ndarray
     ) -> List[np.ndarray]:
         """List of syndromes for each 2D Toric code layer."""
 
@@ -101,7 +101,7 @@ class FoliatedMatchingDecoder(Decoder):
             layer_syndromes.append(syndromes_layer)
         return layer_syndromes
 
-    def decode(self, code: ToricCode3D, syndrome: np.ndarray) -> np.ndarray:
+    def decode(self, code: Toric3DCode, syndrome: np.ndarray) -> np.ndarray:
         """Get X corrections given code and measured syndrome."""
 
         # Initialize correction as full bsf.

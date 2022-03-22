@@ -1,14 +1,14 @@
 import pytest
 import numpy as np
 from bn3d.bpauli import bsf_wt
-from bn3d.models import ToricCode3D, Toric3DPauli
+from bn3d.models import Toric3DCode, Toric3DPauli
 import bn3d.bsparse as bsparse
 from scipy.sparse import csr_matrix
 
 
 @pytest.fixture
 def code():
-    return ToricCode3D(9, 10, 11)
+    return Toric3DCode(9, 10, 11)
 
 
 class TestToric3DPauli:

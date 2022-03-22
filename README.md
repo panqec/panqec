@@ -97,7 +97,7 @@ parameters in side it, for example,
     {
       "label": "myrun",
       "code": {
-        "model": "ToricCode3D",
+        "model": "Toric3DCode",
         "parameters": {"L_x": 3, "L_y": 3, "L_z": 3}
       },
       "noise": {
@@ -129,7 +129,7 @@ You may also have the option of running many different parameters.
   "ranges": {
     "label": "myrun",
     "code": {
-      "model": "ToricCode3D",
+      "model": "Toric3DCode",
       "parameters": [
         {"L_x": 3, "L_y": 3, "L_z": 3},
         {"L_x": 4, "L_y": 4, "L_z": 4},
@@ -235,14 +235,6 @@ Click on "3D Toric Code".
 
 If you find the browser non-responsive check back on what error messages are
 coming out of the command line.
-
-# Run the 2D GUI
-To run the 2D GUI, after you have activated the environment, run
-```
-python2 gui2d.py
-```
-This is not as well-developed as the 3D GUI.
-
 
 # Reproducing results of paper
 

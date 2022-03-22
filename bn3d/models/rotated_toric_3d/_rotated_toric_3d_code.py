@@ -1,18 +1,18 @@
 from typing import Tuple
 import numpy as np
 from ..generic._indexed_sparse_code import IndexedSparseCode
-from ._layered_toric_pauli import LayeredToricPauli
+from ._rotated_toric_3d_pauli import RotatedToric3DPauli
 from ... import bsparse
 
 
-class LayeredRotatedToricCode(IndexedSparseCode):
-    """Layered Rotated Code for good subthreshold scaling."""
+class RotatedToric3DCode(IndexedSparseCode):
+    """Rotated Toric Code for good subthreshold scaling."""
 
-    pauli_class = LayeredToricPauli
+    pauli_class = RotatedToric3DPauli
 
     @property
     def label(self) -> str:
-        return 'Layered Rotated Toric {}x{}x{}'.format(*self.size)
+        return 'Rotated Toric 3D {}x{}x{}'.format(*self.size)
 
     @property
     def n_k_d(self) -> Tuple[int, int, int]:

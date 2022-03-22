@@ -2,7 +2,7 @@ import itertools
 import pytest
 import numpy as np
 from qecsim.paulitools import bsf_wt
-from bn3d.models import ToricCode3D, Toric3DPauli
+from bn3d.models import Toric3DCode, Toric3DPauli
 from bn3d.decoders import SweepDecoder3D
 from bn3d.bpauli import bcommute
 from bn3d.noise import PauliErrorModel
@@ -14,7 +14,7 @@ class TestSweepDecoder3D:
 
     @pytest.fixture
     def code(self):
-        return ToricCode3D(3, 4, 5)
+        return Toric3DCode(3, 4, 5)
 
     @pytest.fixture
     def decoder(self):
@@ -77,9 +77,9 @@ class TestSweepDecoder3D:
     def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
 
         codes = [
-            ToricCode3D(3, 4, 5),
-            ToricCode3D(3, 3, 3),
-            ToricCode3D(5, 4, 3),
+            Toric3DCode(3, 4, 5),
+            Toric3DCode(3, 3, 3),
+            Toric3DCode(5, 4, 3),
         ]
 
         sites = [
@@ -97,7 +97,7 @@ class TestSweepDecoder3D:
             assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
     def test_decode_error_on_two_edges_sharing_same_vertex(self):
-        code = ToricCode3D(3, 3, 3)
+        code = Toric3DCode(3, 3, 3)
         decoder = SweepDecoder3D()
         error_pauli = Toric3DPauli(code)
         error_pauli.site('Z', (1, 0, 0))
@@ -109,7 +109,7 @@ class TestSweepDecoder3D:
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
     def test_decode_with_general_Z_noise(self):
-        code = ToricCode3D(3, 3, 3)
+        code = Toric3DCode(3, 3, 3)
         decoder = SweepDecoder3D()
         np.random.seed(0)
         error_model = PauliErrorModel(0, 0, 1)
@@ -145,14 +145,14 @@ class TestSweepDecoder3D:
         ]
     )
     def test_flip_edge(self, edge_location, faces_flipped):
-        code = ToricCode3D(3, 3, 3)
+        code = Toric3DCode(3, 3, 3)
         decoder = SweepDecoder3D()
         signs = np.zeros(code.shape, dtype=np.uint)
         decoder.flip_edge(edge_location, signs)
         assert set_where(signs) == faces_flipped
 
     def test_decode_loop_step_by_step(self):
-        code = ToricCode3D(3, 3, 3)
+        code = Toric3DCode(3, 3, 3)
         decoder = SweepDecoder3D()
 
         error_pauli = Toric3DPauli(code)
@@ -208,7 +208,7 @@ class TestSweepDecoder3D:
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
     def test_decode_loop_ok(self):
-        code = ToricCode3D(3, 3, 3)
+        code = Toric3DCode(3, 3, 3)
         decoder = SweepDecoder3D()
 
         error_pauli = Toric3DPauli(code)
@@ -241,7 +241,7 @@ class TestSweepDecoder3D:
         assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
     def test_oscillating_cycle_fail(self):
-        code = ToricCode3D(3, 3, 3)
+        code = Toric3DCode(3, 3, 3)
         decoder = SweepDecoder3D()
 
         error_pauli = Toric3DPauli(code)
@@ -284,7 +284,7 @@ class TestSweepDecoder3D:
         assert np.any(bcommute(code.stabilizers, total_error) != 0)
 
     def test_never_ending_staircase_fails(self):
-        code = ToricCode3D(3, 3, 3)
+        code = Toric3DCode(3, 3, 3)
         decoder = SweepDecoder3D()
 
         # Weight-8 Z error that may start infinite loop in sweep decoder.
@@ -326,7 +326,7 @@ class TestSweepDecoder3D:
         np.any(bcommute(code.stabilizers, total_error))
 
     def test_sweep_move_two_edges(self):
-        code = ToricCode3D(3, 3, 3)
+        code = Toric3DCode(3, 3, 3)
         decoder = SweepDecoder3D()
 
         error = Toric3DPauli(code)

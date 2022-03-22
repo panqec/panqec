@@ -6,22 +6,22 @@ Toric code in 3D.
 """
 import numpy as np
 from ..bpauli import barray_to_bvector, new_barray
-from .toric_2d._toric_2d_code import ToricCode2D  # noqa
+from .toric_2d._toric_2d_code import Toric2DCode  # noqa
 from .toric_2d._toric_2d_pauli import Toric2DPauli  # noqa
 from .planar_2d._planar_2d_code import Planar2DCode  # noqa
 from .planar_2d._planar_2d_pauli import Planar2DPauli  # noqa
 from .rotated_planar_2d._rotated_planar_2d_code import RotatedPlanar2DCode  # noqa
 from .rotated_planar_2d._rotated_planar_2d_pauli import RotatedPlanar2DPauli  # noqa
-from .toric_3d._toric_3d_code import ToricCode3D  # noqa
+from .toric_3d._toric_3d_code import Toric3DCode  # noqa
 from .toric_3d._toric_3d_pauli import Toric3DPauli  # noqa
-from .planar_3d._planar_3d_code import PlanarCode3D  # noqa
+from .planar_3d._planar_3d_code import Planar3DCode  # noqa
 from .planar_3d._planar_3d_pauli import Planar3DPauli  # noqa
-from .rotated_planar_3d._rotated_planar_3d_code import RotatedPlanarCode3D  # noqa
+from .rotated_planar_3d._rotated_planar_3d_code import RotatedPlanar3DCode  # noqa
 from .rotated_planar_3d._rotated_planar_3d_pauli import RotatedPlanar3DPauli  # noqa
 from .rhombic._rhombic_code import RhombicCode  # noqa
 from .rhombic._rhombic_pauli import RhombicPauli  # noqa
-from .layered_toric._layered_rotated_toric_code import LayeredRotatedToricCode  # noqa
-from .layered_toric._layered_toric_pauli import LayeredToricPauli  # noqa
+from .rotated_toric_3d._rotated_toric_3d_code import RotatedToric3DCode  # noqa
+from .rotated_toric_3d._rotated_toric_3d_pauli import RotatedToric3DPauli  # noqa
 from .xcube._xcube_code import XCubeCode  # noqa
 from .xcube._xcube_pauli import XCubePauli  # noqa
 

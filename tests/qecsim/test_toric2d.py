@@ -7,7 +7,8 @@ Test 2D toric code using qecsim.
 
 import pytest
 import numpy as np
-from qecsim.models.toric import ToricCode, ToricPauli, ToricMWPMDecoder
+from bn3d.models import Toric2DCode, Toric2DPauli
+from qecsim.models.toric import ToricMWPMDecoder
 from qecsim.paulitools import bsp
 
 
@@ -22,7 +23,7 @@ def lattice_size():
 @pytest.fixture
 def code(lattice_size):
     L_x, L_y, _ = lattice_size
-    return ToricCode(L_x, L_y)
+    return Toric2DCode(L_x, L_y)
 
 
 @pytest.fixture
@@ -79,7 +80,7 @@ def test_logicals_anticommute_correctly(code):
 
 
 def test_ascii_art(code):
-    operator = ToricPauli(code, code.logical_xs[0])
+    operator = Toric2DPauli(code, code.logical_xs[0])
     assert code.ascii_art(pauli=operator) == (
         '┼─·─┼─·─┼─X─┼─·─┼─·\n'
         '·   ·   ·   ·   ·  \n'
@@ -95,7 +96,7 @@ def test_ascii_art(code):
 def test_syndrome_calculation(code):
 
     # Construct a single-qubit X error somewhere.
-    error = ToricPauli(code)
+    error = Toric2DPauli(code)
     error.site('X', (1, 2, 3))
     assert code.ascii_art(pauli=error) == (
         '┼─·─┼─·─┼─·─┼─·─┼─·\n'
@@ -123,7 +124,7 @@ def test_syndrome_calculation(code):
 
 
 def test_mwpm_decoder(code, decoder):
-    error = ToricPauli(code)
+    error = Toric2DPauli(code)
     error.site('X', (1, 2, 3))
     error.site('X', (1, 2, 2))
     error.site('X', (0, 2, 1))
