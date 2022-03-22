@@ -158,7 +158,7 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
         assert np.all(commutators == 0)
 
     def test_n_indepdent_stabilizers_equals_n_minus_k(self, code):
-        n, k, _ = code.n_k_d
+        n, k = code.n, code.k
         matrix = code.stabilizers
 
         # Number of independent stabilizer generators.
@@ -168,12 +168,12 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
         assert rank == n - k
 
     def test_number_of_logicals_is_k(self, code):
-        k = code.n_k_d[1]
+        k = code.k
         assert code.logical_xs.shape[0] == k
         assert code.logical_zs.shape[0] == k
 
     def test_logical_operators_anticommute_pairwise(self, code):
-        k = code.n_k_d[1]
+        k = code.k
         assert np.all(bcommute(code.logical_xs, code.logical_xs) == 0)
         assert np.all(bcommute(code.logical_zs, code.logical_zs) == 0)
         commutators = bcommute(code.logical_xs, code.logical_zs)
@@ -200,7 +200,7 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
         )
 
     def test_logical_operators_are_independent_by_rank(self, code):
-        n, k, _ = code.n_k_d
+        n, k, _ = code.n, code.k
         matrix = code.stabilizers
 
         # Number of independent stabilizer generators.
@@ -219,7 +219,7 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
 
     @pytest.mark.skip(reason='brute force')
     def test_find_lowest_weight_Z_only_logical_by_brute_force(self, code):
-        n, k, _ = code.n_k_d
+        n, k = code.n, code.k
         matrix = code.stabilizers
 
         coords = {v: k for k, v in code.qubit_index.items()}
@@ -470,13 +470,17 @@ class TestRotatedToric3DDeformation:
                 'size': [L_x, L_y, L_z],
                 'coords': coords,
                 'undeformed': {
-                    'n_k_d': code.n_k_d,
+                    'n': code.n,
+                    'k': code.k,
+                    'd': code.d,
                     'stabilizers': code.stabilizers.tolist(),
                     'logical_xs': code.logical_xs.tolist(),
                     'logical_zs': code.logical_zs.tolist(),
                 },
                 'deformed': {
-                    'n_k_d': code.n_k_d,
+                    'n': code.n,
+                    'k': code.k,
+                    'd': code.d,
                     'stabilizers': apply_deformation(
                         deformation_index, code.stabilizers
                     ).tolist(),

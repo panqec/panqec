@@ -21,7 +21,7 @@ class TestToric3DCode:
         assert np.all(code.size == [5, 5, 5])
 
     def test_get_vertex_Z_stabilizers(self, code):
-        n, k, d = code.n_k_d
+        n = code.n
 
         stabilizers = code.get_vertex_Z_stabilizers()
 
@@ -59,7 +59,7 @@ class TestToric3DCode:
         assert np.all(stabilizers.sum(axis=0)[n:] == 2)
 
     def test_general_properties(self, code):
-        n, k, d = code.n_k_d
+        n, k, d = code.n, code.k, code.d
 
         # The number of qubits should be the number of edges 3*L_x*L_y*L_z.
         assert n == 3*np.product(code.size)
@@ -67,7 +67,7 @@ class TestToric3DCode:
         assert d == min(code.size)
 
     def test_get_face_X_stabilizers(self, code):
-        n = code.n_k_d[0]
+        n = code.n
         stabilizers = code.get_face_X_stabilizers()
 
         # Weight of every stabilizer should be 6.
@@ -93,7 +93,7 @@ class TestToric3DCode:
             assert np.all(np.array(stabilizers.sum(axis=0)[0, :n]) == 4)
 
     def test_get_all_stabilizers(self, code):
-        n = code.n_k_d[0]
+        n = code.n
         stabilizers = code.stabilizers
 
         # Total number of stabilizers.
@@ -106,26 +106,16 @@ class TestToric3DCode:
         assert np.all(bsparse.to_array((stabilizers[n:, :np.product(code.size)])) == 0)
 
     def test_get_Z_logicals(self, code):
-        n = code.n_k_d[0]
+        n = code.n
         logicals = code.logical_zs
         assert logicals.shape[0] == 3
         assert logicals.shape[1] == 2*n
 
     def test_get_X_logicals(self, code):
-        n = code.n_k_d[0]
+        n = code.n
         logicals = code.logical_xs
         assert logicals.shape[0] == 3
         assert logicals.shape[1] == 2*n
-
-    # def test_check_matrix_rank_equals_n_minus_k(self, code):
-    #     n, k, _ = code.n_k_d
-    #     matrix = code.stabilizers
-
-    #     # Number of independent stabilizer generators.
-    #     rank = brank(matrix)
-
-    #     assert rank <= matrix.shape[0]
-    #     assert rank == n - k
 
 
 class TestCommutationRelationsToric3DCode:
@@ -155,6 +145,5 @@ class TestCommutationRelationsToric3DCode:
 
     def test_logicals_anticommute_correctly(self, code):
         assert np.all(
-            bcommute(code.logical_xs, code.logical_zs)
-            == np.eye(code.n_k_d[1])
+            bcommute(code.logical_xs, code.logical_zs) == np.eye(code.k)
         )

@@ -11,7 +11,7 @@ class IndexedCodeTest(metaclass=ABCMeta):
         pass
 
     def test_n_equals_len_qubit_index(self, code):
-        assert code.n_k_d[0] == len(code.qubit_index)
+        assert code.n == len(code.qubit_index)
 
     def test_len_vertex_index_equals_number_of_vertex_stabilizers(self, code):
         n_vertices = len(code.vertex_index)

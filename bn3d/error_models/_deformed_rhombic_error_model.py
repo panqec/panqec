@@ -26,19 +26,19 @@ class DeformedRhombicErrorModel(PauliErrorModel):
         r_x, r_y, r_z = self.direction
         is_deformed = self._get_deformation_indices(code)
 
-        p_i = np.array([1 - probability for _ in range(code.n_k_d[0])])
+        p_i = np.array([1 - probability for _ in range(code.n)])
         p_x = probability * np.array([
-            r_z if is_deformed[i] else r_x for i in range(code.n_k_d[0])
+            r_z if is_deformed[i] else r_x for i in range(code.n)
         ])
-        p_y = probability * np.array([r_y for _ in range(code.n_k_d[0])])
+        p_y = probability * np.array([r_y for _ in range(code.n)])
         p_z = probability * np.array([
-            r_x if is_deformed[i] else r_z for i in range(code.n_k_d[0])
+            r_x if is_deformed[i] else r_z for i in range(code.n)
         ])
 
         return p_i, p_x, p_y, p_z
 
     def _get_deformation_indices(self, code: StabilizerCode):
-        is_deformed = [False for _ in range(code.n_k_d[0])]
+        is_deformed = [False for _ in range(code.n)]
 
         deformed_axis = {'RhombicCode': code.Z_AXIS}
 

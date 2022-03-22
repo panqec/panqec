@@ -12,10 +12,6 @@ class Toric2DCode(IndexedSparseCode):
     # StabilizerCode interface methods.
 
     @property
-    def n_k_d(self) -> Tuple[int, int, int]:
-        return (2 * np.product(self.size), 2, min(self.size))
-
-    @property
     def dimension(self) -> int:
         return 2
 
@@ -29,7 +25,7 @@ class Toric2DCode(IndexedSparseCode):
 
         if self._logical_xs.size == 0:
             Lx, Ly = self.size
-            logicals = bsparse.empty_row(2*self.n_k_d[0])
+            logicals = bsparse.empty_row(2*self.n)
 
             # X operators along x edges in x direction.
             logical = self.pauli_class(self)
@@ -52,7 +48,7 @@ class Toric2DCode(IndexedSparseCode):
         """Get the 3 logical Z operators."""
         if self._logical_zs.size == 0:
             Lx, Ly = self.size
-            logicals = bsparse.empty_row(2*self.n_k_d[0])
+            logicals = bsparse.empty_row(2*self.n)
 
             # Z operators on x edges forming surface normal to x (yz plane).
             logical = self.pauli_class(self)

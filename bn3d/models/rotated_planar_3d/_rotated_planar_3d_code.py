@@ -10,13 +10,6 @@ class RotatedPlanar3DCode(IndexedSparseCode):
     pauli_class = RotatedPlanar3DPauli
 
     @property
-    def n_k_d(self) -> Tuple[int, int, int]:
-        Lx, Ly, Lz = self.size
-        n_horizontals = (2*Lx + 1) * (2*Ly + 1) * (Lz+1)
-        n_verticals = (Lx + 1) * 2*Ly * Lz
-        return (n_horizontals + n_verticals, 1, 2*min(Lx, Ly, Lz) + 1)
-
-    @property
     def dimension(self) -> int:
         return 3
 
@@ -30,7 +23,7 @@ class RotatedPlanar3DCode(IndexedSparseCode):
 
         if self._logical_xs.size == 0:
             Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n_k_d[0])
+            logicals = bsparse.empty_row(2*self.n)
 
             # X operators along x edges in x direction.
             logical = RotatedPlanar3DPauli(self)
@@ -48,7 +41,7 @@ class RotatedPlanar3DCode(IndexedSparseCode):
         """Get the unique logical Z operator."""
         if self._logical_zs.size == 0:
             Lx, L_y, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n_k_d[0])
+            logicals = bsparse.empty_row(2*self.n)
 
             # Z operators on x edges forming surface normal to x (yz plane).
             logical = RotatedPlanar3DPauli(self)

@@ -57,7 +57,7 @@ def test_run_once(required_fields):
         code, error_model, decoder, error_probability=probability
     )
     assert set(required_fields).issubset(results.keys())
-    assert results['error'].shape == (2*code.n_k_d[0],)
+    assert results['error'].shape == (2*code.n,)
     assert results['syndrome'].shape == (code.stabilizers.shape[0],)
     assert isinstance(results['success'], bool)
     assert results['effective_error'].shape == (2*code.logical_xs.shape[0],)
@@ -132,7 +132,9 @@ def test_merge_results():
             'inputs': {
                 'size': [2, 2, 2],
                 'code': 'Rotated Planar 2x2x2',
-                'n_k_d': [99, 1, -1],
+                'n': 99,
+                'k': 1,
+                'd': -1,
                 'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
                 'decoder': 'BP-OSD decoder',
                 'error_probability': 0.05
@@ -148,7 +150,9 @@ def test_merge_results():
             'inputs': {
                 'size': [2, 2, 2],
                 'code': 'Rotated Planar 2x2x2',
-                'n_k_d': [99, 1, -1],
+                'n': 99,
+                'k': 1,
+                'd': -1,
                 'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
                 'decoder': 'BP-OSD decoder',
                 'error_probability': 0.05
@@ -165,7 +169,9 @@ def test_merge_results():
         'inputs': {
             'size': [2, 2, 2],
             'code': 'Rotated Planar 2x2x2',
-            'n_k_d': [99, 1, -1],
+            'n': 99,
+            'k': 1,
+            'd': -1,
             'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
             'decoder': 'BP-OSD decoder',
             'error_probability': 0.05

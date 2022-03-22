@@ -26,7 +26,7 @@ class DeformedToric3DPymatchingDecoder(Toric3DPymatchingDecoder):
         # Get the number of X stabilizers (faces).
         n_faces = int(np.product(code.shape))
         self._n_faces[code.label] = n_faces
-        n_qubits = code.n_k_d[0]
+        n_qubits = code.n
 
         # Only keep the Z vertex stabilizers.
         H_z = code.stabilizers[n_faces:, n_qubits:]
@@ -139,7 +139,7 @@ class DeformedRotatedPlanarPymatchingDecoder(RotatedPlanarPymatchingDecoder):
         # Get the number of X stabilizers (faces).
         n_faces = len(code.face_index)
         self._n_faces[code.label] = n_faces
-        n_qubits = code.n_k_d[0]
+        n_qubits = code.n
         self._n_qubits[code.label] = n_qubits
 
         # Only keep the Z vertex stabilizers.
@@ -155,7 +155,7 @@ class DeformedRotatedPlanarPymatchingDecoder(RotatedPlanarPymatchingDecoder):
         )
 
         # Count qubits and faces.
-        n_qubits = code.n_k_d[0]
+        n_qubits = code.n
 
         # All weights are regular weights to start off with.
         weights = np.ones(n_qubits, dtype=float)*regular_weight

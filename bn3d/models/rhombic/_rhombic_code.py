@@ -13,10 +13,6 @@ class RhombicCode(IndexedSparseCode):
     # StabilizerCode interface methods.
 
     @property
-    def n_k_d(self) -> Tuple[int, int, int]:
-        return (3 * np.product(self.size), 3, min(self.size))
-
-    @property
     def dimension(self) -> int:
         return 3
 
@@ -30,7 +26,7 @@ class RhombicCode(IndexedSparseCode):
 
         if self._logical_xs.size == 0:
             Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n_k_d[0])
+            logicals = bsparse.empty_row(2*self.n)
 
             # Sheet of X operators normal to the z direction
             logical = self.pauli_class(self)
@@ -65,7 +61,7 @@ class RhombicCode(IndexedSparseCode):
         """Get the 3 logical Z operators."""
         if self._logical_zs.size == 0:
             Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n_k_d[0])
+            logicals = bsparse.empty_row(2*self.n)
 
             # Line of parallel Z operators along the x direction
             logical = self.pauli_class(self)

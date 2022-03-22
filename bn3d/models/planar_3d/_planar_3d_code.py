@@ -12,11 +12,6 @@ class Planar3DCode(IndexedSparseCode):
     # StabilizerCode interface methods.
 
     @property
-    def n_k_d(self) -> Tuple[int, int, int]:
-        Lx, Ly, Lz = self.size
-        return (3 * Lx*Ly*Lz + Ly*Lz - Lx*Lz - Lx*Ly, 1, Lx + 1)
-
-    @property
     def dimension(self) -> int:
         return 3
 
@@ -30,11 +25,11 @@ class Planar3DCode(IndexedSparseCode):
 
         if self._logical_xs.size == 0:
             Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n_k_d[0])
+            logicals = bsparse.empty_row(2*self.n)
 
             # X operators along x edges in x direction.
             logical = self.pauli_class(self)
-            for x in range(1, 2*Lx+2, 2):
+            for x in range(1, 2*Lx+1, 2):
                 logical.site('X', (x, 0, 0))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
@@ -47,7 +42,7 @@ class Planar3DCode(IndexedSparseCode):
         """Get the 1 logical Z operator."""
         if self._logical_zs.size == 0:
             Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n_k_d[0])
+            logicals = bsparse.empty_row(2*self.n)
 
             # Z operators on x edges forming surface normal to x (yz plane).
             logical = self.pauli_class(self)
@@ -79,19 +74,19 @@ class Planar3DCode(IndexedSparseCode):
         Lx, Ly, Lz = self.size
 
         # Qubits along e_x
-        for x in range(1, 2*Lx+3, 2):
+        for x in range(1, 2*Lx+1, 2):
             for y in range(0, 2*Ly, 2):
                 for z in range(0, 2*Lz, 2):
                     coordinates.append((x, y, z))
 
         # Qubits along e_y
-        for x in range(2, 2*Lx+1, 2):
+        for x in range(2, 2*Lx, 2):
             for y in range(1, 2*Ly-1, 2):
                 for z in range(0, 2*Lz, 2):
                     coordinates.append((x, y, z))
 
         # Qubits along e_z
-        for x in range(2, 2*Lx+1, 2):
+        for x in range(2, 2*Lx, 2):
             for y in range(0, 2*Ly, 2):
                 for z in range(1, 2*Lz-1, 2):
                     coordinates.append((x, y, z))
@@ -104,7 +99,7 @@ class Planar3DCode(IndexedSparseCode):
         coordinates = []
         Lx, Ly, Lz = self.size
 
-        for x in range(2, 2*Lx+1, 2):
+        for x in range(2, 2*Lx, 2):
             for y in range(0, 2*Ly, 2):
                 for z in range(0, 2*Lz, 2):
                     coordinates.append((x, y, z))
@@ -118,19 +113,19 @@ class Planar3DCode(IndexedSparseCode):
         Lx, Ly, Lz = self.size
 
         # Face in xy plane
-        for x in range(1, 2*Lx+2, 2):
+        for x in range(1, 2*Lx+1, 2):
             for y in range(1, 2*Ly-1, 2):
                 for z in range(0, 2*Lz, 2):
                     coordinates.append((x, y, z))
 
         # Face in yz plane
-        for x in range(2, 2*Lx+1, 2):
+        for x in range(2, 2*Lx, 2):
             for y in range(1, 2*Ly-1, 2):
                 for z in range(1, 2*Lz, 2):
                     coordinates.append((x, y, z))
 
         # Face in xz plane
-        for x in range(1, 2*Lx+2, 2):
+        for x in range(1, 2*Lx+1, 2):
             for y in range(0, 2*Ly, 2):
                 for z in range(1, 2*Lz-1, 2):
                     coordinates.append((x, y, z))

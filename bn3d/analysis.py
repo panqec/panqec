@@ -31,7 +31,7 @@ def get_results_df_from_batch(batch_sim, batch_label):
     # )
     # print('n_trials = ', min(sim.n_results for sim in batch_sim))
     for sim, batch_result in zip(batch_sim, batch_results):
-        n_logicals = batch_result['n_k_d'][1]
+        n_logicals = batch_result['k']
 
         # Small fix for the current situation. TO REMOVE in later versions
         if n_logicals == -1:
@@ -101,7 +101,7 @@ def get_results_df(
         # )
         # print('n_trials = ', min(sim.n_results for sim in batch_sim))
         for sim, batch_result in zip(batch_sim, batch_results):
-            n_logicals = batch_result['n_k_d'][1]
+            n_logicals = batch_result['k'][1]
 
             # Small fix for the current situation. TO REMOVE in later versions
             if n_logicals == -1:
@@ -230,10 +230,12 @@ def extract_logical_rates(input_file, output_dir):
             'noise_direction': sim.error_model.direction,
             'probability': batch_result['probability'],
             'size': batch_result['size'],
-            'n_k_d': batch_result['n_k_d'],
+            'n': batch_result['n'],
+            'k': batch_result['k'],
+            'd': batch_result['d'],
         }
 
-        n_logicals = batch_result['n_k_d'][1]
+        n_logicals = batch_result['k']
 
         # Small fix for the current situation. TO REMOVE in later versions
         if n_logicals == -1:
@@ -358,12 +360,12 @@ def get_p_th_sd_interp(
 
 def get_code_df(results_df: pd.DataFrame) -> pd.DataFrame:
     """DataFrame of codes available."""
-    code_df = results_df[['code', 'n_k_d']].copy()
+    code_df = results_df[['code', 'n', 'k', 'd']].copy()
     code_df = code_df.drop_duplicates().reset_index(drop=True)
     code_df = pd.concat([
         code_df,
         pd.DataFrame(
-            code_df['n_k_d'].tolist(),
+            [code_df['n'], code_df['k'], code_df['d']],
             index=code_df.index,
             columns=['n', 'k', 'd']
         )
@@ -528,7 +530,6 @@ def fit_fss_params(
         & (df_filt['probability'] <= p_right_val)
     ].copy()
     df_trunc = df_trunc.dropna(subset=[p_est])
-    df_trunc['d'] = df_trunc['n_k_d'].apply(lambda x: x[2])
 
     d_list = df_trunc['d'].values
     p_list = df_trunc['probability'].values

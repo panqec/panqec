@@ -35,7 +35,7 @@ class FoliatedMatchingDecoder(Decoder):
         self._n_faces[code.label] = n_faces
 
         # Qubits live on edges.
-        n_qubits = code.n_k_d[0]
+        n_qubits = code.n
 
         # The size of the lattice.
         L_x, L_y, L_z = code.size
@@ -105,7 +105,7 @@ class FoliatedMatchingDecoder(Decoder):
         """Get X corrections given code and measured syndrome."""
 
         # Initialize correction as full bsf.
-        correction = np.zeros(2*code.n_k_d[0], dtype=np.uint)
+        correction = np.zeros(2*code.n, dtype=np.uint)
 
         # Get the Pymatching Matching object.
         matcher_list = self.get_matcher_list(code)
@@ -131,10 +131,10 @@ class FoliatedMatchingDecoder(Decoder):
             correction_3d[2, x, :, :] = correction_2d[1, :, :]
 
         # Reshape into 1d array.
-        x_correction = correction_3d.reshape(code.n_k_d[0])
+        x_correction = correction_3d.reshape(code.n)
 
         # PyMatching gives only the X block correction.
         # Load it into the X block of the full bsf.
-        correction[:code.n_k_d[0]] = x_correction
+        correction[:code.n] = x_correction
 
         return correction

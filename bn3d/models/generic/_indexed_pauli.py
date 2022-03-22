@@ -16,7 +16,7 @@ class IndexedCodePauli(metaclass=ABCMeta):
 
     def _from_bsf(self, bsf):
         # initialise lattices for X and Z operators from bsf
-        n_qubits = self.code.n_k_d[0]
+        n_qubits = self.code.n
         if bsf is None:
             # initialise identity lattices for X and Z operators
             self._xs = np.zeros(n_qubits, dtype=int)

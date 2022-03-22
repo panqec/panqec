@@ -12,11 +12,6 @@ class Planar2DCode(IndexedSparseCode):
     # StabilizerCode interface methods.
 
     @property
-    def n_k_d(self) -> Tuple[int, int, int]:
-        Lx, Ly = self.size
-        return (Lx*Ly + (Lx-1)*(Ly-1), 1, min(self.size))
-
-    @property
     def dimension(self) -> int:
         return 2
 
@@ -30,7 +25,7 @@ class Planar2DCode(IndexedSparseCode):
 
         if self._logical_xs.size == 0:
             Lx, Ly = self.size
-            logicals = bsparse.empty_row(2*self.n_k_d[0])
+            logicals = bsparse.empty_row(2*self.n)
 
             # X operators along x edges in x direction.
             logical = self.pauli_class(self)
@@ -47,7 +42,7 @@ class Planar2DCode(IndexedSparseCode):
         """Get the 3 logical Z operators."""
         if self._logical_zs.size == 0:
             Lx, Ly = self.size
-            logicals = bsparse.empty_row(2*self.n_k_d[0])
+            logicals = bsparse.empty_row(2*self.n)
 
             # Z operators on x edges forming surface normal to x (yz plane).
             logical = self.pauli_class(self)

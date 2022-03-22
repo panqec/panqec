@@ -27,7 +27,7 @@ class TestSweepDecoder3D:
     def test_decode_trivial_syndrome(self, decoder, code):
         syndrome = np.zeros(shape=len(code.stabilizers), dtype=np.uint)
         correction = decoder.decode(code, syndrome)
-        assert correction.shape == 2*code.n_k_d[0]
+        assert correction.shape == 2*code.n
         assert np.all(bcommute(code.stabilizers, correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 
@@ -174,7 +174,7 @@ class TestSweepDecoder3D:
             decoder.get_face_syndromes(code, syndrome),
             newshape=code.shape
         )
-        assert np.all(signs.reshape(code.n_k_d[0]) == syndrome[:code.n_k_d[0]])
+        assert np.all(signs.reshape(code.n) == syndrome[:code.n])
         assert set_where(signs) == {
             (0, 0, 0, 0), (0, 0, 0, 2), (0, 1, 0, 0), (0, 1, 0, 2),
             (1, 0, 0, 0), (1, 0, 0, 2), (1, 0, 1, 0), (1, 0, 1, 2),
@@ -233,7 +233,7 @@ class TestSweepDecoder3D:
             (2, 0, 1, 0), (2, 0, 2, 0), (2, 1, 0, 0), (2, 2, 0, 0)
         }
 
-        assert np.all(signs.reshape(code.n_k_d[0]) == syndrome[:code.n_k_d[0]])
+        assert np.all(signs.reshape(code.n) == syndrome[:code.n])
 
         correction = decoder.decode(code, syndrome)
         total_error = (error + correction) % 2
@@ -314,7 +314,7 @@ class TestSweepDecoder3D:
         ]
         assert np.all(
             np.array(expected_syndrome_faces).T
-            == np.where(syndrome[:code.n_k_d[0]].reshape(3, 3, 3, 3))
+            == np.where(syndrome[:code.n].reshape(3, 3, 3, 3))
         )
 
         # Attempt to perform decoding.
@@ -345,7 +345,7 @@ class TestSweepDecoder3D:
         signs[0, 1, 1, 0] = 1
         signs[2, 1, 0, 1] = 1
         signs[2, 0, 1, 1] = 1
-        n_faces = code.n_k_d[0]
+        n_faces = code.n
         assert np.all(syndrome[:n_faces].reshape(signs.shape) == signs)
 
         # Expected signs after one sweep.

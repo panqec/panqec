@@ -284,7 +284,7 @@ class BeliefPropagationOSDDecoder(Decoder):
             L_x, L_y, L_z = code.size
             is_css = (L_x % 2 == 0 and L_y % 2 == 0)
 
-        n_qubits = code.n_k_d[0]
+        n_qubits = code.n
         syndrome = np.array(syndrome, dtype=int)
 
         if is_css:

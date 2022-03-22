@@ -35,7 +35,9 @@ def test_general_properties(code, lattice_size):
     L_x, L_y, n_qubits = lattice_size
     assert code.label == 'Toric 4x5'
     assert code.shape == (2, L_x, L_y)
-    assert code.n_k_d == (n_qubits, 2, min(L_x, L_y))
+    assert code.n == n_qubits
+    assert code.k == 2
+    assert code.d == min(L_x, L_y)
     assert len(code.stabilizers) == 2*L_x*L_y
     assert len(code.logical_xs) == 2
     assert len(code.logical_zs) == 2

@@ -18,7 +18,7 @@ class IndexedSparsePauli(metaclass=ABCMeta):
 
     def _from_bsf(self, bsf):
         # initialise lattices for X and Z operators from bsf
-        n_qubits = self.code.n_k_d[0]
+        n_qubits = self.code.n
         # initialise identity lattices for X and Z operators
         self._xs = bsparse.zero_row(n_qubits)
         self._zs = bsparse.zero_row(n_qubits)

@@ -175,7 +175,7 @@ class XLineDecoder(Decoder):
             line_syndromes, num_neighbours=None
         )
 
-        x_correction = np.zeros(code.n_k_d[0], dtype=np.uint)
+        x_correction = np.zeros(code.n, dtype=np.uint)
         for i_edge in np.where(line_corrections)[0]:
             x_correction[code.qubit_index[edges[i_edge]]] = 1
 
@@ -187,7 +187,7 @@ class XLineDecoder(Decoder):
         """Get X corrections given code and measured syndrome."""
 
         # Initialize correction as full bsf.
-        n_qubits = code.n_k_d[0]
+        n_qubits = code.n
         correction = np.zeros(2*n_qubits, dtype=np.uint)
         x_correction = np.zeros(n_qubits, dtype=np.uint)
 

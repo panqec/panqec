@@ -29,11 +29,11 @@ class IndexedSparseCode(IndexedCode, metaclass=ABCMeta):
         self._vertex_index = self._create_vertex_indices()
         self._face_index = self._create_face_indices()
 
-        self._stabilizers = bsparse.empty_row(2*self.n_k_d[0])
-        self._Hx = bsparse.empty_row(self.n_k_d[0])
-        self._Hz = bsparse.empty_row(self.n_k_d[0])
-        self._logical_xs = bsparse.empty_row(self.n_k_d[0])
-        self._logical_zs = bsparse.empty_row(self.n_k_d[0])
+        self._stabilizers = bsparse.empty_row(2*self.n)
+        self._Hx = bsparse.empty_row(self.n)
+        self._Hz = bsparse.empty_row(self.n)
+        self._logical_xs = bsparse.empty_row(self.n)
+        self._logical_zs = bsparse.empty_row(self.n)
 
     @property
     def stabilizers(self):
@@ -47,7 +47,7 @@ class IndexedSparseCode(IndexedCode, metaclass=ABCMeta):
         return self._stabilizers
 
     def get_vertex_Z_stabilizers(self):
-        vertex_stabilizers = bsparse.empty_row(2*self.n_k_d[0])
+        vertex_stabilizers = bsparse.empty_row(2*self.n)
 
         for vertex_location in self.vertex_index.keys():
             operator = self.pauli_class(self)
@@ -57,7 +57,7 @@ class IndexedSparseCode(IndexedCode, metaclass=ABCMeta):
         return vertex_stabilizers
 
     def get_face_X_stabilizers(self):
-        face_stabilizers = bsparse.empty_row(2*self.n_k_d[0])
+        face_stabilizers = bsparse.empty_row(2*self.n)
 
         for face_location in self.face_index.keys():
             operator = self.pauli_class(self)

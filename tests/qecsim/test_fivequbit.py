@@ -123,7 +123,9 @@ def test_run(five_qubit_code, pauli_noise_model, naive_decoder):
         'logical_failure_rate',
         'measurement_error_probability',
         'n_fail',
-        'n_k_d',
+        'n',
+        'k',
+        'd',
         'n_logical_commutations',
         'n_run',
         'n_success',
@@ -131,7 +133,9 @@ def test_run(five_qubit_code, pauli_noise_model, naive_decoder):
         'time_steps',
         'wall_time',
     ]
-    assert results['n_k_d'] == (5, 1, 3)
+    assert results['n'] == 5
+    assert results['k'] == 1
+    assert results['d'] == 3
     assert len(results['n_logical_commutations']) == 2
     assert results['code'] == '5-qubit'
 

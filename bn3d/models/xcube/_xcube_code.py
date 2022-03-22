@@ -13,10 +13,6 @@ class XCubeCode(IndexedSparseCode):
     # StabilizerCode interface methods.
 
     @property
-    def n_k_d(self) -> Tuple[int, int, int]:
-        return (len(self.qubit_index), 3, min(self.size))
-
-    @property
     def dimension(self) -> int:
         return 3
 
@@ -30,7 +26,7 @@ class XCubeCode(IndexedSparseCode):
 
         if self._logical_xs.size == 0:
             Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n_k_d[0])
+            logicals = bsparse.empty_row(2*self.n)
 
             # String of parallel X operators along the x direction
             logical = self.pauli_class(self)
@@ -59,7 +55,7 @@ class XCubeCode(IndexedSparseCode):
         """Get the 3 logical Z operators."""
         if self._logical_zs.size == 0:
             Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n_k_d[0])
+            logicals = bsparse.empty_row(2*self.n)
 
             # Line of parallel Z operators along the x direction
             logical = self.pauli_class(self)

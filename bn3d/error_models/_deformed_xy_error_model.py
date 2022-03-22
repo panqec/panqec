@@ -26,20 +26,20 @@ class DeformedXYErrorModel(PauliErrorModel):
         r_x, r_y, r_z = self.direction
         is_deformed = self._get_deformation_indices(code)
 
-        p_i = np.array([1 - probability for i in range(code.n_k_d[0])])
-        p_x = probability * np.array([r_x for i in range(code.n_k_d[0])])
+        p_i = np.array([1 - probability for i in range(code.n)])
+        p_x = probability * np.array([r_x for i in range(code.n)])
         p_y = probability * np.array([
-            r_z if is_deformed[i] else r_y for i in range(code.n_k_d[0])
+            r_z if is_deformed[i] else r_y for i in range(code.n)
         ])
         p_z = probability * np.array([
-            r_y if is_deformed[i] else r_z for i in range(code.n_k_d[0])
+            r_y if is_deformed[i] else r_z for i in range(code.n)
         ])
 
         return p_i, p_x, p_y, p_z
 
     def _get_deformation_indices(self, code: StabilizerCode):
         """Undeformed noise direction (r_X, r_Y, r_Z) for qubits."""
-        is_deformed = [False for _ in range(code.n_k_d[0])]
+        is_deformed = [False for _ in range(code.n)]
 
         deformed_axis = {'Toric3DCode': code.Z_AXIS,
                          'Planar3DCode': code.Z_AXIS,

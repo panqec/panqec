@@ -39,7 +39,7 @@ class PauliErrorModel(SimpleErrorModel):
 
     def generate(self, code: StabilizerCode, probability: float, rng=None):
         rng = np.random.default_rng() if rng is None else rng
-        n_qubits = code.n_k_d[0]
+        n_qubits = code.n
         p_i, p_x, p_y, p_z = self.probability_distribution(code, probability)
 
         error_pauli = ''.join([rng.choice(
@@ -55,7 +55,7 @@ class PauliErrorModel(SimpleErrorModel):
     def probability_distribution(
         self, code: StabilizerCode, probability: float
     ) -> Tuple:
-        n = code.n_k_d[0]
+        n = code.n
         r_x, r_y, r_z = self.direction
 
         p_i = (1 - probability) * np.ones(n)

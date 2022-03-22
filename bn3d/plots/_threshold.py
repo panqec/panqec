@@ -607,7 +607,7 @@ def plot_crossing_collapse(
         df_no_trunc = results_df[
             results_df['error_model'] == row['error_model']
         ].copy()
-        df_no_trunc['d'] = results_df['n_k_d'].apply(lambda x: x[2])
+        df_no_trunc['d'] = results_df['d']
         plot_threshold_fss(
             plt, df_no_trunc, row['p_th_fss'], row['p_th_fss_left'],
             row['p_th_fss_right'], row['p_th_fss_se']
@@ -720,7 +720,7 @@ def plot_crossing_example(
     df_no_trunc = results_df[
         results_df['error_model'] == row['error_model']
     ].copy()
-    df_no_trunc['d'] = results_df['n_k_d'].apply(lambda x: x[2])
+    df_no_trunc['d'] = results_df['d']
     plot_threshold_fss(
         plt, df_no_trunc, row['p_th_fss'], row['p_th_fss_left'],
         row['p_th_fss_right'], row['p_th_fss_se']

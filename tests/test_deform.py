@@ -283,7 +283,7 @@ class TestDeformedSweepDecoder3D:
         error_model = DeformedXZZXErrorModel(1/3, 1/3, 1/3)
         probability = 0.5
         decoder = DeformedSweepDecoder3D(error_model, probability)
-        n = code.n_k_d[0]
+        n = code.n
         error = np.zeros(2*n, dtype=np.uint)
         syndrome = bcommute(code.stabilizers, error)
         correction = decoder.decode(code, syndrome)
@@ -315,7 +315,7 @@ class TestDeformedToric3DPymatchingDecoder:
         error_model = DeformedXZZXErrorModel(1/3, 1/3, 1/3)
         probability = 0.5
         decoder = DeformedToric3DPymatchingDecoder(error_model, probability)
-        n = code.n_k_d[0]
+        n = code.n
         error = np.zeros(2*n, dtype=np.uint)
         syndrome = bcommute(code.stabilizers, error)
         correction = decoder.decode(code, syndrome)

@@ -92,7 +92,7 @@ def send_stabilizer_matrix():
     else:
         raise ValueError(f'Code {code_name} not recognized')
 
-    n_qubits = code.n_k_d[0]
+    n_qubits = code.n
 
     Hz = code.stabilizers[:, :n_qubits]
     Hx = code.stabilizers[:, n_qubits:]
@@ -113,7 +113,7 @@ def send_stabilizer_matrix():
         'vertex': vertex_index, 'face': face_index
     }
 
-    n_qubits = code.n_k_d[0]
+    n_qubits = code.n
     logical_z = code.logical_zs
     logical_x = code.logical_xs
 
@@ -151,7 +151,7 @@ def send_correction():
     else:
         raise ValueError(f'Code {code_name} not recognized')
 
-    n_qubits = code.n_k_d[0]
+    n_qubits = code.n
 
     if error_model_name in noise_directions.keys():
         rx, ry, rz = noise_directions[error_model_name]
@@ -235,7 +235,7 @@ def send_random_errors():
 
     errors = error_model.generate(code, p)
 
-    n_qubits = code.n_k_d[0]
+    n_qubits = code.n
     bsf_to_str_map = {(0, 0): 'I', (1, 0): 'X', (0, 1): 'Z', (1, 1): 'Y'}
     error_spec = [
         (

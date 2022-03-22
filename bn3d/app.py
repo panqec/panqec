@@ -179,7 +179,9 @@ class Simulation:
                 'inputs': {
                     'size': self.code.size,
                     'code': self.code.label,
-                    'n_k_d': self.code.n_k_d,
+                    'n': self.code.n,
+                    'k': self.code.k,
+                    'd': self.code.d,
                     'error_model': self.error_model.label,
                     'decoder': self.decoder.label,
                     'error_probability': self.error_probability,
@@ -197,7 +199,9 @@ class Simulation:
         simulation_data = {
             'size': self.code.size,
             'code': self.code.label,
-            'n_k_d': self.code.n_k_d,
+            'n': self.code.n,
+            'k': self.code.k,
+            'd': self.code.d,
             'error_model': self.error_model.label,
             'probability': self.error_probability,
             'n_success': np.sum(success),

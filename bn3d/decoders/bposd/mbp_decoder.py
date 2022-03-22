@@ -263,7 +263,7 @@ class MemoryBeliefPropagationDecoder(Decoder):
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
-        n_qubits = code.n_k_d[0]
+        n_qubits = code.n
         syndrome = np.array(syndrome, dtype=int)
 
         pi, px, py, pz = self.get_probabilities(code)
@@ -301,7 +301,7 @@ def test_decoder():
     code = Toric2DCode(L, L)
 
     code.stabilizers
-    n = code.n_k_d[0]
+    n = code.n
 
     probability = 0.01
     r_x, r_y, r_z = [0.333, 0.333, 0.334]

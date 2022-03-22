@@ -4,20 +4,6 @@ from bn3d.models import RotatedPlanar3DCode
 from .indexed_code_test import IndexedCodeTest
 
 
-# TODO fix n_k_d for unequal sizes
-@pytest.mark.parametrize('L_x, L_y, L_z', [
-    (2, 2, 2),
-    (3, 3, 3),
-    (4, 4, 4),
-    pytest.param(3, 2, 2, marks=pytest.mark.xfail),
-    pytest.param(2, 3, 2, marks=pytest.mark.xfail),
-    (2, 2, 3),
-])
-def test_n_qubits_equals_len_qubit_index(L_x, L_y, L_z):
-    code = RotatedPlanar3DCode(L_x, L_y, L_z)
-    assert code.n_k_d[0] == len(code.qubit_index)
-
-
 class TestRotatedPlanar3DCode(IndexedCodeTest):
 
     L_x = 4

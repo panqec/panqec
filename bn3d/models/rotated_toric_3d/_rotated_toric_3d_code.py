@@ -15,16 +15,6 @@ class RotatedToric3DCode(IndexedSparseCode):
         return 'Rotated Toric 3D {}x{}x{}'.format(*self.size)
 
     @property
-    def n_k_d(self) -> Tuple[int, int, int]:
-        Lx, Ly, Lz = self.size
-        x_odd = Lx % 2 == 1
-        y_odd = Ly % 2 == 1
-        k = 2
-        if x_odd or y_odd:
-            k = 1
-        return (len(self.qubit_index), k, min(Lx, Ly))
-
-    @property
     def dimension(self) -> int:
         return 3
 
@@ -34,7 +24,7 @@ class RotatedToric3DCode(IndexedSparseCode):
 
         if self._logical_xs.size == 0:
             Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n_k_d[0])
+            logicals = bsparse.empty_row(2*self.n)
 
             # Even times even.
             if Lx % 2 == 0 and Ly % 2 == 0:
@@ -83,7 +73,7 @@ class RotatedToric3DCode(IndexedSparseCode):
         """Get the unique logical Z operator."""
         if self._logical_zs.size == 0:
             Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n_k_d[0])
+            logicals = bsparse.empty_row(2*self.n)
 
             # Even times even.
             if Lx % 2 == 0 and Ly % 2 == 0:

@@ -307,7 +307,7 @@ if __name__ == "__main__":
 
     L = 1
     code = RotatedPlanar3DCode(L, L, L)
-    n_qubits = code.n_k_d[0]
+    n_qubits = code.n
 
     probability = 0.1
     r_x, r_y, r_z = [0.1, 0.1, 0.8]

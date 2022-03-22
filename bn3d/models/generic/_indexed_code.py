@@ -1,12 +1,11 @@
 from typing import Dict, Tuple, Optional
 from abc import ABCMeta, abstractmethod
 import numpy as np
-from qecsim.model import StabilizerCode
 from ...bpauli import bcommute
 Indexer = Dict[Tuple[int, int, int], int]
 
 
-class IndexedCode(StabilizerCode, metaclass=ABCMeta):
+class IndexedCode(metaclass=ABCMeta):
     X_AXIS = 0
     Y_AXIS = 1
     Z_AXIS = 2
@@ -48,6 +47,21 @@ class IndexedCode(StabilizerCode, metaclass=ABCMeta):
     @property
     def id(self):
         return self.__class__.__name__
+
+    @property
+    def n(self) -> int:
+        """Number of physical qubits"""
+        return len(self.qubit_index)
+
+    @property
+    def k(self) -> int:
+        """Number of logical qubits"""
+        return len(self.logical_xs)
+
+    @property
+    def d(self) -> int:
+        """Distance of the code"""
+        return min(self.logical_zs.shape[1], self.logical_xs.shape[1])
 
     @property
     def qubit_index(self) -> Indexer:
@@ -104,13 +118,13 @@ class IndexedCode(StabilizerCode, metaclass=ABCMeta):
     @property
     def Hz(self) -> np.ndarray:
         if self._Hz.shape[0] == 0:
-            self._Hz = self.stabilizers[:self.n_faces, :self.n_k_d[0]]
+            self._Hz = self.stabilizers[:self.n_faces, :self.n]
         return self._Hz
 
     @property
     def Hx(self) -> np.ndarray:
         if self._Hx.shape[0] == 0:
-            self._Hx = self.stabilizers[self.n_faces:, self.n_k_d[0]:]
+            self._Hx = self.stabilizers[self.n_faces:, self.n:]
         return self._Hx
 
     def get_vertex_Z_stabilizers(self) -> np.ndarray:

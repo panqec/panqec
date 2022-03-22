@@ -33,7 +33,7 @@ class TestPauliNoise:
         probability = 0.1
         error = bsparse.to_array(error_model.generate(code, probability, rng=np.random))
         assert np.any(error != 0), 'Error should be non-trivial'
-        assert error.shape == (2*code.n_k_d[0], ), 'Shape incorrect'
+        assert error.shape == (2*code.n, ), 'Shape incorrect'
 
     def test_probability_zero(self, code, error_model):
         probability = 0
@@ -45,14 +45,14 @@ class TestPauliNoise:
         error = error_model.generate(code, probability, rng=np.random)
 
         # Error everywhere so weight is number of qubits.
-        assert bsf_wt(error) == code.n_k_d[0], 'Should be error everywhere'
+        assert bsf_wt(error) == code.n, 'Should be error everywhere'
 
     def test_generate_all_X_errors(self, code):
         probability = 1
         direction = (1, 0, 0)
         error_model = PauliErrorModel(*direction)
         error = error_model.generate(code, probability, rng=np.random)
-        assert bsf_to_pauli(error) == 'X'*code.n_k_d[0], (
+        assert bsf_to_pauli(error) == 'X'*code.n, (
             'Should be X error everywhere'
         )
 
@@ -61,7 +61,7 @@ class TestPauliNoise:
         direction = (0, 1, 0)
         error_model = PauliErrorModel(*direction)
         error = error_model.generate(code, probability, rng=np.random)
-        assert bsf_to_pauli(error) == 'Y'*code.n_k_d[0], (
+        assert bsf_to_pauli(error) == 'Y'*code.n, (
             'Should be Y error everywhere'
         )
 
@@ -70,7 +70,7 @@ class TestPauliNoise:
         direction = (0, 0, 1)
         error_model = PauliErrorModel(*direction)
         error = error_model.generate(code, probability, rng=np.random)
-        assert bsf_to_pauli(error) == 'Z'*code.n_k_d[0], (
+        assert bsf_to_pauli(error) == 'Z'*code.n, (
             'Should be Z error everywhere'
         )
 
