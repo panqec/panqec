@@ -27,7 +27,7 @@ class Toric3DPymatchingDecoder(Decoder):
         # Get the number of X stabilizers (faces).
         n_faces = int(3*np.product(code.size))
         self._n_faces[code.label] = n_faces
-        n_qubits = code.n_k_d[0]
+        n_qubits = code.n
 
         # Only keep the Z vertex stabilizers.
         H_z = code.stabilizers[n_faces:, n_qubits:]
@@ -60,7 +60,7 @@ class Toric3DPymatchingDecoder(Decoder):
         """Get X corrections given code and measured syndrome."""
 
         # Initialize correction as full bsf.
-        correction = np.zeros(2*code.n_k_d[0], dtype=np.uint)
+        correction = np.zeros(2*code.n, dtype=np.uint)
 
         # Get the Pymatching Matching object.
         matcher = self.get_matcher(code)
@@ -72,6 +72,6 @@ class Toric3DPymatchingDecoder(Decoder):
         x_correction = matcher.decode(vertex_syndromes, num_neighbours=None)
 
         # Load it into the X block of the full bsf.
-        correction[:code.n_k_d[0]] = x_correction
+        correction[:code.n] = x_correction
 
         return correction

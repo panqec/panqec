@@ -28,8 +28,8 @@ class RotatedPlanar3DCode(StabilizerCode):
             # X operators along x edges in x direction.
             logical = RotatedPlanar3DPauli(self)
 
-            for x in range(1, 4*Lx+2, 2):
-                logical.site('X', (x, 4*Ly + 2 - x, 1))
+            for x in range(1, min(2*Lx, 2*Ly), 2):
+                logical.site('X', (x, 2*Ly - x, 1))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             self._logical_xs = logicals
@@ -40,13 +40,13 @@ class RotatedPlanar3DCode(StabilizerCode):
     def logical_zs(self) -> np.ndarray:
         """Get the unique logical Z operator."""
         if self._logical_zs.size == 0:
-            Lx, L_y, Lz = self.size
+            Lx, Ly, Lz = self.size
             logicals = bsparse.empty_row(2*self.n)
 
             # Z operators on x edges forming surface normal to x (yz plane).
             logical = RotatedPlanar3DPauli(self)
-            for z in range(1, 2*(Lz+1), 2):
-                for x in range(1, 4*Lx+2, 2):
+            for z in range(1, 2*Lz, 2):
+                for x in range(1, min(2*Lx, 2*Ly), 2):
                     logical.site('Z', (x, x, z))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
@@ -75,15 +75,15 @@ class RotatedPlanar3DCode(StabilizerCode):
         coordinates = []
 
         # Horizontal
-        for x in range(1, 4*Lx+2, 2):
-            for y in range(1, 4*Ly+2, 2):
-                for z in range(1, 2*(Lz+1), 2):
+        for x in range(1, 2*Lx, 2):
+            for y in range(1, 2*Ly, 2):
+                for z in range(1, 2*Lz, 2):
                     coordinates.append((x, y, z))
 
         # Vertical
-        for x in range(2, 4*Lx+1, 2):
-            for y in range(0, 4*Ly+3, 2):
-                for z in range(2, 2*(Lz+1), 2):
+        for x in range(2, 2*Lx, 2):
+            for y in range(0, 2*Ly, 2):
+                for z in range(2, 2*Lz, 2):
                     if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
 
@@ -96,9 +96,9 @@ class RotatedPlanar3DCode(StabilizerCode):
 
         coordinates = []
 
-        for z in range(1, 2*(Lz+1), 2):
-            for x in range(2, 4*Lx+1, 2):
-                for y in range(0, 4*Ly+3, 2):
+        for z in range(1, 2*Lz, 2):
+            for x in range(2, 2*Lx, 2):
+                for y in range(0, 2*Ly+1, 2):
                     if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
 
@@ -112,15 +112,15 @@ class RotatedPlanar3DCode(StabilizerCode):
         coordinates = []
 
         # Horizontal faces
-        for x in range(0, 4*Lx+3, 2):
-            for y in range(2, 4*Ly+1, 2):
-                for z in range(1, 2*(Lz+1), 2):
+        for x in range(0, 2*Lx+1, 2):
+            for y in range(2, 2*Ly, 2):
+                for z in range(1, 2*Lz, 2):
                     if (x + y) % 4 == 0:
                         coordinates.append((x, y, z))
         # Vertical faces
-        for x in range(1, 4*Lx+3, 2):
-            for y in range(1, 4*Ly+2, 2):
-                for z in range(2, 2*(Lz+1), 2):
+        for x in range(1, 2*Lx+1, 2):
+            for y in range(1, 2*Ly+1, 2):
+                for z in range(2, 2*Lz, 2):
                     coordinates.append((x, y, z))
 
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}

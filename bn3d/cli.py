@@ -238,7 +238,7 @@ def generate_input(
             else:
                 if code_model == 'RotatedPlanar3DCode':
                     code_parameters = [
-                        {"L_x": L, "L_y": L, "L_z": 2*L}
+                        {"L_x": L, "L_y": L, "L_z": L}
                         for L in L_list
                     ]
                 else:

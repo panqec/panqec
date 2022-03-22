@@ -30,10 +30,10 @@ class DeformedRandomErrorModel(PauliErrorModel):
         r_x, r_y, r_z = self.direction
         deformations = self._get_deformations(code)
 
-        p_i = np.array([1 - probability for _ in range(code.n_k_d[0])])
-        p_x = probability * r_x * np.ones(code.n_k_d[0])
-        p_y = probability * r_y * np.ones(code.n_k_d[0])
-        p_z = probability * r_z * np.ones(code.n_k_d[0])
+        p_i = np.array([1 - probability for _ in range(code.n)])
+        p_x = probability * r_x * np.ones(code.n)
+        p_y = probability * r_y * np.ones(code.n)
+        p_z = probability * r_z * np.ones(code.n)
 
         xz_idx = (deformations == self.XZ)
         yz_idx = (deformations == self.YZ)
@@ -46,5 +46,5 @@ class DeformedRandomErrorModel(PauliErrorModel):
     def _get_deformations(self, code: StabilizerCode):
         deformations = np.random.choice([self.ID, self.XZ, self.YZ],
                                         p=[self.p_id, self.p_xz, self.p_yz],
-                                        size=code.n_k_d[0])
+                                        size=code.n)
         return deformations

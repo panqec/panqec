@@ -47,7 +47,7 @@ class RotatedPlanarPymatchingDecoder(Toric3DPymatchingDecoder):
         """Get X corrections given code and measured syndrome."""
 
         # Initialize correction as full bsf.
-        correction = np.zeros(2*code.n_k_d[0], dtype=np.uint)
+        correction = np.zeros(2*code.n, dtype=np.uint)
 
         # Get the Pymatching Matching object.
         matcher = self.get_matcher(code)
