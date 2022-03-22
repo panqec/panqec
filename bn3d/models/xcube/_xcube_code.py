@@ -1,12 +1,12 @@
 import itertools
 from typing import Tuple
 import numpy as np
-from ..generic._indexed_sparse_code import IndexedSparseCode
+from bn3d.models import StabilizerCode
 from ._xcube_pauli import XCubePauli
 from ... import bsparse
 
 
-class XCubeCode(IndexedSparseCode):
+class XCubeCode(StabilizerCode):
 
     pauli_class = XCubePauli
 

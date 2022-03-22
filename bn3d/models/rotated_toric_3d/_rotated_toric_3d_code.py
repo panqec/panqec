@@ -1,11 +1,11 @@
 from typing import Tuple
 import numpy as np
-from ..generic._indexed_sparse_code import IndexedSparseCode
+from bn3d.models import StabilizerCode
 from ._rotated_toric_3d_pauli import RotatedToric3DPauli
 from ... import bsparse
 
 
-class RotatedToric3DCode(IndexedSparseCode):
+class RotatedToric3DCode(StabilizerCode):
     """Rotated Toric Code for good subthreshold scaling."""
 
     pauli_class = RotatedToric3DPauli

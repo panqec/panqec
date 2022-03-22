@@ -15,7 +15,7 @@ from bn3d.error_models import DeformedXZZXErrorModel
 from bn3d.decoders import BeliefPropagationOSDDecoder
 from scipy.special import comb
 
-from .indexed_code_test import IndexedCodeTest
+from .stabilizer_code_test import StabilizerCodeTest
 
 
 def operator_spec(code, bsf):
@@ -76,7 +76,7 @@ def print_non_commuting(
 
 
 @pytest.mark.skip(reason='sparse')
-class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
+class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
 
     @property
     @abstractmethod
@@ -255,7 +255,7 @@ class IndexedCodeTestWithCoordinates(IndexedCodeTest, metaclass=ABCMeta):
 
 
 @pytest.mark.skip(reason='sparse')
-class TestRotatedToric3DCode2x2x1(IndexedCodeTestWithCoordinates):
+class TestRotatedToric3DCode2x2x1(StabilizerCodeTestWithCoordinates):
     size = (2, 2, 1)
     expected_plane_edges_xy = [
         (1, 1), (3, 1),
@@ -272,7 +272,7 @@ class TestRotatedToric3DCode2x2x1(IndexedCodeTestWithCoordinates):
 
 
 @pytest.mark.skip(reason='sparse')
-class TestRotatedToric3DCode3x2x1(IndexedCodeTestWithCoordinates):
+class TestRotatedToric3DCode3x2x1(StabilizerCodeTestWithCoordinates):
     size = (3, 2, 1)
     expected_plane_edges_xy = [
         (1, 1), (3, 1), (5, 1),
@@ -289,7 +289,7 @@ class TestRotatedToric3DCode3x2x1(IndexedCodeTestWithCoordinates):
 
 
 @pytest.mark.skip(reason='odd by odd')
-class TestRotatedToric3DCode3x3x3(IndexedCodeTestWithCoordinates):
+class TestRotatedToric3DCode3x3x3(StabilizerCodeTestWithCoordinates):
     size = (3, 3, 3)
     expected_plane_edges_xy = [
         (1, 1), (3, 1), (5, 1),
@@ -311,7 +311,7 @@ class TestRotatedToric3DCode3x3x3(IndexedCodeTestWithCoordinates):
 
 
 @pytest.mark.skip(reason='sparse')
-class TestRotatedToric3DCode4x3x3(IndexedCodeTestWithCoordinates):
+class TestRotatedToric3DCode4x3x3(StabilizerCodeTestWithCoordinates):
     size = (4, 3, 3)
     expected_plane_edges_xy = [
         (1, 1), (3, 1), (5, 1), (7, 1),
@@ -333,7 +333,7 @@ class TestRotatedToric3DCode4x3x3(IndexedCodeTestWithCoordinates):
 
 
 @pytest.mark.skip(reason='sparse')
-class TestRotatedToric3DCode3x4x3(IndexedCodeTestWithCoordinates):
+class TestRotatedToric3DCode3x4x3(StabilizerCodeTestWithCoordinates):
     size = (3, 4, 3)
     expected_plane_edges_xy = [
         (1, 1), (1, 3), (1, 5), (1, 7),
@@ -355,7 +355,7 @@ class TestRotatedToric3DCode3x4x3(IndexedCodeTestWithCoordinates):
 
 
 @pytest.mark.skip(reason='sparse')
-class TestRotatedToric3DCode4x4x3(IndexedCodeTestWithCoordinates):
+class TestRotatedToric3DCode4x4x3(StabilizerCodeTestWithCoordinates):
     size = (4, 4, 3)
     expected_plane_edges_xy = [
         (1, 1), (1, 3), (1, 5), (1, 7),

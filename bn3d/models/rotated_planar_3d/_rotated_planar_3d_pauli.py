@@ -1,9 +1,9 @@
 from typing import Tuple
-from ..generic._indexed_sparse_pauli import IndexedSparsePauli
+from bn3d.models import StabilizerPauli
 import numpy as np
 
 
-class RotatedPlanar3DPauli(IndexedSparsePauli):
+class RotatedPlanar3DPauli(StabilizerPauli):
     """Pauli Operator on 3D Toric Code.
 
     Qubit sites are on edges of the lattice.

@@ -6,6 +6,8 @@ Toric code in 3D.
 """
 import numpy as np
 from ..bpauli import barray_to_bvector, new_barray
+from .generic._stabilizer_code import StabilizerCode  # noqa
+from .generic._stabilizer_pauli import StabilizerPauli  # noqa
 from .toric_2d._toric_2d_code import Toric2DCode  # noqa
 from .toric_2d._toric_2d_pauli import Toric2DPauli  # noqa
 from .planar_2d._planar_2d_code import Planar2DCode  # noqa

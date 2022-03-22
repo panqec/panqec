@@ -1,12 +1,12 @@
 import itertools
 from typing import Tuple
 import numpy as np
-from ..generic._indexed_sparse_code import IndexedSparseCode
+from bn3d.models import StabilizerCode
 from ._rhombic_pauli import RhombicPauli
 from ... import bsparse
 
 
-class RhombicCode(IndexedSparseCode):
+class RhombicCode(StabilizerCode):
 
     pauli_class = RhombicPauli
 

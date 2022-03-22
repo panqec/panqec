@@ -1,33 +1,38 @@
 from typing import Dict, Tuple, Optional
 from abc import ABCMeta
 import numpy as np
-from ._indexed_code import IndexedCode
+from ... import bsparse
+from ._stabilizer_code import StabilizerCode
 
 Indexer = Dict[Tuple[int, int, int], int]
 
 
-class IndexedCodePauli(metaclass=ABCMeta):
+class StabilizerPauli(metaclass=ABCMeta):
 
-    def __init__(self, code: IndexedCode, bsf: Optional[np.ndarray] = None):
+    def __init__(self, code: StabilizerCode, bsf: Optional[np.ndarray] = None):
 
         # Copy needs to be made because numpy arrays are mutable.
         self._code = code
+
         self._from_bsf(bsf)
 
     def _from_bsf(self, bsf):
         # initialise lattices for X and Z operators from bsf
         n_qubits = self.code.n
-        if bsf is None:
-            # initialise identity lattices for X and Z operators
-            self._xs = np.zeros(n_qubits, dtype=int)
-            self._zs = np.zeros(n_qubits, dtype=int)
-        else:
-            assert len(bsf) == 2 * n_qubits, \
+        # initialise identity lattices for X and Z operators
+        self._xs = bsparse.zero_row(n_qubits)
+        self._zs = bsparse.zero_row(n_qubits)
+
+        if bsf is not None:
+            if not bsparse.is_sparse(bsf):
+                bsf = bsparse.from_array(bsf)
+            assert bsf.shape[1] == 2 * n_qubits, \
                 'BSF {} has incompatible length'.format(bsf)
-            assert np.array_equal(bsf % 2, bsf), \
+            assert np.all(bsf.data == 1), \
                 'BSF {} is not in binary form'.format(bsf)
             # initialise lattices for X and Z operators from bsf
-            self._xs, self._zs = np.hsplit(bsf, 2)  # split out Xs and Zs
+
+            self._xs, self._zs = bsparse.hsplit(bsf)
 
     def site(self, operator, *indices):
         """
@@ -48,9 +53,9 @@ class IndexedCodePauli(metaclass=ABCMeta):
             # flip sites
             flat_index = self.get_index(coord)
             if operator in ('X', 'Y'):
-                self._xs[flat_index] ^= 1
+                bsparse.insert_mod2(flat_index, self._xs)
             if operator in ('Z', 'Y'):
-                self._zs[flat_index] ^= 1
+                bsparse.insert_mod2(flat_index, self._zs)
         return self
 
     def get_index(self, coordinate):
@@ -65,9 +70,7 @@ class IndexedCodePauli(metaclass=ABCMeta):
 
     @property
     def code(self):
-        """
-        Return the code instance
-        """
+        """Return code instance"""
         return self._code
 
     def operator(self, coord):
@@ -82,14 +85,14 @@ class IndexedCodePauli(metaclass=ABCMeta):
         """
         # extract binary x and z
         index = self.code.qubit_index[coord]
-        x = self._xs[index]
-        z = self._zs[index]
+        x = bsparse.is_one(index, self._xs)
+        z = bsparse.is_one(index, self._zs)
         # return Pauli
-        if x == 1 and z == 1:
+        if x and z:
             return 'Y'
-        if x == 1:
+        if x:
             return 'X'
-        if z == 1:
+        if z:
             return 'Z'
         else:
             return 'I'
@@ -99,20 +102,19 @@ class IndexedCodePauli(metaclass=ABCMeta):
         Returns a copy of this Pauli that references the same code but is
         backed by a copy of the bsf.
         :return: A copy of this Pauli.
-        :rtype: IndexedCodePauli
+        :rtype: StabilizerPauli
         """
-        return self.code.new_pauli(bsf=np.copy(self.to_bsf()))
+        return self.code.pauli_class(self.code, bsf=self.to_bsf())
 
     def __eq__(self, other):
         if type(other) is type(self):
-            return np.array_equal(self._xs, other._xs) and np.array_equal(
-                self._zs, other._zs
-            )
+            return bsparse.equal(self._xs, other._xs) and bsparse.equal(self._zs, other._zs)
         return NotImplemented
 
     def __repr__(self):
-        return '{}({!r}, {!r})'.format(
-            type(self).__name__, self.code, self.to_bsf()
+        bsf = self.to_bsf()
+        return '{}({!r}, {!r}: {!r})'.format(
+            type(self).__name__, self.code, bsf.shape, bsf.indices
         )
 
     def __str__(self):
@@ -128,9 +130,8 @@ class IndexedCodePauli(metaclass=ABCMeta):
         """
         Binary symplectic representation of Pauli.
         Notes:
-        * For performance reasons, the returned bsf is a view of this Pauli.
-        Modifying one will modify the other.
-        :return: Binary symplectic representation of Pauli.
-        :rtype: numpy.array (1d)
+        :return: Binary symplectic representation of Pauli in sparse format.
+        :rtype: scipy.sparse.csr_matrix (1d)
         """
-        return np.concatenate((self._xs.flatten(), self._zs.flatten()))
+
+        return bsparse.hstack([self._xs, self._zs])

@@ -1,11 +1,11 @@
 from typing import Tuple
 import numpy as np
-from ..generic._indexed_sparse_code import IndexedSparseCode
+from bn3d.models import StabilizerCode
 from ._toric_2d_pauli import Toric2DPauli
 from ... import bsparse
 
 
-class Toric2DCode(IndexedSparseCode):
+class Toric2DCode(StabilizerCode):
 
     pauli_class = Toric2DPauli
 

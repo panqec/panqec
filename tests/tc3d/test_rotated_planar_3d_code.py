@@ -1,10 +1,10 @@
 import pytest
 import numpy as np
 from bn3d.models import RotatedPlanar3DCode
-from .indexed_code_test import IndexedCodeTest
+from .stabilizer_code_test import StabilizerCodeTest
 
 
-class TestRotatedPlanar3DCode(IndexedCodeTest):
+class TestRotatedPlanar3DCode(StabilizerCodeTest):
 
     L_x = 4
     L_y = 4

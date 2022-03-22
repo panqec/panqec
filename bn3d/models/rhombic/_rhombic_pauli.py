@@ -1,10 +1,9 @@
 from typing import Tuple, Optional
 import numpy as np
-from ..generic._indexed_sparse_pauli import IndexedSparsePauli
-from qecsim.model import StabilizerCode
+from bn3d.models import StabilizerPauli, StabilizerCode
 
 
-class RhombicPauli(IndexedSparsePauli):
+class RhombicPauli(StabilizerPauli):
     """Pauli Operator on 3D Toric Code.
 
     Qubit sites are on edges of the lattice.

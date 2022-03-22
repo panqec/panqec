@@ -1,9 +1,9 @@
 from typing import Tuple
-from ..generic._indexed_sparse_pauli import IndexedSparsePauli
+from bn3d.models import StabilizerPauli
 import numpy as np
 
 
-class RotatedToric3DPauli(IndexedSparsePauli):
+class RotatedToric3DPauli(StabilizerPauli):
 
     def on_defect_boundary(self, Lx, Ly, x, y):
         """Determine whether or not to defect each boundary."""

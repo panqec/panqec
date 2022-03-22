@@ -1,9 +1,9 @@
 import pytest
 from abc import ABCMeta, abstractmethod
-from qecsim.model import StabilizerCode
+from bn3d.models import StabilizerCode
 
 
-class IndexedCodeTest(metaclass=ABCMeta):
+class StabilizerCodeTest(metaclass=ABCMeta):
 
     @pytest.fixture
     @abstractmethod
