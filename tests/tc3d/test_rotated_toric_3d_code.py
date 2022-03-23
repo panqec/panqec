@@ -169,27 +169,27 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
 
     def test_number_of_logicals_is_k(self, code):
         k = code.k
-        assert code.logical_xs.shape[0] == k
-        assert code.logical_zs.shape[0] == k
+        assert code.logicals_x.shape[0] == k
+        assert code.logicals_z.shape[0] == k
 
     def test_logical_operators_anticommute_pairwise(self, code):
         k = code.k
-        assert np.all(bcommute(code.logical_xs, code.logical_xs) == 0)
-        assert np.all(bcommute(code.logical_zs, code.logical_zs) == 0)
-        commutators = bcommute(code.logical_xs, code.logical_zs)
+        assert np.all(bcommute(code.logicals_x, code.logicals_x) == 0)
+        assert np.all(bcommute(code.logicals_z, code.logicals_z) == 0)
+        commutators = bcommute(code.logicals_x, code.logicals_z)
         assert np.all(commutators == np.eye(k)), (
             f'Not pairwise anticommuting {commutators}'
         )
 
     def test_logical_operators_commute_with_stabilizers(self, code):
-        x_commutators = bcommute(code.logical_xs, code.stabilizers)
+        x_commutators = bcommute(code.logicals_x, code.stabilizers)
         print_non_commuting(
-            code, x_commutators, code.logical_xs, code.stabilizers,
+            code, x_commutators, code.logicals_x, code.stabilizers,
             'logicalX', 'stabilizer'
         )
-        z_commutators = bcommute(code.logical_zs, code.stabilizers)
+        z_commutators = bcommute(code.logicals_z, code.stabilizers)
         print_non_commuting(
-            code, z_commutators, code.logical_zs, code.stabilizers,
+            code, z_commutators, code.logicals_z, code.stabilizers,
             'logicalZ', 'stabilizer'
         )
         assert np.all(x_commutators == 0), (
@@ -210,8 +210,8 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
 
         matrix_with_logicals = np.concatenate([
             matrix,
-            code.logical_xs,
-            code.logical_zs,
+            code.logicals_x,
+            code.logicals_z,
         ])
 
         rank_with_logicals = brank(matrix_with_logicals)
@@ -474,8 +474,8 @@ class TestRotatedToric3DDeformation:
                     'k': code.k,
                     'd': code.d,
                     'stabilizers': code.stabilizers.tolist(),
-                    'logical_xs': code.logical_xs.tolist(),
-                    'logical_zs': code.logical_zs.tolist(),
+                    'logicals_x': code.logicals_x.tolist(),
+                    'logicals_z': code.logicals_z.tolist(),
                 },
                 'deformed': {
                     'n': code.n,
@@ -484,11 +484,11 @@ class TestRotatedToric3DDeformation:
                     'stabilizers': apply_deformation(
                         deformation_index, code.stabilizers
                     ).tolist(),
-                    'logical_xs': apply_deformation(
-                        deformation_index, code.logical_xs
+                    'logicals_x': apply_deformation(
+                        deformation_index, code.logicals_x
                     ).tolist(),
-                    'logical_zs': apply_deformation(
-                        deformation_index, code.logical_zs
+                    'logicals_z': apply_deformation(
+                        deformation_index, code.logicals_z
                     ).tolist(),
                 }
             })

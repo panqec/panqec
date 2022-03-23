@@ -5,11 +5,13 @@ function stringToArray(a) {
 }
 
 class AbstractCode {
-    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
+    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene) {
         this.H = {'X': Hx, 'Z': Hz};
         this.scene = scene;
+        this.qubitIndex = qubitIndex;
         this.stabilizerIndex = stabilizerIndex
         this.stabilizerTypes = Object.keys(stabilizerIndex);
+        this.qubitAxis = qubitAxis
 
         this.Lx = size[0];
         this.Ly = size[1];

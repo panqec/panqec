@@ -60,7 +60,7 @@ def test_run_once(required_fields):
     assert results['error'].shape == (2*code.n,)
     assert results['syndrome'].shape == (code.stabilizers.shape[0],)
     assert isinstance(results['success'], bool)
-    assert results['effective_error'].shape == (2*code.logical_xs.shape[0],)
+    assert results['effective_error'].shape == (2*code.logicals_x.shape[0],)
     assert isinstance(results['codespace'], bool)
 
 

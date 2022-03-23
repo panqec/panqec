@@ -7,12 +7,11 @@ function stringToArray(a) {
 }
 
 class AbstractCubicCode extends AbstractCode {
-    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
-        super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
+    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene) {
+        super(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene);
 
         this.rotatedPicture = false;
 
-        this.qubitIndex = qubitIndex;
         this.vertexIndex = stabilizerIndex['vertex'];
         this.faceIndex = stabilizerIndex['face'];
 
@@ -99,8 +98,8 @@ class AbstractCubicCode extends AbstractCode {
 
 
 class AbstractRpCubicCode extends AbstractCode {
-    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
-        super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
+    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene) {
+        super(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene);
 
         this.rotatedPicture = true;
 

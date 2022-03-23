@@ -5,8 +5,8 @@ import { AbstractCubicCode, AbstractRpCubicCode} from './base/abstractCubicCode.
 export {RotatedToric3DCode, RpRotatedToric3DCode};
 
 class RotatedToric3DCode extends AbstractCubicCode {
-    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
-        super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
+    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene) {
+        super(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene);
     }
 
     buildQubit(x, y, z) {
@@ -21,14 +21,16 @@ class RotatedToric3DCode extends AbstractCubicCode {
         edge.position.x = (length * Math.SQRT2 / 4) * x - this.offset.x;
         edge.position.y = (length * Math.SQRT2 / 4) * y - this.offset.y;
         edge.position.z = length * z / 2 - this.offset.z;
+
+        let key = `[${x}, ${y}, ${z}]`;
     
-        if (z % 2 == 0) {
+        if (this.qubitAxis[key] == 2) {
             edge.rotateX(Math.PI / 2);
         }
-        else if ((x + y) % 4 == 0) {
+        else if (this.qubitAxis[key] == 0) {
             edge.rotateZ(Math.PI / 4);
         }
-        else if ((x + y) % 4 == 2) {
+        else if (this.qubitAxis[key] == 1) {
             edge.rotateZ(-Math.PI / 4);
         }
         else {
@@ -108,8 +110,8 @@ class RotatedToric3DCode extends AbstractCubicCode {
 }
 
 class RpRotatedToric3DCode extends AbstractRpCubicCode {
-    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
-        super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
+    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene) {
+        super(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene);
     }
 
     buildQubit(x, y, z) {

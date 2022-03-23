@@ -10,7 +10,7 @@ import { RhombicCode } from './codes/rhombic.js';
 import { XCubeCode } from './codes/xcube.js';
 import { RotatedToric3DCode, RpRotatedToric3DCode } from './codes/rotatedToric3d.js';
 
-var defaultCode = codeDimension == 2 ? 'toric-2d' : 'rotated-toric-3d';
+var defaultCode = codeDimension == 2 ? 'planar-2d' : 'planar-3d';
 var defaultSize = codeDimension == 2 ? 6 : 4;
 
 const params = {
@@ -146,6 +146,7 @@ async function buildCode() {
     let Hx = stabilizers['Hx'];
     let Hz = stabilizers['Hz'];
     let qubitIndex = stabilizers['qubit_index'];
+    let qubitAxis = stabilizers['qubit_axis'];
     let stabilizerIndex = stabilizers['stabilizer_index'];
     let logical_z = stabilizers['logical_z'];
     let logical_x = stabilizers['logical_x'];
@@ -173,7 +174,7 @@ async function buildCode() {
                      }
 
     let rotated = + params.rotated
-    code = new codeClass[params.codeName][rotated](size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
+    code = new codeClass[params.codeName][rotated](size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene);
     code.logical_x = logical_x;
     code.logical_z = logical_z;
     code.build();

@@ -37,7 +37,7 @@ def run_once(
     correction = decoder.decode(code, syndrome)
     total_error = (correction + error) % 2
     effective_error = get_effective_error(
-        total_error, code.logical_xs, code.logical_zs
+        total_error, code.logicals_x, code.logicals_z
     )
     codespace = bool(np.all(bcommute(code.stabilizers, total_error) == 0))
     success = bool(np.all(effective_error == 0)) and codespace

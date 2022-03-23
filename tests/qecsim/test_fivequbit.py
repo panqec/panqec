@@ -44,15 +44,15 @@ def test_stabilizers(five_qubit_code):
 
 def test_logicals(five_qubit_code):
     code = five_qubit_code
-    expected_logical_xs = ['XXXXX']
-    expected_logical_zs = ['ZZZZZ']
-    assert np.all(code.logical_xs == np.array([
+    expected_logicals_x = ['XXXXX']
+    expected_logicals_z = ['ZZZZZ']
+    assert np.all(code.logicals_x == np.array([
         pauli_to_bsf(pauli_string)
-        for pauli_string in expected_logical_xs
+        for pauli_string in expected_logicals_x
     ]))
-    assert np.all(code.logical_zs == np.array([
+    assert np.all(code.logicals_z == np.array([
         pauli_to_bsf(pauli_string)
-        for pauli_string in expected_logical_zs
+        for pauli_string in expected_logicals_z
     ]))
 
 

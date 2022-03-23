@@ -1,16 +1,11 @@
-from typing import Tuple
+from typing import Tuple, Dict
 import numpy as np
 from bn3d.models import StabilizerCode
-from ._rotated_planar_2d_pauli import RotatedPlanar2DPauli
-from ... import bsparse
+
+Indexer = Dict[Tuple[int, int], int]  # coordinate to index
 
 
 class RotatedPlanar2DCode(StabilizerCode):
-
-    pauli_class = RotatedPlanar2DPauli
-
-    # StabilizerCode interface methods.
-
     @property
     def dimension(self) -> int:
         return 2
@@ -19,40 +14,47 @@ class RotatedPlanar2DCode(StabilizerCode):
     def label(self) -> str:
         return 'Toric {}x{}'.format(*self.size)
 
-    @property
-    def logical_xs(self) -> np.ndarray:
-        """The 2 logical X operators."""
+    def _vertex(self, location: Tuple[int, int], deformed_axis: int = None) -> Dict[str, Tuple]:
+        x, y = location
 
-        if self._logical_xs.size == 0:
-            Lx, Ly = self.size
-            logicals = bsparse.empty_row(2*self.n)
+        if (x, y) not in self.vertex_index:
+            raise ValueError(f"Invalid coordinate {location} for a vertex")
 
-            # X operators along first diagonal
-            logical = self.pauli_class(self)
-            for x in range(1, 2*Lx+1, 2):
-                logical.site('X', (x, 1))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        pauli = 'Z'
+        deformed_pauli = 'X'
 
-            self._logical_xs = logicals
+        delta = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
 
-        return self._logical_xs
+        operator = dict()
+        for d in delta:
+            qubit_location = tuple(np.add(location, d))
 
-    @property
-    def logical_zs(self) -> np.ndarray:
-        """Get the 3 logical Z operators."""
-        if self._logical_zs.size == 0:
-            Lx, Ly = self.size
-            logicals = bsparse.empty_row(2*self.n)
+            if self.is_qubit(qubit_location):
+                is_deformed = (self.axis(qubit_location) == deformed_axis)
+                operator[qubit_location] = deformed_pauli if is_deformed else pauli
 
-            # Z operators along first diagonal
-            logical = self.pauli_class(self)
-            for y in range(1, 2*Ly+1, 2):
-                logical.site('Z', (1, y))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        return operator
 
-            self._logical_zs = logicals
+    def _face(self, location: Tuple[int, int], deformed_axis: int = None) -> Dict[str, Tuple]:
+        x, y = location
 
-        return self._logical_zs
+        if (x, y) not in self.face_index:
+            raise ValueError(f"Invalid coordinate {location} for a face")
+
+        pauli = 'X'
+        deformed_pauli = 'Z'
+
+        delta = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+
+        operator = dict()
+        for d in delta:
+            qubit_location = tuple(np.add(location, d))
+
+            if self.is_qubit(qubit_location):
+                is_deformed = (self.axis(qubit_location) == deformed_axis)
+                operator[qubit_location] = deformed_pauli if is_deformed else pauli
+
+        return operator
 
     def axis(self, location):
         x, y = location
@@ -66,7 +68,7 @@ class RotatedPlanar2DCode(StabilizerCode):
 
         return axis
 
-    def _create_qubit_indices(self):
+    def _create_qubit_indices(self) -> Indexer:
         coordinates = []
         Lx, Ly = self.size
 
@@ -79,7 +81,7 @@ class RotatedPlanar2DCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_vertex_indices(self):
+    def _create_vertex_indices(self) -> Indexer:
         coordinates = []
         Lx, Ly = self.size
 
@@ -92,7 +94,7 @@ class RotatedPlanar2DCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_face_indices(self):
+    def _create_face_indices(self) -> Indexer:
         coordinates = []
         Lx, Ly = self.size
 
@@ -104,3 +106,30 @@ class RotatedPlanar2DCode(StabilizerCode):
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 
         return coord_to_index
+    
+    def _get_logicals_x(self) -> np.ndarray:
+        """The 2 logical X operators."""
+
+        Lx, Ly = self.size
+        logicals = []
+
+        # X operators along first diagonal
+        operator = dict()
+        for x in range(1, 2*Lx+1, 2):
+            operator[(x, 1)] = 'X'
+        logicals.append(operator)
+
+        return logicals
+
+    def _get_logicals_z(self) -> np.ndarray:
+        """Get the 3 logical Z operators."""
+        Lx, Ly = self.size
+        logicals = []
+
+        # Z operators along first diagonal
+        operator = dict()
+        for y in range(1, 2*Ly+1, 2):
+            operator[(1, y)] = 'Z'
+        logicals.append(operator)
+
+        return logicals

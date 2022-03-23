@@ -5,8 +5,8 @@ import { AbstractCode, stringToArray } from './base/abstractCode.js';
 export {XCubeCode};
 
 class XCubeCode extends AbstractCode {
-    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
-        super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
+    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene) {
+        super(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene);
 
         this.Lx = size[0];
         this.Ly = size[1];
@@ -66,9 +66,9 @@ class XCubeCode extends AbstractCode {
             cube.children[0].material.opacity = this.OPACITY.activatedStabilizer['cube'];
         }
         else {
-            cube.material.opacity = this.opacityActivated ? 
+            cube.material.opacity = this.opacityActivated ?
                 this.OPACITY.minDeactivatedStabilizer['cube'] : this.OPACITY.maxDeactivatedStabilizer['cube'];
-            cube.children[0].material.opacity = this.opacityActivated ? 
+            cube.children[0].material.opacity = this.opacityActivated ?
                 this.OPACITY.minDeactivatedStabilizer['cube'] : this.OPACITY.maxDeactivatedStabilizer['cube'];
         }
     }
@@ -92,8 +92,8 @@ class XCubeCode extends AbstractCode {
     buildQubit(x, y, z) {
         const geometry = new THREE.CylinderGeometry(this.SIZE.radiusEdge, this.SIZE.radiusEdge, this.SIZE.lengthEdge, 32);
 
-        const material = new THREE.MeshPhongMaterial({color: this.COLOR.deactivatedEdge, 
-                                                      opacity: this.OPACITY.maxDeactivatedQubit, 
+        const material = new THREE.MeshPhongMaterial({color: this.COLOR.deactivatedEdge,
+                                                      opacity: this.OPACITY.maxDeactivatedQubit,
                                                       transparent: true});
         const edge = new THREE.Mesh(geometry, material);
 
@@ -101,14 +101,12 @@ class XCubeCode extends AbstractCode {
         edge.position.y = y * this.SIZE.lengthEdge / 2;
         edge.position.z = z * this.SIZE.lengthEdge / 2;
 
-        let x_axis = ((z % 2 == 0) && y % 2 == 0);
-        let y_axis = ((z % 2 == 0) && x % 2 == 0);
-        let z_axis = (z % 2 == 1);
+        let key = `[${x}, ${y}, ${z}]`;
 
-        if (x_axis) {
+        if (this.qubitAxis[key] == 0) {
             edge.rotateZ(Math.PI / 2)
         }
-        else if (z_axis) {
+        else if (this.qubitAxis[key] == 2) {
             edge.rotateX(Math.PI / 2)
         }
 
@@ -125,14 +123,14 @@ class XCubeCode extends AbstractCode {
 
     buildFace(axis, x, y, z) {
         const geometry = new THREE.PlaneGeometry(this.SIZE.lengthEdge-0.3, this.SIZE.lengthEdge-0.3);
-    
-        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedFace, 
-                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['face'], 
-                                                     transparent: true, 
+
+        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedFace,
+                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['face'],
+                                                     transparent: true,
                                                      side: THREE.DoubleSide});
         const face = new THREE.Mesh(geometry, material);
         face.visible = false;
-    
+
         face.position.x = x * this.SIZE.lengthEdge / 2;
         face.position.y = y * this.SIZE.lengthEdge / 2;
         face.position.z = z * this.SIZE.lengthEdge / 2;
@@ -146,24 +144,24 @@ class XCubeCode extends AbstractCode {
         else {
             face.rotateZ(Math.PI / 2)
         }
-    
+
         let index = this.getIndexFace(axis, x, y, z);
-    
+
         face.index = index;
         face.location = [x, y, z];
         face.type = 'face';
         face.isActivated = false;
-    
+
         this.stabilizers[index] = face;
-    
+
         this.scene.add(face);
     }
 
     buildCube(x, y, z) {
         const L = this.SIZE.lengthEdge - 0.3
         const geometry = new THREE.BoxBufferGeometry(L, L, L);
-        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedCube, 
-                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['cube'], 
+        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedCube,
+                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['cube'],
                                                      transparent: true});
         const cube = new THREE.Mesh(geometry, material);
 
@@ -179,8 +177,8 @@ class XCubeCode extends AbstractCode {
         this.stabilizers[index] = cube;
 
         var geo = new THREE.EdgesGeometry( cube.geometry );
-        var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 2, 
-                                               opacity: this.OPACITY.maxDeactivatedStabilizer['cube'], 
+        var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 2,
+                                               opacity: this.OPACITY.maxDeactivatedStabilizer['cube'],
                                                transparent: true });
 
         var wireframe = new THREE.LineSegments(geo, mat);

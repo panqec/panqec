@@ -1,14 +1,9 @@
-from typing import Tuple
-import numpy as np
+from typing import Tuple, Dict
 from bn3d.models import StabilizerCode
-from ._rotated_planar_3d_pauli import RotatedPlanar3DPauli
-from ... import bsparse
+import numpy as np
 
 
 class RotatedPlanar3DCode(StabilizerCode):
-
-    pauli_class = RotatedPlanar3DPauli
-
     @property
     def dimension(self) -> int:
         return 3
@@ -17,41 +12,55 @@ class RotatedPlanar3DCode(StabilizerCode):
     def label(self) -> str:
         return 'Rotated Planar {}x{}x{}'.format(*self.size)
 
-    @property
-    def logical_xs(self) -> np.ndarray:
-        """Get the unique logical X operator."""
-        if self._logical_xs.size == 0:
-            Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n)
+    def _vertex(self, location: Tuple[int, int, int], deformed_axis: int = None) -> Dict[str, Tuple]:
+        x, y, z = location
 
-            # X operators along x edges in x direction.
-            logical = RotatedPlanar3DPauli(self)
+        if location not in self.vertex_index:
+            raise ValueError(f"Invalid coordinate {location} for a vertex")
 
-            for x in range(1, min(2*Lx, 2*Ly), 2):
-                logical.site('X', (x, 2*Ly - x, 1))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        pauli = 'Z'
+        deformed_pauli = 'X'
 
-            self._logical_xs = logicals
+        delta = [(-1, -1, 0), (-1, 1, 0), (1, -1, 0), (1, 1, 0), (0, 0, -1), (0, 0, 1)]
 
-        return self._logical_xs
+        operator = dict()
+        for d in delta:
+            qubit_location = tuple(np.add(location, d))
 
-    @property
-    def logical_zs(self) -> np.ndarray:
-        """Get the unique logical Z operator."""
-        if self._logical_zs.size == 0:
-            Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n)
+            if self.is_qubit(qubit_location):
+                is_deformed = (self.axis(qubit_location) == deformed_axis)
+                operator[qubit_location] = deformed_pauli if is_deformed else pauli
 
-            # Z operators on x edges forming surface normal to x (yz plane).
-            logical = RotatedPlanar3DPauli(self)
-            for z in range(1, 2*Lz, 2):
-                for x in range(1, min(2*Lx, 2*Ly), 2):
-                    logical.site('Z', (x, x, z))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        return operator
 
-            self._logical_zs = logicals
+    def _face(self, location: Tuple[int, int, int], deformed_axis: int = None) -> Dict[str, Tuple]:
+        x, y, z = location
 
-        return self._logical_zs
+        if location not in self.face_index:
+            raise ValueError(f"Invalid coordinate {location} for a face")
+
+        pauli = 'X'
+        deformed_pauli = 'Z'
+
+        # z-normal so face is xy-plane.
+        if z % 2 == 1:
+            delta = [(-1, -1, 0), (1, 1, 0), (-1, 1, 0), (1, -1, 0)]
+        # x-normal so face is in yz-plane.
+        elif (x + y) % 4 == 0:
+            delta = [(-1, -1, 0), (1, 1, 0), (0, 0, -1), (0, 0, 1)]
+        # y-normal so face is in zx-plane.
+        elif (x + y) % 4 == 2:
+            delta = [(-1, 1, 0), (1, -1, 0), (0, 0, -1), (0, 0, 1)]
+
+        operator = dict()
+        for d in delta:
+            qubit_location = tuple(np.add(location, d))
+
+            if self.is_qubit(qubit_location):
+                is_deformed = (self.axis(qubit_location) == deformed_axis)
+                operator[qubit_location] = deformed_pauli if is_deformed else pauli
+
+        return operator
 
     def axis(self, location):
         x, y, z = location
@@ -125,6 +134,34 @@ class RotatedPlanar3DCode(StabilizerCode):
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 
         return coord_to_index
+
+    def _get_logicals_x(self) -> Dict[str, Tuple]:
+        """Get the unique logical X operator."""
+        Lx, Ly, Lz = self.size
+        logicals = []
+
+        # X operators along x edges in x direction.
+        operator = dict()
+        for x in range(1, min(2*Lx, 2*Ly), 2):
+            operator[(x, 2*Ly - x, 1)] = 'X'
+        logicals.append(operator)
+
+        return logicals
+
+    def _get_logicals_z(self) -> Dict[str, Tuple]:
+        """Get the unique logical Z operator."""
+
+        Lx, Ly, Lz = self.size
+        logicals = []
+
+        # X operators along x edges in x direction.
+        operator = dict()
+        for z in range(1, 2*Lz, 2):
+            for x in range(1, min(2*Lx, 2*Ly), 2):
+                operator[(x, x, z)] = 'Z'
+        logicals.append(operator)
+
+        return logicals
 
 
 if __name__ == "__main__":

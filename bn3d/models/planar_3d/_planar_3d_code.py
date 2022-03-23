@@ -1,16 +1,10 @@
-from typing import Tuple
-import numpy as np
+from typing import Tuple, Dict
 from bn3d.models import StabilizerCode
-from ._planar_3d_pauli import Planar3DPauli
-from ... import bsparse
+
+Indexer = Dict[Tuple[int, int], int]  # coordinate to index
 
 
 class Planar3DCode(StabilizerCode):
-
-    pauli_class = Planar3DPauli
-
-    # StabilizerCode interface methods.
-
     @property
     def dimension(self) -> int:
         return 3
@@ -19,41 +13,55 @@ class Planar3DCode(StabilizerCode):
     def label(self) -> str:
         return 'Planar {}x{}x{}'.format(*self.size)
 
-    @property
-    def logical_xs(self) -> np.ndarray:
-        """The unique logical X operator."""
+    def _vertex(self, location: Tuple[int, int, int], deformed_axis: int = None) -> Dict[str, Tuple]:
+        x, y, z = location
 
-        if self._logical_xs.size == 0:
-            Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n)
+        if (x, y, z) not in self.vertex_index:
+            raise ValueError(f"Invalid coordinate {location} for a vertex")
 
-            # X operators along x edges in x direction.
-            logical = self.pauli_class(self)
-            for x in range(1, 2*Lx+1, 2):
-                logical.site('X', (x, 0, 0))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        pauli = 'Z'
+        deformed_pauli = 'X'
 
-            self._logical_xs = logicals
+        delta = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
 
-        return self._logical_xs
+        operator = dict()
+        for d in delta:
+            qubit_location = (x + d[0], y + d[1], z + d[2])
 
-    @property
-    def logical_zs(self) -> np.ndarray:
-        """The unique logical Z operator."""
-        if self._logical_zs.size == 0:
-            Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n)
+            if self.is_qubit(qubit_location):
+                is_deformed = (self.axis(qubit_location) == deformed_axis)
+                operator[qubit_location] = deformed_pauli if is_deformed else pauli
 
-            # Z operators on x edges forming surface normal to x (yz plane).
-            logical = self.pauli_class(self)
-            for y in range(0, 2*Ly, 2):
-                for z in range(0, 2*Lz, 2):
-                    logical.site('Z', (1, y, z))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        return operator
 
-            self._logical_zs = logicals
+    def _face(self, location: Tuple[int, int, int], deformed_axis: int = None) -> Dict[str, Tuple]:
+        x, y, z = location
 
-        return self._logical_zs
+        if (x, y, z) not in self.face_index:
+            raise ValueError(f"Invalid coordinate {location} for a face")
+
+        pauli = 'X'
+        deformed_pauli = 'Z'
+
+        # Face in xy-plane.
+        if z % 2 == 0:
+            delta = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0)]
+        # Face in yz-plane.
+        elif (x % 2 == 0):
+            delta = [(0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
+        # Face in zx-plane.
+        elif (y % 2 == 0):
+            delta = [(-1, 0, 0), (1, 0, 0), (0, 0, -1), (0, 0, 1)]
+
+        operator = dict()
+        for d in delta:
+            qubit_location = (x + d[0], y + d[1], z + d[2])
+
+            if self.is_qubit(qubit_location):
+                is_deformed = (self.axis(qubit_location) == deformed_axis)
+                operator[qubit_location] = deformed_pauli if is_deformed else pauli
+
+        return operator
 
     def axis(self, location):
         x, y, z = location
@@ -69,7 +77,7 @@ class Planar3DCode(StabilizerCode):
 
         return axis
 
-    def _create_qubit_indices(self):
+    def _create_qubit_indices(self) -> Indexer:
         coordinates = []
         Lx, Ly, Lz = self.size
 
@@ -95,7 +103,7 @@ class Planar3DCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_vertex_indices(self):
+    def _create_vertex_indices(self) -> Indexer:
         coordinates = []
         Lx, Ly, Lz = self.size
 
@@ -108,7 +116,7 @@ class Planar3DCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_face_indices(self):
+    def _create_face_indices(self) -> Indexer:
         coordinates = []
         Lx, Ly, Lz = self.size
 
@@ -133,3 +141,32 @@ class Planar3DCode(StabilizerCode):
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 
         return coord_to_index
+
+    def _get_logicals_x(self) -> Dict[str, Tuple]:
+        """The unique logical X operator."""
+
+        Lx, Ly, Lz = self.size
+        logicals = []
+
+        # X operators along x edges in x direction.
+        operator = dict()
+        for x in range(1, 2*Lx+1, 2):
+            operator[(x, 0, 0)] = 'X'
+        logicals.append(operator)
+
+        return logicals
+
+    def _get_logicals_z(self) -> Dict[str, Tuple]:
+        """The unique logical Z operator."""
+
+        Lx, Ly, Lz = self.size
+        logicals = []
+
+        # X operators along x edges in x direction.
+        operator = dict()
+        for y in range(0, 2*Ly, 2):
+            for z in range(0, 2*Lz, 2):
+                operator[(1, y, z)] = 'Z'
+        logicals.append(operator)
+
+        return logicals

@@ -1,16 +1,23 @@
 from typing import Tuple, Dict
 import numpy as np
 from bn3d.models import StabilizerCode
-from ._rotated_toric_3d_pauli import RotatedToric3DPauli
-from ... import bsparse
 
 Indexer = Dict[Tuple[int, int, int], int]  # coordinate to index
 
 
+def on_defect_boundary(Lx, Ly, x, y):
+    """Determine whether or not to defect each boundary."""
+    defect_x_boundary = False
+    defect_y_boundary = False
+    if Lx % 2 == 1 and x == 2*Lx-1:
+        defect_x_boundary = True
+    if Ly % 2 == 1 and y == 2*Ly-1:
+        defect_y_boundary = True
+    return defect_x_boundary, defect_y_boundary
+
+
 class RotatedToric3DCode(StabilizerCode):
     """Rotated Toric Code for good subthreshold scaling."""
-
-    pauli_class = RotatedToric3DPauli
 
     @property
     def label(self) -> str:
@@ -20,115 +27,71 @@ class RotatedToric3DCode(StabilizerCode):
     def dimension(self) -> int:
         return 3
 
-    @property
-    def logical_xs(self) -> np.ndarray:
-        """Get the logical X operators."""
+    def _vertex(self, location: Tuple[int, int, int], deformed_axis: int = None) -> Dict[str, Tuple]:
+        Lx, Ly, Lz = self.size
+        x, y, z = location
 
-        if self._logical_xs.size == 0:
-            Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n)
+        if location not in self.vertex_index:
+            raise ValueError(f"Invalid coordinate {location} for a vertex")
 
-            # Even times even.
-            if Lx % 2 == 0 and Ly % 2 == 0:
-                # X string operator along y.
-                logical = self.pauli_class(self)
-                for x, y, z in self.qubit_index:
-                    if y == 0 and z == 1:
-                        logical.site('X', (x, y, z))
-                logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        pauli = 'Z'
+        deformed_pauli = 'X'
 
-                # X string operator along x.
-                logical = self.pauli_class(self)
-                for x, y, z in self.qubit_index:
-                    if x == 0 and z == 1:
-                        logical.site('X', (x, y, z))
+        defect_x_boundary, defect_y_boundary = on_defect_boundary(Lx, Ly, x, y)
 
-                logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        delta = [(1, -1, 0), (-1, 1, 0), (1, 1, 0), (-1, -1, 0), (0, 0, 1), (0, 0, -1)]
 
-            # Odd times odd
-            elif Lx % 2 == 1 and Ly % 2 == 1:
-                logical = self.pauli_class(self)
+        operator = dict()
+        for d in delta:
+            qx, qy, qz = tuple(np.add(location, d))
+            qubit_location = (qx % (2*Lx), qy % (2*Ly), qz)
 
-                for x, y, z in self.qubit_index:
-                    # X string operator in undeformed code. (OK)
-                    if z == 1 and x + y == 2*Lx-2:
-                        logical.site('X', (x, y, z))
+            if self.is_qubit(qubit_location):
+                defect_x_on_edge = defect_x_boundary and qubit_location[0] == 0
+                defect_y_on_edge = defect_y_boundary and qubit_location[1] == 0
+                is_deformed = (self.axis(qubit_location) == deformed_axis)
+                has_defect = (defect_x_on_edge != defect_y_on_edge)
 
-                logicals = bsparse.vstack([logicals, logical.to_bsf()])
+                operator[qubit_location] = deformed_pauli if is_deformed != has_defect else pauli
 
-            # Odd times even.
-            else:
-                logical = self.pauli_class(self)
+        return operator
 
-                for x, y, z in self.qubit_index:
-                    # X string operator in undeformed code. (OK)
-                    if Lx % 2 == 1:
-                        if z == 1 and x == 0:
-                            if (x + y) % 4 == 0:
-                                logical.site('X', (x, y, z))
-                            else:
-                                logical.site('X', (x, y, z))
-                    else:
-                        if z == 1 and y == 0:
-                            if (x + y) % 4 == 0:
-                                logical.site('X', (x, y, z))
-                            else:
-                                logical.site('X', (x, y, z))
+    def _face(self, location: Tuple[int, int, int], deformed_axis: int = None) -> Dict[str, Tuple]:
+        Lx, Ly, Lz = self.size
+        x, y, z = location
 
-                logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        if location not in self.face_index:
+            raise ValueError(f"Invalid coordinate {location} for a face")
 
-            self._logical_xs = logicals
+        pauli = 'X'
+        deformed_pauli = 'Z'
 
-        return self._logical_xs
+        defect_x_boundary, defect_y_boundary = on_defect_boundary(Lx, Ly, x, y)
 
-    @property
-    def logical_zs(self) -> np.ndarray:
-        """Get the logical Z operators."""
+        # z-normal so face is xy-plane.
+        if z % 2 == 1:
+            delta = [(-1, -1, 0), (1, 1, 0), (-1, 1, 0), (1, -1, 0)]
+        # x-normal so face is in yz-plane.
+        elif (x + y) % 4 == 2:
+            delta = [(-1, -1, 0), (1, 1, 0), (0, 0, -1), (0, 0, 1)]
+        # y-normal so face is in zx-plane.
+        elif (x + y) % 4 == 0:
+            delta = [(-1, 1, 0), (1, -1, 0), (0, 0, -1), (0, 0, 1)]
 
-        if self._logical_zs.size == 0:
-            Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n)
+        operator = dict()
+        for d in delta:
+            qx, qy, qz = tuple(np.add(location, d))
+            qubit_location = (qx % (2*Lx), qy % (2*Ly), qz)
 
-            # Even times even.
-            if (Lx % 2 == 0) and (Ly % 2 == 0):
-                logical = self.pauli_class(self)
-                for x, y, z in self.qubit_index:
-                    if x == 0:
-                        logical.site('Z', (x, y, z))
-                logicals = bsparse.vstack([logicals, logical.to_bsf()])
+            if self.is_qubit(qubit_location):
+                defect_x_on_edge = defect_x_boundary and qubit_location[0] == 0
+                defect_y_on_edge = defect_y_boundary and qubit_location[1] == 0
+                is_deformed = (self.axis(qubit_location) == deformed_axis)
+                has_defect = (defect_x_on_edge != defect_y_on_edge)
 
-                logical = self.pauli_class(self)
-                for x, y, z in self.qubit_index:
-                    if y == 0:
-                        logical.site('Z', (x, y, z))
+                operator[qubit_location] = deformed_pauli if is_deformed != has_defect else pauli
 
-                logicals = bsparse.vstack([logicals, logical.to_bsf()])
-
-            # Odd times odd
-            elif (Lx % 2 == 1) and (Ly % 2 == 1):
-                logical = self.pauli_class(self)
-                for x, y, z in self.qubit_index:
-                    if x == y:
-                        logical.site('Z', (x, y, z))
-
-                logicals = bsparse.vstack([logicals, logical.to_bsf()])
-
-            # Odd times even
-            else:
-                logical = self.pauli_class(self)
-                for x, y, z in self.qubit_index:
-                    if Lx % 2 == 1:
-                        if y == 0:
-                            logical.site('Y', (x, y, z))
-                    elif Ly % 2 == 1:
-                        if x == 0:
-                            logical.site('Y', (x, y, z))
-
-                logicals = bsparse.vstack([logicals, logical.to_bsf()])
-
-            self._logical_zs = logicals
-
-        return self._logical_zs
+        return operator
 
     def axis(self, location: Tuple[int, int, int]) -> int:
         x, y, z = location
@@ -138,9 +101,9 @@ class RotatedToric3DCode(StabilizerCode):
 
         if z % 2 == 0:
             axis = self.Z_AXIS
-        elif (x + y) % 4 == 2:
-            axis = self.X_AXIS
         elif (x + y) % 4 == 0:
+            axis = self.X_AXIS
+        elif (x + y) % 4 == 2:
             axis = self.Y_AXIS
 
         return axis
@@ -204,3 +167,90 @@ class RotatedToric3DCode(StabilizerCode):
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 
         return coord_to_index
+
+    def _get_logicals_x(self) -> np.ndarray:
+        """Get the logical X operators."""
+
+        Lx, Ly, Lz = self.size
+        logicals = []
+
+        # Even times even.
+        if Lx % 2 == 0 and Ly % 2 == 0:
+            # X string operator along y.
+            operator = dict()
+            for x, y, z in self.qubit_index:
+                if y == 0 and z == 1:
+                    operator[(x, y, z)] = 'X'
+            logicals.append(operator)
+
+            # X string operator along x.
+            for x, y, z in self.qubit_index:
+                if x == 0 and z == 1:
+                    operator[(x, y, z)] = 'X'
+            logicals.append(operator)
+
+        # Odd times odd
+        elif Lx % 2 == 1 and Ly % 2 == 1:
+            operator = dict()
+            for x, y, z in self.qubit_index:
+                # X string operator in undeformed code. (OK)
+                if z == 1 and x + y == 2*Lx-2:
+                    operator[(x, y, z)] = 'X'
+            logicals.append(operator)
+
+        # Odd times even
+        else:
+            operator = dict()
+            for x, y, z in self.qubit_index:
+                # X string operator in undeformed code. (OK)
+                if Lx % 2 == 1:
+                    if z == 1 and x == 0:
+                        operator[(x, y, z)] = 'X'
+                else:
+                    if z == 1 and y == 0:
+                        operator[(x, y, z)] = 'X'
+
+            logicals.append(operator)
+
+        return logicals
+
+    def _get_logicals_z(self) -> np.ndarray:
+        """Get the logical Z operators."""
+
+        Lx, Ly, Lz = self.size
+        logicals = []
+
+        # Even times even.
+        if (Lx % 2 == 0) and (Ly % 2 == 0):
+            operator = dict()
+            for x, y, z in self.qubit_index:
+                if x == 0:
+                    operator[(x, y, z)] = 'Z'
+            logicals.append(operator)
+
+            operator = dict()
+            for x, y, z in self.qubit_index:
+                if y == 0:
+                    operator[(x, y, z)] = 'Z'
+
+            logicals.append(operator)
+
+        # Odd times odd
+        elif (Lx % 2 == 1) and (Ly % 2 == 1):
+            operator = dict()
+            for x, y, z in self.qubit_index:
+                if x == y:
+                    operator[(x, y, z)] = 'Z'
+
+            logicals.append(operator)
+
+        # Odd times even
+        else:
+            operator = dict()
+            for x, y, z in self.qubit_index:
+                if (Lx % 2 == 1 and y == 0) or (Ly % 2 == 1 and x == 0):
+                    operator[(x, y, z)] = 'Y'
+
+            logicals.append(operator)
+
+        return logicals

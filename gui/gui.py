@@ -97,8 +97,8 @@ def send_stabilizer_matrix():
     Hz = code.stabilizers[:, :n_qubits]
     Hx = code.stabilizers[:, n_qubits:]
 
-    qubit_index = code.qubit_index
-    qubit_index = {str(list(coord)): i for coord, i in qubit_index.items()}
+    qubit_index = {str(list(coord)): i for coord, i in code.qubit_index.items()}
+    qubit_axis = {str(list(coord)): code.axis(coord) for coord, i in code.qubit_index.items()}
 
     vertex_index = code.vertex_index
 
@@ -114,12 +114,13 @@ def send_stabilizer_matrix():
     }
 
     n_qubits = code.n
-    logical_z = code.logical_zs
-    logical_x = code.logical_xs
+    logical_z = code.logicals_z
+    logical_x = code.logicals_x
 
     return json.dumps({'Hx': Hx.toarray().tolist(),
                        'Hz': Hz.toarray().tolist(),
                        'qubit_index': qubit_index,
+                       'qubit_axis': qubit_axis,
                        'stabilizer_index': stabilizer_index,
                        'logical_z': logical_z.toarray().tolist(),
                        'logical_x': logical_x.toarray().tolist()})

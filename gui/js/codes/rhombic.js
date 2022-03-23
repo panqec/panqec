@@ -5,8 +5,8 @@ import { AbstractCode, stringToArray } from './base/abstractCode.js';
 export {RhombicCode};
 
 class RhombicCode extends AbstractCode {
-    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
-        super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
+    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene) {
+        super(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene);
 
         this.Lx = size[0];
         this.Ly = size[1];
@@ -60,7 +60,7 @@ class RhombicCode extends AbstractCode {
         cube.isActivated = activate;
         let color = activate ? this.COLOR.activatedCube : this.COLOR.deactivatedCube;
         cube.material.color.setHex(color);
-        
+
         if (this.opacityActivated) {
             cube.material.opacity = activate ? this.OPACITY.activatedStabilizer['cube'] : this.OPACITY.minDeactivatedStabilizer['cube'];
         }
@@ -85,8 +85,8 @@ class RhombicCode extends AbstractCode {
     buildQubit(x, y, z) {
         const geometry = new THREE.CylinderGeometry(this.SIZE.radiusEdge, this.SIZE.radiusEdge, this.SIZE.lengthEdge, 32);
 
-        const material = new THREE.MeshPhongMaterial({color: this.COLOR.deactivatedEdge, 
-                                                      opacity: this.OPACITY.maxDeactivatedQubit, 
+        const material = new THREE.MeshPhongMaterial({color: this.COLOR.deactivatedEdge,
+                                                      opacity: this.OPACITY.maxDeactivatedQubit,
                                                       transparent: true});
         const edge = new THREE.Mesh(geometry, material);
 
@@ -94,14 +94,12 @@ class RhombicCode extends AbstractCode {
         edge.position.y = y * this.SIZE.lengthEdge / 2;
         edge.position.z = z * this.SIZE.lengthEdge / 2;
 
-        let x_axis = ((z % 2 == 0) && y % 2 == 0);
-        let y_axis = ((z % 2 == 0) && x % 2 == 0);
-        let z_axis = (z % 2 == 1);
+        let key = `[${x}, ${y}, ${z}]`;
 
-        if (x_axis) {
+        if (this.qubitAxis[key] == 0) {
             edge.rotateZ(Math.PI / 2)
         }
-        else if (z_axis) {
+        else if (this.qubitAxis[key] == 2) {
             edge.rotateX(Math.PI / 2)
         }
 
@@ -110,6 +108,7 @@ class RhombicCode extends AbstractCode {
         let index = this.getIndexQubit(x, y, z)
 
         edge.index = index;
+        edge.location = [x, y, z]
         this.qubits[index] = edge;
 
         this.scene.add(edge);
@@ -137,15 +136,15 @@ class RhombicCode extends AbstractCode {
 
         geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3) );
 
-        const material = new THREE.MeshBasicMaterial({color: this.COLOR.deactivatedTriangle, 
-                                                      opacity: this.OPACITY.maxDeactivatedStabilizer['triangle'], 
-                                                      transparent: true, 
+        const material = new THREE.MeshBasicMaterial({color: this.COLOR.deactivatedTriangle,
+                                                      opacity: this.OPACITY.maxDeactivatedStabilizer['triangle'],
+                                                      transparent: true,
                                                       side: THREE.DoubleSide});
         const triangle = new THREE.Mesh(geometry, material);
 
         var geo = new THREE.EdgesGeometry(triangle.geometry);
         var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1,
-                                               opacity: this.OPACITY.maxDeactivatedStabilizer['triangle'], 
+                                               opacity: this.OPACITY.maxDeactivatedStabilizer['triangle'],
                                                transparent: true});
         var wireframe = new THREE.LineSegments(geo, mat);
         wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
@@ -153,6 +152,7 @@ class RhombicCode extends AbstractCode {
 
         let index = this.getIndexTriangle(axis, x, y, z);
         triangle.index = index;
+        triangle.location = [axis, x, y, z]
         triangle.type = 'triangle';
         triangle.isActivated = false;
 
@@ -164,14 +164,14 @@ class RhombicCode extends AbstractCode {
     buildCube(x, y, z) {
         const L = this.SIZE.lengthEdge - 0.3
         const geometry = new THREE.BoxBufferGeometry(L, L, L);
-        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedCube, 
-                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['cube'], 
+        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedCube,
+                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['cube'],
                                                      transparent: true});
         const cube = new THREE.Mesh(geometry, material);
 
         var geo = new THREE.EdgesGeometry( cube.geometry );
-        var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 2, 
-                                               opacity: this.OPACITY.maxDeactivatedStabilizer['cube'], 
+        var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 2,
+                                               opacity: this.OPACITY.maxDeactivatedStabilizer['cube'],
                                                transparent: true });
         var wireframe = new THREE.LineSegments( geo, mat );
         wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
@@ -183,6 +183,7 @@ class RhombicCode extends AbstractCode {
 
         let index = this.getIndexCube(x, y, z);
         cube.index = index;
+        cube.location = [x, y, z]
         cube.type = 'cube';
         cube.isActivated = false;
         this.stabilizers[index] = cube;

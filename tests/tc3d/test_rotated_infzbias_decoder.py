@@ -70,10 +70,10 @@ class TestRotatedInfiniteZBiasDecoder:
             'Total error not in codespace'
         )
 
-        assert np.all(bcommute(code.logical_xs, total_error) == 0), (
+        assert np.all(bcommute(code.logicals_x, total_error) == 0), (
             'Total error anticommutes with logical X'
         )
-        assert np.all(bcommute(code.logical_zs, total_error) == 0), (
+        assert np.all(bcommute(code.logicals_z, total_error) == 0), (
             'Total error anticommutes with logical Z'
         )
 
@@ -107,9 +107,9 @@ class TestRotatedInfiniteZBiasDecoder:
             assert np.all(bcommute(code.stabilizers, total_error) == 0)
 
             correctable = True
-            if np.any(bcommute(code.logical_xs, total_error) != 0):
+            if np.any(bcommute(code.logicals_x, total_error) != 0):
                 correctable = False
-            if np.all(bcommute(code.logical_zs, total_error) != 0):
+            if np.all(bcommute(code.logicals_z, total_error) != 0):
                 correctable = False
             if not correctable:
                 uncorrectable_locations.append(location)
@@ -152,9 +152,9 @@ class TestRotatedInfiniteZBiasDecoder:
                 undecodable_error_locations.append(locations)
 
             correctable = True
-            if np.any(bcommute(code.logical_xs, total_error) != 0):
+            if np.any(bcommute(code.logicals_x, total_error) != 0):
                 correctable = False
-            if np.all(bcommute(code.logical_zs, total_error) != 0):
+            if np.all(bcommute(code.logicals_z, total_error) != 0):
                 correctable = False
             if not correctable:
                 uncorrectable_error_locations.append(locations)

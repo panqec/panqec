@@ -39,8 +39,8 @@ def test_general_properties(code, lattice_size):
     assert code.k == 2
     assert code.d == min(L_x, L_y)
     assert len(code.stabilizers) == 2*L_x*L_y
-    assert len(code.logical_xs) == 2
-    assert len(code.logical_zs) == 2
+    assert len(code.logicals_x) == 2
+    assert len(code.logicals_z) == 2
 
 
 def test_stabilizers_commute(code, lattice_size):
@@ -58,14 +58,14 @@ def test_stabilizers_commute_with_logicals(code):
     logical_x_stabilizer_commutations = np.array([
         bsp(stabilizer, logical_x)
         for stabilizer in code.stabilizers
-        for logical_x in code.logical_xs
+        for logical_x in code.logicals_x
     ])
     assert np.all(logical_x_stabilizer_commutations == 0)
 
     logical_z_stabilizer_commutations = np.array([
         bsp(stabilizer, logical_z)
         for stabilizer in code.stabilizers
-        for logical_z in code.logical_zs
+        for logical_z in code.logicals_z
     ])
     assert np.all(logical_z_stabilizer_commutations == 0)
 
@@ -74,15 +74,15 @@ def test_logicals_anticommute_correctly(code):
     commutations = np.array([
         [
             bsp(logical_x, logical_z)
-            for logical_z in code.logical_zs
+            for logical_z in code.logicals_z
         ]
-        for logical_x in code.logical_xs
+        for logical_x in code.logicals_x
     ])
     assert np.all(commutations == np.identity(2))
 
 
 def test_ascii_art(code):
-    operator = Toric2DPauli(code, code.logical_xs[0])
+    operator = Toric2DPauli(code, code.logicals_x[0])
     assert code.ascii_art(pauli=operator) == (
         '┼─·─┼─·─┼─X─┼─·─┼─·\n'
         '·   ·   ·   ·   ·  \n'
@@ -191,9 +191,9 @@ def test_mwpm_decoder(code, decoder):
     # Test that no logical error has occured either.
     assert all([
         bsp(total_error, logical_x) == 0
-        for logical_x in code.logical_xs
+        for logical_x in code.logicals_x
     ])
     assert all([
         bsp(total_error, logical_z) == 0
-        for logical_z in code.logical_zs
+        for logical_z in code.logicals_z
     ])

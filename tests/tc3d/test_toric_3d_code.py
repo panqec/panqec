@@ -106,13 +106,13 @@ class TestToric3DCode:
 
     def test_get_Z_logicals(self, code):
         n = code.n
-        logicals = code.logical_zs
+        logicals = code.logicals_z
         assert logicals.shape[0] == 3
         assert logicals.shape[1] == 2*n
 
     def test_get_X_logicals(self, code):
         n = code.n
-        logicals = code.logical_xs
+        logicals = code.logicals_x
         assert logicals.shape[0] == 3
         assert logicals.shape[1] == 2*n
 
@@ -130,19 +130,19 @@ class TestCommutationRelationsToric3DCode:
         assert np.all(bcommute(code.stabilizers, code.stabilizers) == 0)
 
     def test_Z_logicals_commute_with_each_other(self, code):
-        assert np.all(bcommute(code.logical_zs, code.logical_zs) == 0)
+        assert np.all(bcommute(code.logicals_z, code.logicals_z) == 0)
 
     def test_X_logicals_commute_with_each_other(self, code):
-        assert np.all(bcommute(code.logical_xs, code.logical_xs) == 0)
+        assert np.all(bcommute(code.logicals_x, code.logicals_x) == 0)
 
     def test_stabilizers_commute_with_logicals(self, code):
-        if isinstance(code.logical_xs, np.ndarray):
-            logicals = np.concatenate([code.logical_xs, code.logical_zs])
+        if isinstance(code.logicals_x, np.ndarray):
+            logicals = np.concatenate([code.logicals_x, code.logicals_z])
         else:
-            logicals = bsparse.vstack([code.logical_xs, code.logical_zs])
+            logicals = bsparse.vstack([code.logicals_x, code.logicals_z])
         assert np.all(bcommute(logicals, code.stabilizers) == 0)
 
     def test_logicals_anticommute_correctly(self, code):
         assert np.all(
-            bcommute(code.logical_xs, code.logical_zs) == np.eye(code.k)
+            bcommute(code.logicals_x, code.logicals_z) == np.eye(code.k)
         )

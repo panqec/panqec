@@ -335,7 +335,7 @@ def test_decoder():
         total_error = (correction + error) % 2
         print("Get effective error")
         effective_error = get_effective_error(
-            total_error, code.logical_xs, code.logical_zs
+            total_error, code.logicals_x, code.logicals_z
         )
         print("Check codespace")
         codespace = bool(np.all(bcommute(code.stabilizers, total_error) == 0))
@@ -364,7 +364,7 @@ def test_decoder():
         total_error = (correction + error) % 2
         print("Get effective error")
         effective_error = get_effective_error(
-            total_error, code.logical_xs, code.logical_zs
+            total_error, code.logicals_x, code.logicals_z
         )
         print("Check codespace")
         codespace = bool(np.all(bcommute(code.stabilizers, total_error) == 0))

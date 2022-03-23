@@ -5,8 +5,8 @@ import { AbstractSurfaceCode, AbstractRpSurfaceCode} from './base/abstractSurfac
 export {RotatedToric2DCode, RpRotatedToric2DCode};
 
 class RotatedToric2DCode extends AbstractSurfaceCode {
-    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
-        super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
+    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene) {
+        super(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene);
 
         this.SIZE = {radiusEdge: 0.05 / (this.Lx/4), radiusVertex: 0.1 / (this.Lx/4), lengthEdge: 0.5 / (0.05 + this.Lx/4)};
 
@@ -27,9 +27,9 @@ class RotatedToric2DCode extends AbstractSurfaceCode {
         edge.position.x = x * this.SIZE.lengthEdge / 2 - this.offset.x;
         edge.position.y = y * this.SIZE.lengthEdge / 2 - this.offset.y;
 
-        let x_axis = ((x + y) % 4 == 2);
+        let key = `[${x}, ${y}]`;
 
-        if (x_axis) {
+        if (this.qubitAxis[key] == 0) {
             edge.rotateZ(Math.PI / 4)
         }
         else {
@@ -99,8 +99,8 @@ class RotatedToric2DCode extends AbstractSurfaceCode {
 
 
 class RpRotatedToric2DCode extends AbstractRpSurfaceCode {
-    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
-        super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
+    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene) {
+        super(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene);
     }
 
     buildQubit(x, y) {

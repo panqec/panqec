@@ -3,12 +3,11 @@ import { AbstractCode, stringToArray } from './abstractCode.js';
 export {AbstractSurfaceCode, AbstractRpSurfaceCode};
 
 class AbstractSurfaceCode extends AbstractCode {
-    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
-        super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
+    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene) {
+        super(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene);
 
         this.rotatedPicture = false;
 
-        this.qubitIndex = qubitIndex;
         this.vertexIndex = stabilizerIndex['vertex'];
         this.faceIndex = stabilizerIndex['face'];
 
@@ -115,8 +114,8 @@ class AbstractSurfaceCode extends AbstractCode {
 
 
 class AbstractRpSurfaceCode extends AbstractSurfaceCode {
-    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
-        super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
+    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene) {
+        super(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene);
 
         this.rotatedPicture = true;
 

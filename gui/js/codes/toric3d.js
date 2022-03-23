@@ -5,8 +5,8 @@ import { AbstractCubicCode, AbstractRpCubicCode} from './base/abstractCubicCode.
 export {Toric3DCode, RpToric3DCode};
 
 class Toric3DCode extends AbstractCubicCode {
-    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
-        super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
+    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene) {
+        super(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene);
     }
 
     buildQubit(x, y, z) {
@@ -24,11 +24,13 @@ class Toric3DCode extends AbstractCubicCode {
         let x_axis = ((z % 2 == 0) && y % 2 == 0);
         let y_axis = ((z % 2 == 0) && x % 2 == 0);
         let z_axis = (z % 2 == 1);
+
+        let key = `[${x}, ${y}, ${z}]`;
     
-        if (x_axis) {
+        if (this.qubitAxis[key] == 0) {
             edge.rotateZ(Math.PI / 2)
         }
-        else if (z_axis) {
+        else if (this.qubitAxis[key] == 2) {
             edge.rotateX(Math.PI / 2)
         }
     
@@ -106,8 +108,8 @@ class Toric3DCode extends AbstractCubicCode {
 }
 
 class RpToric3DCode extends AbstractRpCubicCode {
-    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, scene) {
-        super(size, Hx, Hz, qubitIndex, stabilizerIndex, scene);
+    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene) {
+        super(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene);
     }
 
     buildQubit(x, y, z) {

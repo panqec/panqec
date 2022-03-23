@@ -1,16 +1,11 @@
-from typing import Tuple
+from typing import Tuple, Dict
 import numpy as np
 from bn3d.models import StabilizerCode
-from ._toric_3d_pauli import Toric3DPauli
-from ... import bsparse
+
+Indexer = Dict[Tuple[int, int], int]  # coordinate to index
 
 
 class Toric3DCode(StabilizerCode):
-
-    pauli_class = Toric3DPauli
-
-    # StabilizerCode interface methods.
-
     @property
     def dimension(self) -> int:
         return 3
@@ -19,67 +14,53 @@ class Toric3DCode(StabilizerCode):
     def label(self) -> str:
         return 'Toric {}x{}x{}'.format(*self.size)
 
-    @property
-    def logical_xs(self) -> np.ndarray:
-        """The 3 logical X operators."""
+    def _vertex(self, location: Tuple[int, int, int], deformed_axis: int = None) -> Dict[str, Tuple]:
+        if location not in self.vertex_index:
+            raise ValueError(f"Invalid coordinate {location} for a vertex")
 
-        if self._logical_xs.size == 0:
-            Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n)
+        pauli = 'Z'
+        deformed_pauli = 'X'
 
-            # X operators along x edges in x direction.
-            logical = self.pauli_class(self)
-            for x in range(1, 2*Lx, 2):
-                logical.site('X', (x, 0, 0))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        delta = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
 
-            # X operators along y edges in y direction.
-            logical = self.pauli_class(self)
-            for y in range(1, 2*Ly, 2):
-                logical.site('X', (0, y, 0))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        operator = dict()
+        for d in delta:
+            qubit_location = tuple(np.add(location, d) % (2*np.array(self.size)))
 
-            # X operators along z edges in z direction
-            logical = self.pauli_class(self)
-            for z in range(1, 2*Lz, 2):
-                logical.site('X', (0, 0, z))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+            if self.is_qubit(qubit_location):
+                is_deformed = (self.axis(qubit_location) == deformed_axis)
+                operator[qubit_location] = deformed_pauli if is_deformed else pauli
 
-            self._logical_xs = logicals
+        return operator
 
-        return self._logical_xs
+    def _face(self, location: Tuple[int, int, int], deformed_axis: int = None) -> Dict[str, Tuple]:
+        x, y, z = location
 
-    @property
-    def logical_zs(self) -> np.ndarray:
-        """Get the 3 logical Z operators."""
-        if self._logical_zs.size == 0:
-            Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n)
+        if location not in self.face_index:
+            raise ValueError(f"Invalid coordinate {location} for a face")
 
-            # Z operators on x edges forming surface normal to x (yz plane).
-            logical = self.pauli_class(self)
-            for y in range(0, 2*Ly, 2):
-                for z in range(0, 2*Lz, 2):
-                    logical.site('Z', (1, y, z))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        pauli = 'X'
+        deformed_pauli = 'Z'
 
-            # Z operators on y edges forming surface normal to y (zx plane).
-            logical = self.pauli_class(self)
-            for z in range(0, 2*Lz, 2):
-                for x in range(0, 2*Lx, 2):
-                    logical.site('Z', (x, 1, z))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        # z-normal so face is xy-plane.
+        if z % 2 == 0:
+            delta = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0)]
+        # x-normal so face is in yz-plane.
+        elif (x % 2 == 0):
+            delta = [(0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
+        # y-normal so face is in zx-plane.
+        elif (y % 2 == 0):
+            delta = [(-1, 0, 0), (1, 0, 0), (0, 0, -1), (0, 0, 1)]
 
-            # Z operators on z edges forming surface normal to z (xy plane).
-            logical = self.pauli_class(self)
-            for x in range(0, 2*Lx, 2):
-                for y in range(0, 2*Ly, 2):
-                    logical.site('Z', (x, y, 1))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        operator = dict()
+        for d in delta:
+            qubit_location = tuple(np.add(location, d) % (2*np.array(self.size)))
 
-            self._logical_zs = logicals
+            if self.is_qubit(qubit_location):
+                is_deformed = (self.axis(qubit_location) == deformed_axis)
+                operator[qubit_location] = deformed_pauli if is_deformed else pauli
 
-        return self._logical_zs
+        return operator
 
     def axis(self, location):
         x, y, z = location
@@ -95,7 +76,7 @@ class Toric3DCode(StabilizerCode):
 
         return axis
 
-    def _create_qubit_indices(self):
+    def _create_qubit_indices(self) -> Indexer:
         coordinates = []
         Lx, Ly, Lz = self.size
 
@@ -121,7 +102,7 @@ class Toric3DCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_vertex_indices(self):
+    def _create_vertex_indices(self) -> Indexer:
         coordinates = []
         Lx, Ly, Lz = self.size
 
@@ -134,7 +115,7 @@ class Toric3DCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_face_indices(self):
+    def _create_face_indices(self) -> Indexer:
         coordinates = []
         Lx, Ly, Lz = self.size
 
@@ -159,3 +140,57 @@ class Toric3DCode(StabilizerCode):
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 
         return coord_to_index
+
+    def _get_logicals_x(self):
+        """The 3 logical X operators."""
+
+        Lx, Ly, Lz = self.size
+        logicals = []
+
+        # X operators along x edges in x direction.
+        operator = dict()
+        for x in range(1, 2*Lx, 2):
+            operator[(x, 0, 0)] = 'X'
+        logicals.append(operator)
+
+        # X operators along y edges in y direction.
+        operator = dict()
+        for y in range(1, 2*Ly, 2):
+            operator[(0, y, 0)] = 'X'
+        logicals.append(operator)
+
+        # X operators along z edges in z direction
+        operator = dict()
+        for z in range(1, 2*Lz, 2):
+            operator[(0, 0, z)] = 'X'
+        logicals.append(operator)
+
+        return logicals
+
+    def _get_logicals_z(self):
+        """Get the 3 logical Z operators."""
+        Lx, Ly, Lz = self.size
+        logicals = []
+
+        # Z operators on x edges forming surface normal to x (yz plane).
+        operator = dict()
+        for y in range(0, 2*Ly, 2):
+            for z in range(0, 2*Lz, 2):
+                operator[(1, y, z)] = 'Z'
+        logicals.append(operator)
+
+        # Z operators on y edges forming surface normal to y (zx plane).
+        operator = dict()
+        for z in range(0, 2*Lz, 2):
+            for x in range(0, 2*Lx, 2):
+                operator[(x, 1, z)] = 'Z'
+        logicals.append(operator)
+
+        # Z operators on z edges forming surface normal to z (xy plane).
+        operator = dict()
+        for x in range(0, 2*Lx, 2):
+            for y in range(0, 2*Ly, 2):
+                operator[(x, y, 1)] = 'Z'
+        logicals.append(operator)
+
+        return logicals

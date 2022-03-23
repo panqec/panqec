@@ -3,7 +3,6 @@ from abc import ABCMeta, abstractmethod
 import numpy as np
 from ...bpauli import bcommute
 from ... import bsparse
-from ._stabilizer_pauli import StabilizerPauli
 from scipy.sparse import csr_matrix
 
 Indexer = Dict[Tuple, int]  # coordinate to index
@@ -21,8 +20,6 @@ class StabilizerCode(metaclass=ABCMeta):
     that contain faces (could also be another type of stabilizer)
     - axis(location) to return the axis of a qubit at a given location (when qubit
     have an orientation in space, for instance when they are edges)
-    - pauli_class(), which returns a subclass of StabilizerPauli that defines how
-    stabilizers are constructed for our code
 
     Using only those methods, a StabilizerCode will then automatically create the
     corresponding parity-check matrix (in self.stabilizers) and can be used to make
@@ -40,8 +37,8 @@ class StabilizerCode(metaclass=ABCMeta):
     _stabilizers = np.array([])  # Complete parity-check matrix
     _Hx = np.array([])  # Parity-check matrix for X stabilizers
     _Hz = np.array([])  # Parity-check matrix for Z stabilizers
-    _logical_xs = np.array([])  # Parity-check matrix for Z stabilizers
-    _logical_zs = np.array([])
+    _logicals_x = np.array([])  # Parity-check matrix for Z stabilizers
+    _logicals_z = np.array([])
 
     def __init__(
         self, L_x: int,
@@ -85,14 +82,8 @@ class StabilizerCode(metaclass=ABCMeta):
         self._stabilizers = bsparse.empty_row(2*self.n)
         self._Hx = bsparse.empty_row(self.n)
         self._Hz = bsparse.empty_row(self.n)
-        self._logical_xs = bsparse.empty_row(self.n)
-        self._logical_zs = bsparse.empty_row(self.n)
-
-    @property
-    @abstractmethod
-    def pauli_class(self) -> StabilizerPauli:
-        """The Pauli operator class, used to construct the stabilizers."""
-        raise NotImplementedError
+        self._logicals_x = bsparse.empty_row(2*self.n)
+        self._logicals_z = bsparse.empty_row(2*self.n)
 
     @property
     @abstractmethod
@@ -115,12 +106,12 @@ class StabilizerCode(metaclass=ABCMeta):
     @property
     def k(self) -> int:
         """Number of logical qubits"""
-        return len(self.logical_xs)
+        return len(self.logicals_x)
 
     @property
     def d(self) -> int:
         """Distance of the code"""
-        return min(self.logical_zs.shape[1], self.logical_xs.shape[1])
+        return min(self.logicals_z.shape[1], self.logicals_x.shape[1])
 
     @property
     def qubit_index(self) -> Indexer:
@@ -146,6 +137,24 @@ class StabilizerCode(metaclass=ABCMeta):
     def n_vertices(self) -> int:
         """Return the number of vertex stabilizers"""
         return len(self.vertex_index)
+
+    @property
+    def logicals_x(self) -> csr_matrix:
+        """Returns the logicals X in the sparse bsf format"""
+        if self._logicals_x.size == 0:
+            for logical_op in self._get_logicals_x():
+                self._logicals_x = bsparse.vstack([self._logicals_x, self.to_bsf(logical_op)])
+
+        return self._logicals_x
+
+    @property
+    def logicals_z(self) -> csr_matrix:
+        """Returns the logicals X in the sparse bsf format"""
+        if self._logicals_z.size == 0:
+            for logical_op in self._get_logicals_z():
+                self._logicals_z = bsparse.vstack([self._logicals_z, self.to_bsf(logical_op)])
+
+        return self._logicals_z
 
     @abstractmethod
     def _create_qubit_indices(self) -> Indexer:
@@ -202,24 +211,6 @@ class StabilizerCode(metaclass=ABCMeta):
         return self._stabilizers
 
     @property
-    @abstractmethod
-    def logical_xs(self) -> csr_matrix:
-        """Return the logical X operators in the sparse binary symplectic format
-        It should have dimension k x 2n, with k the number of logicals X
-        (i.e. the number of logical qubits) and n the number of qubits
-        """
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def logical_zs(self) -> csr_matrix:
-        """Return the logical Z operators in the sparse binary symplectic format
-        It should have dimension k x 2n, with k the number of logicals X
-        (i.e. the number of logical qubits) and n the number of qubits
-        """
-        raise NotImplementedError
-
-    @property
     def size(self) -> Tuple:
         """Dimensions of lattice."""
         return self._size
@@ -244,6 +235,51 @@ class StabilizerCode(metaclass=ABCMeta):
             self._Hx = self.stabilizers[self.n_faces:, self.n:]
         return self._Hx
 
+    @abstractmethod
+    def _vertex(self, location) -> Dict[Tuple, str]:
+        """Defines a vertex stabilizer, by return a dictionary whose keys are the qubit
+        coordinates involved in the stabilizer and whose values are the Pauli operator at
+        that coordinate ('X', 'Y' or 'Z')
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def _face(self, location) -> Dict[Tuple, str]:
+        """Defines a vertex stabilizer, by return a dictionary whose keys are the qubit
+        coordinates involved in the stabilizer and whose values are the Pauli operator at
+        that coordinate ('X', 'Y' or 'Z')
+        """
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def _get_logicals_x(self) -> csr_matrix:
+        """Return the logical X operators in the sparse binary symplectic format
+        It should have dimension k x 2n, with k the number of logicals X
+        (i.e. the number of logical qubits) and n the number of qubits
+        """
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def _get_logicals_z(self) -> csr_matrix:
+        """Return the logical Z operators in the sparse binary symplectic format
+        It should have dimension k x 2n, with k the number of logicals X
+        (i.e. the number of logical qubits) and n the number of qubits
+        """
+        raise NotImplementedError
+
+    def to_bsf(self, operator: Dict[Tuple, str]):
+        bsf_operator = bsparse.zero_row(2*self.n)
+
+        for qubit_location in operator.keys():
+            if operator[qubit_location] in ['X', 'Y']:
+                bsparse.insert_mod2(self.qubit_index[qubit_location], bsf_operator)
+            if operator[qubit_location] in ['Y', 'Z']:
+                bsparse.insert_mod2(self.n + self.qubit_index[qubit_location], bsf_operator)
+
+        return bsf_operator
+
     def get_vertex_stabilizers(self):
         """Returns the parity-check matrix of vertex stabilizers
         It is a sparse matrix of dimension k x 2n, where k is the number of vertex
@@ -253,9 +289,8 @@ class StabilizerCode(metaclass=ABCMeta):
         vertex_stabilizers = bsparse.empty_row(2*self.n)
 
         for vertex_location in self.vertex_index.keys():
-            operator = self.pauli_class(self)
-            operator.vertex('Z', vertex_location, deformed_axis=self._deformed_axis)
-            vertex_stabilizers = bsparse.vstack([vertex_stabilizers, operator.to_bsf()])
+            vertex_op = self._vertex(vertex_location, deformed_axis=self._deformed_axis)
+            vertex_stabilizers = bsparse.vstack([vertex_stabilizers, self.to_bsf(vertex_op)])
 
         return vertex_stabilizers
 
@@ -268,9 +303,8 @@ class StabilizerCode(metaclass=ABCMeta):
         face_stabilizers = bsparse.empty_row(2*self.n)
 
         for face_location in self.face_index.keys():
-            operator = self.pauli_class(self)
-            operator.face('X', face_location, deformed_axis=self._deformed_axis)
-            face_stabilizers = bsparse.vstack([face_stabilizers, operator.to_bsf()])
+            face_op = self._face(face_location, deformed_axis=self._deformed_axis)
+            face_stabilizers = bsparse.vstack([face_stabilizers, self.to_bsf(face_op)])
 
         return face_stabilizers
 

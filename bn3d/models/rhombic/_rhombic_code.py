@@ -1,17 +1,10 @@
 import itertools
-from typing import Tuple
+from typing import Tuple, Dict
 import numpy as np
 from bn3d.models import StabilizerCode
-from ._rhombic_pauli import RhombicPauli
-from ... import bsparse
 
 
 class RhombicCode(StabilizerCode):
-
-    pauli_class = RhombicPauli
-
-    # StabilizerCode interface methods.
-
     @property
     def dimension(self) -> int:
         return 3
@@ -20,70 +13,83 @@ class RhombicCode(StabilizerCode):
     def label(self) -> str:
         return 'Rhombic {}x{}x{}'.format(*self.size)
 
-    @property
-    def logical_xs(self) -> np.ndarray:
-        """The 3 logical X operators."""
+    def _vertex(self, location: Tuple[int, int, int, int], deformed_axis: int = None) -> Dict[str, Tuple]:
+        r"""Apply triangle operator on sites neighboring vertex (3-body terms).
 
-        if self._logical_xs.size == 0:
-            Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n)
+        Parameters
+        ----------
+        operator: str
+            Pauli operator in string format.
+        location: Tuple[int, int, int, int]
+            The (axis, x, y, z) location and orientation of the triangle
+        """
 
-            # Sheet of X operators normal to the z direction
-            logical = self.pauli_class(self)
-            for x in range(2*Lx):
-                for y in range(2*Ly):
-                    if (x + y) % 2 == 1:
-                        logical.site('X', (x, y, 0))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        axis, x, y, z = location
 
-            # Sheet of X operators normal to the y direction
-            logical = self.pauli_class(self)
-            for x in range(2*Lx):
-                for z in range(2*Lz):
-                    if (x + z) % 2 == 1:
-                        logical.site('X', (x, 0, z))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        if location not in self.vertex_index:
+            raise ValueError(f"Invalid coordinate {location} for a vertex")
 
-            # Sheet of X operators normal to the x direction
-            logical = self.pauli_class(self)
-            for y in range(2*Ly):
-                for z in range(2*Lz):
-                    if (y + z) % 2 == 1:
-                        logical.site('X', (0, y, z))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        pauli = 'Z'
+        deformed_pauli = 'X'
 
-            self._logical_xs = bsparse.from_array(logicals)
+        # Vertices of type 1 have neighboring cube stabs on the top left and bottom right
+        # vertex_1[axis] contains the 3 qubits (i.e. 3 locations) in the corresponding triangle
+        delta_1 = [[(1, 0, 0), (0, 1, 0), (0, 0, 1)],
+                   [(-1, 0, 0), (0, -1, 0), (0, 0, 1)],
+                   [(1, 0, 0), (0, -1, 0), (0, 0, -1)],
+                   [(-1, 0, 0), (0, 1, 0), (0, 0, -1)]]
 
-        return self._logical_xs
+        # Vertices of type 2 have neighboring cube stabs on the top right and bottom left
+        delta_2 = [[(1, 0, 0), (0, 1, 0), (0, 0, -1)],
+                   [(-1, 0, 0), (0, -1, 0), (0, 0, -1)],
+                   [(1, 0, 0), (0, -1, 0), (0, 0, 1)],
+                   [(-1, 0, 0), (0, 1, 0), (0, 0, 1)]]
 
-    @property
-    def logical_zs(self) -> np.ndarray:
-        """Get the 3 logical Z operators."""
-        if self._logical_zs.size == 0:
-            Lx, Ly, Lz = self.size
-            logicals = bsparse.empty_row(2*self.n)
+        delta = delta_1 if (x + y + z) % 4 == 0 else delta_2
 
-            # Line of parallel Z operators along the x direction
-            logical = self.pauli_class(self)
-            for x in range(0, 2*Lx, 2):
-                logical.site('Z', (x, 1, 0))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        operator = dict()
+        for d in delta[axis]:
+            qubit_location = tuple(np.add([x, y, z], d) % (2*np.array(self.size)))
+            qx, qy, qz = qubit_location
 
-            # Line of parallel Z operators along the y direction
-            logical = self.pauli_class(self)
-            for y in range(0, 2*Ly, 2):
-                logical.site('Z', (1, y, 0))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+            if self.is_qubit(qubit_location):
+                is_deformed = ((qx + qy + qz) % 4 == 1 and self.axis(qubit_location) == deformed_axis)
+                operator[qubit_location] = deformed_pauli if is_deformed else pauli
 
-            # Line of parallel Z operators along the z direction
-            logical = self.pauli_class(self)
-            for z in range(0, 2*Lz, 2):
-                logical.site('Z', (0, 1, z))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        return operator
 
-            self._logical_zs = logicals
+    def _face(self, location: Tuple[int, int, int], deformed_axis: int = None) -> Dict[str, Tuple]:
+        r"""Apply cube operator on sites around cubes.
+        Parameters
+        ----------
+        operator: str
+            Pauli operator in string format.
+        location: Tuple[int, int, int]
+            The (x, y, z) location of the cube
+        """
 
-        return self._logical_zs
+        x, y, z = location
+
+        if (x, y, z) not in self.face_index:
+            raise ValueError(f"Invalid coordinate {location} for a face")
+
+        pauli = 'X'
+        deformed_pauli = 'Z'
+
+        delta = [(1, 1, 0), (-1, -1, 0), (1, -1, 0), (-1, 1, 0),
+                 (1, 0, 1), (-1, 0, -1), (1, 0, -1), (-1, 0, 1),
+                 (0, 1, 1), (0, -1, -1), (0, -1, 1), (0, 1, -1)]
+
+        operator = dict()
+        for d in delta:
+            qubit_location = tuple(np.add(location, d) % (2*np.array(self.size)))
+            qx, qy, qz = qubit_location
+
+            if self.is_qubit(qubit_location):
+                is_deformed = ((qx + qy + qz) % 4 == 1 and self.axis(qubit_location) == deformed_axis)
+                operator[qubit_location] = deformed_pauli if is_deformed else pauli
+
+        return operator
 
     def axis(self, location):
         x, y, z = location
@@ -153,3 +159,61 @@ class RhombicCode(StabilizerCode):
         coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
 
         return coord_to_index
+
+    def _get_logicals_x(self) -> np.ndarray:
+        """The 3 logical X operators."""
+
+        Lx, Ly, Lz = self.size
+        logicals = []
+
+        # Sheet of X operators normal to the z direction
+        operator = dict()
+        for x in range(2*Lx):
+            for y in range(2*Ly):
+                if (x + y) % 2 == 1:
+                    operator[(x, y, 0)] = 'X'
+        logicals.append(operator)
+
+        # Sheet of X operators normal to the y direction
+        operator = dict()
+        for x in range(2*Lx):
+            for z in range(2*Lz):
+                if (x + z) % 2 == 1:
+                    operator[(x, 0, z)] = 'X'
+        logicals.append(operator)
+
+        # Sheet of X operators normal to the x direction
+        operator = dict()
+        for y in range(2*Ly):
+            for z in range(2*Lz):
+                if (y + z) % 2 == 1:
+                    operator[(0, y, z)] = 'X'
+        logicals.append(operator)
+
+        return logicals
+
+    def _get_logicals_z(self) -> np.ndarray:
+        """The 3 logical Z operators."""
+
+        Lx, Ly, Lz = self.size
+        logicals = []
+
+        # Line of parallel Z operators along the x direction
+        operator = dict()
+        for x in range(0, 2*Lx, 2):
+            operator[(x, 1, 0)] = 'Z'
+        logicals.append(operator)
+
+        # Line of parallel Z operators along the y direction
+        operator = dict()
+        for y in range(0, 2*Ly, 2):
+            operator[(1, y, 0)] = 'Z'
+        logicals.append(operator)
+
+        # Line of parallel Z operators along the z direction
+        operator = dict()
+        for z in range(0, 2*Lz, 2):
+            operator[(0, 1, z)] = 'Z'
+        logicals.append(operator)
+
+        return logicals
