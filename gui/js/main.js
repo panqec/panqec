@@ -10,8 +10,8 @@ import { RhombicCode } from './codes/rhombic.js';
 import { XCubeCode } from './codes/xcube.js';
 import { RotatedToric3DCode, RpRotatedToric3DCode } from './codes/rotatedToric3d.js';
 
-var defaultCode = codeDimension == 2 ? 'toric-2d' : 'rotated-planar-3d';
-var defaultSize = codeDimension == 2 ? 6 : 3;
+var defaultCode = codeDimension == 2 ? 'toric-2d' : 'rotated-toric-3d';
+var defaultSize = codeDimension == 2 ? 6 : 4;
 
 const params = {
     errorProbability: 0.1,
@@ -23,7 +23,7 @@ const params = {
     channel_update: false,
     errorModel: 'Depolarizing',
     codeName: defaultCode,
-    rotated: true,
+    rotated: true   ,
     coprime: false,
     deformed_axis: 'None'
 };
@@ -177,7 +177,6 @@ async function buildCode() {
     code.logical_x = logical_x;
     code.logical_z = logical_z;
     code.build();
-    // code.displayLogical(logical_z, 'Z', 0);
 }
 
 function changeLatticeSize() {
@@ -331,11 +330,17 @@ function onDocumentMouseDown(event) {
         if (event.ctrlKey) {
             switch (event.button) {
                 case 0: // left click
-                    console.log('Selected qubit', selectedQubit.index);
+                    var x = selectedQubit.location[0]
+                    var y = selectedQubit.location[1]
+                    var z = selectedQubit.location[2]
+                    console.log('Selected qubit', selectedQubit.index, 'at', x, y, z);
                     code.insertError(selectedQubit, 'X');
                     break;
                 case 2:
-                    console.log('Selected qubit', selectedQubit.index);
+                    var x = selectedQubit.location[0]
+                    var y = selectedQubit.location[1]
+                    var z = selectedQubit.location[2]
+                    console.log('Selected qubit', selectedQubit.index, 'at', x, y, z);
                     code.insertError(selectedQubit, 'Z');
                     break;
             }
@@ -454,11 +459,13 @@ function onDocumentKeyDown(event) {
     }
 
     else if (keyCode == KEY_CODE['x']) {
-        code.displayLogical(code.logical_x, 'X', 0);
+        removeAllErrors();
+        code.displayLogical(code.logical_x, 'X');
     }
 
     else if (keyCode == KEY_CODE['z']) {
-        code.displayLogical(code.logical_z, 'Z', 0);
+        removeAllErrors();
+        code.displayLogical(code.logical_z, 'Z');
     }
 };
 

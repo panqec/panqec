@@ -117,6 +117,7 @@ class XCubeCode extends AbstractCode {
         let index = this.getIndexQubit(x, y, z)
 
         edge.index = index;
+        edge.location = [x, y, z];
         this.qubits[index] = edge;
 
         this.scene.add(edge);
@@ -149,6 +150,7 @@ class XCubeCode extends AbstractCode {
         let index = this.getIndexFace(axis, x, y, z);
     
         face.index = index;
+        face.location = [x, y, z];
         face.type = 'face';
         face.isActivated = false;
     
@@ -171,6 +173,7 @@ class XCubeCode extends AbstractCode {
 
         let index = this.getIndexCube(x, y, z);
         cube.index = index;
+        cube.location = [x, y, z];
         cube.type = 'cube';
         cube.isActivated = false;
         this.stabilizers[index] = cube;

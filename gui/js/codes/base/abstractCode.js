@@ -19,19 +19,19 @@ class AbstractCode {
 
         this.opacityActivated = false;
         this.currentIndexLogical = {'X': 0, 'Z': 0};
-        
+
         this.stabilizers = {};
         this.toggleStabFn = {};
         this.stabilizers = [];
-        
+
         this.qubits = new Array(Hx[0].length);
         this.COLOR = {
             deactivatedVertex: 0xf2f2fc,
             activatedVertex: 0xf1c232,
             deactivatedEdge: 0xffbcbc,
             deactivatedQubit: 0xffbcbc,
-            activatedFace: 0xf1c232, 
-            activatedOctahedron: 0xfa7921, 
+            activatedFace: 0xf1c232,
+            activatedOctahedron: 0xfa7921,
             errorX: 0xFF4B3E,
             errorZ: 0x4381C1,
             errorY: 0x058C42
@@ -60,7 +60,7 @@ class AbstractCode {
             this.toggleStabFn[stabType].call(this, this.stabilizers[iStab], activate);
         }
     }
-    
+
     getSyndrome() {
         let syndrome = [];
         syndrome = this.stabilizers.map(s => + s.isActivated)
@@ -69,8 +69,8 @@ class AbstractCode {
 
     insertError(qubit, pauli) {
         qubit.hasError[pauli] = !qubit.hasError[pauli];
-    
-        if (qubit.hasError['X'] || qubit.hasError['Z']) {    
+
+        if (qubit.hasError['X'] || qubit.hasError['Z']) {
             qubit.material.opacity = this.OPACITY.activatedQubit;
 
             if (qubit.hasError['X'] && qubit.hasError['Z']) {
@@ -87,33 +87,31 @@ class AbstractCode {
             qubit.material.opacity = this.opacityActivated ? this.OPACITY.minDeactivatedQubit : this.OPACITY.maxDeactivatedQubit;
             qubit.material.color.setHex(this.COLOR.deactivatedQubit);
         }
-    
+
         this.updateStabilizers();
     }
 
     displayLogical(logical, pauli) {
         let index = this.currentIndexLogical[pauli]
-        
-        // Remove previous logical
-        if (index != 0) {
-            for(let i=0; i < logical[index - 1].length; i++) {
-                if (logical[index - 1][i]) {
-                    this.insertError(this.qubits[i], pauli)
-                }
-            }
-        }
+        console.log(index)
+
+        let n_qubits = logical[index].length / 2;
+
         // If index is equal to logical.length, we display no logicals
         if (index != logical.length) {
             // Insert new logical
-            for(let i=0; i < logical[index].length; i++) {
+            for(let i=0; i < n_qubits; i++) {
                 if (logical[index][i]) {
-                    this.insertError(this.qubits[i], pauli)
+                    this.insertError(this.qubits[i], 'X')
+                }
+                if (logical[index][n_qubits+i]) {
+                    this.insertError(this.qubits[i], 'Z')
                 }
             }
         }
 
         this.currentIndexLogical[pauli] += 1
-        this.currentIndexLogical[pauli] %= (logical.length + 1)
+        this.currentIndexLogical[pauli] %= logical.length
     }
 
     changeOpacity() {
@@ -131,7 +129,7 @@ class AbstractCode {
         this.stabilizers.forEach(s => {
             let stabType = s.type
             if (!s.isActivated) {
-                s.material.opacity = this.opacityActivated ? 
+                s.material.opacity = this.opacityActivated ?
                 this.OPACITY.minDeactivatedStabilizer[stabType] : this.OPACITY.maxDeactivatedStabilizer[stabType];
             }
             else {

@@ -121,8 +121,8 @@ def send_stabilizer_matrix():
                        'Hz': Hz.toarray().tolist(),
                        'qubit_index': qubit_index,
                        'stabilizer_index': stabilizer_index,
-                       'logical_z': logical_z[:, n_qubits:].toarray().tolist(),
-                       'logical_x': logical_x[:, :n_qubits].toarray().tolist()})
+                       'logical_z': logical_z.toarray().tolist(),
+                       'logical_x': logical_x.toarray().tolist()})
 
 
 @app.route('/decode', methods=['POST'])

@@ -9,9 +9,9 @@ class RotatedToric3DPauli(StabilizerPauli):
         """Determine whether or not to defect each boundary."""
         defect_x_boundary = False
         defect_y_boundary = False
-        if Lx % 2 == 1 and x == 2*Lx:
+        if Lx % 2 == 1 and x == 2*Lx-1:
             defect_x_boundary = True
-        if Ly % 2 == 1 and y == 2*Ly:
+        if Ly % 2 == 1 and y == 2*Ly-1:
             defect_y_boundary = True
         return defect_x_boundary, defect_y_boundary
 
@@ -29,11 +29,12 @@ class RotatedToric3DPauli(StabilizerPauli):
 
         for d in delta:
             qx, qy, qz = tuple(np.add(location, d))
-            qubit_location = (qx % (2*Lx), qy % (2*Lz), qz)
+
+            qubit_location = (qx % (2*Lx), qy % (2*Ly), qz)
 
             if self.code.is_qubit(qubit_location):
-                defect_x_on_edge = defect_x_boundary and qubit_location[0] == 1
-                defect_y_on_edge = defect_y_boundary and qubit_location[1] == 1
+                defect_x_on_edge = defect_x_boundary and qubit_location[0] == 0
+                defect_y_on_edge = defect_y_boundary and qubit_location[1] == 0
                 is_deformed = (self.code.axis(qubit_location) == deformed_axis)
 
                 if defect_x_on_edge != defect_y_on_edge:
@@ -63,26 +64,20 @@ class RotatedToric3DPauli(StabilizerPauli):
         if z % 2 == 1:
             delta = [(-1, -1, 0), (1, 1, 0), (-1, 1, 0), (1, -1, 0)]
         # x-normal so face is in yz-plane.
-        elif (x + y) % 4 == 0:
+        elif (x + y) % 4 == 2:
             delta = [(-1, -1, 0), (1, 1, 0), (0, 0, -1), (0, 0, 1)]
         # y-normal so face is in zx-plane.
-        elif (x + y) % 4 == 2:
+        elif (x + y) % 4 == 0:
             delta = [(-1, 1, 0), (1, -1, 0), (0, 0, -1), (0, 0, 1)]
 
         for d in delta:
             qx, qy, qz = tuple(np.add(location, d))
 
-            if (Ly % 2 == 1 and qy > 2*Ly) or Ly % 2 == 0 or qy < 0:
-                qy %= 2*Ly
-
-            if (Lx % 2 == 1 and qx > 2*Lx) or Lx % 2 == 0 or qx < 0:
-                qx %= 2*Lx
-
-            qubit_location = (qx, qy, qz)
+            qubit_location = (qx % (2*Lx), qy % (2*Ly), qz)
 
             if self.code.is_qubit(qubit_location):
-                defect_x_on_edge = defect_x_boundary and qubit_location[0] == 1
-                defect_y_on_edge = defect_y_boundary and qubit_location[1] == 1
+                defect_x_on_edge = defect_x_boundary and qubit_location[0] == 0
+                defect_y_on_edge = defect_y_boundary and qubit_location[1] == 0
                 is_deformed = (self.code.axis(qubit_location) == deformed_axis)
 
                 if defect_x_on_edge != defect_y_on_edge:

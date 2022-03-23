@@ -25,10 +25,10 @@ class RotatedToric3DCode extends AbstractCubicCode {
         if (z % 2 == 0) {
             edge.rotateX(Math.PI / 2);
         }
-        else if ((x + y) % 4 == 2) {
+        else if ((x + y) % 4 == 0) {
             edge.rotateZ(Math.PI / 4);
         }
-        else if ((x + y) % 4 == 0) {
+        else if ((x + y) % 4 == 2) {
             edge.rotateZ(-Math.PI / 4);
         }
         else {
@@ -38,6 +38,7 @@ class RotatedToric3DCode extends AbstractCubicCode {
         edge.hasError = {'X': false, 'Z': false};
         let index = this.getIndexQubit(x, y, z)
         edge.index = index;
+        edge.location = [x, y, z];
 
         this.qubits[index] = edge;
 
@@ -60,6 +61,7 @@ class RotatedToric3DCode extends AbstractCubicCode {
         let index = this.getIndexVertex(x, y, z);
     
         sphere.index = index;
+        sphere.location = [x, y, z];
         sphere.type = 'vertex'
         sphere.isActivated = false;
     
@@ -87,7 +89,7 @@ class RotatedToric3DCode extends AbstractCubicCode {
         if (z % 2 == 0) {
             face.rotateX(Math.PI/2)
 
-            if ((x + y) % 4 == 2) {
+            if ((x + y) % 4 == 0) {
                 face.rotateY(Math.PI/2)
             }
         }
@@ -95,6 +97,7 @@ class RotatedToric3DCode extends AbstractCubicCode {
         let index = this.getIndexFace(x, y, z);
     
         face.index = index;
+        face.location = [x, y, z];
         face.type = 'face';
         face.isActivated = false;
     
@@ -125,6 +128,7 @@ class RpRotatedToric3DCode extends AbstractRpCubicCode {
         sphere.hasError = {'X': false, 'Z': false};
         let index = this.getIndexQubit(x, y, z)
         sphere.index = index;
+        sphere.location = [x, y, z];
 
         this.qubits[index] = sphere;
 
@@ -149,7 +153,7 @@ class RpRotatedToric3DCode extends AbstractRpCubicCode {
         if (z % 2 == 0) {
             octa.rotateX(Math.PI/2)
 
-            if ((x + y) % 4 == 2) {
+            if ((x + y) % 4 == 0) {
                 octa.rotateY(Math.PI/2)
             }
         }
@@ -157,6 +161,7 @@ class RpRotatedToric3DCode extends AbstractRpCubicCode {
         let index = this.getIndexOctahedron(x, y, z);
 
         octa.index = index;
+        octa.location = [x, y, z];
         octa.type = 'octahedron';
         octa.isActivated = false;
 
@@ -181,7 +186,7 @@ class RpRotatedToric3DCode extends AbstractRpCubicCode {
         if (z % 2 == 0) {
             face.rotateX(Math.PI/2)
 
-            if ((x + y) % 4 != 2) {
+            if ((x + y) % 4 != 0) {
                 face.rotateY(Math.PI/4)
             }
             else {
@@ -194,6 +199,7 @@ class RpRotatedToric3DCode extends AbstractRpCubicCode {
         let index = this.getIndexFace(x, y, z);
 
         face.index = index;
+        face.location = [x, y, z];
         face.type = 'face';
         face.isActivated = false;
 

@@ -31,6 +31,7 @@ class Toric2DCode extends AbstractSurfaceCode {
         let index = this.getIndexQubit(x, y)
     
         edge.index = index;
+        edge.location = [x, y];
         this.qubits[index] = edge;
     
         this.scene.add(edge);
@@ -50,6 +51,7 @@ class Toric2DCode extends AbstractSurfaceCode {
         let index = this.getIndexVertex(x, y);
     
         sphere.index = index;
+        sphere.location = [x, y];
         sphere.type = 'vertex';
         sphere.isActivated = false;
     
@@ -73,6 +75,7 @@ class Toric2DCode extends AbstractSurfaceCode {
         let index = this.getIndexFace(x, y);
     
         face.index = index;
+        face.location = [x, y];
         face.type = 'face';
         face.isActivated = false;
     
@@ -102,6 +105,7 @@ class RpToric2DCode extends AbstractRpSurfaceCode {
         let index = this.getIndexQubit(x, y);
     
         qubit.index = index;
+        qubit.location = [x, y];
         qubit.hasError = {'X': false, 'Z': false};
         this.qubits[index] = qubit;
         
@@ -126,6 +130,7 @@ class RpToric2DCode extends AbstractRpSurfaceCode {
         let index = this.getIndexVertex(x, y);
     
         vertex.index = index;
+        vertex.location = [x, y];
         vertex.type = 'vertex';
         vertex.isActivated = false;
     
@@ -151,6 +156,7 @@ class RpToric2DCode extends AbstractRpSurfaceCode {
         let index = this.getIndexFace(x, y);
     
         face.index = index;
+        face.location = [x, y];
         face.type = 'face';
         face.isActivated = false;
     

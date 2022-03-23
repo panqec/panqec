@@ -65,8 +65,8 @@ class XCubeCode(StabilizerCode):
 
             # Line of parallel Z operators along the y direction
             logical = self.pauli_class(self)
-            for x in range(1, 2*Lx, 2):
-                logical.site('Z', (0, x, 0))
+            for y in range(1, 2*Ly, 2):
+                logical.site('Z', (0, y, 0))
             logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
             # Line of parallel Z operators along the z direction

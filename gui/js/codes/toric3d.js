@@ -37,6 +37,7 @@ class Toric3DCode extends AbstractCubicCode {
         let index = this.getIndexQubit(x, y, z)
     
         edge.index = index;
+        edge.location = [x, y, z];
         this.qubits[index] = edge;
     
         this.scene.add(edge);
@@ -57,6 +58,7 @@ class Toric3DCode extends AbstractCubicCode {
         let index = this.getIndexVertex(x, y, z);
     
         sphere.index = index;
+        sphere.location = [x, y, z];
         sphere.type = 'vertex';
         sphere.isActivated = false;
     
@@ -93,6 +95,7 @@ class Toric3DCode extends AbstractCubicCode {
         let index = this.getIndexFace(x, y, z);
     
         face.index = index;
+        face.location = [x, y, z];
         face.type = 'face';
         face.isActivated = false;
     
@@ -121,8 +124,10 @@ class RpToric3DCode extends AbstractRpCubicCode {
         sphere.position.z = z * length / 2;
 
         sphere.hasError = {'X': false, 'Z': false};
-        let index = this.getIndexQubit(x, y, z)
+        let index = this.getIndexQubit(x, y, z);
+
         sphere.index = index;
+        sphere.location = [x, y, z];
 
         this.qubits[index] = sphere;
 
@@ -153,6 +158,7 @@ class RpToric3DCode extends AbstractRpCubicCode {
         let index = this.getIndexOctahedron(x, y, z);
 
         octa.index = index;
+        octa.location = [x, y, z];
         octa.type = 'octahedron';
         octa.isActivated = false;
 
@@ -193,6 +199,7 @@ class RpToric3DCode extends AbstractRpCubicCode {
         let index = this.getIndexFace(x, y, z);
 
         face.index = index;
+        face.location = [x, y, z];
         face.type = 'face';
         face.isActivated = false;
 
