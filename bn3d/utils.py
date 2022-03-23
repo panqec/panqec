@@ -149,3 +149,30 @@ def edge_coords(axis_xyz_list, size):
         new = np.mod(2*np.array([x, y, z], dtype=int) + diff[i], lim)
         edges.append(tuple(new))
     return edges
+
+
+def format_polynomial(symbol, coefficients, digits=3):
+    """Polynomial as nice-looking string."""
+    poly_str = ''
+    format_str = '{:.%df}' % digits
+    for power, coefficient in enumerate(coefficients):
+        if coefficient < 0:
+            sign = '-'
+        else:
+            sign = '+'
+        magnitude = format_str.format(abs(coefficient))
+        if power == 0:
+            monomial = ''
+        elif power == 1:
+            monomial = symbol
+        else:
+            monomial = f'{symbol}^{power}'
+        if coefficient != 0:
+            if power == 0:
+                if sign == '+':
+                    poly_str += f'{magnitude}{monomial}'
+                else:
+                    poly_str += f'{sign}{magnitude}{monomial}'
+            else:
+                poly_str += f' {sign} {magnitude}{monomial}'
+    return poly_str

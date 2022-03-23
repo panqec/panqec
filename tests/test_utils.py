@@ -3,6 +3,7 @@ import pytest
 import numpy as np
 from bn3d.utils import (
     sizeof_fmt, identity, NumpyEncoder, list_where_str, list_where, set_where,
+    format_polynomial,
 )
 
 
@@ -89,3 +90,16 @@ def test_list_where_str(array, where_str, where_list, where_set):
     assert list_where_str(array) == where_str
     assert list_where(array) == where_list
     assert set_where(array) == where_set
+
+
+def test_format_polynomial():
+    assert format_polynomial('x', [1, 2, 3], digits=1) == '1.0 + 2.0x + 3.0x^2'
+    assert format_polynomial('x', [1.2, 2.1, 3.3], digits=1) == (
+        '1.2 + 2.1x + 3.3x^2'
+    )
+    assert format_polynomial('y', [1.2, -2.1, 3.3], digits=2) == (
+        '1.20 - 2.10y + 3.30y^2'
+    )
+    assert format_polynomial('y', [1.2, 0, 3.3], digits=2) == (
+        '1.20 + 3.30y^2'
+    )
