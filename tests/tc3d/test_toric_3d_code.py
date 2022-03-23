@@ -3,7 +3,6 @@ import pytest
 from bn3d.bpauli import bcommute, brank, bsf_wt, bsf_to_pauli
 from bn3d.models import Toric3DCode
 import bn3d.bsparse as bsparse
-from scipy.sparse import csr_matrix
 
 
 class TestToric3DCode:
@@ -20,10 +19,10 @@ class TestToric3DCode:
         code = Toric3DCode(5)
         assert np.all(code.size == [5, 5, 5])
 
-    def test_get_vertex_Z_stabilizers(self, code):
+    def test_get_vertex_stabilizers(self, code):
         n = code.n
 
-        stabilizers = code.get_vertex_Z_stabilizers()
+        stabilizers = code.get_vertex_stabilizers()
 
         # There should be least some vertex stabilizers.
         assert stabilizers.shape[0] > 0
@@ -66,9 +65,9 @@ class TestToric3DCode:
         assert k == 3
         assert d == min(code.size)
 
-    def test_get_face_X_stabilizers(self, code):
+    def test_get_face_stabilizers(self, code):
         n = code.n
-        stabilizers = code.get_face_X_stabilizers()
+        stabilizers = code.get_face_stabilizers()
 
         # Weight of every stabilizer should be 6.
         assert np.all(stabilizers.sum(axis=1) == 4)

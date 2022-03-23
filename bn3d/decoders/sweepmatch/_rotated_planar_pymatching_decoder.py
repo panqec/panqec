@@ -27,7 +27,7 @@ class RotatedPlanarPymatchingDecoder(Toric3DPymatchingDecoder):
 
     def new_matcher(self, code: StabilizerCode):
         """Return a new Matching object."""
-        self._n_faces[code.label] = code.get_face_X_stabilizers().shape[0]
+        self._n_faces[code.label] = code.get_face_stabilizers().shape[0]
         n_qubits = len(code.qubit_index)
         self._n_qubits[code.label] = n_qubits
         return Matching(code.Hx[:, :n_qubits])

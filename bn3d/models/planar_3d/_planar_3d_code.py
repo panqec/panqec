@@ -21,7 +21,7 @@ class Planar3DCode(StabilizerCode):
 
     @property
     def logical_xs(self) -> np.ndarray:
-        """The 1 logical X operator."""
+        """The unique logical X operator."""
 
         if self._logical_xs.size == 0:
             Lx, Ly, Lz = self.size
@@ -39,7 +39,7 @@ class Planar3DCode(StabilizerCode):
 
     @property
     def logical_zs(self) -> np.ndarray:
-        """Get the 1 logical Z operator."""
+        """The unique logical Z operator."""
         if self._logical_zs.size == 0:
             Lx, Ly, Lz = self.size
             logicals = bsparse.empty_row(2*self.n)

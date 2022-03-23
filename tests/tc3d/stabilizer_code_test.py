@@ -15,12 +15,12 @@ class StabilizerCodeTest(metaclass=ABCMeta):
 
     def test_len_vertex_index_equals_number_of_vertex_stabilizers(self, code):
         n_vertices = len(code.vertex_index)
-        assert n_vertices == code.get_vertex_Z_stabilizers().shape[0]
+        assert n_vertices == code.get_vertex_stabilizers().shape[0]
         assert n_vertices == code.Hx.shape[0]
 
     def test_len_face_index_equals_number_of_face_stabilizers(self, code):
         n_faces = len(code.face_index)
-        assert n_faces == code.get_face_X_stabilizers().shape[0]
+        assert n_faces == code.get_face_stabilizers().shape[0]
         assert n_faces == code.Hz.shape[0]
 
     def test_qubit_index(self, code):

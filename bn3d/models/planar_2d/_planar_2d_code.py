@@ -1,8 +1,10 @@
-from typing import Tuple
-import numpy as np
+from typing import Tuple, Dict
 from bn3d.models import StabilizerCode
 from ._planar_2d_pauli import Planar2DPauli
 from ... import bsparse
+from scipy.sparse import csr_matrix
+
+Indexer = Dict[Tuple[int, int], int]  # coordinate to index
 
 
 class Planar2DCode(StabilizerCode):
@@ -20,9 +22,7 @@ class Planar2DCode(StabilizerCode):
         return 'Toric {}x{}'.format(*self.size)
 
     @property
-    def logical_xs(self) -> np.ndarray:
-        """The 2 logical X operators."""
-
+    def logical_xs(self) -> csr_matrix:
         if self._logical_xs.size == 0:
             Lx, Ly = self.size
             logicals = bsparse.empty_row(2*self.n)
@@ -38,8 +38,7 @@ class Planar2DCode(StabilizerCode):
         return self._logical_xs
 
     @property
-    def logical_zs(self) -> np.ndarray:
-        """Get the 3 logical Z operators."""
+    def logical_zs(self) -> csr_matrix:
         if self._logical_zs.size == 0:
             Lx, Ly = self.size
             logicals = bsparse.empty_row(2*self.n)
@@ -54,7 +53,7 @@ class Planar2DCode(StabilizerCode):
 
         return self._logical_zs
 
-    def axis(self, location):
+    def axis(self, location: Tuple[int, int]) -> int:
         x, y = location
 
         if (x % 2 == 1) and (y % 2 == 0):
@@ -66,7 +65,7 @@ class Planar2DCode(StabilizerCode):
 
         return axis
 
-    def _create_qubit_indices(self):
+    def _create_qubit_indices(self) -> Indexer:
         coordinates = []
         Lx, Ly = self.size
 
@@ -84,7 +83,7 @@ class Planar2DCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_vertex_indices(self):
+    def _create_vertex_indices(self) -> Indexer:
         coordinates = []
         Lx, Ly = self.size
 
@@ -96,7 +95,7 @@ class Planar2DCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_face_indices(self):
+    def _create_face_indices(self) -> Indexer:
         coordinates = []
         Lx, Ly = self.size
 

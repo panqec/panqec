@@ -18,20 +18,6 @@ class Toric2DPauli(StabilizerPauli):
             Pauli operator in string format.
         location: Tuple[int, int]
             The (x, y) location of the vertex.
-
-        Examples
-        --------
-        operator.vertex('X', (0, 0))
-
-             .       .            Coordinate axes:
-              \     /                        y
-               X   X                        /
-                \ /                        /
-         .---X---o---X---.         z <----o
-                / \                        \
-               X   X                        \
-              /     \                        x
-             .       .
         """
 
         Lx, Ly = self.code.size

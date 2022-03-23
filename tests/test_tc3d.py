@@ -2,14 +2,14 @@ import numpy as np
 from bn3d.bpauli import bcommute, get_effective_error
 from pymatching import Matching
 from bn3d.models import (
-    get_vertex_Z_stabilisers, get_face_X_stabilisers, get_all_stabilisers,
+    get_vertex_stabilisers, get_face_stabilisers, get_all_stabilisers,
     get_Z_logicals, get_X_logicals, get_all_logicals,
 )
 
 
-def test_get_vertex_Z_stabilisers():
+def test_get_vertex_stabilisers():
     L = 3
-    stabilisers = get_vertex_Z_stabilisers(L)
+    stabilisers = get_vertex_stabilisers(L)
     assert stabilisers.dtype == np.uint
 
     # Weight of every stabiliser should be 6.
@@ -28,9 +28,9 @@ def test_get_vertex_Z_stabilisers():
     assert np.all(stabilisers.sum(axis=0)[3*L**3:] == 2)
 
 
-def test_get_face_X_stabilisers():
+def test_get_face_stabilisers():
     L = 3
-    stabilisers = get_face_X_stabilisers(L)
+    stabilisers = get_face_stabilisers(L)
 
     # Weight of every stabiliser should be 6.
     assert np.all(stabilisers.sum(axis=1) == 4)
@@ -111,7 +111,7 @@ def test_correcting_X_noise_produces_X_logical_errors_only():
     L = 3
     p = 0.5
     np.random.seed(0)
-    Z_stabilisers = get_vertex_Z_stabilisers(L)
+    Z_stabilisers = get_vertex_stabilisers(L)
     H_Z = Z_stabilisers[:, 3*L**3:]
     X_logicals = get_X_logicals(L)
     Z_logicals = get_Z_logicals(L)

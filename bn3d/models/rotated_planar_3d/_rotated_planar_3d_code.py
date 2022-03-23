@@ -20,7 +20,6 @@ class RotatedPlanar3DCode(StabilizerCode):
     @property
     def logical_xs(self) -> np.ndarray:
         """Get the unique logical X operator."""
-
         if self._logical_xs.size == 0:
             Lx, Ly, Lz = self.size
             logicals = bsparse.empty_row(2*self.n)

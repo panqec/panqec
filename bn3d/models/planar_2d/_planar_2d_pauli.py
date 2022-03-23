@@ -18,20 +18,6 @@ class Planar2DPauli(StabilizerPauli):
             Pauli operator in string format.
         location: Tuple[int, int]
             The (x, y) location of the vertex.
-
-        Examples
-        --------
-        operator.vertex('X', (0, 0))
-
-             .       .            Coordinate axes:
-              \     /                        y
-               X   X                        /
-                \ /                        /
-         .---X---o---X---.         z <----o
-                / \                        \
-               X   X                        \
-              /     \                        x
-             .       .
         """
 
         x, y = location
@@ -65,20 +51,6 @@ class Planar2DPauli(StabilizerPauli):
         location: Tuple[int, int])
             The (x, y) location of the vertex of the face
             that is closest to the origin.
-
-        Examples
-        --------
-        operator.face('X', (1, 1))
-
-             .---X---.            Coordinate axes:
-            /       /                        y
-           X       X   \                    /
-          /       /                        /
-         .---X---o       .         z <----o
-                                           \
-           \       \   /                    \
-                                             x
-             .   -   .
         """
 
         # Location modulo lattice shape, to handle edge cases.

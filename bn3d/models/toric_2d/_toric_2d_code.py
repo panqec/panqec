@@ -45,7 +45,7 @@ class Toric2DCode(StabilizerCode):
 
     @property
     def logical_zs(self) -> np.ndarray:
-        """Get the 3 logical Z operators."""
+        """The 2 logical Z operators."""
         if self._logical_zs.size == 0:
             Lx, Ly = self.size
             logicals = bsparse.empty_row(2*self.n)

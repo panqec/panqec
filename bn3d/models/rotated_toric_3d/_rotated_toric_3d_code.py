@@ -1,8 +1,10 @@
-from typing import Tuple
+from typing import Tuple, Dict
 import numpy as np
 from bn3d.models import StabilizerCode
 from ._rotated_toric_3d_pauli import RotatedToric3DPauli
 from ... import bsparse
+
+Indexer = Dict[Tuple[int, int, int], int]  # coordinate to index
 
 
 class RotatedToric3DCode(StabilizerCode):
@@ -20,112 +22,115 @@ class RotatedToric3DCode(StabilizerCode):
 
     @property
     def logical_xs(self) -> np.ndarray:
-        """Get the unique logical X operator."""
+        """Get the logical X operators."""
 
-        Lx, Ly, Lz = self.size
-        logicals = bsparse.empty_row(2*self.n)
+        if self._logical_xs.size == 0:
+            Lx, Ly, Lz = self.size
+            logicals = bsparse.empty_row(2*self.n)
 
-        # Even times even.
-        if Lx % 2 == 0 and Ly % 2 == 0:
-            # X string operator along y.
-            logical = self.pauli_class(self)
-            for x, y, z in self.qubit_index:
-                if y == 0 and z == 1:
-                    logical.site('X', (x, y, z))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+            # Even times even.
+            if Lx % 2 == 0 and Ly % 2 == 0:
+                # X string operator along y.
+                logical = self.pauli_class(self)
+                for x, y, z in self.qubit_index:
+                    if y == 0 and z == 1:
+                        logical.site('X', (x, y, z))
+                logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            # X string operator along x.
-            logical = self.pauli_class(self)
-            for x, y, z in self.qubit_index:
-                if x == 0 and z == 1:
-                    logical.site('X', (x, y, z))
+                # X string operator along x.
+                logical = self.pauli_class(self)
+                for x, y, z in self.qubit_index:
+                    if x == 0 and z == 1:
+                        logical.site('X', (x, y, z))
 
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+                logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-        # Odd times odd
-        elif Lx % 2 == 1 and Ly % 2 == 1:
-            logical = self.pauli_class(self)
+            # Odd times odd
+            elif Lx % 2 == 1 and Ly % 2 == 1:
+                logical = self.pauli_class(self)
 
-            for x, y, z in self.qubit_index:
-                # X string operator in undeformed code. (OK)
-                if z == 1 and x + y == 2*Lx-2:
-                    logical.site('X', (x, y, z))
+                for x, y, z in self.qubit_index:
+                    # X string operator in undeformed code. (OK)
+                    if z == 1 and x + y == 2*Lx-2:
+                        logical.site('X', (x, y, z))
 
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+                logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-        # Odd times even.
-        else:
-            logical = self.pauli_class(self)
+            # Odd times even.
+            else:
+                logical = self.pauli_class(self)
 
-            for x, y, z in self.qubit_index:
-                # X string operator in undeformed code. (OK)
-                if Lx % 2 == 1:
-                    if z == 1 and x == 0:
-                        if (x + y) % 4 == 0:
-                            logical.site('X', (x, y, z))
-                        else:
-                            logical.site('X', (x, y, z))
-                else:
-                    if z == 1 and y == 0:
-                        if (x + y) % 4 == 0:
-                            logical.site('X', (x, y, z))
-                        else:
-                            logical.site('X', (x, y, z))
+                for x, y, z in self.qubit_index:
+                    # X string operator in undeformed code. (OK)
+                    if Lx % 2 == 1:
+                        if z == 1 and x == 0:
+                            if (x + y) % 4 == 0:
+                                logical.site('X', (x, y, z))
+                            else:
+                                logical.site('X', (x, y, z))
+                    else:
+                        if z == 1 and y == 0:
+                            if (x + y) % 4 == 0:
+                                logical.site('X', (x, y, z))
+                            else:
+                                logical.site('X', (x, y, z))
 
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+                logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-        self._logical_xs = logicals
+            self._logical_xs = logicals
 
         return self._logical_xs
 
     @property
     def logical_zs(self) -> np.ndarray:
-        """Get the unique logical Z operator."""
-        Lx, Ly, Lz = self.size
-        logicals = bsparse.empty_row(2*self.n)
+        """Get the logical Z operators."""
 
-        # Even times even.
-        if (Lx % 2 == 0) and (Ly % 2 == 0):
-            logical = self.pauli_class(self)
-            for x, y, z in self.qubit_index:
-                if x == 0:
-                    logical.site('Z', (x, y, z))
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+        if self._logical_zs.size == 0:
+            Lx, Ly, Lz = self.size
+            logicals = bsparse.empty_row(2*self.n)
 
-            logical = self.pauli_class(self)
-            for x, y, z in self.qubit_index:
-                if y == 0:
-                    logical.site('Z', (x, y, z))
-
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
-
-        # Odd times odd
-        elif (Lx % 2 == 1) and (Ly % 2 == 1):
-            logical = self.pauli_class(self)
-            for x, y, z in self.qubit_index:
-                if x == y:
-                    logical.site('Z', (x, y, z))
-
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
-
-        # Odd times even
-        else:
-            logical = self.pauli_class(self)
-            for x, y, z in self.qubit_index:
-                if Lx % 2 == 1:
-                    if y == 0:
-                        logical.site('Y', (x, y, z))
-                elif Ly % 2 == 1:
+            # Even times even.
+            if (Lx % 2 == 0) and (Ly % 2 == 0):
+                logical = self.pauli_class(self)
+                for x, y, z in self.qubit_index:
                     if x == 0:
-                        logical.site('Y', (x, y, z))
+                        logical.site('Z', (x, y, z))
+                logicals = bsparse.vstack([logicals, logical.to_bsf()])
 
-            logicals = bsparse.vstack([logicals, logical.to_bsf()])
+                logical = self.pauli_class(self)
+                for x, y, z in self.qubit_index:
+                    if y == 0:
+                        logical.site('Z', (x, y, z))
 
-        self._logical_zs = logicals
+                logicals = bsparse.vstack([logicals, logical.to_bsf()])
+
+            # Odd times odd
+            elif (Lx % 2 == 1) and (Ly % 2 == 1):
+                logical = self.pauli_class(self)
+                for x, y, z in self.qubit_index:
+                    if x == y:
+                        logical.site('Z', (x, y, z))
+
+                logicals = bsparse.vstack([logicals, logical.to_bsf()])
+
+            # Odd times even
+            else:
+                logical = self.pauli_class(self)
+                for x, y, z in self.qubit_index:
+                    if Lx % 2 == 1:
+                        if y == 0:
+                            logical.site('Y', (x, y, z))
+                    elif Ly % 2 == 1:
+                        if x == 0:
+                            logical.site('Y', (x, y, z))
+
+                logicals = bsparse.vstack([logicals, logical.to_bsf()])
+
+            self._logical_zs = logicals
 
         return self._logical_zs
 
-    def axis(self, location) -> int:
+    def axis(self, location: Tuple[int, int, int]) -> int:
         x, y, z = location
 
         if location not in self.qubit_index:
@@ -140,7 +145,7 @@ class RotatedToric3DCode(StabilizerCode):
 
         return axis
 
-    def _create_qubit_indices(self):
+    def _create_qubit_indices(self) -> Indexer:
         Lx, Ly, Lz = self.size
 
         coordinates = []
@@ -162,7 +167,7 @@ class RotatedToric3DCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_vertex_indices(self):
+    def _create_vertex_indices(self) -> Indexer:
         Lx, Ly, Lz = self.size
 
         coordinates = []
@@ -177,7 +182,7 @@ class RotatedToric3DCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_face_indices(self):
+    def _create_face_indices(self) -> Indexer:
         Lx, Ly, Lz = self.size
 
         coordinates = []

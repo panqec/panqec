@@ -1,5 +1,5 @@
 from typing import Dict, Tuple, Optional
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 import numpy as np
 from ... import bsparse
 from ._stabilizer_code import StabilizerCode
@@ -8,6 +8,14 @@ Indexer = Dict[Tuple[int, int, int], int]
 
 
 class StabilizerPauli(metaclass=ABCMeta):
+    """Abstract class for generic stabilizer operators
+
+    Any subclass should define the stabilizer operator methods `self.vertex(location)`
+    and `self.face(location)` that create a vertex or a face operator at a given location.
+    Those methods should make use of self.site(location, pauli), which put a given Pauli
+    operator at a certain qubit location. The final stabilizer can be accessed in the binary
+    symplectic format (bsf) using self.to_bsf()
+    """
 
     def __init__(self, code: StabilizerCode, bsf: Optional[np.ndarray] = None):
 
@@ -72,6 +80,16 @@ class StabilizerPauli(metaclass=ABCMeta):
     def code(self):
         """Return code instance"""
         return self._code
+
+    @abstractmethod
+    def vertex(self, operator: str, location: Tuple, deformed_axis=None):
+        """Returns a vertex operator at a given location (using self.site to construct it)"""
+        raise NotImplementedError
+
+    @abstractmethod
+    def face(self, operator: str, location: Tuple, deformed_axis=None):
+        """Returns a face operator at a given location (using self.site to construct it)"""
+        raise NotImplementedError
 
     def operator(self, coord):
         """

@@ -28,7 +28,7 @@ from .xcube._xcube_code import XCubeCode  # noqa
 from .xcube._xcube_pauli import XCubePauli  # noqa
 
 
-def get_vertex_Z_stabilisers(L: int) -> np.ndarray:
+def get_vertex_stabilisers(L: int) -> np.ndarray:
     """Z operators on edges around vertices."""
     vertex_stabilisers = []
     for x in range(L):
@@ -54,7 +54,7 @@ def get_vertex_Z_stabilisers(L: int) -> np.ndarray:
     return np.array(vertex_stabilisers)
 
 
-def get_face_X_stabilisers(L: int) -> np.ndarray:
+def get_face_stabilisers(L: int) -> np.ndarray:
     """X operators on edges around faces."""
     face_stabilisers = []
     for x in range(L):
@@ -88,8 +88,8 @@ def get_face_X_stabilisers(L: int) -> np.ndarray:
 
 
 def get_all_stabilisers(L):
-    face_stabilisers = get_face_X_stabilisers(L)
-    vertex_stabilisers = get_vertex_Z_stabilisers(L)
+    face_stabilisers = get_face_stabilisers(L)
+    vertex_stabilisers = get_vertex_stabilisers(L)
     stabilisers = np.concatenate([face_stabilisers, vertex_stabilisers])
 
     return np.array(stabilisers)
