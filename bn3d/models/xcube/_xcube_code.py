@@ -95,7 +95,7 @@ class XCubeCode(StabilizerCode):
 
         return axis
 
-    def _create_qubit_indices(self) -> Indexer:
+    def _get_qubit_coordinates(self) -> Indexer:
         coordinates = []
         Lx, Ly, Lz = self.size
 
@@ -121,7 +121,7 @@ class XCubeCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_vertex_indices(self) -> Indexer:
+    def _get_vertex_coordinates(self) -> Indexer:
         """ Vertex = cube stabilizer"""
         Lx, Ly, Lz = self.size
 
@@ -134,7 +134,7 @@ class XCubeCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_face_indices(self) -> Indexer:
+    def _get_face_coordinates(self) -> Indexer:
         """ Face stabilizer (three at each vertex)"""
 
         coordinates = []

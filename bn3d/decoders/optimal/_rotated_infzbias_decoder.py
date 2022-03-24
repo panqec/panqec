@@ -3,7 +3,6 @@ import numpy as np
 from qecsim.model import Decoder
 from pymatching import Matching
 from ...models import RotatedPlanar3DCode
-from ...models import RotatedPlanar3DPauli
 from ..sweepmatch._rotated_sweep_decoder import RotatedSweepDecoder3D
 Indexer = Dict[Tuple[int, int, int], int]
 
@@ -20,7 +19,7 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
     def decode(
         self, code: RotatedPlanar3DCode, syndrome: np.ndarray
     ) -> np.ndarray:
-        correction = RotatedPlanar3DPauli(code)
+        correction = dict()
         signs = self.get_initial_state(code, syndrome)
 
         # 1D pair matching along each vertical lines of horizontal edges.
@@ -35,10 +34,10 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
             signs = self.match_horizontal_plane(
                 signs, correction, code, z_plane
             )
-        return correction.to_bsf()
+        return code.to_bsf(correction)
 
     def match_horizontal_plane(
-        self, signs: Indexer, correction: RotatedPlanar3DPauli,
+        self, signs: Indexer, correction: Dict,
         code: RotatedPlanar3DCode, z_plane: int
     ):
         """Do 2D matching on top and bottom boundary surfaces."""
@@ -80,12 +79,12 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
             location = edges[i_edge]
             print(location)
             self.flip_edge(location, new_signs, code)
-            correction.site('Z', location)
+            correction[location] = 'Z'
 
         return new_signs
 
     def decode_vertical_line(
-        self, signs: Indexer, correction: RotatedPlanar3DPauli,
+        self, signs: Indexer, correction: Dict,
         code: RotatedPlanar3DCode, xy: Tuple[int, int]
     ):
         """Do 1D matching along a vertical line."""
@@ -126,7 +125,7 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
         new_signs = signs.copy()
         for location in flip_locations:
             self.flip_edge(location, new_signs, code)
-            correction.site('Z', location)
+            correction[location] = 'Z'
         return new_signs
 
 

@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, List
 from abc import ABCMeta, abstractmethod
 import numpy as np
 from ...bpauli import bcommute
@@ -12,11 +12,11 @@ class StabilizerCode(metaclass=ABCMeta):
     """Abstract class for generic stabilizer codes (CSS or not)
 
     Any subclass should override the following four methods:
-    - _create_qubit_indices() to define all the coordinates in the lattice
+    - _get_qubit_coordinates() to define all the coordinates in the lattice
     that contain qubits
-    - _create_vertex_indices() to define all the coordinates in the lattice
+    - _get_vertex_coordinates() to define all the coordinates in the lattice
     that contain vertices (could also be another type of stabilizer)
-    - _create_face_indices() to define all the coordinates in the lattice
+    - _get_face_coordinates() to define all the coordinates in the lattice
     that contain faces (could also be another type of stabilizer)
     - axis(location) to return the axis of a qubit at a given location (when qubit
     have an orientation in space, for instance when they are edges)
@@ -75,9 +75,9 @@ class StabilizerCode(metaclass=ABCMeta):
         else:
             self._size = (L_x, L_y, L_z)
 
-        self._qubit_index = self._create_qubit_indices()
-        self._vertex_index = self._create_vertex_indices()
-        self._face_index = self._create_face_indices()
+        self._qubit_coordinates = []
+        self._vertex_coordinates = []
+        self._face_coordinates = []
 
         self._stabilizers = bsparse.empty_row(2*self.n)
         self._Hx = bsparse.empty_row(self.n)
@@ -114,18 +114,57 @@ class StabilizerCode(metaclass=ABCMeta):
         return min(self.logicals_z.shape[1], self.logicals_x.shape[1])
 
     @property
-    def qubit_index(self) -> Indexer:
+    def qubit_coordinates(self) -> Indexer:
+        """Returns the list of all the coordinates that contain a qubit"""
+
+        if len(self._qubit_coordinates) == 0:
+            self._qubit_coordinates = self._get_qubit_coordinates()
+
+        return self._qubit_coordinates
+
+    @property
+    def vertex_coordinates(self) -> Indexer:
+        """Returns the list of all the coordinates that contain a vertex"""
+
+        if len(self._vertex_coordinates) == 0:
+            self._vertex_coordinates = self._get_vertex_coordinates()
+
+        return self._vertex_coordinates
+
+    @property
+    def face_coordinates(self) -> Indexer:
+        """Returns the list of all the coordinates that contain a face"""
+
+        if len(self._face_coordinates) == 0:
+            self._face_coordinates = self._get_face_coordinates()
+
+        return self._face_index
+
+    @property
+    def qubit_index(self) -> List[Tuple]:
         """Returns a dictionary that assigns an index to a given qubit coordinate"""
+
+        if len(self._qubit_index) == 0:
+            self._qubit_index = {loc: i for i, loc in enumerate(self.qubit_coordinates)}
+
         return self._qubit_index
 
     @property
-    def vertex_index(self) -> Indexer:
+    def vertex_index(self) -> List[Tuple]:
         """Returns a dictionary that assigns an index to a given vertex coordinate"""
+
+        if len(self._vertex_index) == 0:
+            self._vertex_index = {loc: i for i, loc in enumerate(self.vertex_coordinates)}
+
         return self._vertex_index
 
     @property
-    def face_index(self) -> Indexer:
+    def face_index(self) -> List[Tuple]:
         """Returns a dictionary that assigns an index to a given face coordinate"""
+
+        if len(self._face_index) == 0:
+            self._face_index = {loc: i for i, loc in enumerate(self.face_coordinates)}
+
         return self._face_index
 
     @property
@@ -157,7 +196,7 @@ class StabilizerCode(metaclass=ABCMeta):
         return self._logicals_z
 
     @abstractmethod
-    def _create_qubit_indices(self) -> Indexer:
+    def _get_qubit_coordinates(self) -> List[Tuple]:
         """Create qubit indices.
         Should return a dictionary that assigns an index to a given qubit coordinate.
         It can be constructed by first creating a list of coordinates (all the locations
@@ -167,7 +206,7 @@ class StabilizerCode(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def _create_vertex_indices(self) -> Indexer:
+    def _get_vertex_coordinates(self) -> List[Tuple]:
         """Create vertex indices.
         Should return a dictionary that assigns an index to a given qubit coordinate.
         It can be constructed by first creating a list of coordinates (all the locations
@@ -177,7 +216,7 @@ class StabilizerCode(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def _create_face_indices(self):
+    def _get_face_coordinates(self) -> List[Tuple]:
         """Create face indices.
         Should return a dictionary that assigns an index to a given qubit coordinate.
         It can be constructed by first creating a list of coordinates (all the locations
@@ -269,7 +308,7 @@ class StabilizerCode(metaclass=ABCMeta):
         """
         raise NotImplementedError
 
-    def to_bsf(self, operator: Dict[Tuple, str]):
+    def to_bsf(self, operator: Dict[Tuple, str]) -> csr_matrix:
         bsf_operator = bsparse.zero_row(2*self.n)
 
         for qubit_location in operator.keys():
@@ -279,6 +318,24 @@ class StabilizerCode(metaclass=ABCMeta):
                 bsparse.insert_mod2(self.n + self.qubit_index[qubit_location], bsf_operator)
 
         return bsf_operator
+
+    def from_bsf(self, bsf_operator: csr_matrix) -> Dict[Tuple, str]:
+        assert bsf_operator.shape[0] == 1
+
+        operator = dict()
+
+        rows, cols = bsf_operator.nonzero()
+
+        for col in cols:
+            if col < self.n:
+                operator[self.qubit_coordinates[col]] = 'X'
+            else:
+                if self.qubit_coordinates[col] in operator.keys():
+                    operator[self.qubit_coordinates[col]] = 'Y'
+                else:
+                    operator[self.qubit_coordinates[col]] = 'Z'
+
+        return operator
 
     def get_vertex_stabilizers(self):
         """Returns the parity-check matrix of vertex stabilizers

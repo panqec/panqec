@@ -108,7 +108,7 @@ class RotatedToric3DCode(StabilizerCode):
 
         return axis
 
-    def _create_qubit_indices(self) -> Indexer:
+    def _get_qubit_coordinates(self) -> Indexer:
         Lx, Ly, Lz = self.size
 
         coordinates = []
@@ -130,7 +130,7 @@ class RotatedToric3DCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_vertex_indices(self) -> Indexer:
+    def _get_vertex_coordinates(self) -> Indexer:
         Lx, Ly, Lz = self.size
 
         coordinates = []
@@ -145,7 +145,7 @@ class RotatedToric3DCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_face_indices(self) -> Indexer:
+    def _get_face_coordinates(self) -> Indexer:
         Lx, Ly, Lz = self.size
 
         coordinates = []

@@ -77,7 +77,7 @@ class RotatedPlanar3DCode(StabilizerCode):
 
         return axis
 
-    def _create_qubit_indices(self):
+    def _get_qubit_coordinates(self):
         Lx, Ly, Lz = self.size
 
         coordinates = []
@@ -99,7 +99,7 @@ class RotatedPlanar3DCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_vertex_indices(self):
+    def _get_vertex_coordinates(self):
         Lx, Ly, Lz = self.size
 
         coordinates = []
@@ -114,7 +114,7 @@ class RotatedPlanar3DCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_face_indices(self):
+    def _get_face_coordinates(self):
         Lx, Ly, Lz = self.size
 
         coordinates = []

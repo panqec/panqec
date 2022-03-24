@@ -13,7 +13,6 @@ from qecsim import paulitools as pt
 from qecsim.models.generic import SimpleErrorModel
 from qecsim.model import ErrorModel, StabilizerCode
 from .bpauli import barray_to_bvector, bvector_to_barray, get_bvector_index
-from .models import Toric3DPauli
 from .utils import nested_map
 
 
@@ -84,7 +83,7 @@ class XNoiseOnYZEdgesOnly(ErrorModel):
         """Sample noise."""
 
         # Initialize a Pauli operator object.
-        pauli = Toric3DPauli(code)
+        pauli_op = dict()
 
         # 0 means no error, 1 means error.
         choices = [0, 1]
@@ -96,15 +95,14 @@ class XNoiseOnYZEdgesOnly(ErrorModel):
         y_edge_errors = rng.choice(choices, size=code.size, p=probabilities)
         z_edge_errors = rng.choice(choices, size=code.size, p=probabilities)
 
-        ranges = [range(length) for length in code.size]
-        for x, y, z in itertools.product(*ranges):
+        for x, y, z in code.qubit_index.keys():
             if y_edge_errors[x, y, z]:
-                pauli.site('X', (1, x, y, z))
+                pauli_op[(x, y, z)] = 'X'
             if z_edge_errors[x, y, z]:
-                pauli.site('X', (2, x, y, z))
+                pauli_op[(x, y, z)] = 'X'
 
         # Convert to binary sympectic form.
-        error = pauli.to_bsf()
+        error = code.to_bsf(pauli_op)
         return error
 
 

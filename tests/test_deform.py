@@ -2,7 +2,7 @@ import itertools
 import pytest
 import numpy as np
 from bn3d.bpauli import bcommute
-from bn3d.models import Toric3DCode, Toric3DPauli
+from bn3d.models import Toric3DCode
 from bn3d.noise import XNoiseOnYZEdgesOnly, PauliErrorModel
 from bn3d.error_models import (
     DeformedXZZXErrorModel

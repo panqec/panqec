@@ -76,7 +76,7 @@ class Toric3DCode(StabilizerCode):
 
         return axis
 
-    def _create_qubit_indices(self) -> Indexer:
+    def _get_qubit_coordinates(self) -> Indexer:
         coordinates = []
         Lx, Ly, Lz = self.size
 
@@ -102,7 +102,7 @@ class Toric3DCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_vertex_indices(self) -> Indexer:
+    def _get_vertex_coordinates(self) -> Indexer:
         coordinates = []
         Lx, Ly, Lz = self.size
 
@@ -115,7 +115,7 @@ class Toric3DCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_face_indices(self) -> Indexer:
+    def _get_face_coordinates(self) -> Indexer:
         coordinates = []
         Lx, Ly, Lz = self.size
 

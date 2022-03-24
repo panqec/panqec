@@ -105,7 +105,7 @@ class RhombicCode(StabilizerCode):
 
         return axis
 
-    def _create_qubit_indices(self):
+    def _get_qubit_coordinates(self):
         coordinates = []
         Lx, Ly, Lz = self.size
 
@@ -131,7 +131,7 @@ class RhombicCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_vertex_indices(self):
+    def _get_vertex_coordinates(self):
         """ Vertex = triangle stabilizer"""
         coordinates = []
         Lx, Ly, Lz = self.size
@@ -146,7 +146,7 @@ class RhombicCode(StabilizerCode):
 
         return coord_to_index
 
-    def _create_face_indices(self):
+    def _get_face_coordinates(self):
         """ Face = cube stabilizer"""
         Lx, Ly, Lz = self.size
 
