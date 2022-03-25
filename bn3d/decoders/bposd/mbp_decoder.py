@@ -271,7 +271,7 @@ class MemoryBeliefPropagationDecoder(Decoder):
         probabilities = np.vstack([pi, px, py, pz])
 
         correction = mbp_decoder(
-            code.stabilizers, syndrome, probabilities, max_bp_iter=self._max_bp_iter,
+            code.stabilizer_matrix, syndrome, probabilities, max_bp_iter=self._max_bp_iter,
             alpha=self._alpha, beta=self._beta
         )
         correction = np.concatenate([correction[n_qubits:], correction[:n_qubits]])
@@ -300,7 +300,7 @@ def test_decoder():
     # code = Planar2DCode(L, L)
     code = Toric2DCode(L, L)
 
-    code.stabilizers
+    code.stabilizer_matrix
     n = code.n
 
     probability = 0.01
@@ -326,7 +326,7 @@ def test_decoder():
 
         print("Error", error)
         print("Calculate syndrome")
-        syndrome = bcommute(code.stabilizers, error)
+        syndrome = bcommute(code.stabilizer_matrix, error)
         print("Syndrome", syndrome)
         print(np.unique(syndrome, return_index=True))
         print("Decode")
@@ -338,7 +338,7 @@ def test_decoder():
             total_error, code.logicals_x, code.logicals_z
         )
         print("Check codespace")
-        codespace = bool(np.all(bcommute(code.stabilizers, total_error) == 0))
+        codespace = bool(np.all(bcommute(code.stabilizer_matrix, total_error) == 0))
         success = bool(np.all(effective_error == 0)) and codespace
         print("Success:", success)
 
@@ -355,7 +355,7 @@ def test_decoder():
         error[1] = 1
         print(error)
         print("Calculate syndrome")
-        syndrome = bcommute(code.stabilizers, error)
+        syndrome = bcommute(code.stabilizer_matrix, error)
         print(syndrome)
         print(np.unique(syndrome, return_index=True))
         print("Decode")
@@ -367,7 +367,7 @@ def test_decoder():
             total_error, code.logicals_x, code.logicals_z
         )
         print("Check codespace")
-        codespace = bool(np.all(bcommute(code.stabilizers, total_error) == 0))
+        codespace = bool(np.all(bcommute(code.stabilizer_matrix, total_error) == 0))
         success = bool(np.all(effective_error == 0)) and codespace
         print("Success:", success)
 

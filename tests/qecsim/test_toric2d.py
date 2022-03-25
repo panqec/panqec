@@ -38,18 +38,18 @@ def test_general_properties(code, lattice_size):
     assert code.n == n_qubits
     assert code.k == 2
     assert code.d == min(L_x, L_y)
-    assert len(code.stabilizers) == 2*L_x*L_y
+    assert len(code.stabilizer_matrix) == 2*L_x*L_y
     assert len(code.logicals_x) == 2
     assert len(code.logicals_z) == 2
 
 
 def test_stabilizers_commute(code, lattice_size):
     L_x, L_y, n_qubits = lattice_size
-    assert code.stabilizers.shape == (n_qubits, 2*n_qubits)
+    assert code.stabilizer_matrix.shape == (n_qubits, 2*n_qubits)
     commutations = np.array([
         bsp(stabilizer_1, stabilizer_2)
-        for stabilizer_1 in code.stabilizers
-        for stabilizer_2 in code.stabilizers
+        for stabilizer_1 in code.stabilizer_matrix
+        for stabilizer_2 in code.stabilizer_matrix
     ])
     assert np.all(commutations == 0)
 
@@ -57,14 +57,14 @@ def test_stabilizers_commute(code, lattice_size):
 def test_stabilizers_commute_with_logicals(code):
     logical_x_stabilizer_commutations = np.array([
         bsp(stabilizer, logical_x)
-        for stabilizer in code.stabilizers
+        for stabilizer in code.stabilizer_matrix
         for logical_x in code.logicals_x
     ])
     assert np.all(logical_x_stabilizer_commutations == 0)
 
     logical_z_stabilizer_commutations = np.array([
         bsp(stabilizer, logical_z)
-        for stabilizer in code.stabilizers
+        for stabilizer in code.stabilizer_matrix
         for logical_z in code.logicals_z
     ])
     assert np.all(logical_z_stabilizer_commutations == 0)
@@ -112,7 +112,7 @@ def test_syndrome_calculation(code):
     )
 
     # Calculate the syndrome.
-    syndrome = bsp(error.to_bsf(), code.stabilizers.T)
+    syndrome = bsp(error.to_bsf(), code.stabilizer_matrix.T)
     assert code.ascii_art(syndrome=syndrome) == (
         '┼───┼───┼───┼───┼──\n'
         '│   │   │   │   │  \n'
@@ -145,7 +145,7 @@ def test_mwpm_decoder(code, decoder):
         '·   ·   ·   ·   ·  '
     )
 
-    syndrome = bsp(error.to_bsf(), code.stabilizers.T)
+    syndrome = bsp(error.to_bsf(), code.stabilizer_matrix.T)
     assert code.ascii_art(syndrome=syndrome) == (
         '┼───┼───┼───┼───┼──\n'
         '│   │   │   │   │  \n'
@@ -185,7 +185,7 @@ def test_mwpm_decoder(code, decoder):
     # in the code space.
     assert all([
         bsp(total_error, stabilizer) == 0
-        for stabilizer in code.stabilizers
+        for stabilizer in code.stabilizer_matrix
     ])
 
     # Test that no logical error has occured either.

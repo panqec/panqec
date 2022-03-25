@@ -30,7 +30,7 @@ class Toric3DPymatchingDecoder(Decoder):
         n_qubits = code.n
 
         # Only keep the Z vertex stabilizers.
-        H_z = code.stabilizers[n_faces:, n_qubits:]
+        H_z = code.stabilizer_matrix[n_faces:, n_qubits:]
         return Matching(H_z)
 
     def get_matcher(self, code: StabilizerCode) -> Matching:

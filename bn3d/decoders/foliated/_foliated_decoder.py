@@ -42,7 +42,7 @@ class FoliatedMatchingDecoder(Decoder):
 
         # Only keep the Z vertex stabilizers and Z block.
         # First index is the vertex and second index is the qubit (edge).
-        H_z = code.stabilizers[n_faces:, n_qubits:]
+        H_z = code.stabilizer_matrix[n_faces:, n_qubits:]
 
         # Reshape into ndarray with indices 0, 1, 2 denoting coordinate of
         # the vertex for each stabilizer generator, and index 3, 4, 5, 6

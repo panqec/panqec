@@ -148,7 +148,7 @@ class TestDeformedDecoder:
         probability = 0.1
         decoder = DeformedSweepMatchDecoder(error_model, probability)
 
-        syndrome = np.zeros(len(code.stabilizers), dtype=np.uint)
+        syndrome = np.zeros(len(code.stabilizer_matrix), dtype=np.uint)
         correction = decoder.decode(code, syndrome)
         assert np.all(correction == 0)
         assert issubclass(correction.dtype.type, np.integer)
@@ -165,13 +165,13 @@ class TestDeformedDecoder:
         assert np.any(error != 0)
 
         # Calculate the syndrome and make sure it's nontrivial.
-        syndrome = bcommute(code.stabilizers, error)
+        syndrome = bcommute(code.stabilizer_matrix, error)
         assert np.any(syndrome != 0)
 
         # Total error should be in code space.
         correction = decoder.decode(code, syndrome)
         total_error = (error + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     @pytest.mark.parametrize(
         'operator, location',
@@ -202,13 +202,13 @@ class TestDeformedDecoder:
         assert np.any(error != 0)
 
         # Calculate the syndrome and make sure it's nontrivial.
-        syndrome = bcommute(code.stabilizers, error)
+        syndrome = bcommute(code.stabilizer_matrix, error)
         assert np.any(syndrome != 0)
 
         # Total error should be in code space.
         correction = decoder.decode(code, syndrome)
         total_error = (error + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     def test_deformed_pymatching_weights_nonuniform(self, code):
         error_model = DeformedXZZXErrorModel(0.1, 0.2, 0.7)
@@ -285,10 +285,10 @@ class TestDeformedSweepDecoder3D:
         decoder = DeformedSweepDecoder3D(error_model, probability)
         n = code.n
         error = np.zeros(2*n, dtype=np.uint)
-        syndrome = bcommute(code.stabilizers, error)
+        syndrome = bcommute(code.stabilizer_matrix, error)
         correction = decoder.decode(code, syndrome)
         total_error = (correction + error) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 
     def test_all_3_faces_active(self, code):
@@ -302,10 +302,10 @@ class TestDeformedSweepDecoder3D:
         error_model = DeformedXZZXErrorModel(1/3, 1/3, 1/3)
         probability = 0.5
         decoder = DeformedSweepDecoder3D(error_model, probability)
-        syndrome = bcommute(code.stabilizers, error)
+        syndrome = bcommute(code.stabilizer_matrix, error)
         correction = decoder.decode(code, syndrome)
         total_error = (error + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
 
 @pytest.mark.skip(reason='sparse')
@@ -317,10 +317,10 @@ class TestDeformedToric3DPymatchingDecoder:
         decoder = DeformedToric3DPymatchingDecoder(error_model, probability)
         n = code.n
         error = np.zeros(2*n, dtype=np.uint)
-        syndrome = bcommute(code.stabilizers, error)
+        syndrome = bcommute(code.stabilizer_matrix, error)
         correction = decoder.decode(code, syndrome)
         total_error = (correction + error) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 
 
@@ -339,11 +339,11 @@ class TestMatchingXNoiseOnYZEdgesOnly:
                 code, probability=probability, rng=rng
             )
             assert any(error), 'Error should be non-trivial'
-            syndrome = bcommute(code.stabilizers, error)
+            syndrome = bcommute(code.stabilizer_matrix, error)
             correction = decoder.decode(code, syndrome)
             assert any(correction), 'Correction should be non-trivial'
             total_error = (correction + error) % 2
-            assert np.all(bcommute(code.stabilizers, total_error) == 0), (
+            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
                 'Total error should be in code space'
             )
 
@@ -386,11 +386,11 @@ class TestFoliatedDecoderXNoiseOnYZEdgesOnly:
                 code, probability=probability, rng=rng
             )
             assert any(error), 'Error should be non-trivial'
-            syndrome = bcommute(code.stabilizers, error)
+            syndrome = bcommute(code.stabilizer_matrix, error)
             correction = decoder.decode(code, syndrome)
             assert any(correction), 'Correction should be non-trivial'
             total_error = (correction + error) % 2
-            assert np.all(bcommute(code.stabilizers, total_error) == 0), (
+            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
                 'Total error should be in code space'
             )
 

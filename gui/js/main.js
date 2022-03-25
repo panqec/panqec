@@ -195,7 +195,7 @@ function changeLatticeSize() {
         scene.remove(q);
     });
 
-    code.stabilizers.forEach(s => {
+    code.stabilizer_matrix.forEach(s => {
         s.material.dispose();
         s.geometry.dispose();
 

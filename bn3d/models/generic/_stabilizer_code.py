@@ -6,17 +6,18 @@ from ... import bsparse
 from scipy.sparse import csr_matrix
 
 Indexer = Dict[Tuple, int]  # coordinate to index
+Operator = Dict[Tuple, str]  # Coordinate to pauli ('X', 'Y' or 'Z')
 
 
 class StabilizerCode(metaclass=ABCMeta):
     """Abstract class for generic stabilizer codes (CSS or not)
 
     Any subclass should override the following four methods:
-    - _get_qubit_coordinates() to define all the coordinates in the lattice
+    - get_qubit_coordinates() to define all the coordinates in the lattice
     that contain qubits
-    - _get_vertex_coordinates() to define all the coordinates in the lattice
+    - get_vertex_coordinates() to define all the coordinates in the lattice
     that contain vertices (could also be another type of stabilizer)
-    - _get_face_coordinates() to define all the coordinates in the lattice
+    - get_face_coordinates() to define all the coordinates in the lattice
     that contain faces (could also be another type of stabilizer)
     - axis(location) to return the axis of a qubit at a given location (when qubit
     have an orientation in space, for instance when they are edges)
@@ -39,6 +40,7 @@ class StabilizerCode(metaclass=ABCMeta):
     _Hz = np.array([])  # Parity-check matrix for Z stabilizers
     _logicals_x = np.array([])  # Parity-check matrix for Z stabilizers
     _logicals_z = np.array([])
+    _is_css = None
 
     def __init__(
         self, L_x: int,
@@ -118,27 +120,18 @@ class StabilizerCode(metaclass=ABCMeta):
         """Returns the list of all the coordinates that contain a qubit"""
 
         if len(self._qubit_coordinates) == 0:
-            self._qubit_coordinates = self._get_qubit_coordinates()
+            self._qubit_coordinates = self.get_qubit_coordinates()
 
         return self._qubit_coordinates
 
     @property
-    def vertex_coordinates(self) -> Indexer:
+    def stabilizer_coordinates(self) -> Indexer:
         """Returns the list of all the coordinates that contain a vertex"""
 
-        if len(self._vertex_coordinates) == 0:
-            self._vertex_coordinates = self._get_vertex_coordinates()
+        if len(self._stabilizer_coordinates) == 0:
+            self._stabilizer_coordinates = self.get_stabilizer_coordinates()
 
-        return self._vertex_coordinates
-
-    @property
-    def face_coordinates(self) -> Indexer:
-        """Returns the list of all the coordinates that contain a face"""
-
-        if len(self._face_coordinates) == 0:
-            self._face_coordinates = self._get_face_coordinates()
-
-        return self._face_index
+        return self._stabilizer_coordinates
 
     @property
     def qubit_index(self) -> List[Tuple]:
@@ -150,38 +143,24 @@ class StabilizerCode(metaclass=ABCMeta):
         return self._qubit_index
 
     @property
-    def vertex_index(self) -> List[Tuple]:
+    def stabilizer_index(self) -> List[Tuple]:
         """Returns a dictionary that assigns an index to a given vertex coordinate"""
 
-        if len(self._vertex_index) == 0:
-            self._vertex_index = {loc: i for i, loc in enumerate(self.vertex_coordinates)}
+        if len(self._stabilizer_index) == 0:
+            self._stabilizer_index = {loc: i for i, loc in enumerate(self.stabilizer_coordinates)}
 
-        return self._vertex_index
-
-    @property
-    def face_index(self) -> List[Tuple]:
-        """Returns a dictionary that assigns an index to a given face coordinate"""
-
-        if len(self._face_index) == 0:
-            self._face_index = {loc: i for i, loc in enumerate(self.face_coordinates)}
-
-        return self._face_index
+        return self._stabilizer_index
 
     @property
-    def n_faces(self) -> int:
-        """Return the number of face stabilizers"""
-        return len(self.face_index)
-
-    @property
-    def n_vertices(self) -> int:
-        """Return the number of vertex stabilizers"""
-        return len(self.vertex_index)
+    def n_stabilizers(self) -> int:
+        """Return the number of stabilizer generators"""
+        return len(self.stabilizer_index)
 
     @property
     def logicals_x(self) -> csr_matrix:
         """Returns the logicals X in the sparse bsf format"""
         if self._logicals_x.size == 0:
-            for logical_op in self._get_logicals_x():
+            for logical_op in self.get_logicals_x():
                 self._logicals_x = bsparse.vstack([self._logicals_x, self.to_bsf(logical_op)])
 
         return self._logicals_x
@@ -190,64 +169,35 @@ class StabilizerCode(metaclass=ABCMeta):
     def logicals_z(self) -> csr_matrix:
         """Returns the logicals X in the sparse bsf format"""
         if self._logicals_z.size == 0:
-            for logical_op in self._get_logicals_z():
+            for logical_op in self.get_logicals_z():
                 self._logicals_z = bsparse.vstack([self._logicals_z, self.to_bsf(logical_op)])
 
         return self._logicals_z
 
-    @abstractmethod
-    def _get_qubit_coordinates(self) -> List[Tuple]:
-        """Create qubit indices.
-        Should return a dictionary that assigns an index to a given qubit coordinate.
-        It can be constructed by first creating a list of coordinates (all the locations
-        in a coordinate system that contain a qubit) and then converting it to a dictionary
-        with the correct format
-        """
-        raise NotImplementedError
+    @property
+    def is_css(self) -> bool:
+        if self._is_css is None:
+            H1 = self.stabilizer_matrix[:, :self.n]
+            H2 = self.stabilizer_matrix[:, self.n:]
 
-    @abstractmethod
-    def _get_vertex_coordinates(self) -> List[Tuple]:
-        """Create vertex indices.
-        Should return a dictionary that assigns an index to a given qubit coordinate.
-        It can be constructed by first creating a list of coordinates (all the locations
-        in a coordinate system that contain a qubit) and then converting it to a dictionary
-        with the correct format
-        """
-        raise NotImplementedError
+            # CSS if the rows of nonzero elements between H1 and H2 don't intersect
+            self.is_css = (len(np.intersect1d(H1.nonzero()[0], H2.nonzero()[0])) == 0)
 
-    @abstractmethod
-    def _get_face_coordinates(self) -> List[Tuple]:
-        """Create face indices.
-        Should return a dictionary that assigns an index to a given qubit coordinate.
-        It can be constructed by first creating a list of coordinates (all the locations
-        in a coordinate system that contain a qubit) and then converting it to a dictionary
-        with the correct format
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def axis(self, location) -> int:
-        """ Return the axis of a qubit sitting at given location.
-        Useful when qubits have an orientation in space, for instance when they are edges,
-        to simplify the construction of stabilizers and the Clifford deformations
-        """
-        raise NotImplementedError
+        return self._is_css
 
     @property
-    def stabilizers(self) -> csr_matrix:
+    def stabilizer_matrix(self) -> csr_matrix:
         """Returns the parity-check matrix of the code.
         It is a sparse matrix of dimension k x 2n, where k is the number of stabilizers
         and n the number of qubits
         """
 
-        if bsparse.is_empty(self._stabilizers):
-            face_stabilizers = self.get_face_stabilizers()
-            vertex_stabilizers = self.get_vertex_stabilizers()
-            self._stabilizers = bsparse.vstack([
-                face_stabilizers,
-                vertex_stabilizers,
-            ])
-        return self._stabilizers
+        if bsparse.is_empty(self._stabilizer_matrix):
+            for stabilizer_location in self.stabilizer_index:
+                stabilizer_op = self.get_stabilizer(stabilizer_location, deformed_axis=self._deformed_axis)
+                self._stabilizer_matrix = bsparse.vstack([self._stabilizer_matrix, self.to_bsf(stabilizer_op)])
+
+        return self._stabilizer_matrix
 
     @property
     def size(self) -> Tuple:
@@ -255,60 +205,38 @@ class StabilizerCode(metaclass=ABCMeta):
         return self._size
 
     @property
-    def Hz(self) -> csr_matrix:
-        """Returns a parity-check matrix of dimension k x n (in sparse format)
-        where k is the number of face stabilizers and n the number of qubits.
-        Useful only for CSS codes, where face stabilizers only contain X operators
-        """
-        if self._Hz.shape[0] == 0:
-            self._Hz = self.stabilizers[:self.n_faces, :self.n]
-        return self._Hz
-
-    @property
     def Hx(self) -> csr_matrix:
         """Returns a parity-check matrix of dimension k x n (in sparse format)
         where k is the number of face stabilizers and n the number of qubits.
         Useful only for CSS codes, where face stabilizers only contain Z operators
         """
+
+        if not self.is_css:
+            raise ValueError("Impossible to extract Hz: the code is not CSS")
+
         if self._Hx.shape[0] == 0:
-            self._Hx = self.stabilizers[self.n_faces:, self.n:]
+            H = self.stabilizer_matrix[:, :self.n]
+            self._Hx = H[H.getnnz(1) > 0]
+
         return self._Hx
 
-    @abstractmethod
-    def _vertex(self, location) -> Dict[Tuple, str]:
-        """Defines a vertex stabilizer, by return a dictionary whose keys are the qubit
-        coordinates involved in the stabilizer and whose values are the Pauli operator at
-        that coordinate ('X', 'Y' or 'Z')
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def _face(self, location) -> Dict[Tuple, str]:
-        """Defines a vertex stabilizer, by return a dictionary whose keys are the qubit
-        coordinates involved in the stabilizer and whose values are the Pauli operator at
-        that coordinate ('X', 'Y' or 'Z')
-        """
-        raise NotImplementedError
-
     @property
-    @abstractmethod
-    def _get_logicals_x(self) -> csr_matrix:
-        """Return the logical X operators in the sparse binary symplectic format
-        It should have dimension k x 2n, with k the number of logicals X
-        (i.e. the number of logical qubits) and n the number of qubits
+    def Hz(self) -> csr_matrix:
+        """Returns a parity-check matrix of dimension k x n (in sparse format)
+        where k is the number of face stabilizers and n the number of qubits.
+        Useful only for CSS codes, where face stabilizers only contain X operators
         """
-        raise NotImplementedError
 
-    @property
-    @abstractmethod
-    def _get_logicals_z(self) -> csr_matrix:
-        """Return the logical Z operators in the sparse binary symplectic format
-        It should have dimension k x 2n, with k the number of logicals X
-        (i.e. the number of logical qubits) and n the number of qubits
-        """
-        raise NotImplementedError
+        if not self.is_css:
+            raise ValueError("Impossible to extract Hz: the code is not CSS")
 
-    def to_bsf(self, operator: Dict[Tuple, str]) -> csr_matrix:
+        if self._Hz.shape[0] == 0:
+            H = self.stabilizer_matrix[:, self.n:]
+            self._Hz = H[H.getnnz(1) > 0]
+
+        return self._Hz
+
+    def to_bsf(self, operator: Operator) -> csr_matrix:
         bsf_operator = bsparse.zero_row(2*self.n)
 
         for qubit_location in operator.keys():
@@ -319,7 +247,7 @@ class StabilizerCode(metaclass=ABCMeta):
 
         return bsf_operator
 
-    def from_bsf(self, bsf_operator: csr_matrix) -> Dict[Tuple, str]:
+    def from_bsf(self, bsf_operator: csr_matrix) -> Operator:
         assert bsf_operator.shape[0] == 1
 
         operator = dict()
@@ -337,52 +265,82 @@ class StabilizerCode(metaclass=ABCMeta):
 
         return operator
 
-    def get_vertex_stabilizers(self):
-        """Returns the parity-check matrix of vertex stabilizers
-        It is a sparse matrix of dimension k x 2n, where k is the number of vertex
-        stabilizers and n the number of qubits.
-        Note that it can contain both X and Z paulis
-        """
-        vertex_stabilizers = bsparse.empty_row(2*self.n)
-
-        for vertex_location in self.vertex_index.keys():
-            vertex_op = self._vertex(vertex_location, deformed_axis=self._deformed_axis)
-            vertex_stabilizers = bsparse.vstack([vertex_stabilizers, self.to_bsf(vertex_op)])
-
-        return vertex_stabilizers
-
-    def get_face_stabilizers(self):
-        """Returns the parity-check matrix of face stabilizers
-        It is a sparse matrix of dimension k x 2n, where k is the number of face
-        stabilizers and n the number of qubits.
-        Note that it can contain both X and Z paulis
-        """
-        face_stabilizers = bsparse.empty_row(2*self.n)
-
-        for face_location in self.face_index.keys():
-            face_op = self._face(face_location, deformed_axis=self._deformed_axis)
-            face_stabilizers = bsparse.vstack([face_stabilizers, self.to_bsf(face_op)])
-
-        return face_stabilizers
-
     def measure_syndrome(self, error) -> np.ndarray:
         """Perfectly measure syndromes given Pauli error."""
         return bcommute(self.stabilizers, error.to_bsf())
 
-    def is_face(self, location: Tuple) -> bool:
+    def is_stabilizer(self, location: Tuple, stab_type: str = None):
         """Returns whether a given location in the coordinate system
-        corresponds to a face or not
+        corresponds to a stabilizer or not
         """
-        return location in self.face_index.keys()
+        _is_stabilizer = (location in self.stabilizer_index.keys()) and\
+                         (stab_type is None or self.stabilizer_type(location) == stab_type)
 
-    def is_vertex(self, location):
-        """Returns whether a given location in the coordinate system
-        corresponds to a vertex or not
-        """
-        return location in self.vertex_index.keys()
+        return _is_stabilizer
 
-    def is_qubit(self, location):
+    def is_qubit(self, location: Tuple):
         """Returns whether a given location in the coordinate system
         corresponds to a qubit or not
         """
         return location in self.qubit_index.keys()
+
+    @abstractmethod
+    def get_qubit_coordinates(self) -> List[Tuple]:
+        """Create qubit indices.
+        Should return a dictionary that assigns an index to a given qubit coordinate.
+        It can be constructed by first creating a list of coordinates (all the locations
+        in a coordinate system that contain a qubit) and then converting it to a dictionary
+        with the correct format
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_stabilizer_coordinates(self) -> List[Tuple]:
+        """Create stabilizer indices.
+        Should return a dictionary that assigns an index to a given stabilizer coordinate.
+        It can be constructed by first creating a list of coordinates (all the locations
+        in a coordinate system that contain a qubit) and then converting it to a dictionary
+        with the correct format
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def axis(self, location) -> int:
+        """ Return the axis of a qubit sitting at given location.
+        Useful when qubits have an orientation in space, for instance when they are edges,
+        to simplify the construction of stabilizers and the Clifford deformations
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def stabilizer_type(self, location) -> str:
+        """ Return the type of a stabilizer sitting at `location`.
+        E.g. 'vertex' or 'face' in toric codes
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_stabilizer(self, location, deformed_axis=None) -> Operator:
+        """ Returns a stabilizer, formatted as dictionary that assigns a Pauli operator
+        ('X', 'Y' or 'Z') to each qubit location in the support of the stabilizer
+        E.g. for a vertex stabilizer, `get_stabilizer((1,1)) -> {(1,0): 'X', (0, 1): 'X', (2, 1): 'X', (1, 2): 'X'}`
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_logicals_x(self) -> Operator:
+        """Return the logical X operators as a dictionary that assigns a Pauli operator
+        ('X', 'Y' or 'Z') to each qubit location in the support of the logical operator
+        It should have dimension k x 2n, with k the number of logicals X
+        (i.e. the number of logical qubits) and n the number of qubits
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_logicals_z(self) -> Operator:
+        """Return the logical Z operators as a dictionary that assigns a Pauli operator
+        ('X', 'Y' or 'Z') to each qubit location in the support of the logical operator
+        It should have dimension k x 2n, with k the number of logicals X
+        (i.e. the number of logical qubits) and n the number of qubits
+        """
+        raise NotImplementedError

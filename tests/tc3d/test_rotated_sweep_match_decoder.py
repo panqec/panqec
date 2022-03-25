@@ -25,10 +25,10 @@ class TestRotatedSweepMatchDecoder:
         assert decoder.decode is not None
 
     def test_decode_trivial_syndrome(self, decoder, code):
-        syndrome = np.zeros(shape=len(code.stabilizers), dtype=np.uint)
+        syndrome = np.zeros(shape=len(code.stabilizer_matrix), dtype=np.uint)
         correction = decoder.decode(code, syndrome)
         assert correction.shape[0] == 2*code.n
-        assert np.all(bcommute(code.stabilizers, correction) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 
     @pytest.mark.parametrize(
@@ -51,7 +51,7 @@ class TestRotatedSweepMatchDecoder:
 
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     @pytest.mark.parametrize('sweep_direction, diffs', [
         [(+1, 0, +1), [(+1, +1, +1), (+1, -1, +1), (+2, 0, 0)]],
@@ -136,7 +136,7 @@ class TestRotatedSweepMatchDecoder:
 
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     def test_undecodable_error(self, decoder, code):
         locations = [
@@ -171,7 +171,7 @@ class TestRotatedSweepMatchDecoder:
             syndrome = code.measure_syndrome(error)
             correction = decoder.decode(code, syndrome)
             total_error = (error.to_bsf() + correction) % 2
-            assert np.all(bcommute(code.stabilizers, total_error) == 0)
+            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
 
 @pytest.mark.skip(reason='sparse')
@@ -208,7 +208,7 @@ class TestSweepMatch1x1x1:
 
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
-        assert not np.all(bcommute(code.stabilizers, total_error) == 0), (
+        assert not np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
             'Total error not in codespace'
         )
 
@@ -265,7 +265,7 @@ class TestSweepMatch2x2x2:
 
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0), (
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
             'Total error not in codespace'
         )
 
@@ -308,7 +308,7 @@ class TestSweepMatch2x2x2:
 
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
-        assert not np.all(bcommute(code.stabilizers, total_error) == 0), (
+        assert not np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
             'Total error in codespace'
         )
 
@@ -343,7 +343,7 @@ class TestSweepCorners:
 
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0), (
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
             'Total error not in codespace'
         )
 
@@ -367,7 +367,7 @@ class TestSweepCorners:
 
             correction = decoder.decode(code, syndrome)
             total_error = (error.to_bsf() + correction) % 2
-            assert np.all(bcommute(code.stabilizers, total_error) == 0)
+            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
             correctable = True
             if np.any(bcommute(code.logicals_x, total_error) != 0):
@@ -399,7 +399,7 @@ class TestSweepCorners:
 
             correction = decoder.decode(code, syndrome)
             total_error = (error.to_bsf() + correction) % 2
-            assert np.all(bcommute(code.stabilizers, total_error) == 0)
+            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
             correctable = True
             if np.any(bcommute(code.logicals_x, total_error) != 0):
@@ -479,9 +479,9 @@ class TestRotatedSweepDecoder3D:
                     for edge in [x_edge, y_edge, z_edge]
                 )
                 if all(faces_valid) and all(edges_valid):
-                    x_face_bsf = code.stabilizers[code.face_index[x_face]]
-                    y_face_bsf = code.stabilizers[code.face_index[y_face]]
-                    z_face_bsf = code.stabilizers[code.face_index[z_face]]
+                    x_face_bsf = code.stabilizer_matrix[code.face_index[x_face]]
+                    y_face_bsf = code.stabilizer_matrix[code.face_index[y_face]]
+                    z_face_bsf = code.stabilizer_matrix[code.face_index[z_face]]
 
                     error = RotatedPlanar3DPauli(code)
                     x_edge_bsf = error.site('Z', x_edge).to_bsf()
@@ -524,6 +524,6 @@ class TestRotatedSweepDecoder3D:
 
             error = RotatedPlanar3DPauli(code)
             error_bsf = error.site('Z', edge).to_bsf()
-            pauli_syndrome = bcommute(code.stabilizers[:n_faces], error_bsf)
+            pauli_syndrome = bcommute(code.stabilizer_matrix[:n_faces], error_bsf)
 
             assert np.all(pauli_syndrome == sign_flip_syndrome)

@@ -66,7 +66,7 @@ class TestRotatedInfiniteZBiasDecoder:
 
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0), (
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
             'Total error not in codespace'
         )
 
@@ -104,7 +104,7 @@ class TestRotatedInfiniteZBiasDecoder:
             correction = decoder.decode(code, syndrome)
             total_error = (error.to_bsf() + correction) % 2
 
-            assert np.all(bcommute(code.stabilizers, total_error) == 0)
+            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
             correctable = True
             if np.any(bcommute(code.logicals_x, total_error) != 0):
@@ -146,7 +146,7 @@ class TestRotatedInfiniteZBiasDecoder:
             total_error = (error.to_bsf() + correction) % 2
 
             decodable = True
-            if np.any(bcommute(code.stabilizers, total_error) != 0):
+            if np.any(bcommute(code.stabilizer_matrix, total_error) != 0):
                 decodable = False
             if not decodable:
                 undecodable_error_locations.append(locations)

@@ -148,9 +148,9 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
         assert locations == expected_locations
 
     def test_all_stabilizers_commute(self, code):
-        commutators = bcommute(code.stabilizers, code.stabilizers)
+        commutators = bcommute(code.stabilizer_matrix, code.stabilizer_matrix)
         print_non_commuting(
-            code, commutators, code.stabilizers, code.stabilizers,
+            code, commutators, code.stabilizer_matrix, code.stabilizer_matrix,
             'stabilizer', 'stabilizer'
         )
 
@@ -159,7 +159,7 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
 
     def test_n_indepdent_stabilizers_equals_n_minus_k(self, code):
         n, k = code.n, code.k
-        matrix = code.stabilizers
+        matrix = code.stabilizer_matrix
 
         # Number of independent stabilizer generators.
         rank = brank(matrix)
@@ -182,14 +182,14 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
         )
 
     def test_logical_operators_commute_with_stabilizers(self, code):
-        x_commutators = bcommute(code.logicals_x, code.stabilizers)
+        x_commutators = bcommute(code.logicals_x, code.stabilizer_matrix)
         print_non_commuting(
-            code, x_commutators, code.logicals_x, code.stabilizers,
+            code, x_commutators, code.logicals_x, code.stabilizer_matrix,
             'logicalX', 'stabilizer'
         )
-        z_commutators = bcommute(code.logicals_z, code.stabilizers)
+        z_commutators = bcommute(code.logicals_z, code.stabilizer_matrix)
         print_non_commuting(
-            code, z_commutators, code.logicals_z, code.stabilizers,
+            code, z_commutators, code.logicals_z, code.stabilizer_matrix,
             'logicalZ', 'stabilizer'
         )
         assert np.all(x_commutators == 0), (
@@ -201,7 +201,7 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
 
     def test_logical_operators_are_independent_by_rank(self, code):
         n, k, _ = code.n, code.k
-        matrix = code.stabilizers
+        matrix = code.stabilizer_matrix
 
         # Number of independent stabilizer generators.
         rank = brank(matrix)
@@ -220,7 +220,7 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
     @pytest.mark.skip(reason='brute force')
     def test_find_lowest_weight_Z_only_logical_by_brute_force(self, code):
         n, k = code.n, code.k
-        matrix = code.stabilizers
+        matrix = code.stabilizer_matrix
 
         coords = {v: k for k, v in code.qubit_index.items()}
 
@@ -473,7 +473,7 @@ class TestRotatedToric3DDeformation:
                     'n': code.n,
                     'k': code.k,
                     'd': code.d,
-                    'stabilizers': code.stabilizers.tolist(),
+                    'stabilizers': code.stabilizer_matrix.tolist(),
                     'logicals_x': code.logicals_x.tolist(),
                     'logicals_z': code.logicals_z.tolist(),
                 },
@@ -482,7 +482,7 @@ class TestRotatedToric3DDeformation:
                     'k': code.k,
                     'd': code.d,
                     'stabilizers': apply_deformation(
-                        deformation_index, code.stabilizers
+                        deformation_index, code.stabilizer_matrix
                     ).tolist(),
                     'logicals_x': apply_deformation(
                         deformation_index, code.logicals_x
@@ -513,10 +513,10 @@ class TestBPOSDOnRotatedToric3DCodeOddTimesEven:
             error_pauli = RotatedToric3DPauli(code)
             error_pauli.site(pauli, site)
             error = error_pauli.to_bsf()
-            syndrome = bcommute(code.stabilizers, error)
+            syndrome = bcommute(code.stabilizer_matrix, error)
             correction = decoder.decode(code, syndrome)
             total_error = (error + correction) % 2
-            if not np.all(bcommute(code.stabilizers, total_error) == 0):
+            if not np.all(bcommute(code.stabilizer_matrix, total_error) == 0):
                 failing_cases.append(site)
         n_failing = len(failing_cases)
         max_show = 100

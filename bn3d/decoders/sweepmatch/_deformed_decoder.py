@@ -29,7 +29,7 @@ class DeformedToric3DPymatchingDecoder(Toric3DPymatchingDecoder):
         n_qubits = code.n
 
         # Only keep the Z vertex stabilizers.
-        H_z = code.stabilizers[n_faces:, n_qubits:]
+        H_z = code.stabilizer_matrix[n_faces:, n_qubits:]
         weights = self.get_deformed_weights(code)
         return Matching(H_z, spacelike_weights=weights)
 
@@ -143,7 +143,7 @@ class DeformedRotatedPlanarPymatchingDecoder(RotatedPlanarPymatchingDecoder):
         self._n_qubits[code.label] = n_qubits
 
         # Only keep the Z vertex stabilizers.
-        H_z = code.stabilizers[n_faces:, n_qubits:]
+        H_z = code.stabilizer_matrix[n_faces:, n_qubits:]
         weights = self.get_deformed_weights(code)
         return Matching(H_z, spacelike_weights=weights)
 

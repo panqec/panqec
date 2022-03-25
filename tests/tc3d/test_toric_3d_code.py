@@ -93,7 +93,7 @@ class TestToric3DCode:
 
     def test_get_all_stabilizers(self, code):
         n = code.n
-        stabilizers = code.stabilizers
+        stabilizers = code.stabilizer_matrix
 
         # Total number of stabilizers.
         assert stabilizers.shape[0] == 4*np.product(code.size)
@@ -127,7 +127,7 @@ class TestCommutationRelationsToric3DCode:
         return new_code
 
     def test_stabilizers_commute_with_each_other(self, code):
-        assert np.all(bcommute(code.stabilizers, code.stabilizers) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, code.stabilizer_matrix) == 0)
 
     def test_Z_logicals_commute_with_each_other(self, code):
         assert np.all(bcommute(code.logicals_z, code.logicals_z) == 0)
@@ -140,7 +140,7 @@ class TestCommutationRelationsToric3DCode:
             logicals = np.concatenate([code.logicals_x, code.logicals_z])
         else:
             logicals = bsparse.vstack([code.logicals_x, code.logicals_z])
-        assert np.all(bcommute(logicals, code.stabilizers) == 0)
+        assert np.all(bcommute(logicals, code.stabilizer_matrix) == 0)
 
     def test_logicals_anticommute_correctly(self, code):
         assert np.all(

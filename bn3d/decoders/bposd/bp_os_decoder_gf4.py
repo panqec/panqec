@@ -314,7 +314,7 @@ if __name__ == "__main__":
 
     error_model = PauliErrorModel(r_x, r_y, r_z)
     errors = error_model.generate(code, probability)
-    syndrome = pt.bsp(errors, code.stabilizers.T)
+    syndrome = pt.bsp(errors, code.stabilizer_matrix.T)
 
     H = code.gf_H
     pi, px, py, pz = error_model.probability_distribution(code, probability)

@@ -30,7 +30,7 @@ class TestToric2DPymatchingDecoder:
         pauli.site(operator, location)
         error = pauli.to_bsf()
         assert bsf_wt(error) == 1, 'Error should be weight 1'
-        syndromes = bcommute(code.stabilizers, error)
+        syndromes = bcommute(code.stabilizer_matrix, error)
         if operator in ['Z', 'X']:
             assert sum(syndromes) == 2, 'Should be 2 syndromes if X or Z error'
         elif operator == 'Y':
@@ -38,6 +38,6 @@ class TestToric2DPymatchingDecoder:
         correction = decoder.decode(code, syndromes)
         assert bsf_wt(correction) == 1, 'Correction should be weight 1'
         total_error = (error + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0), (
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
             'Total error should be in code space'
         )

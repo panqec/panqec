@@ -25,10 +25,10 @@ class TestSweepDecoder3D:
         assert decoder.decode is not None
 
     def test_decode_trivial_syndrome(self, decoder, code):
-        syndrome = np.zeros(shape=len(code.stabilizers), dtype=np.uint)
+        syndrome = np.zeros(shape=len(code.stabilizer_matrix), dtype=np.uint)
         correction = decoder.decode(code, syndrome)
         assert correction.shape == 2*code.n
-        assert np.all(bcommute(code.stabilizers, correction) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 
     def test_decode_Z_error(self, decoder, code):
@@ -42,7 +42,7 @@ class TestSweepDecoder3D:
 
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     def test_decode_many_Z_errors(self, decoder, code):
         error = Toric3DPauli(code)
@@ -56,7 +56,7 @@ class TestSweepDecoder3D:
 
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     def test_unable_to_decode_X_error(self, decoder, code):
         error = Toric3DPauli(code)
@@ -72,7 +72,7 @@ class TestSweepDecoder3D:
         total_error = (error.to_bsf() + correction) % 2
         assert np.all(error.to_bsf() == total_error)
 
-        assert np.any(bcommute(code.stabilizers, total_error) != 0)
+        assert np.any(bcommute(code.stabilizer_matrix, total_error) != 0)
 
     def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
 
@@ -94,7 +94,7 @@ class TestSweepDecoder3D:
             syndrome = code.measure_syndrome(error)
             correction = decoder.decode(code, syndrome)
             total_error = (error.to_bsf() + correction) % 2
-            assert np.all(bcommute(code.stabilizers, total_error) == 0)
+            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     def test_decode_error_on_two_edges_sharing_same_vertex(self):
         code = Toric3DCode(3, 3, 3)
@@ -103,10 +103,10 @@ class TestSweepDecoder3D:
         error_pauli.site('Z', (1, 0, 0))
         error_pauli.site('Z', (0, 1, 0))
         error = error_pauli.to_bsf()
-        syndrome = bcommute(code.stabilizers, error)
+        syndrome = bcommute(code.stabilizer_matrix, error)
         correction = decoder.decode(code, syndrome)
         total_error = (error + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     def test_decode_with_general_Z_noise(self):
         code = Toric3DCode(3, 3, 3)
@@ -119,11 +119,11 @@ class TestSweepDecoder3D:
             error = error_model.generate(
                 code, probability=0.1, rng=np.random
             )
-            syndrome = bcommute(code.stabilizers, error)
+            syndrome = bcommute(code.stabilizer_matrix, error)
             correction = decoder.decode(code, syndrome)
             total_error = (error + correction) % 2
             in_codespace.append(
-                np.all(bcommute(code.stabilizers, total_error) == 0)
+                np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
             )
 
         # Some will just be fails and not in code space, but assert that at
@@ -168,7 +168,7 @@ class TestSweepDecoder3D:
         correction = Toric3DPauli(code)
 
         # Compute the syndrome.
-        syndrome = bcommute(code.stabilizers, error)
+        syndrome = bcommute(code.stabilizer_matrix, error)
 
         signs = np.reshape(
             decoder.get_face_syndromes(code, syndrome),
@@ -205,7 +205,7 @@ class TestSweepDecoder3D:
         vertex_operator.vertex('Z', (0, 0, 0))
         assert np.all(total_error == vertex_operator.to_bsf())
 
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     def test_decode_loop_ok(self):
         code = Toric3DCode(3, 3, 3)
@@ -221,7 +221,7 @@ class TestSweepDecoder3D:
         error = error_pauli.to_bsf()
 
         # Compute the syndrome.
-        syndrome = bcommute(code.stabilizers, error)
+        syndrome = bcommute(code.stabilizer_matrix, error)
 
         signs = np.reshape(
             decoder.get_face_syndromes(code, syndrome),
@@ -238,7 +238,7 @@ class TestSweepDecoder3D:
         correction = decoder.decode(code, syndrome)
         total_error = (error + correction) % 2
 
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     def test_oscillating_cycle_fail(self):
         code = Toric3DCode(3, 3, 3)
@@ -258,7 +258,7 @@ class TestSweepDecoder3D:
             error_pauli.site('Z', site)
         error = error_pauli.to_bsf()
 
-        syndrome = bcommute(code.stabilizers, error)
+        syndrome = bcommute(code.stabilizer_matrix, error)
 
         # Signs array.
         signs = decoder.get_sign_array(code, syndrome)
@@ -277,11 +277,11 @@ class TestSweepDecoder3D:
         assert np.all(signs == start_signs)
 
         # The total correction is trivial.
-        assert np.all(bcommute(code.stabilizers, correction.to_bsf()) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, correction.to_bsf()) == 0)
 
         # The total error still is not in code space.
         total_error = (error + correction.to_bsf()) % 2
-        assert np.any(bcommute(code.stabilizers, total_error) != 0)
+        assert np.any(bcommute(code.stabilizer_matrix, total_error) != 0)
 
     def test_never_ending_staircase_fails(self):
         code = Toric3DCode(3, 3, 3)
@@ -299,7 +299,7 @@ class TestSweepDecoder3D:
         # assert error.sum() == 8
 
         # Compute the syndrome and make sure it's nontrivial.
-        syndrome = bcommute(code.stabilizers, error)
+        syndrome = bcommute(code.stabilizer_matrix, error)
         assert np.any(syndrome)
 
         # Check face X stabilizer syndrome measurements.
@@ -323,7 +323,7 @@ class TestSweepDecoder3D:
         total_error = (error + correction) % 2
 
         # Assert that decoding has failed.
-        np.any(bcommute(code.stabilizers, total_error))
+        np.any(bcommute(code.stabilizer_matrix, total_error))
 
     def test_sweep_move_two_edges(self):
         code = Toric3DCode(3, 3, 3)
@@ -333,7 +333,7 @@ class TestSweepDecoder3D:
         error.site('Z', (0, 1, 0))
         error.site('Z', (1, 0, 0))
 
-        syndrome = bcommute(code.stabilizers, error.to_bsf())
+        syndrome = bcommute(code.stabilizer_matrix, error.to_bsf())
 
         correction = Toric3DPauli(code)
 

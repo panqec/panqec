@@ -23,10 +23,10 @@ class TestSweepMatchDecoder:
         assert decoder.decode is not None
 
     def test_decode_trivial_syndrome(self, decoder, code):
-        syndrome = np.zeros(shape=len(code.stabilizers), dtype=np.uint)
+        syndrome = np.zeros(shape=len(code.stabilizer_matrix), dtype=np.uint)
         correction = decoder.decode(code, syndrome)
         assert correction.shape == 2*code.n
-        assert np.all(bcommute(code.stabilizers, correction) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 
     @pytest.mark.parametrize(
@@ -48,7 +48,7 @@ class TestSweepMatchDecoder:
 
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     @pytest.mark.parametrize(
         'paulis_locations',
@@ -76,7 +76,7 @@ class TestSweepMatchDecoder:
 
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
 
@@ -98,4 +98,4 @@ class TestSweepMatchDecoder:
             syndrome = code.measure_syndrome(error)
             correction = decoder.decode(code, syndrome)
             total_error = (error.to_bsf() + correction) % 2
-            assert np.all(bcommute(code.stabilizers, total_error) == 0)
+            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)

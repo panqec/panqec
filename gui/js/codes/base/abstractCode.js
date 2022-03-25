@@ -1,3 +1,5 @@
+import nj from 'https://cdnjs.cloudflare.com/ajax/libs/numjs/0.16.1/numjs.min.js'
+
 export {AbstractCode, stringToArray};
 
 function stringToArray(a) {
@@ -5,8 +7,8 @@ function stringToArray(a) {
 }
 
 class AbstractCode {
-    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene) {
-        this.H = {'X': Hx, 'Z': Hz};
+    constructor(size, H, qubitIndex, stabilizerIndex, qubitAxis, scene) {
+        this.H = nj.array(H)
         this.scene = scene;
         this.qubitIndex = qubitIndex;
         this.stabilizerIndex = stabilizerIndex
@@ -19,6 +21,9 @@ class AbstractCode {
             this.Lz = size[2];
         }
 
+        this.n = H.shape[1] // number of qubits
+        this.m = H.shape[0] // number of stabilizers
+
         this.opacityActivated = false;
         this.currentIndexLogical = {'X': 0, 'Z': 0};
 
@@ -26,7 +31,9 @@ class AbstractCode {
         this.toggleStabFn = {};
         this.stabilizers = [];
 
-        this.qubits = new Array(Hx[0].length);
+        this.qubits = new Array(n);
+        this.errors = nj.zeros(2*n);
+
         this.COLOR = {
             deactivatedVertex: 0xf2f2fc,
             activatedVertex: 0xf1c232,
@@ -45,32 +52,33 @@ class AbstractCode {
     }
 
     updateStabilizers() {
-        let nQubitErrors;
-        for (let iStab=0; iStab < this.H['X'].length; iStab++) {
-            nQubitErrors = 0
-            for (let pauli of ['X' , 'Z']) {
-                for (let iQubit=0; iQubit < this.H[pauli][0].length; iQubit++) {
-                    if (this.H[pauli][iStab][iQubit] == 1) {
-                        if (this.qubits[iQubit].hasError[pauli]) {
-                            nQubitErrors += 1
-                        }
-                    }
-                }
-            }
-            let stabType = this.stabilizers[iStab].type
-            let activate = (nQubitErrors % 2 == 1);
-            this.toggleStabFn[stabType].call(this, this.stabilizers[iStab], activate);
+        let syndrome = this.getSyndrome()
+
+        for (let iStab=0; iStab < this.m; iStab++) {            
+            this.toggleStabFn[stabType].call(this, this.stabilizers[iStab], syndrome[iStab]);
         }
     }
 
     getSyndrome() {
-        let syndrome = [];
-        syndrome = this.stabilizers.map(s => + s.isActivated)
+        let Hx = this.H.slice(null, [null, n])
+        let Hz = this.H.slice(null, [n, null])
+        let ex = this.errors.slice(null, [null, n])
+        let ez = this.errors.slice(null, [n, null])
+
+        let syndrome = (Hx.dot(ez) + Hz.dot(ex)) % 2
+
         return syndrome
     }
 
     insertError(qubit, pauli) {
         qubit.hasError[pauli] = !qubit.hasError[pauli];
+        
+        if (pauli == 'X' || pauli == 'Y') {
+            this.errors[qubit.index] = (this.errors[qubit.index] + 1) % 2
+        }
+        if (pauli == 'Z' || pauli == 'Y') {
+            this.errors[this.n + qubit.index] = (this.errors[qubit.index] + 1) % 2
+        }
 
         if (qubit.hasError['X'] || qubit.hasError['Z']) {
             qubit.material.opacity = this.OPACITY.activatedQubit;
@@ -97,16 +105,14 @@ class AbstractCode {
         let index = this.currentIndexLogical[pauli]
         console.log(index)
 
-        let n_qubits = logical[index].length / 2;
-
         // If index is equal to logical.length, we display no logicals
         if (index != logical.length) {
             // Insert new logical
-            for(let i=0; i < n_qubits; i++) {
+            for(let i=0; i < this.n; i++) {
                 if (logical[index][i]) {
                     this.insertError(this.qubits[i], 'X')
                 }
-                if (logical[index][n_qubits+i]) {
+                if (logical[index][this.n+i]) {
                     this.insertError(this.qubits[i], 'Z')
                 }
             }

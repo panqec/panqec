@@ -30,13 +30,13 @@ class TestDeformedRotatedPlanarPymatchingDecoder:
         error = error_model.generate(code, self.probability, rng=rng)
         assert np.any(error != 0)
 
-        syndrome = bcommute(code.stabilizers, error)
+        syndrome = bcommute(code.stabilizer_matrix, error)
         correction = decoder.decode(code, syndrome)
         total_error = (correction + error) % 2
         effective_error = get_effective_error(
             total_error, code.logicals_x, code.logicals_z
         )
-        codespace = bool(np.all(bcommute(code.stabilizers, total_error) == 0))
+        codespace = bool(np.all(bcommute(code.stabilizer_matrix, total_error) == 0))
         assert codespace, 'Not in code space'
         success = bool(np.all(effective_error == 0)) and codespace
         assert success, 'Decoding failed'
@@ -62,7 +62,7 @@ class TestDeformedRotatedPlanarPymatchingDecoder:
         pauli_naive_correction.site('X', (5, 3, 5))
         naive_correction = pauli_naive_correction.to_bsf()
 
-        syndrome = bcommute(code.stabilizers, error)
+        syndrome = bcommute(code.stabilizer_matrix, error)
         correction = decoder.decode(code, syndrome)
 
         assert np.any(correction != naive_correction), 'Correction is naive'
@@ -74,7 +74,7 @@ class TestDeformedRotatedPlanarPymatchingDecoder:
         effective_error = get_effective_error(
             total_error, code.logicals_x, code.logicals_z
         )
-        codespace = bool(np.all(bcommute(code.stabilizers, total_error) == 0))
+        codespace = bool(np.all(bcommute(code.stabilizer_matrix, total_error) == 0))
         assert codespace, 'Not in code space'
         success = bool(np.all(effective_error == 0)) and codespace
         assert success, 'Decoding failed'

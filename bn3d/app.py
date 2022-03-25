@@ -33,13 +33,13 @@ def run_once(
         rng = np.random.default_rng()
 
     error = error_model.generate(code, probability=error_probability, rng=rng)
-    syndrome = bcommute(code.stabilizers, error)
+    syndrome = bcommute(code.stabilizer_matrix, error)
     correction = decoder.decode(code, syndrome)
     total_error = (correction + error) % 2
     effective_error = get_effective_error(
         total_error, code.logicals_x, code.logicals_z
     )
-    codespace = bool(np.all(bcommute(code.stabilizers, total_error) == 0))
+    codespace = bool(np.all(bcommute(code.stabilizer_matrix, total_error) == 0))
     success = bool(np.all(effective_error == 0)) and codespace
 
     results = {

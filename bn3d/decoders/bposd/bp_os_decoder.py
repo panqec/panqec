@@ -334,7 +334,7 @@ class BeliefPropagationOSDDecoder(Decoder):
                     self._z_decoder[code.label] = z_decoder
                 else:
                     decoder = bposd_decoder(
-                        code.stabilizers,
+                        code.stabilizer_matrix,
                         error_rate=0.05,  # ignore this due to the next parameter,
                         channel_probs=probabilities,
                         max_iter=self._max_bp_iter,
@@ -389,7 +389,7 @@ class BeliefPropagationOSDDecoder(Decoder):
                 correction = np.concatenate([x_correction, z_correction])
             else:
                 correction = bp_osd_decoder(
-                    code.stabilizers, syndrome, probabilities, max_bp_iter=self._max_bp_iter
+                    code.stabilizer_matrix, syndrome, probabilities, max_bp_iter=self._max_bp_iter
                 )
                 correction = np.concatenate([correction[n_qubits:], correction[:n_qubits]])
 
@@ -408,7 +408,6 @@ def test_decoder():
 
     L = 20
     code = Toric3DCode(L, L, L)
-    code.stabilizers
 
     probability = 0.1
     r_x, r_y, r_z = [0.1, 0.1, 0.8]
@@ -427,7 +426,7 @@ def test_decoder():
         print("Generate errors")
         error = error_model.generate(code, probability=probability, rng=rng)
         print("Calculate syndrome")
-        syndrome = bcommute(code.stabilizers, error)
+        syndrome = bcommute(code.stabilizer_matrix, error)
         print("Decode")
         correction = decoder.decode(code, syndrome)
         print("Get total error")
@@ -437,7 +436,7 @@ def test_decoder():
             total_error, code.logicals_x, code.logicals_z
         )
         print("Check codespace")
-        codespace = bool(np.all(bcommute(code.stabilizers, total_error) == 0))
+        codespace = bool(np.all(bcommute(code.stabilizer_matrix, total_error) == 0))
         success = bool(np.all(effective_error == 0)) and codespace
         print(success)
 

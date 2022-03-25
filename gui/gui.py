@@ -94,19 +94,19 @@ def send_stabilizer_matrix():
 
     n_qubits = code.n
 
-    Hz = code.stabilizers[:, :n_qubits]
-    Hx = code.stabilizers[:, n_qubits:]
+    Hz = code.stabilizer_matrix[:, :n_qubits]
+    Hx = code.stabilizer_matrix[:, n_qubits:]
 
-    qubit_index = {str(list(coord)): i for coord, i in code.qubit_index.items()}
-    qubit_axis = {str(list(coord)): code.axis(coord) for coord, i in code.qubit_index.items()}
+    qubit_index = {str(list(location)): i for i, location in enumerate(code.qubit_coordinates)}
+    qubit_axis = {str(list(location)): code.axis(location) for location in code.qubit_coordinates}
 
     vertex_index = code.vertex_index
 
     face_index = code.face_index
-    face_index = {str(list(coord)): i for coord, i in face_index.items()}
+    face_index = {str(list(coord)): i for coord, i in face_index}
     n_faces = len(face_index.keys())
     vertex_index = {
-        str(list(coord)): i + n_faces for coord, i in vertex_index.items()
+        str(list(coord)): i + n_faces for coord, i in vertex_index
     }
 
     stabilizer_index = {
@@ -244,7 +244,7 @@ def send_random_errors():
                 (errors[i_qubit], errors[i_qubit + n_qubits])
             ],
             [
-                coords for coords, index in code.qubit_index.items()
+                coords for coords, index in code.qubit_index
                 if index == i_qubit
             ][0]
         )

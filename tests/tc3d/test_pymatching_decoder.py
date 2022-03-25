@@ -21,10 +21,10 @@ class TestToric3DPymatchingDecoder:
         assert decoder.decode is not None
 
     def test_decode_trivial_syndrome(self, decoder, code):
-        syndrome = np.zeros(shape=code.stabilizers.shape[0], dtype=np.uint)
+        syndrome = np.zeros(shape=code.stabilizer_matrix.shape[0], dtype=np.uint)
         correction = decoder.decode(code, syndrome)
         assert correction.shape == 2*code.n
-        assert np.all(bcommute(code.stabilizers, correction) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 
     def test_decode_X_error(self, decoder, code):
@@ -39,7 +39,7 @@ class TestToric3DPymatchingDecoder:
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
 
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     def test_decode_many_X_errors(self, decoder, code):
         error = Toric3DPauli(code)
@@ -53,7 +53,7 @@ class TestToric3DPymatchingDecoder:
 
         correction = decoder.decode(code, syndrome)
         total_error = (error.to_bsf() + correction) % 2
-        assert np.all(bcommute(code.stabilizers, total_error) == 0)
+        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     def test_unable_to_decode_Z_error(self, decoder, code):
         error = Toric3DPauli(code)
@@ -70,7 +70,7 @@ class TestToric3DPymatchingDecoder:
         total_error = (error.to_bsf() + correction) % 2
         assert np.all(error.to_bsf() == total_error)
 
-        assert np.any(bcommute(code.stabilizers, total_error) != 0)
+        assert np.any(bcommute(code.stabilizer_matrix, total_error) != 0)
 
     def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
 
@@ -92,4 +92,4 @@ class TestToric3DPymatchingDecoder:
             syndrome = code.measure_syndrome(error)
             correction = decoder.decode(code, syndrome)
             total_error = (error.to_bsf() + correction) % 2
-            assert np.all(bcommute(code.stabilizers, total_error) == 0)
+            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)

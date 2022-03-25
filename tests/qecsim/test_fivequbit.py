@@ -36,7 +36,7 @@ def naive_decoder():
 def test_stabilizers(five_qubit_code):
     code = five_qubit_code
     expected_stabilizers = ['XZZXI', 'IXZZX', 'XIXZZ', 'ZXIXZ']
-    assert np.all(code.stabilizers == np.array([
+    assert np.all(code.stabilizer_matrix == np.array([
         pauli_to_bsf(pauli_string)
         for pauli_string in expected_stabilizers
     ]))
@@ -87,9 +87,9 @@ def test_decoder(five_qubit_code, pauli_noise_model, naive_decoder):
     assert error.shape == (10, )
 
     # The syndrome should be non-trivial too.
-    syndrome = pt.bsp(error, code.stabilizers.T)
+    syndrome = pt.bsp(error, code.stabilizer_matrix.T)
     assert np.any(syndrome == 1)
-    assert syndrome.shape == (code.stabilizers.shape[0], )
+    assert syndrome.shape == (code.stabilizer_matrix.shape[0], )
 
     correction = decoder.decode(code, syndrome)
     assert bsf_to_pauli(correction) == 'IXIII'
