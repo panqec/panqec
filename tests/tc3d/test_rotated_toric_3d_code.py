@@ -29,7 +29,7 @@ def operator_spec(code, bsf):
         if pauli != 'I':
             matches = [
                 xyz
-                for xyz, i in code.qubit_index.items()
+                for i, xyz in enumerate(code.qubit_coordinates)
                 if i == index
             ]
             location = matches[0]
@@ -113,7 +113,7 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
         return RotatedToric3DCode(*self.size)
 
     def test_qubit_indices(self, code):
-        locations = set(code.qubit_index.keys())
+        locations = set(code.qubit_coordinates)
         expected_locations = set([
             (x, y, z)
             for x, y in self.expected_plane_edges_xy
@@ -222,7 +222,7 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
         n, k = code.n, code.k
         matrix = code.stabilizer_matrix
 
-        coords = {v: k for k, v in code.qubit_index.items()}
+        coords = {v: k for v, k in enumerate(code.qubit_coordinates)}
 
         min_weight = 4
         max_weight = 4
@@ -428,7 +428,7 @@ class TestRotatedToric3DDeformation:
         error_model = DeformedXZZXErrorModel(0.2, 0.3, 0.5)
         deformation_index = error_model._get_deformation_indices(code)
         coords_map = {
-            index: coord for coord, index in code.qubit_index.items()
+            index: coord for index, coord in enumerate(code.qubit_coordinates)
         }
         coords = [coords_map[index] for index in range(len(coords_map))]
         deformation_sites = sorted(
@@ -462,13 +462,10 @@ class TestRotatedToric3DDeformation:
             out_json = os.path.join(project_dir, 'temp', 'rotated_toric_3d_test.json')
             error_model = DeformedXZZXErrorModel(0.2, 0.3, 0.5)
             deformation_index = error_model._get_deformation_indices(code)
-            coords_map = {
-                index: coord for coord, index in code.qubit_index.items()
-            }
-            coords = [coords_map[index] for index in range(len(coords_map))]
+
             entries.append({
                 'size': [L_x, L_y, L_z],
-                'coords': coords,
+                'coords': code.qubit_coordinates,
                 'undeformed': {
                     'n': code.n,
                     'k': code.k,
@@ -509,7 +506,7 @@ class TestBPOSDOnRotatedToric3DCodeOddTimesEven:
         decoder = BeliefPropagationOSDDecoder(error_model, probability)
 
         failing_cases: List[Tuple[int, int, int]] = []
-        for site in code.qubit_index:
+        for site in code.qubit_coordinates:
             error_pauli = RotatedToric3DPauli(code)
             error_pauli.site(pauli, site)
             error = error_pauli.to_bsf()

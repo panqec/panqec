@@ -95,7 +95,7 @@ class XNoiseOnYZEdgesOnly(ErrorModel):
         y_edge_errors = rng.choice(choices, size=code.size, p=probabilities)
         z_edge_errors = rng.choice(choices, size=code.size, p=probabilities)
 
-        for x, y, z in code.qubit_index.keys():
+        for x, y, z in code.qubit_coordinates:
             if y_edge_errors[x, y, z]:
                 pauli_op[(x, y, z)] = 'X'
             if z_edge_errors[x, y, z]:

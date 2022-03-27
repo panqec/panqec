@@ -45,9 +45,8 @@ class DeformedRhombicErrorModel(PauliErrorModel):
         if code.id not in deformed_axis.keys():
             raise NotImplementedError(f"Code {code.id} has no rhombic deformation implemented")
 
-        for (x, y, z) in code.qubit_index.keys():
+        for index, (x, y, z) in enumerate(code.qubit_coordinates):
             if code.axis((x, y, z)) == deformed_axis[code.id] and (x + y) % 4 == 2:
-                index = code.qubit_index[(x, y, z)]
                 is_deformed[index] = True
 
         return is_deformed

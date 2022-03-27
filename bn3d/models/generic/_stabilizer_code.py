@@ -6,6 +6,7 @@ from ... import bsparse
 from scipy.sparse import csr_matrix
 
 Indexer = Dict[Tuple, int]  # coordinate to index
+Indexer = Dict[Tuple, int]  # coordinate to index
 Operator = Dict[Tuple, str]  # Coordinate to pauli ('X', 'Y' or 'Z')
 
 
@@ -30,17 +31,6 @@ class StabilizerCode(metaclass=ABCMeta):
     X_AXIS = 0
     Y_AXIS = 1
     Z_AXIS = 2
-
-    _size: np.ndarray  # dimensions of the lattice
-    _qubit_index: Indexer  # Qubit coordinate to index
-    _vertex_index: Indexer  # Vertex coordinate to index
-    _face_index: Indexer  # Face coordinate to index
-    _stabilizers = np.array([])  # Complete parity-check matrix
-    _Hx = np.array([])  # Parity-check matrix for X stabilizers
-    _Hz = np.array([])  # Parity-check matrix for Z stabilizers
-    _logicals_x = np.array([])  # Parity-check matrix for Z stabilizers
-    _logicals_z = np.array([])
-    _is_css = None
 
     def __init__(
         self, L_x: int,
@@ -78,14 +68,17 @@ class StabilizerCode(metaclass=ABCMeta):
             self._size = (L_x, L_y, L_z)
 
         self._qubit_coordinates = []
-        self._vertex_coordinates = []
-        self._face_coordinates = []
+        self._stabilizer_coordinates = []
 
-        self._stabilizers = bsparse.empty_row(2*self.n)
+        self._qubit_index = {}
+        self._stabilizer_index = {}
+
+        self._stabilizer_matrix = bsparse.empty_row(2*self.n)
         self._Hx = bsparse.empty_row(self.n)
         self._Hz = bsparse.empty_row(self.n)
         self._logicals_x = bsparse.empty_row(2*self.n)
         self._logicals_z = bsparse.empty_row(2*self.n)
+        self._is_css = None
 
     @property
     @abstractmethod
@@ -103,7 +96,7 @@ class StabilizerCode(metaclass=ABCMeta):
     @property
     def n(self) -> int:
         """Number of physical qubits"""
-        return len(self.qubit_index)
+        return len(self.qubit_coordinates)
 
     @property
     def k(self) -> int:
@@ -181,7 +174,7 @@ class StabilizerCode(metaclass=ABCMeta):
             H2 = self.stabilizer_matrix[:, self.n:]
 
             # CSS if the rows of nonzero elements between H1 and H2 don't intersect
-            self.is_css = (len(np.intersect1d(H1.nonzero()[0], H2.nonzero()[0])) == 0)
+            self._is_css = (len(np.intersect1d(H1.nonzero()[0], H2.nonzero()[0])) == 0)
 
         return self._is_css
 
@@ -273,7 +266,7 @@ class StabilizerCode(metaclass=ABCMeta):
         """Returns whether a given location in the coordinate system
         corresponds to a stabilizer or not
         """
-        _is_stabilizer = (location in self.stabilizer_index.keys()) and\
+        _is_stabilizer = (location in self.stabilizer_coordinates) and\
                          (stab_type is None or self.stabilizer_type(location) == stab_type)
 
         return _is_stabilizer
@@ -282,7 +275,7 @@ class StabilizerCode(metaclass=ABCMeta):
         """Returns whether a given location in the coordinate system
         corresponds to a qubit or not
         """
-        return location in self.qubit_index.keys()
+        return location in self.qubit_coordinates
 
     @abstractmethod
     def get_qubit_coordinates(self) -> List[Tuple]:

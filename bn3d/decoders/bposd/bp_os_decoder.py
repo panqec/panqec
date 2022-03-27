@@ -278,18 +278,14 @@ class BeliefPropagationOSDDecoder(Decoder):
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
-        is_css = hasattr(code, 'Hz')
-
-        if 'Rotated Toric' in code.label:
-            L_x, L_y, L_z = code.size
-            is_css = (L_x % 2 == 0 and L_y % 2 == 0)
+        is_css = code.is_css
 
         n_qubits = code.n
         syndrome = np.array(syndrome, dtype=int)
 
         if is_css:
-            syndrome_z = syndrome[:code.Hz.shape[0]]
-            syndrome_x = syndrome[code.Hz.shape[0]:]
+            syndrome_z = syndrome[code.Hz.shape[0]:]
+            syndrome_x = syndrome[:code.Hz.shape[0]]
 
         pi, px, py, pz = self.get_probabilities(code)
 
@@ -310,7 +306,7 @@ class BeliefPropagationOSDDecoder(Decoder):
             else:
                 if is_css:
                     z_decoder = bposd_decoder(
-                        code.Hz,
+                        code.Hx,
                         error_rate=0.05,  # ignore this due to the next parameter
                         channel_probs=probabilities_z,
                         max_iter=self._max_bp_iter,
@@ -321,7 +317,7 @@ class BeliefPropagationOSDDecoder(Decoder):
                     )
 
                     x_decoder = bposd_decoder(
-                        code.Hx,
+                        code.Hz,
                         error_rate=0.05,  # ignore this due to the next parameter
                         channel_probs=probabilities_x,
                         max_iter=self._max_bp_iter,
@@ -377,14 +373,14 @@ class BeliefPropagationOSDDecoder(Decoder):
         else:
             if is_css:
                 z_correction = bp_osd_decoder(
-                    code.Hz, syndrome_z, probabilities_z, max_bp_iter=self._max_bp_iter
+                    code.Hx, syndrome_z, probabilities_z, max_bp_iter=self._max_bp_iter
                 )
                 if self._channel_update:
                     new_x_probs = self.update_probabilities(z_correction, px, py, pz)
                 else:
                     new_x_probs = probabilities_x
                 x_correction = bp_osd_decoder(
-                    code.Hx, syndrome_x, new_x_probs, max_bp_iter=self._max_bp_iter
+                    code.Hz, syndrome_x, new_x_probs, max_bp_iter=self._max_bp_iter
                 )
                 correction = np.concatenate([x_correction, z_correction])
             else:

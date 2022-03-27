@@ -18,7 +18,7 @@ class RotatedSweepDecoder3D(Decoder):
 
     def get_full_size(self, code) -> Tuple[int, ...]:
         all_index = np.array(
-            list(code.qubit_index.keys())
+            list(code.qubit_coordinates)
             + list(code.vertex_index.keys())
             + list(code.face_index.keys())
         )
@@ -149,7 +149,7 @@ class RotatedSweepDecoder3D(Decoder):
                 for face in [x_face, y_face, z_face]
             )
             edges_valid = tuple(
-                edge in code.qubit_index
+                edge in code.qubit_coordinates
                 for edge in [x_edge, y_edge, z_edge]
             )
             if all(faces_valid) and all(edges_valid):

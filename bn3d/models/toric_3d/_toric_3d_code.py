@@ -1,8 +1,9 @@
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 import numpy as np
 from bn3d.models import StabilizerCode
 
-Indexer = Dict[Tuple[int, int], int]  # coordinate to index
+Operator = Dict[Tuple[int, int, int], str]  # Location to pauli ('X', 'Y' or 'Z')
+Coordinates = List[Tuple[int, int, int]]  # List of locations
 
 
 class Toric3DCode(StabilizerCode):
@@ -14,43 +15,95 @@ class Toric3DCode(StabilizerCode):
     def label(self) -> str:
         return 'Toric {}x{}x{}'.format(*self.size)
 
-    def _vertex(self, location: Tuple[int, int, int], deformed_axis: int = None) -> Dict[str, Tuple]:
-        if location not in self.vertex_index:
-            raise ValueError(f"Invalid coordinate {location} for a vertex")
+    def get_qubit_coordinates(self) -> Coordinates:
+        coordinates = []
+        Lx, Ly, Lz = self.size
 
-        pauli = 'Z'
-        deformed_pauli = 'X'
+        # Qubits along e_x
+        for x in range(1, 2*Lx, 2):
+            for y in range(0, 2*Ly, 2):
+                for z in range(0, 2*Lz, 2):
+                    coordinates.append((x, y, z))
 
-        delta = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
+        # Qubits along e_y
+        for x in range(0, 2*Lx, 2):
+            for y in range(1, 2*Ly, 2):
+                for z in range(0, 2*Lz, 2):
+                    coordinates.append((x, y, z))
 
-        operator = dict()
-        for d in delta:
-            qubit_location = tuple(np.add(location, d) % (2*np.array(self.size)))
+        # Qubits along e_z
+        for x in range(0, 2*Lx, 2):
+            for y in range(0, 2*Ly, 2):
+                for z in range(1, 2*Lz, 2):
+                    coordinates.append((x, y, z))
 
-            if self.is_qubit(qubit_location):
-                is_deformed = (self.axis(qubit_location) == deformed_axis)
-                operator[qubit_location] = deformed_pauli if is_deformed else pauli
+        return coordinates
 
-        return operator
+    def get_stabilizer_coordinates(self) -> Coordinates:
+        coordinates = []
+        Lx, Ly, Lz = self.size
 
-    def _face(self, location: Tuple[int, int, int], deformed_axis: int = None) -> Dict[str, Tuple]:
+        # Vertices
+        for x in range(0, 2*Lx, 2):
+            for y in range(0, 2*Ly, 2):
+                for z in range(0, 2*Lz, 2):
+                    coordinates.append((x, y, z))
+
+        # Face in xy plane
+        for x in range(1, 2*Lx, 2):
+            for y in range(1, 2*Ly, 2):
+                for z in range(0, 2*Lz, 2):
+                    coordinates.append((x, y, z))
+
+        # Face in yz plane
+        for x in range(0, 2*Lx, 2):
+            for y in range(1, 2*Ly, 2):
+                for z in range(1, 2*Lz, 2):
+                    coordinates.append((x, y, z))
+
+        # Face in xz plane
+        for x in range(1, 2*Lx, 2):
+            for y in range(0, 2*Ly, 2):
+                for z in range(1, 2*Lz, 2):
+                    coordinates.append((x, y, z))
+
+        return coordinates
+
+    def stabilizer_type(self, location: Tuple[int, int, int]) -> str:
+        if not self.is_stabilizer(location):
+            raise ValueError(f"Invalid coordinate {location} for a stabilizer")
+
+        x, y, z = location
+        if x % 2 == 0 and y % 2 == 0:
+            return 'vertex'
+        else:
+            return 'face'
+
+    def get_stabilizer(self, location, deformed_axis=None) -> Operator:
+        if not self.is_stabilizer(location):
+            raise ValueError(f"Invalid coordinate {location} for a stabilizer")
+
+        if self.stabilizer_type(location) == 'vertex':
+            pauli = 'Z'
+        else:
+            pauli = 'X'
+
+        deformed_pauli = {'X': 'Z', 'Z': 'X'}[pauli]
+
         x, y, z = location
 
-        if location not in self.face_index:
-            raise ValueError(f"Invalid coordinate {location} for a face")
-
-        pauli = 'X'
-        deformed_pauli = 'Z'
-
-        # z-normal so face is xy-plane.
-        if z % 2 == 0:
-            delta = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0)]
-        # x-normal so face is in yz-plane.
-        elif (x % 2 == 0):
-            delta = [(0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
-        # y-normal so face is in zx-plane.
-        elif (y % 2 == 0):
-            delta = [(-1, 0, 0), (1, 0, 0), (0, 0, -1), (0, 0, 1)]
+        if self.stabilizer_type(location) == 'vertex':
+            delta = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
+        else:
+            # Face in xy-plane.
+            if z % 2 == 0:
+                delta = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0)]
+            # Face in yz-plane.
+            elif (x % 2 == 0):
+                delta = [(0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
+            # Face in zx-plane.
+            elif (y % 2 == 0):
+                delta = [(-1, 0, 0), (1, 0, 0), (0, 0, -1), (0, 0, 1)]
 
         operator = dict()
         for d in delta:
@@ -76,72 +129,7 @@ class Toric3DCode(StabilizerCode):
 
         return axis
 
-    def _get_qubit_coordinates(self) -> Indexer:
-        coordinates = []
-        Lx, Ly, Lz = self.size
-
-        # Qubits along e_x
-        for x in range(1, 2*Lx, 2):
-            for y in range(0, 2*Ly, 2):
-                for z in range(0, 2*Lz, 2):
-                    coordinates.append((x, y, z))
-
-        # Qubits along e_y
-        for x in range(0, 2*Lx, 2):
-            for y in range(1, 2*Ly, 2):
-                for z in range(0, 2*Lz, 2):
-                    coordinates.append((x, y, z))
-
-        # Qubits along e_z
-        for x in range(0, 2*Lx, 2):
-            for y in range(0, 2*Ly, 2):
-                for z in range(1, 2*Lz, 2):
-                    coordinates.append((x, y, z))
-
-        coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
-
-        return coord_to_index
-
-    def _get_vertex_coordinates(self) -> Indexer:
-        coordinates = []
-        Lx, Ly, Lz = self.size
-
-        for x in range(0, 2*Lx, 2):
-            for y in range(0, 2*Ly, 2):
-                for z in range(0, 2*Lz, 2):
-                    coordinates.append((x, y, z))
-
-        coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
-
-        return coord_to_index
-
-    def _get_face_coordinates(self) -> Indexer:
-        coordinates = []
-        Lx, Ly, Lz = self.size
-
-        # Face in xy plane
-        for x in range(1, 2*Lx, 2):
-            for y in range(1, 2*Ly, 2):
-                for z in range(0, 2*Lz, 2):
-                    coordinates.append((x, y, z))
-
-        # Face in yz plane
-        for x in range(0, 2*Lx, 2):
-            for y in range(1, 2*Ly, 2):
-                for z in range(1, 2*Lz, 2):
-                    coordinates.append((x, y, z))
-
-        # Face in xz plane
-        for x in range(1, 2*Lx, 2):
-            for y in range(0, 2*Ly, 2):
-                for z in range(1, 2*Lz, 2):
-                    coordinates.append((x, y, z))
-
-        coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
-
-        return coord_to_index
-
-    def _get_logicals_x(self):
+    def get_logicals_x(self) -> Operator:
         """The 3 logical X operators."""
 
         Lx, Ly, Lz = self.size
@@ -167,7 +155,7 @@ class Toric3DCode(StabilizerCode):
 
         return logicals
 
-    def _get_logicals_z(self):
+    def get_logicals_z(self) -> Operator:
         """Get the 3 logical Z operators."""
         Lx, Ly, Lz = self.size
         logicals = []

@@ -1,167 +1,162 @@
 import * as THREE from 'https://cdn.skypack.dev/three@v0.130.1';
 
-import { AbstractSurfaceCode, AbstractRpSurfaceCode} from './base/abstractSurfaceCode.js';
+import { AbstractCode } from './base/abstractCode.js';
 
 export {Toric2DCode, RpToric2DCode};
 
-class Toric2DCode extends AbstractSurfaceCode {
-    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene) {
-        super(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene);
-    }
+class Toric2DCode extends AbstractCode {
+    constructor(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis,  stabilizerType) {
+        super(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis,  stabilizerType);
 
-    buildQubit(x, y) {
-        const geometry = new THREE.CylinderGeometry(this.SIZE.radiusEdge, this.SIZE.radiusEdge, this.SIZE.lengthEdge, 32);
-    
-        const material = new THREE.MeshPhongMaterial({color: this.COLOR.deactivatedQubit, 
-                                                      opacity: this.OPACITY.maxDeactivatedQubit, 
-                                                      transparent: true});
-        const edge = new THREE.Mesh(geometry, material);
-    
-        edge.position.x = x * this.SIZE.lengthEdge / 2 - this.offset.x;
-        edge.position.y = y * this.SIZE.lengthEdge / 2 - this.offset.y;
+        this.COLOR = {
+            deactivatedStabilizer: {'vertex': 0xf2f2fc, 'face': 0xf1c232},
+            activatedStabilizer: {'vertex': 0xf1c232, 'face': 0xf1c232},
 
-        let key = `[${x}, ${y}]`;
-    
-        if (this.qubitAxis[key] == 0) {
-            edge.rotateZ(Math.PI / 2)
+            deactivatedQubit: 0xffbcbc,
+            errorX: 0xFF4B3E,
+            errorZ: 0x48BEFF,
+            errorY: 0x058C42
+        };
+
+        this.OPACITY = {
+            minActivatedQubit: 1,
+            maxActivatedQubit: 1,
+            minDeactivatedQubit: 0.1,
+            maxDeactivatedQubit: 0.6,
+
+            minActivatedStabilizer: {'vertex': 1, 'face': 0.6},
+            maxActivatedStabilizer: {'vertex': 1, 'face': 0.6},
+            minDeactivatedStabilizer: {'vertex': 0.1, 'face': 0},
+            maxDeactivatedStabilizer: {'vertex': 0.6, 'face': 0}
         }
-    
-        edge.hasError = {'X': false, 'Z': false};
-    
-        let index = this.getIndexQubit(x, y)
-    
-        edge.index = index;
-        edge.location = [x, y];
-        this.qubits[index] = edge;
-    
-        this.scene.add(edge);
     }
 
-    buildVertex(x, y) {
+    buildQubit(index) {
+        let [x, y] = this.qubitCoordinates[index];  
+
+        const geometry = new THREE.CylinderGeometry(this.SIZE.radiusEdge, this.SIZE.radiusEdge, this.SIZE.lengthEdge, 32);
+
+        const material = new THREE.MeshPhongMaterial({color: this.COLOR.deactivatedQubit,
+                                                      opacity: this.OPACITY.maxDeactivatedQubit,
+                                                      transparent: true});
+        const qubit = new THREE.Mesh(geometry, material);
+
+        qubit.position.x = x * this.SIZE.lengthEdge / 2 - this.offset.x;
+        qubit.position.y = y * this.SIZE.lengthEdge / 2 - this.offset.y;
+
+        if (this.qubitAxis[index] == 0) {
+            qubit.rotateZ(Math.PI / 2)
+        }
+
+        return qubit
+    }
+
+    buildVertex(index) {
+        let [x, y] = this.stabilizerCoordinates[index];
+
         const geometry = new THREE.SphereGeometry(this.SIZE.radiusVertex, 32, 32);
-    
-        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedVertex, 
-                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['vertex'], 
+
+        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedStabilizer['vertex'],
+                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['vertex'],
                                                      transparent: true});
-        const sphere = new THREE.Mesh(geometry, material);
-    
-        sphere.position.x = x * this.SIZE.lengthEdge / 2  - this.offset.x;
-        sphere.position.y = y * this.SIZE.lengthEdge / 2  - this.offset.y;
-    
-        let index = this.getIndexVertex(x, y);
-    
-        sphere.index = index;
-        sphere.location = [x, y];
-        sphere.type = 'vertex';
-        sphere.isActivated = false;
-    
-        this.stabilizers[index] = sphere;
-    
-        this.scene.add(sphere);
+        const vertex = new THREE.Mesh(geometry, material);
+
+        vertex.position.x = x * this.SIZE.lengthEdge / 2  - this.offset.x;
+        vertex.position.y = y * this.SIZE.lengthEdge / 2  - this.offset.y;
+
+        return vertex
     }
 
-    buildFace(x, y) {
+    buildFace(index) {
+        let [x, y] = this.stabilizerCoordinates[index];
+
         const geometry = new THREE.PlaneGeometry(this.SIZE.lengthEdge/2*Math.sqrt(2), this.SIZE.lengthEdge/2*Math.sqrt(2));
-    
-        const material = new THREE.MeshToonMaterial({color: this.COLOR.activatedFace, 
-                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['face'], 
-                                                     transparent: true, 
+
+        const material = new THREE.MeshToonMaterial({color: this.COLOR.activatedStabilizer['face'],
+                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['face'],
+                                                     transparent: true,
                                                      side: THREE.DoubleSide});
         const face = new THREE.Mesh(geometry, material);
-    
+
         face.position.x = x * this.SIZE.lengthEdge / 2 - this.offset.x;
         face.position.y = y * this.SIZE.lengthEdge / 2 - this.offset.y;
 
-        let index = this.getIndexFace(x, y);
-    
-        face.index = index;
-        face.location = [x, y];
-        face.type = 'face';
-        face.isActivated = false;
-    
-        this.stabilizers[index] = face;
-    
-        this.scene.add(face);
+        return face
+    }
+
+    buildStabilizer(index) {
+        if (this.stabilizerType[index] == 'vertex') {
+            var stabilizer = this.buildVertex(index);
+        }
+        else {
+            var stabilizer = this.buildFace(index);
+        }
+
+        return stabilizer
     }
 }
 
 
-class RpToric2DCode extends AbstractRpSurfaceCode {
-    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene) {
-        super(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene);
+class RpToric2DCode extends AbstractCode {
+    constructor(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis,  stabilizerType) {
+        super(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis,  stabilizerType);
+
+        this.COLOR = {
+            activatedStabilizer: {'vertex': 0xfabc2a, 'face': 0xFA824C},
+            deactivatedStabilizer: {'vertex': 0xFAFAC6, 'face': 0xe79e90},
+
+            deactivatedQubit: 0xffbcbc,
+            errorX: 0xFF4B3E,
+            errorZ: 0x4381C1,
+            errorY: 0x058C42
+        };
+
+        this.OPACITY = {
+            minActivatedQubit: 1,
+            maxActivatedQubit: 1,
+            minDeactivatedQubit: 0.1,
+            maxDeactivatedQubit: 0.6,
+
+            minActivatedStabilizer: {'vertex': 0.9, 'face': 0.9},
+            maxActivatedStabilizer: {'vertex': 0.9, 'face': 0.9},
+            minDeactivatedStabilizer: {'vertex': 0.1, 'face': 0.1},
+            maxDeactivatedStabilizer: {'vertex': 0.2, 'face': 0.2}
+        }
     }
 
-    buildQubit(x, y) {
+    buildQubit(index) {
+        let [x, y] = this.qubitCoordinates[index];
+
         const geometry = new THREE.SphereGeometry(this.SIZE.radiusVertex, 32, 32);
-    
-        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedQubit, 
-                                                     opacity: this.OPACITY.maxDeactivatedQubit, 
+
+        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedQubit,
+                                                     opacity: this.OPACITY.maxDeactivatedQubit,
                                                      transparent: true});
         const qubit = new THREE.Mesh(geometry, material);
-    
+
         qubit.position.x = x * this.SIZE.lengthEdge / 2  - this.offset.x;
         qubit.position.y = y * this.SIZE.lengthEdge / 2  - this.offset.y;
-    
-        let index = this.getIndexQubit(x, y);
-    
-        qubit.index = index;
-        qubit.location = [x, y];
-        qubit.hasError = {'X': false, 'Z': false};
-        this.qubits[index] = qubit;
-        
-        this.scene.add(qubit);
+
+        return qubit
     }
 
-    buildVertex(x, y) {
-        // In the rotated picture, vertices are represented by faces with a different colors
+    buildStabilizer(index) {
+        let [x, y] = this.stabilizerCoordinates[index];
+        let stabilizerType = this.stabilizerType[index]
 
         const geometry = new THREE.PlaneGeometry(this.SIZE.lengthEdge/2*Math.sqrt(2), this.SIZE.lengthEdge/2*Math.sqrt(2));
-    
-        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedVertex, 
-                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['vertex'], 
-                                                     transparent: true});
-        const vertex = new THREE.Mesh(geometry, material);
-    
-        vertex.position.x = x * this.SIZE.lengthEdge / 2 - this.offset.x;
-        vertex.position.y = y * this.SIZE.lengthEdge / 2 - this.offset.y;
 
-        vertex.rotateZ(Math.PI/4)
-
-        let index = this.getIndexVertex(x, y);
-    
-        vertex.index = index;
-        vertex.location = [x, y];
-        vertex.type = 'vertex';
-        vertex.isActivated = false;
-    
-        this.stabilizers[index] = vertex;
-    
-        this.scene.add(vertex);
-    }
-
-    buildFace(x, y) {
-        const geometry = new THREE.PlaneGeometry(this.SIZE.lengthEdge/2*Math.sqrt(2), this.SIZE.lengthEdge/2*Math.sqrt(2));
-    
-        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedFace, 
-                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['face'], 
-                                                     transparent: true, 
+        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedStabilizer[stabilizerType],
+                                                     opacity: this.OPACITY.maxDeactivatedStabilizer[stabilizerType],
+                                                     transparent: true,
                                                      side: THREE.DoubleSide});
         const face = new THREE.Mesh(geometry, material);
-    
+
         face.position.x = x * this.SIZE.lengthEdge / 2 - this.offset.x;
         face.position.y = y * this.SIZE.lengthEdge / 2 - this.offset.y;
 
         face.rotateZ(Math.PI/4)
 
-        let index = this.getIndexFace(x, y);
-    
-        face.index = index;
-        face.location = [x, y];
-        face.type = 'face';
-        face.isActivated = false;
-    
-        this.stabilizers[index] = face;
-    
-        this.scene.add(face);
+        return face
     }
 }

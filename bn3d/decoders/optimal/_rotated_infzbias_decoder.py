@@ -42,7 +42,7 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
     ):
         """Do 2D matching on top and bottom boundary surfaces."""
         edges = sorted([
-            (x, y, z) for x, y, z in code.qubit_index if z == z_plane
+            (x, y, z) for x, y, z in code.qubit_coordinates if z == z_plane
         ])
         faces = sorted([
             (x, y, z) for x, y, z in code.face_index if z == z_plane

@@ -41,7 +41,7 @@ class TestRotatedSweepMatchDecoder:
     )
     def test_decode_single_error(self, decoder, code, pauli, location):
         error = RotatedPlanar3DPauli(code)
-        assert location in code.qubit_index
+        assert location in code.qubit_coordinates
         error.site(pauli, location)
         assert bsf_wt(error.to_bsf()) == 1
 
@@ -127,7 +127,7 @@ class TestRotatedSweepMatchDecoder:
     def test_decode_many_errors(self, decoder, code, paulis_locations):
         error = RotatedPlanar3DPauli(code)
         for pauli, location in paulis_locations:
-            assert location in code.qubit_index.keys()
+            assert location in code.qubit_coordinates
             error.site(pauli, location)
         assert bsf_wt(error.to_bsf()) == len(paulis_locations)
 
@@ -140,12 +140,12 @@ class TestRotatedSweepMatchDecoder:
 
     def test_undecodable_error(self, decoder, code):
         locations = [
-            (x, y, z) for x, y, z in code.qubit_index
+            (x, y, z) for x, y, z in code.qubit_coordinates
         ]
         assert len(locations) > 0
         error = RotatedPlanar3DPauli(code)
         for location in locations:
-            assert location in code.qubit_index.keys()
+            assert location in code.qubit_coordinates
             error.site('Z', location)
         assert bsf_wt(error.to_bsf()) == len(locations)
 
@@ -166,7 +166,7 @@ class TestRotatedSweepMatchDecoder:
 
         for code, site in codes_sites:
             error = RotatedPlanar3DPauli(code)
-            assert site in code.qubit_index.keys()
+            assert site in code.qubit_coordinates
             error.site('Z', site)
             syndrome = code.measure_syndrome(error)
             correction = decoder.decode(code, syndrome)
@@ -256,7 +256,7 @@ class TestSweepMatch2x2x2:
     def test_gui_examples(self, code, decoder, locations):
         error = RotatedPlanar3DPauli(code)
         for pauli, location in locations:
-            assert location in code.qubit_index
+            assert location in code.qubit_coordinates
             error.site(pauli, location)
         assert bsf_wt(error.to_bsf()) == len(locations)
 
@@ -299,7 +299,7 @@ class TestSweepMatch2x2x2:
     def test_errors_spanning_boundaries(self, code, decoder, locations):
         error = RotatedPlanar3DPauli(code)
         for pauli, location in locations:
-            assert location in code.qubit_index
+            assert location in code.qubit_coordinates
             error.site(pauli, location)
         assert bsf_wt(error.to_bsf()) == len(locations)
 
@@ -334,7 +334,7 @@ class TestSweepCorners:
     ])
     def test_sweep_errors_on_extreme_layer(self, code, decoder, location):
         error = RotatedPlanar3DPauli(code)
-        assert location in code.qubit_index
+        assert location in code.qubit_coordinates
         error.site('Z', location)
         assert bsf_wt(error.to_bsf()) == 1
 
@@ -357,7 +357,7 @@ class TestSweepCorners:
     @pytest.mark.parametrize('pauli', ['X', 'Y', 'Z'])
     def test_all_1_qubit_errors_correctable(self, code, decoder, pauli):
         uncorrectable_locations = []
-        for location in code.qubit_index:
+        for location in code.qubit_coordinates:
             error = RotatedPlanar3DPauli(code)
             error.site(pauli, location)
             assert bsf_wt(error.to_bsf()) == 1
@@ -475,7 +475,7 @@ class TestRotatedSweepDecoder3D:
                     for face in [x_face, y_face, z_face]
                 )
                 edges_valid = tuple(
-                    edge in code.qubit_index
+                    edge in code.qubit_coordinates
                     for edge in [x_edge, y_edge, z_edge]
                 )
                 if all(faces_valid) and all(edges_valid):
@@ -509,12 +509,12 @@ class TestRotatedSweepDecoder3D:
                     touched_faces.append(y_face)
                     touched_faces.append(z_face)
 
-        assert set(code.qubit_index.keys()) == set(touched_edges)
+        assert set(code.qubit_coordinates) == set(touched_edges)
         assert set(code.face_index.keys()) == set(touched_faces)
 
     def test_flip_edge(self, code, decoder):
         n_faces = len(code.face_index)
-        for edge in code.qubit_index:
+        for edge in code.qubit_coordinates:
             signs = {face: 0 for face in code.face_index}
             decoder.flip_edge(edge, signs, code)
             sign_flip_syndrome = np.zeros(n_faces, dtype=int)

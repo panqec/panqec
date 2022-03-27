@@ -10,8 +10,8 @@ import { RhombicCode } from './codes/rhombic.js';
 import { XCubeCode } from './codes/xcube.js';
 import { RotatedToric3DCode, RpRotatedToric3DCode } from './codes/rotatedToric3d.js';
 
-var defaultCode = codeDimension == 2 ? 'planar-2d' : 'planar-3d';
-var defaultSize = codeDimension == 2 ? 6 : 4;
+var defaultCode = codeDimension == 2 ? 'rotated-planar-2d' : 'planar-3d';
+var defaultSize = codeDimension == 2 ? 2 : 4;
 
 const params = {
     errorProbability: 0.1,
@@ -23,7 +23,7 @@ const params = {
     channel_update: false,
     errorModel: 'Depolarizing',
     codeName: defaultCode,
-    rotated: true   ,
+    rotated: false,
     coprime: false,
     deformed_axis: 'None'
 };
@@ -143,11 +143,11 @@ function buildScene3D() {
 
 async function buildCode() {
     let stabilizers = await getStabilizerMatrices();
-    let Hx = stabilizers['Hx'];
-    let Hz = stabilizers['Hz'];
-    let qubitIndex = stabilizers['qubit_index'];
+    let H = stabilizers['H'];
+    let qubitCoordinates = stabilizers['qubit_coordinates'];
     let qubitAxis = stabilizers['qubit_axis'];
-    let stabilizerIndex = stabilizers['stabilizer_index'];
+    let stabilizerCoordinates = stabilizers['stabilizer_coordinates'];
+    let stabilizerType = stabilizers['stabilizer_type'];
     let logical_z = stabilizers['logical_z'];
     let logical_x = stabilizers['logical_x'];
     let Lx = codeSize.Lx;
@@ -174,10 +174,10 @@ async function buildCode() {
                      }
 
     let rotated = + params.rotated
-    code = new codeClass[params.codeName][rotated](size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene);
+    code = new codeClass[params.codeName][rotated](size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis, stabilizerType);
     code.logical_x = logical_x;
     code.logical_z = logical_z;
-    code.build();
+    code.build(scene);
 }
 
 function changeLatticeSize() {
@@ -195,7 +195,7 @@ function changeLatticeSize() {
         scene.remove(q);
     });
 
-    code.stabilizer_matrix.forEach(s => {
+    code.stabilizers.forEach(s => {
         s.material.dispose();
         s.geometry.dispose();
 

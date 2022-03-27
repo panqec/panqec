@@ -161,7 +161,7 @@ class DeformedRotatedPlanarPymatchingDecoder(RotatedPlanarPymatchingDecoder):
         weights = np.ones(n_qubits, dtype=float)*regular_weight
 
         # The weights on the deformed edge are different.
-        for (x, y, z), i_qubit in code.qubit_index.items():
+        for i_qubit, (x, y, z) in code.qubit_coordinates:
             if z % 2 == 0:
                 weights[i_qubit] = deformed_weight
 

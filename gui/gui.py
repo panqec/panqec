@@ -92,36 +92,17 @@ def send_stabilizer_matrix():
     else:
         raise ValueError(f'Code {code_name} not recognized')
 
-    n_qubits = code.n
+    qubit_axis = [code.axis(location) for location in code.qubit_coordinates]
+    stabilizer_type = [code.stabilizer_type(location) for location in code.stabilizer_coordinates]
 
-    Hz = code.stabilizer_matrix[:, :n_qubits]
-    Hx = code.stabilizer_matrix[:, n_qubits:]
-
-    qubit_index = {str(list(location)): i for i, location in enumerate(code.qubit_coordinates)}
-    qubit_axis = {str(list(location)): code.axis(location) for location in code.qubit_coordinates}
-
-    vertex_index = code.vertex_index
-
-    face_index = code.face_index
-    face_index = {str(list(coord)): i for coord, i in face_index}
-    n_faces = len(face_index.keys())
-    vertex_index = {
-        str(list(coord)): i + n_faces for coord, i in vertex_index
-    }
-
-    stabilizer_index = {
-        'vertex': vertex_index, 'face': face_index
-    }
-
-    n_qubits = code.n
     logical_z = code.logicals_z
     logical_x = code.logicals_x
 
-    return json.dumps({'Hx': Hx.toarray().tolist(),
-                       'Hz': Hz.toarray().tolist(),
-                       'qubit_index': qubit_index,
+    return json.dumps({'H': code.stabilizer_matrix.toarray().tolist(),
+                       'qubit_coordinates': code.qubit_coordinates,
                        'qubit_axis': qubit_axis,
-                       'stabilizer_index': stabilizer_index,
+                       'stabilizer_coordinates': code.stabilizer_coordinates,
+                       'stabilizer_type': stabilizer_type,
                        'logical_z': logical_z.toarray().tolist(),
                        'logical_x': logical_x.toarray().tolist()})
 
@@ -244,7 +225,7 @@ def send_random_errors():
                 (errors[i_qubit], errors[i_qubit + n_qubits])
             ],
             [
-                coords for coords, index in code.qubit_index
+                coords for index, coords in enumerate(code.qubit_coordinates)
                 if index == i_qubit
             ][0]
         )

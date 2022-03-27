@@ -57,7 +57,7 @@ class TestRotatedInfiniteZBiasDecoder:
     ])
     def test_sweep_errors_on_extreme_layer(self, code, decoder, location):
         error = RotatedPlanar3DPauli(code)
-        assert location in code.qubit_index
+        assert location in code.qubit_coordinates
         error.site('Z', location)
         assert bsf_wt(error.to_bsf()) == 1
 
@@ -84,12 +84,12 @@ class TestRotatedInfiniteZBiasDecoder:
         # Filter down allowable errors for infinite bias XZZX deformed noise.
         if pauli == 'X':
             qubit_locations = [
-                (x, y, z) for x, y, z in code.qubit_index
+                (x, y, z) for x, y, z in code.qubit_coordinates
                 if z % 2 == 0
             ]
         else:
             qubit_locations = [
-                (x, y, z) for x, y, z in code.qubit_index
+                (x, y, z) for x, y, z in code.qubit_coordinates
                 if z % 2 == 1
             ]
 
@@ -125,7 +125,7 @@ class TestRotatedInfiniteZBiasDecoder:
 
         # Filter out z edges, which are not in the loop sector.
         edge_qubits = [
-            (x, y, z) for x, y, z in code.qubit_index
+            (x, y, z) for x, y, z in code.qubit_coordinates
             if z % 2 != 0
         ]
         error_locations = combinations(edge_qubits, weight)

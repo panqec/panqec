@@ -2,7 +2,8 @@ from typing import Tuple, Dict, List
 from bn3d.models import StabilizerCode
 import numpy as np
 
-Operator = Dict[Tuple[int, int], str]  # Coordinate to pauli ('X', 'Y' or 'Z')
+Operator = Dict[Tuple[int, int], str]  # Location to pauli ('X', 'Y' or 'Z')
+Coordinates = List[Tuple[int, int]]  # List of locations
 
 
 class Planar2DCode(StabilizerCode):
@@ -12,9 +13,9 @@ class Planar2DCode(StabilizerCode):
 
     @property
     def label(self) -> str:
-        return 'Toric {}x{}'.format(*self.size)
+        return 'Planar {}x{}'.format(*self.size)
 
-    def get_qubit_coordinates(self) -> List[Tuple[int, int]]:
+    def get_qubit_coordinates(self) -> Coordinates:
         coordinates = []
         Lx, Ly = self.size
 
@@ -30,21 +31,23 @@ class Planar2DCode(StabilizerCode):
 
         return coordinates
 
-    def get_stabilizer_coordinates(self) -> List[Tuple[int, int]]:
+    def get_stabilizer_coordinates(self) -> Coordinates:
         coordinates = []
         Lx, Ly = self.size
 
+        # Vertices
         for x in range(2, 2*Lx, 2):
             for y in range(0, 2*Ly, 2):
                 coordinates.append((x, y))
 
+        # Faces
         for x in range(1, 2*Lx, 2):
             for y in range(1, 2*Ly-1, 2):
                 coordinates.append((x, y))
 
         return coordinates
 
-    def stabilizer_type(self, location: Tuple[int, int]):
+    def stabilizer_type(self, location: Tuple[int, int]) -> str:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location} for a stabilizer")
 

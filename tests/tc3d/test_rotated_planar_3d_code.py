@@ -58,8 +58,8 @@ class TestRotatedPlanar3DCode(StabilizerCodeTest):
                 assert x % 2 == 1
                 assert y % 2 == 1
 
-    def test_qubit_index_complies_with_rules(self, code):
-        for x, y, z in code.qubit_index.keys():
+    def test_qubit_coordinates_complies_with_rules(self, code):
+        for x, y, z in code.qubit_coordinates:
             if z % 2 == 1:
                 assert x % 2 == 1
                 assert y % 2 == 1

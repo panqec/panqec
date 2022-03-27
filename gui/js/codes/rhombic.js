@@ -1,120 +1,68 @@
 import * as THREE from 'https://cdn.skypack.dev/three@v0.130.1';
 
-import { AbstractCode, stringToArray } from './base/abstractCode.js';
+import { AbstractCode } from './base/abstractCode.js';
 
 export {RhombicCode};
 
 class RhombicCode extends AbstractCode {
-    constructor(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene) {
-        super(size, Hx, Hz, qubitIndex, stabilizerIndex, qubitAxis, scene);
+    constructor(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis,  stabilizerType) {
+        super(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis,  stabilizerType);
 
-        this.Lx = size[0];
-        this.Ly = size[1];
-        this.Lz = size[2];
+        this.COLOR = {
+            activatedStabilizer: {'triangle': 0xf1c232, 'cube': 0xf1c232},
+            deactivatedStabilizer: {'triangle': 0xf2f2cc, 'cube': 0xf2f2cc},
 
-        this.qubitIndex = qubitIndex;
-        this.triangleIndex = stabilizerIndex['vertex'];
-        this.cubeIndex = stabilizerIndex['face'];
-
-        this.stabilizers = new Array(Hx.length);
-
-        this.toggleStabFn['triangle'] = this.toggleTriangle;
-        this.toggleStabFn['cube'] = this.toggleCube;
-
-        this.SIZE = {radiusEdge: 0.05, radiusVertex: 0.1, lengthEdge: 1};
-        this.COLOR = Object.assign(this.COLOR, {
-            activatedTriangle: 0xf1c232,
-            activatedCube: 0xf1c232,
-            deactivatedCube: 0xf2f2cc,
-            deactivatedTriangle: 0xf2f2cc,
-            deactivatedEdge: 0xffbcbc,
-        });
+            deactivatedQubit: 0xffbcbc,
+            errorX: 0xFF4B3E,
+            errorZ: 0x4381C1,
+            errorY: 0x058C42
+        };
 
         this.OPACITY = {
-            activatedQubit: 1,
+            minActivatedQubit: 1,
+            maxActivatedQubit: 1,
             minDeactivatedQubit: 0.1,
             maxDeactivatedQubit: 0.6,
 
-            activatedStabilizer: {'triangle': 1, 'cube': 0.6},
+            minActivatedStabilizer: {'triangle': 1, 'cube': 0.6},
+            maxActivatedStabilizer: {'triangle': 1, 'cube': 0.6},
             minDeactivatedStabilizer: {'triangle': 0.1, 'cube': 0.1},
             maxDeactivatedStabilizer: {'triangle': 0.6, 'cube': 0.3}
         }
+
+        this.SIZE = {radiusEdge: 0.05, radiusVertex: 0.1, lengthEdge: 1};
+
+        console.log(this.m)
+        console.log(this.stabilizerCoordinates)
     }
 
-    getIndexQubit(x, y, z) {
-        let key = `[${x}, ${y}, ${z}]`;
-        return this.qubitIndex[key];
-    }
+    buildQubit(index) {
+        let [x, y, z] = this.qubitCoordinates[index];
 
-    getIndexTriangle(axis, x, y, z) {
-        let key = `[${axis}, ${x}, ${y}, ${z}]`;
-        return this.triangleIndex[key];
-    }
-
-    getIndexCube(x, y, z) {
-        let key = `[${x}, ${y}, ${z}]`;
-        return this.cubeIndex[key];
-    }
-
-    toggleCube(cube, activate) {
-        cube.isActivated = activate;
-        let color = activate ? this.COLOR.activatedCube : this.COLOR.deactivatedCube;
-        cube.material.color.setHex(color);
-
-        if (this.opacityActivated) {
-            cube.material.opacity = activate ? this.OPACITY.activatedStabilizer['cube'] : this.OPACITY.minDeactivatedStabilizer['cube'];
-        }
-        else {
-            cube.material.opacity = activate ? this.OPACITY.activatedStabilizer['cube'] : this.OPACITY.maxDeactivatedStabilizer['cube'];
-        }
-    }
-
-    toggleTriangle(triangle, activate) {
-        triangle.isActivated = activate;
-        let color = activate ? this.COLOR.activatedTriangle : this.COLOR.deactivatedTriangle;
-        triangle.material.color.setHex(color);
-
-        if (this.opacityActivated) {
-            triangle.material.opacity = activate ? this.OPACITY.activatedStabilizer['triangle'] : this.OPACITY.minDeactivatedStabilizer['triangle'];
-        }
-        else {
-            triangle.material.opacity = activate ? this.OPACITY.activatedStabilizer['triangle'] : this.OPACITY.maxDeactivatedStabilizer['triangle'];
-        }
-    }
-
-    buildQubit(x, y, z) {
         const geometry = new THREE.CylinderGeometry(this.SIZE.radiusEdge, this.SIZE.radiusEdge, this.SIZE.lengthEdge, 32);
 
-        const material = new THREE.MeshPhongMaterial({color: this.COLOR.deactivatedEdge,
+        const material = new THREE.MeshPhongMaterial({color: this.COLOR.deactivatedQubit,
                                                       opacity: this.OPACITY.maxDeactivatedQubit,
                                                       transparent: true});
-        const edge = new THREE.Mesh(geometry, material);
+        const qubit = new THREE.Mesh(geometry, material);
 
-        edge.position.x = x * this.SIZE.lengthEdge / 2;
-        edge.position.y = y * this.SIZE.lengthEdge / 2;
-        edge.position.z = z * this.SIZE.lengthEdge / 2;
+        qubit.position.x = x * this.SIZE.lengthEdge / 2;
+        qubit.position.y = y * this.SIZE.lengthEdge / 2;
+        qubit.position.z = z * this.SIZE.lengthEdge / 2;
 
-        let key = `[${x}, ${y}, ${z}]`;
-
-        if (this.qubitAxis[key] == 0) {
-            edge.rotateZ(Math.PI / 2)
+        if (this.qubitAxis[index] == 0) {
+            qubit.rotateZ(Math.PI / 2);
         }
-        else if (this.qubitAxis[key] == 2) {
-            edge.rotateX(Math.PI / 2)
+        else if (this.qubitAxis[index] == 2) {
+            qubit.rotateX(Math.PI / 2);
         }
 
-        edge.hasError = {'X': false, 'Z': false};
-
-        let index = this.getIndexQubit(x, y, z)
-
-        edge.index = index;
-        edge.location = [x, y, z]
-        this.qubits[index] = edge;
-
-        this.scene.add(edge);
+        return qubit;
     }
 
-    buildTriangle(axis, x, y, z) {
+    buildTriangle(index) {
+        let [axis, x, y, z] = this.stabilizerCoordinates[index];
+
         const L = this.SIZE.lengthEdge / 4
 
         const geometry = new THREE.BufferGeometry();
@@ -136,7 +84,7 @@ class RhombicCode extends AbstractCode {
 
         geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3) );
 
-        const material = new THREE.MeshBasicMaterial({color: this.COLOR.deactivatedTriangle,
+        const material = new THREE.MeshBasicMaterial({color: this.COLOR.deactivatedStabilizer['triangle'],
                                                       opacity: this.OPACITY.maxDeactivatedStabilizer['triangle'],
                                                       transparent: true,
                                                       side: THREE.DoubleSide});
@@ -150,21 +98,15 @@ class RhombicCode extends AbstractCode {
         wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
         triangle.add(wireframe);
 
-        let index = this.getIndexTriangle(axis, x, y, z);
-        triangle.index = index;
-        triangle.location = [axis, x, y, z]
-        triangle.type = 'triangle';
-        triangle.isActivated = false;
-
-        this.stabilizers[index] = triangle;
-
-        this.scene.add(triangle);
+        return triangle;
     }
 
-    buildCube(x, y, z) {
+    buildCube(index) {
+        let [x, y, z] = this.stabilizerCoordinates[index];
+
         const L = this.SIZE.lengthEdge - 0.3
         const geometry = new THREE.BoxBufferGeometry(L, L, L);
-        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedCube,
+        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedStabilizer['cube'],
                                                      opacity: this.OPACITY.maxDeactivatedStabilizer['cube'],
                                                      transparent: true});
         const cube = new THREE.Mesh(geometry, material);
@@ -181,29 +123,18 @@ class RhombicCode extends AbstractCode {
         cube.position.y = y * this.SIZE.lengthEdge / 2;
         cube.position.z = z * this.SIZE.lengthEdge / 2;
 
-        let index = this.getIndexCube(x, y, z);
-        cube.index = index;
-        cube.location = [x, y, z]
-        cube.type = 'cube';
-        cube.isActivated = false;
-        this.stabilizers[index] = cube;
-
-        this.scene.add(cube);
+        return cube
     }
 
+    buildStabilizer(index) {
+        if (this.stabilizerType[index] == 'cube') {
+            var stabilizer = this.buildCube(index);
+        }
+        else {
+            var stabilizer = this.buildTriangle(index);
+        }
 
-    build() {
-        for (const [coord, index] of Object.entries(this.qubitIndex)) {
-            let [x, y, z] = stringToArray(coord)
-            this.buildQubit(x, y, z)
-        }
-        for (const [coord, index] of Object.entries(this.cubeIndex)) {
-            let [x, y, z] = stringToArray(coord)
-            this.buildCube(x, y, z)
-        }
-        for (const [coord, index] of Object.entries(this.triangleIndex)) {
-            let [axis, x, y, z] = stringToArray(coord)
-            this.buildTriangle(axis, x, y, z)
-        }
+        return stabilizer;
     }
+
 }

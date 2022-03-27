@@ -1,9 +1,10 @@
 import itertools
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 import numpy as np
 from bn3d.models import StabilizerCode
 
-Indexer = Dict[Tuple[int, int], int]  # coordinate to index
+Operator = Dict[Tuple, str]  # Location to pauli ('X', 'Y' or 'Z')
+Coordinates = List[Tuple]  # List of locations
 
 
 class XCubeCode(StabilizerCode):
@@ -15,64 +16,82 @@ class XCubeCode(StabilizerCode):
     def label(self) -> str:
         return 'XCube {}x{}x{}'.format(*self.size)
 
-    def _vertex(self, location: Tuple[int, int, int], deformed_axis: int = None) -> Dict[str, Tuple]:
-        r"""Apply cube operator on sites around cubes.
+    def get_qubit_coordinates(self) -> Coordinates:
+        coordinates = []
+        Lx, Ly, Lz = self.size
 
-        Parameters
-        ----------
-        operator: str
-            Pauli operator in string format.
-        location: Tuple[int, int, int]
-            The (x, y, z) location of the cube
-        """
+        # Qubits along e_x
+        for x in range(1, 2*Lx, 2):
+            for y in range(0, 2*Ly, 2):
+                for z in range(0, 2*Lz, 2):
+                    coordinates.append((x, y, z))
 
-        if location not in self.vertex_index:
-            raise ValueError(f"Invalid coordinate {location} for a vertex")
+        # Qubits along e_y
+        for x in range(0, 2*Lx, 2):
+            for y in range(1, 2*Ly, 2):
+                for z in range(0, 2*Lz, 2):
+                    coordinates.append((x, y, z))
 
-        pauli = 'Z'
-        deformed_pauli = 'X'
+        # Qubits along e_z
+        for x in range(0, 2*Lx, 2):
+            for y in range(0, 2*Ly, 2):
+                for z in range(1, 2*Lz, 2):
+                    coordinates.append((x, y, z))
 
-        delta = [(1, 1, 0), (-1, -1, 0), (1, -1, 0), (-1, 1, 0),
-                 (-1, 0, -1), (1, 0, -1), (0, -1, -1), (0, 1, -1),
-                 (-1, 0, 1), (1, 0, 1), (0, -1, 1), (0, 1, 1)]
+        return coordinates
+
+    def get_stabilizer_coordinates(self) -> Coordinates:
+        coordinates = []
+        Lx, Ly, Lz = self.size
+
+        # Cubes
+        ranges = [range(1, 2*Lx, 2), range(1, 2*Ly, 2), range(1, 2*Lz, 2)]
+        for x, y, z in itertools.product(*ranges):
+            coordinates.append((x, y, z))
+
+        # Faces
+        ranges = [range(3), range(0, 2*Lx, 2), range(0, 2*Ly, 2), range(0, 2*Lz, 2)]
+        for axis, x, y, z in itertools.product(*ranges):
+            coordinates.append((axis, x, y, z))
+
+        return coordinates
+
+    def stabilizer_type(self, location: Tuple[int, int, int]) -> str:
+        if not self.is_stabilizer(location):
+            raise ValueError(f"Invalid coordinate {location} for a stabilizer")
+
+        if len(location) == 4:
+            return 'face'
+        else:
+            return 'cube'
+
+    def get_stabilizer(self, location, deformed_axis=None) -> Operator:
+        if not self.is_stabilizer(location):
+            raise ValueError(f"Invalid coordinate {location} for a stabilizer")
+
+        if self.stabilizer_type(location) == 'cube':
+            pauli = 'Z'
+        else:
+            pauli = 'X'
+
+        deformed_pauli = {'X': 'Z', 'Z': 'X'}[pauli]
+
+        if self.stabilizer_type(location) == 'cube':
+            x, y, z = location
+            delta = [(1, 1, 0), (-1, -1, 0), (1, -1, 0), (-1, 1, 0),
+                     (-1, 0, -1), (1, 0, -1), (0, -1, -1), (0, 1, -1),
+                     (-1, 0, 1), (1, 0, 1), (0, -1, 1), (0, 1, 1)]
+        else:
+            axis, x, y, z = location
+            if axis == self.X_AXIS:
+                delta = [(0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
+            elif axis == self.Y_AXIS:
+                delta = [(1, 0, 0), (-1, 0, 0), (0, 0, 1), (0, 0, -1)]
+            else:
+                delta = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0)]
 
         operator = dict()
         for d in delta:
-            qubit_location = tuple(np.add(location, d) % (2*np.array(self.size)))
-
-            if self.is_qubit(qubit_location):
-                is_deformed = (self.axis(qubit_location) == deformed_axis)
-                operator[qubit_location] = deformed_pauli if is_deformed else pauli
-
-        return operator
-
-    def _face(self, location: Tuple[int, int, int], deformed_axis: int = None) -> Dict[str, Tuple]:
-        r"""Apply face operator on sites neighboring vertex.
-
-        Parameters
-        ----------
-        operator: str
-            Pauli operator in string format.
-        location: Tuple[int, int, int]
-            The (axis, x, y, z) location and orientation of the face
-        """
-
-        axis, x, y, z = location
-
-        if location not in self.face_index:
-            raise ValueError(f"Invalid coordinate {location} for a face")
-
-        pauli = 'X'
-        deformed_pauli = 'Z'
-
-        delta = [[], [], []]
-
-        delta[self.X_AXIS] = [(0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
-        delta[self.Y_AXIS] = [(1, 0, 0), (-1, 0, 0), (0, 0, 1), (0, 0, -1)]
-        delta[self.Z_AXIS] = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0)]
-
-        operator = dict()
-        for d in delta[axis]:
             qubit_location = tuple(np.add([x, y, z], d) % (2*np.array(self.size)))
 
             if self.is_qubit(qubit_location):
@@ -95,64 +114,7 @@ class XCubeCode(StabilizerCode):
 
         return axis
 
-    def _get_qubit_coordinates(self) -> Indexer:
-        coordinates = []
-        Lx, Ly, Lz = self.size
-
-        # Qubits along e_x
-        for x in range(1, 2*Lx, 2):
-            for y in range(0, 2*Ly, 2):
-                for z in range(0, 2*Lz, 2):
-                    coordinates.append((x, y, z))
-
-        # Qubits along e_y
-        for x in range(0, 2*Lx, 2):
-            for y in range(1, 2*Ly, 2):
-                for z in range(0, 2*Lz, 2):
-                    coordinates.append((x, y, z))
-
-        # Qubits along e_z
-        for x in range(0, 2*Lx, 2):
-            for y in range(0, 2*Ly, 2):
-                for z in range(1, 2*Lz, 2):
-                    coordinates.append((x, y, z))
-
-        coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
-
-        return coord_to_index
-
-    def _get_vertex_coordinates(self) -> Indexer:
-        """ Vertex = cube stabilizer"""
-        Lx, Ly, Lz = self.size
-
-        ranges = [range(1, 2*Lx, 2), range(1, 2*Ly, 2), range(1, 2*Lz, 2)]
-        coordinates = []
-        for x, y, z in itertools.product(*ranges):
-            coordinates.append((x, y, z))
-
-        coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
-
-        return coord_to_index
-
-    def _get_face_coordinates(self) -> Indexer:
-        """ Face stabilizer (three at each vertex)"""
-
-        coordinates = []
-        Lx, Ly, Lz = self.size
-
-        for x in range(0, 2*Lx, 2):
-            for y in range(0, 2*Ly, 2):
-                for z in range(0, 2*Lz, 2):
-                    for axis in range(3):
-                        coordinates.append((axis, x, y, z))
-
-        coord_to_index = {coord: i for i, coord in enumerate(coordinates)}
-
-        return coord_to_index
-
-    def _get_logicals_x(self) -> np.ndarray:
-        """The 3 logical X operators."""
-
+    def get_logicals_x(self) -> Operator:
         Lx, Ly, Lz = self.size
         logicals = []
 
@@ -176,8 +138,7 @@ class XCubeCode(StabilizerCode):
 
         return logicals
 
-    def _get_logicals_z(self) -> np.ndarray:
-        """The 3 logical Z operators."""
+    def get_logicals_z(self) -> Operator:
         Lx, Ly, Lz = self.size
         logicals = []
 
