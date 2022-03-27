@@ -79,6 +79,8 @@ class StabilizerCode(metaclass=ABCMeta):
         self._logicals_x = bsparse.empty_row(2*self.n)
         self._logicals_z = bsparse.empty_row(2*self.n)
         self._is_css = None
+        self._x_indices = None
+        self._z_indices = None
 
     @property
     @abstractmethod
@@ -228,6 +230,42 @@ class StabilizerCode(metaclass=ABCMeta):
             self._Hz = H[H.getnnz(1) > 0]
 
         return self._Hz
+
+    @property
+    def x_indices(self) -> np.ndarray:
+        """For CSS codes. Returns the indices of the X stabilizers"""
+
+        if not self.is_css:
+            raise ValueError("This method only works for CSS codes")
+
+        if self._x_indices is None:
+            Hx = self.stabilizer_matrix[:, :self.n]
+            self._x_indices = (Hx.getnnz(1) > 0)
+
+        return self._x_indices
+
+    @property
+    def z_indices(self) -> np.ndarray:
+        """For CSS codes. Returns the indices of the X stabilizers"""
+
+        if not self.is_css:
+            raise ValueError("This method only works for CSS codes")
+
+        if self._z_indices is None:
+            Hz = self.stabilizer_matrix[:, self.n:]
+            self._z_indices = (Hz.getnnz(1) > 0)
+
+        return self._z_indices
+
+    def extract_x_syndrome(self, syndrome: np.ndarray) -> np.ndarray:
+        """For CSS codes. Returns the part of the syndrome that corresponds to X stabilizers"""
+
+        return syndrome[self.x_indices]
+
+    def extract_z_syndrome(self, syndrome: np.ndarray) -> np.ndarray:
+        """For CSS codes. Returns the part of the syndrome that corresponds to Z stabilizers"""
+
+        return syndrome[self.z_indices]
 
     def to_bsf(self, operator: Operator) -> csr_matrix:
         bsf_operator = bsparse.zero_row(2*self.n)

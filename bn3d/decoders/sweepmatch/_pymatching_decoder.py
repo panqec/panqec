@@ -16,17 +16,13 @@ class Toric3DPymatchingDecoder(Decoder):
 
     label = 'Toric 3D Pymatching'
     _matchers: Dict[str, Matching] = {}
-    _n_faces: Dict[str, int] = {}
 
     def __init__(self):
         self._matchers = {}
-        self._n_faces = {}
 
     def new_matcher(self, code: StabilizerCode):
         """Return a new Matching object."""
         # Get the number of X stabilizers (faces).
-        n_faces = code.Hx.shape[0]
-        self._n_faces[code.label] = n_faces
 
         # Only keep the Z vertex stabilizers.
         return Matching(code.Hz)
@@ -50,8 +46,7 @@ class Toric3DPymatchingDecoder(Decoder):
 
         X face stabiziliers syndromes are discarded for this decoder.
         """
-        n_faces = self._n_faces[code.label]
-        vertex_syndromes = full_syndrome[n_faces:]
+        vertex_syndromes = full_syndrome[code.z_indices]
         return vertex_syndromes
 
     def decode(self, code: Toric3DCode, syndrome: np.ndarray) -> np.ndarray:

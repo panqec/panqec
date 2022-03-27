@@ -17,9 +17,15 @@ class SweepMatchDecoder(Decoder):
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
-        z_correction = self._sweeper.decode(code, syndrome)
+        z_correction = self._sweeper.decode(code, syndrome).toarray()[0]
         x_correction = self._matcher.decode(code, syndrome)
 
-        correction = (z_correction + x_correction) % 2
+        print("x", x_correction)
+        print("z", z_correction)
+
+        correction = (x_correction + z_correction) % 2
         correction = correction.astype(np.uint)
+
+        print("xz", correction)
+
         return correction

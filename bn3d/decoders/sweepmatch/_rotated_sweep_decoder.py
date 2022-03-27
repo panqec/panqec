@@ -16,21 +16,20 @@ class RotatedSweepDecoder3D(Decoder):
         self.max_rounds = max_rounds
 
     def get_full_size(self, code) -> Tuple[int, ...]:
-        all_index = np.array(
-            list(code.qubit_coordinates)
-            + list(code.vertex_index.keys())
-            + list(code.face_index.keys())
-        )
+        all_index = np.concatenate([code.qubit_coordinates, code.stabilizer_coordinates])
+
         return tuple(all_index.max(axis=0))
 
     def get_initial_state(
         self, code: RotatedPlanar3DCode, syndrome: np.ndarray
     ) -> Indexer:
         """Get initial cellular automaton state from syndrome."""
-        n_faces = len(code.face_index)
+        face_coordinates = [stab for stab in code.stabilizer_coordinates
+                            if code.stabilizer_type(stab) == 'face']
+        n_faces = len(face_coordinates)
         face_syndromes = syndrome[:n_faces]
         signs = dict()
-        for face, index in code.face_index.items():
+        for index, face in enumerate(face_coordinates):
             signs[face] = int(face_syndromes[index])
         return signs
 
@@ -132,54 +131,54 @@ class RotatedSweepDecoder3D(Decoder):
         flip_locations = []
 
         # Apply sweep rule on every vertex.
-        for vertex in code.vertex_index.keys():
+        for vertex in code.stabilizer_coordinates:
+            if code.stabilizer_type(vertex) == 'vertex':
+                # Get neighbouring faces and edges in the sweep direction.
+                x_face, y_face, z_face = self.get_sweep_faces(
+                    vertex, sweep_direction, code
+                )
+                x_edge, y_edge, z_edge = self.get_sweep_edges(
+                    vertex, sweep_direction, code
+                )
 
-            # Get neighbouring faces and edges in the sweep direction.
-            x_face, y_face, z_face = self.get_sweep_faces(
-                vertex, sweep_direction, code
-            )
-            x_edge, y_edge, z_edge = self.get_sweep_edges(
-                vertex, sweep_direction, code
-            )
+                # Check faces and edges are in lattice before proceeding.
+                faces_valid = tuple(
+                    code.is_stabilizer(face, 'face')
+                    for face in [x_face, y_face, z_face]
+                )
+                edges_valid = tuple(
+                    edge in code.qubit_coordinates
+                    for edge in [x_edge, y_edge, z_edge]
+                )
+                if all(faces_valid) and all(edges_valid):
 
-            # Check faces and edges are in lattice before proceeding.
-            faces_valid = tuple(
-                face in code.face_index
-                for face in [x_face, y_face, z_face]
-            )
-            edges_valid = tuple(
-                edge in code.qubit_coordinates
-                for edge in [x_edge, y_edge, z_edge]
-            )
-            if all(faces_valid) and all(edges_valid):
+                    if signs[x_face] and signs[y_face] and signs[z_face]:
+                        direction = self.get_default_direction()
+                        edge_flip = {0: x_edge, 1: y_edge, 2: z_edge}[direction]
+                        flip_locations.append(edge_flip)
+                    elif signs[y_face] and signs[z_face]:
+                        flip_locations.append(x_edge)
+                    elif signs[x_face] and signs[z_face]:
+                        flip_locations.append(y_edge)
+                    elif signs[x_face] and signs[y_face]:
+                        flip_locations.append(z_edge)
 
-                if signs[x_face] and signs[y_face] and signs[z_face]:
-                    direction = self.get_default_direction()
-                    edge_flip = {0: x_edge, 1: y_edge, 2: z_edge}[direction]
-                    flip_locations.append(edge_flip)
-                elif signs[y_face] and signs[z_face]:
-                    flip_locations.append(x_edge)
-                elif signs[x_face] and signs[z_face]:
-                    flip_locations.append(y_edge)
-                elif signs[x_face] and signs[y_face]:
-                    flip_locations.append(z_edge)
+                """
+                # Boundary case with only 1 face and 2 edges.
+                elif sum(faces_valid) == 1 and sum(edges_valid) == 2:
+                    i_face_valid = faces_valid.index(True)
+                    i_edge_invalid = edges_valid.index(False)
+                    i_edge_valid = edges_valid.index(True)
 
-            """
-            # Boundary case with only 1 face and 2 edges.
-            elif sum(faces_valid) == 1 and sum(edges_valid) == 2:
-                i_face_valid = faces_valid.index(True)
-                i_edge_invalid = edges_valid.index(False)
-                i_edge_valid = edges_valid.index(True)
+                    # Check valid face is orthogonal to missing edge.
+                    if i_face_valid == i_edge_invalid:
+                        valid_face = [x_face, y_face, z_face][i_face_valid]
+                        valid_edge = [x_edge, y_edge, z_edge][i_edge_valid]
 
-                # Check valid face is orthogonal to missing edge.
-                if i_face_valid == i_edge_invalid:
-                    valid_face = [x_face, y_face, z_face][i_face_valid]
-                    valid_edge = [x_edge, y_edge, z_edge][i_edge_valid]
-
-                    # Flip an edge if the face has a syndrome.
-                    if signs[valid_face]:
-                        flip_locations.append(valid_edge)
-            """
+                        # Flip an edge if the face has a syndrome.
+                        if signs[valid_face]:
+                            flip_locations.append(valid_edge)
+                """
 
         new_signs = signs.copy()
         for location in flip_locations:
@@ -233,7 +232,7 @@ class RotatedSweepDecoder3D(Decoder):
             ]
 
         # Only keep faces that are actually on the cut lattice.
-        faces = [face for face in faces if face in code.face_index]
+        faces = [face for face in faces if code.is_stabilizer(face, 'face')]
 
         # Flip the state of the faces.
         for face in faces:

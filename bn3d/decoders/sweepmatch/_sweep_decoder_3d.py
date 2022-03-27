@@ -1,10 +1,10 @@
-import itertools
 from typing import Tuple, Dict
 import numpy as np
 from qecsim.model import Decoder
-from ...models import Toric3DCode
+from bn3d.models import Toric3DCode
 
-Operator = Dict[Tuple, str]
+Indexer = Dict[Tuple[int, int, int], int]
+Operator = Dict[Tuple[int, int, int], str]
 
 
 class SweepDecoder3D(Decoder):
@@ -13,7 +13,7 @@ class SweepDecoder3D(Decoder):
     _rng: np.random.Generator
     max_sweep_factor: int
 
-    def __init__(self, seed: int = 0, max_sweep_factor: int = 4):
+    def __init__(self, seed: int = 0, max_sweep_factor: int = 32):
         self._rng = np.random.default_rng(seed)
         self.max_sweep_factor = max_sweep_factor
 
@@ -21,57 +21,61 @@ class SweepDecoder3D(Decoder):
         self, code: Toric3DCode, full_syndrome: np.ndarray
     ) -> np.ndarray:
         """Get only the syndromes for the vertex Z stabilizers.
-
-        Z vertex stabiziliers syndromes are discarded for this decoder.
+        Z vertex stabilizers syndromes are discarded for this decoder.
         """
-        n_faces = code.Hz.shape[0]
-        face_syndromes = full_syndrome[:n_faces]
+        face_syndromes = code.extract_x_syndrome(full_syndrome)
         return face_syndromes
 
     def flip_edge(
-        self, index: Tuple, signs: np.ndarray
+        self, location: Tuple, signs: np.ndarray, code: Toric3DCode
     ):
         """Flip signs at index and update correction."""
-        edge, x, y, z = index
+        x, y, z = location
+        edge = tuple(np.mod(location, 2))
+        L_x, L_y, L_z = code.size
+        limits = (2*L_x, 2*L_y, 2*L_z)
 
-        if edge == 0:
-            face_1 = (1, x, y, z)
-            face_2 = (2, x, y, z)
-            face_3 = (1, x, y, z - 1)
-            face_4 = (2, x, y - 1, z)
-        elif edge == 1:
-            face_1 = (2, x, y, z)
-            face_2 = (0, x, y, z)
-            face_3 = (2, x - 1, y, z)
-            face_4 = (0, x, y, z - 1)
-        elif edge == 2:
-            face_1 = (0, x, y, z)
-            face_2 = (1, x, y, z)
-            face_3 = (0, x, y - 1, z)
-            face_4 = (1, x - 1, y, z)
+        if edge == (1, 0, 0):
+            face_1 = (x, y + 1, z)
+            face_2 = (x, y - 1, z)
+            face_3 = (x, y, z + 1)
+            face_4 = (x, y, z - 1)
+        elif edge == (0, 1, 0):
+            face_1 = (x, y, z + 1)
+            face_2 = (x, y, z - 1)
+            face_3 = (x + 1, y, z)
+            face_4 = (x - 1, y, z)
+        elif edge == (0, 0, 1):
+            face_1 = (x + 1, y, z)
+            face_2 = (x - 1, y, z)
+            face_3 = (x, y + 1, z)
+            face_4 = (x, y - 1, z)
 
         # Impose periodic boundary conditions.
-        index_1 = tuple(np.mod(face_1, signs.shape))
-        index_2 = tuple(np.mod(face_2, signs.shape))
-        index_3 = tuple(np.mod(face_3, signs.shape))
-        index_4 = tuple(np.mod(face_4, signs.shape))
+        location_1 = tuple(np.mod(face_1, limits))
+        location_2 = tuple(np.mod(face_2, limits))
+        location_3 = tuple(np.mod(face_3, limits))
+        location_4 = tuple(np.mod(face_4, limits))
 
         # Flip the signs (well actually 0s and 1s).
-        signs[index_1] = 1 - signs[index_1]
-        signs[index_2] = 1 - signs[index_2]
-        signs[index_3] = 1 - signs[index_3]
-        signs[index_4] = 1 - signs[index_4]
+        signs[code.stabilizer_index[location_1]] = 1 - signs[code.stabilizer_index[location_1]]  # type: ignore
+        signs[code.stabilizer_index[location_2]] = 1 - signs[code.stabilizer_index[location_2]]  # type: ignore
+        signs[code.stabilizer_index[location_3]] = 1 - signs[code.stabilizer_index[location_3]]  # type: ignore
+        signs[code.stabilizer_index[location_4]] = 1 - signs[code.stabilizer_index[location_4]]  # type: ignore
 
     def get_default_direction(self):
         """The default direction when all faces are excited."""
         direction = int(self._rng.choice([0, 1, 2], size=1))
         return direction
 
-    def get_sign_array(self, code: Toric3DCode, syndrome: np.ndarray):
-        signs = np.reshape(
-            self.get_face_syndromes(code, syndrome),
-            newshape=code.size
-        )
+    # TODO: make this more space-efficient, don't store zeros.
+    def get_initial_state(
+        self, code: Toric3DCode, syndrome: np.ndarray
+    ) -> Indexer:
+        """Get initial cellular automaton state from syndrome."""
+        signs = syndrome.copy()
+        signs[code.z_indices] = 0
+
         return signs
 
     def decode(
@@ -83,7 +87,7 @@ class SweepDecoder3D(Decoder):
         max_sweeps = self.max_sweep_factor*int(max(code.size))
 
         # The syndromes represented as an array of 0s and 1s.
-        signs = self.get_sign_array(code, syndrome)
+        signs = self.get_initial_state(code, syndrome)
 
         # Keep track of the correction needed.
         correction = dict()
@@ -92,42 +96,52 @@ class SweepDecoder3D(Decoder):
         i_sweep = 0
 
         # Keep sweeping until there are no syndromes.
-        while np.any(signs) and i_sweep < max_sweeps:
-            signs = self.sweep_move(signs, correction)
+        while any(signs) and i_sweep < max_sweeps:
+            signs = self.sweep_move(signs, correction, code)
             i_sweep += 1
+
+        print("Before", correction)
 
         return code.to_bsf(correction)
 
     def sweep_move(
-        self, signs: np.ndarray, correction: Operator
+        self, signs: np.ndarray, correction: Operator,
+        code: Toric3DCode
     ) -> np.ndarray:
         """Apply the sweep move once."""
 
         new_signs = signs.copy()
 
-        ranges = [range(length) for length in signs.shape[1:]]
         flip_locations = []
 
-        # Sweep through every edge.
-        for x, y, z in itertools.product(*ranges):
+        L_x, L_y, L_z = code.size
+        limits = (2*L_x, 2*L_y, 2*L_z)
 
+        # Sweep through every edge.
+        for x, y, z in np.array(code.stabilizer_coordinates)[code.z_indices]:
             # Get the syndromes on each face in sweep direction.
-            x_face = signs[0, x, y, z]
-            y_face = signs[1, x, y, z]
-            z_face = signs[2, x, y, z]
+            x_face = signs[code.stabilizer_index[tuple(np.mod((x, y + 1, z + 1), limits))]]  # type: ignore  # noqa: E501
+            y_face = signs[code.stabilizer_index[tuple(np.mod((x + 1, y, z + 1), limits))]]  # type: ignore  # noqa: E501
+            z_face = signs[code.stabilizer_index[tuple(np.mod((x + 1, y + 1, z), limits))]]  # type: ignore  # noqa: E501
+
+            x_edge = tuple(np.mod((x + 1, y, z), limits))
+            y_edge = tuple(np.mod((x, y + 1, z), limits))
+            z_edge = tuple(np.mod((x, y, z + 1), limits))
 
             if x_face and y_face and z_face:
                 direction = self.get_default_direction()
-                flip_locations.append((direction, x, y, z))
+                flip_locations.append(
+                    {0: x_edge, 1: y_edge, 2: z_edge}[direction]
+                )
             elif y_face and z_face:
-                flip_locations.append((0, x, y, z))
+                flip_locations.append(x_edge)
             elif x_face and z_face:
-                flip_locations.append((1, x, y, z))
+                flip_locations.append(y_edge)
             elif x_face and y_face:
-                flip_locations.append((2, x, y, z))
+                flip_locations.append(z_edge)
 
         for location in flip_locations:
-            self.flip_edge(location, new_signs)
+            self.flip_edge(location, new_signs, code)
             correction[location] = 'Z'
 
         return new_signs
