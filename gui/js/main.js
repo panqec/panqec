@@ -17,7 +17,7 @@ const params = {
     errorProbability: 0.1,
     L: defaultSize,
     noise_deformation: 'None',
-    decoder: 'bp-osd-2',
+    decoder: 'matching',
     max_bp_iter: 10,
     alpha: 0.75,
     channel_update: false,
@@ -241,11 +241,11 @@ function buildGUI() {
     codeFolder.add(params, 'coprime').name('Coprime dimensions').onChange(changeLatticeSize);
     codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
 
-    let deformed_options = {'None': 'None', 'x axis': 'x', 'y axis': 'y'};
+    let deformedOptions = {'None': 'None', 'x axis': 'x', 'y axis': 'y'};
     if (codeDimension == 3)
-        deformed_options['z axis'] = 'z';
+        deformedOptions['z axis'] = 'z';
 
-    codeFolder.add(params, 'deformed_axis', deformed_options).name('Deformation').onChange(changeLatticeSize);
+    codeFolder.add(params, 'deformed_axis', deformedOptions).name('Deformation').onChange(changeLatticeSize);
     codeFolder.open();
 
     const errorModelFolder = gui.addFolder('Error Model')
@@ -256,11 +256,17 @@ function buildGUI() {
     errorModelFolder.open();
 
     const decoderFolder = gui.addFolder('Decoder')
-    decoderFolder.add(params, 'decoder', {
-        'BP-OSD': 'bp-osd', 'BP-OSD-2': 'bp-osd-2', 'MBP': 'mbp',
-        'SweepMatch': 'sweepmatch', 'InfZOpt': 'infzopt',
-        'Matching 2D': 'matching'
-    }).name('Decoder');
+
+    let decoderOptions = {'BP-OSD': 'bp-osd', 'MBP': 'mbp'}
+    if (codeDimension == 3)
+    {
+        decoderOptions['SweepMatch'] = 'sweepmatch';
+        decoderOptions['Optimal ∞ bias'] = 'infzopt';
+    }
+    else if (codeDimension == 2)
+        decoderOptions['Matching'] = 'matching';
+
+    decoderFolder.add(params, 'decoder', decoderOptions).name('Decoder');
     decoderFolder.add(params, 'max_bp_iter', 1, 100, 1).name('Max iterations (BP)');
     decoderFolder.add(params, 'channel_update').name('Channel update (BP)');
     decoderFolder.add(params, 'alpha', 0.01, 2, 0.01).name('Alpha (MBP)');
