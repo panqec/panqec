@@ -20,12 +20,7 @@ class SweepMatchDecoder(Decoder):
         z_correction = self._sweeper.decode(code, syndrome)
         x_correction = self._matcher.decode(code, syndrome)
 
-        print("x", x_correction)
-        print("z", z_correction)
-
         correction = (x_correction + z_correction) % 2
         correction = correction.astype(np.uint)
-
-        print("xz", correction)
 
         return correction

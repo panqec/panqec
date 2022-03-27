@@ -13,7 +13,7 @@ from .slurm import (
     clear_out_folder, clear_sbatch_folder
 )
 from .statmech.cli import statmech
-from .noise import get_direction_from_bias_ratio
+from .utils import get_direction_from_bias_ratio
 from glob import glob
 
 

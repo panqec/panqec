@@ -1,7 +1,7 @@
 from typing import Tuple
 import numpy as np
 from qecsim.model import StabilizerCode
-from ..noise import PauliErrorModel
+from . import PauliErrorModel
 
 
 class DeformedRandomErrorModel(PauliErrorModel):

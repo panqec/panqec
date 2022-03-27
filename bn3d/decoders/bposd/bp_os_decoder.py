@@ -397,7 +397,6 @@ class BeliefPropagationOSDDecoder(Decoder):
 def test_decoder():
     from bn3d.models import Toric3DCode
     from bn3d.bpauli import bcommute, get_effective_error
-    # from bn3d.noise import PauliErrorModel
     from bn3d.error_models import DeformedRandomErrorModel
     import time
     rng = np.random.default_rng()

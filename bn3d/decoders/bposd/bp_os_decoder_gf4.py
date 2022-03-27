@@ -301,7 +301,7 @@ class BeliefPropagationOSDDecoder(Decoder):
 if __name__ == "__main__":
     from bn3d.models import RotatedPlanar3DCode
     import qecsim.paulitools as pt
-    from bn3d.noise import PauliErrorModel
+    from bn3d.error_models import PauliErrorModel
 
     np.random.seed(42)
 

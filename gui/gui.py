@@ -11,7 +11,7 @@ from bn3d.decoders import (
     RotatedInfiniteZBiasDecoder, SweepMatchDecoder, Toric2DPymatchingDecoder
 )
 from bn3d.decoders import BeliefPropagationOSDDecoder, MemoryBeliefPropagationDecoder, DeformedSweepMatchDecoder
-from bn3d.noise import PauliErrorModel
+from bn3d.error_models import PauliErrorModel
 from bn3d.error_models import (
     DeformedXZZXErrorModel, DeformedXYErrorModel, DeformedRhombicErrorModel
 )

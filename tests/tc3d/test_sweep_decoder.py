@@ -5,7 +5,7 @@ from qecsim.paulitools import bsf_wt
 from bn3d.models import Toric3DCode
 from bn3d.decoders import SweepDecoder3D
 from bn3d.bpauli import bcommute
-from bn3d.noise import PauliErrorModel
+from bn3d.error_models import PauliErrorModel
 from bn3d.utils import set_where
 
 

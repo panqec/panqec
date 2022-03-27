@@ -27,7 +27,7 @@ from .decoders import (
     DeformedSweepMatchDecoder, FoliatedMatchingDecoder,
     DeformedRotatedSweepMatchDecoder
 )
-from .noise import PauliErrorModel, XNoiseOnYZEdgesOnly
+from .error_models import PauliErrorModel, XNoiseOnYZEdgesOnly
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -70,7 +70,6 @@ ERROR_MODELS = {
     'DeformedRandomErrorModel': DeformedRandomErrorModel,
     'DeformedXYErrorModel': DeformedXYErrorModel,
     'DeformedRhombicErrorModel': DeformedRhombicErrorModel,
-    'XNoiseOnYZEdgesOnly': XNoiseOnYZEdgesOnly,
 }
 DECODERS = {
     'Toric2DPymatchingDecoder': Toric2DPymatchingDecoder,
