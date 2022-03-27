@@ -25,13 +25,11 @@ class Toric3DPymatchingDecoder(Decoder):
     def new_matcher(self, code: StabilizerCode):
         """Return a new Matching object."""
         # Get the number of X stabilizers (faces).
-        n_faces = int(3*np.product(code.size))
+        n_faces = code.Hx.shape[0]
         self._n_faces[code.label] = n_faces
-        n_qubits = code.n
 
         # Only keep the Z vertex stabilizers.
-        H_z = code.stabilizer_matrix[n_faces:, n_qubits:]
-        return Matching(H_z)
+        return Matching(code.Hz)
 
     def get_matcher(self, code: StabilizerCode) -> Matching:
         """Get the matcher given the code.

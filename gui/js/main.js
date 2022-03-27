@@ -10,8 +10,8 @@ import { RhombicCode } from './codes/rhombic.js';
 import { XCubeCode } from './codes/xcube.js';
 import { RotatedToric3DCode, RpRotatedToric3DCode } from './codes/rotatedToric3d.js';
 
-var defaultCode = codeDimension == 2 ? 'rotated-planar-2d' : 'planar-3d';
-var defaultSize = codeDimension == 2 ? 2 : 4;
+var defaultCode = codeDimension == 2 ? 'toric-2d' : 'planar-3d';
+var defaultSize = codeDimension == 2 ? 4 : 4;
 
 const params = {
     errorProbability: 0.1,

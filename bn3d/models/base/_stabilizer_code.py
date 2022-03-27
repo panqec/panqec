@@ -101,7 +101,7 @@ class StabilizerCode(metaclass=ABCMeta):
     @property
     def k(self) -> int:
         """Number of logical qubits"""
-        return len(self.logicals_x)
+        return self.logicals_x.shape[0]
 
     @property
     def d(self) -> int:
@@ -260,7 +260,7 @@ class StabilizerCode(metaclass=ABCMeta):
 
     def measure_syndrome(self, error) -> np.ndarray:
         """Perfectly measure syndromes given Pauli error."""
-        return bcommute(self.stabilizers, self.to_bsf(error))
+        return bcommute(self.stabilizer_matrix, self.to_bsf(error))
 
     def is_stabilizer(self, location: Tuple, stab_type: str = None):
         """Returns whether a given location in the coordinate system

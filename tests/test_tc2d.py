@@ -16,12 +16,12 @@ class TestToric2DPymatchingDecoder:
     @pytest.mark.parametrize(
         'operator, location',
         [
-            ('X', (0, 1, 1)),
-            ('Y', (0, 1, 1)),
-            ('Z', (0, 1, 1)),
-            ('X', (1, 1, 1)),
-            ('Y', (1, 1, 1)),
-            ('Z', (1, 1, 1)),
+            ('X', (0, 1)),
+            ('Y', (0, 1)),
+            ('Z', (0, 1)),
+            ('X', (1, 1)),
+            ('Y', (1, 1)),
+            ('Z', (1, 1)),
         ]
     )
     def test_decode_single_error(self, code, operator, location):
