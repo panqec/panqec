@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 from qecsim.paulitools import bsf_wt
 from bn3d.bpauli import bcommute
-from bn3d.models import Toric3DCode, Toric3DPauli
+from bn3d.models import Toric3DCode
 from bn3d.decoders import SweepMatchDecoder
 
 
@@ -38,16 +38,16 @@ class TestSweepMatchDecoder:
         ]
     )
     def test_decode_single_error(self, decoder, code, pauli, location):
-        error = Toric3DPauli(code)
-        error.site(pauli, location)
-        assert bsf_wt(error.to_bsf()) == 1
+        error = dict()
+        error[location] = pauli
+        assert bsf_wt(code.to_bsf(error)) == 1
 
         # Measure the syndrome and ensure non-triviality.
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (error.to_bsf() + correction) % 2
+        total_error = (code.to_bsf(error) + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     @pytest.mark.parametrize(
@@ -66,16 +66,16 @@ class TestSweepMatchDecoder:
         ]
     )
     def test_decode_many_errors(self, decoder, code, paulis_locations):
-        error = Toric3DPauli(code)
+        error = dict()
         for pauli, location in paulis_locations:
-            error.site(pauli, location)
-        assert bsf_wt(error.to_bsf()) == len(paulis_locations)
+            error[location] = pauli
+        assert bsf_wt(code.to_bsf(error)) == len(paulis_locations)
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (error.to_bsf() + correction) % 2
+        total_error = (code.to_bsf(error) + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
@@ -93,9 +93,9 @@ class TestSweepMatchDecoder:
         ]
 
         for code, site in itertools.product(codes, sites):
-            error = Toric3DPauli(code)
-            error.site('Z', site)
+            error = dict()
+            error[site] = 'Z'
             syndrome = code.measure_syndrome(error)
             correction = decoder.decode(code, syndrome)
-            total_error = (error.to_bsf() + correction) % 2
+            total_error = (code.to_bsf(error) + correction) % 2
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)

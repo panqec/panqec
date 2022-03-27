@@ -26,9 +26,9 @@ class TestToric2DPymatchingDecoder:
     )
     def test_decode_single_error(self, code, operator, location):
         decoder = Toric2DPymatchingDecoder()
-        pauli = code.new_pauli()
-        pauli.site(operator, location)
-        error = pauli.to_bsf()
+        pauli = dict()
+        pauli[location] = operator
+        error = code.to_bsf(pauli)
         assert bsf_wt(error) == 1, 'Error should be weight 1'
         syndromes = bcommute(code.stabilizer_matrix, error)
         if operator in ['Z', 'X']:

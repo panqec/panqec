@@ -4,7 +4,7 @@ import numpy as np
 from qecsim.paulitools import bsf_wt
 from bn3d.bpauli import bcommute
 from bn3d.decoders import split_posts_at_active_fences
-from bn3d.models import RotatedPlanar3DCode, RotatedPlanar3DPauli
+from bn3d.models import RotatedPlanar3DCode
 from bn3d.decoders import RotatedInfiniteZBiasDecoder
 
 
@@ -56,16 +56,16 @@ class TestRotatedInfiniteZBiasDecoder:
         (9, 9, 5)
     ])
     def test_sweep_errors_on_extreme_layer(self, code, decoder, location):
-        error = RotatedPlanar3DPauli(code)
+        error = dict()
         assert location in code.qubit_coordinates
-        error.site('Z', location)
-        assert bsf_wt(error.to_bsf()) == 1
+        error[location] = 'Z'
+        assert bsf_wt(code.to_bsf(error)) == 1
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (error.to_bsf() + correction) % 2
+        total_error = (code.to_bsf(error) + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
             'Total error not in codespace'
         )
@@ -94,15 +94,15 @@ class TestRotatedInfiniteZBiasDecoder:
             ]
 
         for location in qubit_locations:
-            error = RotatedPlanar3DPauli(code)
-            error.site(pauli, location)
-            assert bsf_wt(error.to_bsf()) == 1
+            error = dict()
+            error[location] = pauli
+            assert bsf_wt(code.to_bsf(error)) == 1
 
             syndrome = code.measure_syndrome(error)
             assert np.any(syndrome != 0)
 
             correction = decoder.decode(code, syndrome)
-            total_error = (error.to_bsf() + correction) % 2
+            total_error = (code.to_bsf(error) + correction) % 2
 
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
@@ -134,16 +134,16 @@ class TestRotatedInfiniteZBiasDecoder:
         uncorrectable_error_locations = []
         undecodable_error_locations = []
         for locations in error_locations:
-            error = RotatedPlanar3DPauli(code)
+            error = dict()
             for location in locations:
-                error.site(pauli, location)
-            assert bsf_wt(error.to_bsf()) == len(locations)
+                error[location] = pauli
+            assert bsf_wt(code.to_bsf(error)) == len(locations)
 
             syndrome = code.measure_syndrome(error)
             assert np.any(syndrome != 0)
 
             correction = decoder.decode(code, syndrome)
-            total_error = (error.to_bsf() + correction) % 2
+            total_error = (code.to_bsf(error) + correction) % 2
 
             decodable = True
             if np.any(bcommute(code.stabilizer_matrix, total_error) != 0):

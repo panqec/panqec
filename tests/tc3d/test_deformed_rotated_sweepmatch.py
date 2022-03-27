@@ -1,7 +1,7 @@
 from typing import Tuple
 import numpy as np
 import pytest
-from bn3d.models import RotatedPlanar3DCode, RotatedPlanar3DPauli
+from bn3d.models import RotatedPlanar3DCode
 from bn3d.decoders import DeformedRotatedSweepMatchDecoder
 from bn3d.error_models import DeformedXZZXErrorModel
 from bn3d.bpauli import bcommute, get_effective_error
@@ -44,12 +44,12 @@ class TestDeformedRotatedPlanarPymatchingDecoder:
     def test_decode_along_line_preferred(self, code, error_model, decoder):
 
         # Two close-together parallel lines of X errors along deformation axis.
-        pauli_error = RotatedPlanar3DPauli(code)
-        pauli_error.site('X', (4, 2, 2))
-        pauli_error.site('X', (4, 2, 4))
-        pauli_error.site('X', (6, 4, 2))
-        pauli_error.site('X', (6, 4, 4))
-        error = pauli_error.to_bsf()
+        pauli_error = dict()
+        pauli_error[(4, 2, 2)] = 'X'
+        pauli_error[(4, 2, 4)] = 'X'
+        pauli_error[(6, 4, 2)] = 'X'
+        pauli_error[(6, 4, 4)] = 'X'
+        error = code.to_bsf(pauli_error)
 
         # The expected correction, given the high bias, should be matching
         # along the deformation axis, which is the original error itself.
@@ -57,10 +57,10 @@ class TestDeformedRotatedPlanarPymatchingDecoder:
 
         # (as opposed to the naive correction of joining the two ends across to
         # form a total error that is a loop)
-        pauli_naive_correction = RotatedPlanar3DPauli(code)
-        pauli_naive_correction.site('X', (5, 3, 1))
-        pauli_naive_correction.site('X', (5, 3, 5))
-        naive_correction = pauli_naive_correction.to_bsf()
+        pauli_naive_correction = dict()
+        pauli_naive_correction[(5, 3, 1)] = 'X'
+        pauli_naive_correction[(5, 3, 5)] = 'X'
+        naive_correction = code.to_bsf(pauli_naive_correction)
 
         syndrome = bcommute(code.stabilizer_matrix, error)
         correction = decoder.decode(code, syndrome)

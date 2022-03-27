@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm
 from itertools import combinations
 from qecsim.model import StabilizerCode
-from bn3d.models import RotatedToric3DCode, RotatedToric3DPauli
+from bn3d.models import RotatedToric3DCode
 from bn3d.bpauli import (
     bcommute, bvector_to_pauli_string, brank, apply_deformation
 )
@@ -378,48 +378,6 @@ class TestRotatedToric3DCode4x4x3(StabilizerCodeTestWithCoordinates):
     expected_plane_z = [1, 3, 5, 7]
     expected_vertical_z = [2, 4, 6]
 
-
-@pytest.mark.skip(reason='sparse')
-class TestRotatedToric3DPauli:
-
-    size = (4, 3, 3)
-
-    @pytest.fixture
-    def code(self):
-        """Example code with co-prime x and y dimensions."""
-        return RotatedToric3DCode(*self.size)
-
-    def test_vertex_operator_in_bulk_has_weight_6(self, code):
-        vertices = [
-            (x, y, z)
-            for x, y, z in code.vertex_index
-            if z in [3, 5]
-        ]
-        for vertex in vertices:
-            operator = RotatedToric3DPauli(code)
-            operator.vertex('Z', vertex)
-            assert sum(operator.to_bsf()) == 6
-
-    def test_vertex_operator_on_boundary_has_weight_5(self, code):
-        vertices = [
-            (x, y, z)
-            for x, y, z in code.vertex_index
-            if z in [1, 7]
-        ]
-        for vertex in vertices:
-            operator = RotatedToric3DPauli(code)
-            operator.vertex('Z', vertex)
-            assert sum(operator.to_bsf()) == 5
-
-    def test_every_face_operator_in_bulk_has_weight_4(self, code):
-        for face in code.face_index:
-            x, y, z = face
-            if x > 1 and y > 1 and z > 1 and z < 2*self.size[2] + 1:
-                operator = RotatedToric3DPauli(code)
-                operator.face('X', face)
-                assert sum(operator.to_bsf()) == 4
-
-
 @pytest.mark.skip(reason='sparse')
 class TestRotatedToric3DDeformation:
 
@@ -507,9 +465,9 @@ class TestBPOSDOnRotatedToric3DCodeOddTimesEven:
 
         failing_cases: List[Tuple[int, int, int]] = []
         for site in code.qubit_coordinates:
-            error_pauli = RotatedToric3DPauli(code)
-            error_pauli.site(pauli, site)
-            error = error_pauli.to_bsf()
+            error_pauli = dict()
+            error_pauli[site] = pauli
+            error = code.to_bsf(error_pauli)
             syndrome = bcommute(code.stabilizer_matrix, error)
             correction = decoder.decode(code, syndrome)
             total_error = (error + correction) % 2

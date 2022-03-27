@@ -4,7 +4,7 @@ import numpy as np
 from qecsim.paulitools import bsf_wt
 from bn3d.bpauli import bcommute
 from bn3d.models import (
-    RotatedPlanar3DCode, RotatedPlanar3DPauli
+    RotatedPlanar3DCode
 )
 from bn3d.decoders import RotatedSweepMatchDecoder, RotatedSweepDecoder3D
 
@@ -40,17 +40,17 @@ class TestRotatedSweepMatchDecoder:
         ]
     )
     def test_decode_single_error(self, decoder, code, pauli, location):
-        error = RotatedPlanar3DPauli(code)
+        error = dict()
         assert location in code.qubit_coordinates
-        error.site(pauli, location)
-        assert bsf_wt(error.to_bsf()) == 1
+        error[location] = pauli
+        assert bsf_wt(code.to_bsf(error)) == 1
 
         # Measure the syndrome and ensure non-triviality.
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (error.to_bsf() + correction) % 2
+        total_error = (code.to_bsf(error) + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     @pytest.mark.parametrize('sweep_direction, diffs', [
@@ -125,17 +125,17 @@ class TestRotatedSweepMatchDecoder:
         ]
     )
     def test_decode_many_errors(self, decoder, code, paulis_locations):
-        error = RotatedPlanar3DPauli(code)
+        error = dict()
         for pauli, location in paulis_locations:
             assert location in code.qubit_coordinates
-            error.site(pauli, location)
-        assert bsf_wt(error.to_bsf()) == len(paulis_locations)
+            error[location] = pauli
+        assert bsf_wt(code.to_bsf(error)) == len(paulis_locations)
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (error.to_bsf() + correction) % 2
+        total_error = (code.to_bsf(error) + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     def test_undecodable_error(self, decoder, code):
@@ -143,17 +143,17 @@ class TestRotatedSweepMatchDecoder:
             (x, y, z) for x, y, z in code.qubit_coordinates
         ]
         assert len(locations) > 0
-        error = RotatedPlanar3DPauli(code)
+        error = dict()
         for location in locations:
             assert location in code.qubit_coordinates
-            error.site('Z', location)
-        assert bsf_wt(error.to_bsf()) == len(locations)
+            error[location] = 'Z'
+        assert bsf_wt(code.to_bsf(error)) == len(locations)
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (error.to_bsf() + correction) % 2
+        total_error = (code.to_bsf(error) + correction) % 2
         assert np.any(total_error)
 
     def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
@@ -165,12 +165,12 @@ class TestRotatedSweepMatchDecoder:
         ]
 
         for code, site in codes_sites:
-            error = RotatedPlanar3DPauli(code)
+            error = dict()
             assert site in code.qubit_coordinates
-            error.site('Z', site)
+            error[site] = 'Z'
             syndrome = code.measure_syndrome(error)
             correction = decoder.decode(code, syndrome)
-            total_error = (error.to_bsf() + correction) % 2
+            total_error = (code.to_bsf(error) + correction) % 2
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
 
@@ -198,16 +198,16 @@ class TestSweepMatch1x1x1:
         'down_right_horizontal'
     ])
     def test_errors_spanning_boundaries(self, code, decoder, locations):
-        error = RotatedPlanar3DPauli(code)
+        error = dict()
         for pauli, location in locations:
-            error.site(pauli, location)
-        assert bsf_wt(error.to_bsf()) == len(locations)
+            error[location] = pauli
+        assert bsf_wt(code.to_bsf(error)) == len(locations)
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (error.to_bsf() + correction) % 2
+        total_error = (code.to_bsf(error) + correction) % 2
         assert not np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
             'Total error not in codespace'
         )
@@ -254,17 +254,17 @@ class TestSweepMatch2x2x2:
         'weight_2_Z_error_5',
     ])
     def test_gui_examples(self, code, decoder, locations):
-        error = RotatedPlanar3DPauli(code)
+        error = dict()
         for pauli, location in locations:
             assert location in code.qubit_coordinates
-            error.site(pauli, location)
-        assert bsf_wt(error.to_bsf()) == len(locations)
+            error[location] = pauli
+        assert bsf_wt(code.to_bsf(error)) == len(locations)
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (error.to_bsf() + correction) % 2
+        total_error = (code.to_bsf(error) + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
             'Total error not in codespace'
         )
@@ -297,17 +297,17 @@ class TestSweepMatch2x2x2:
         'down_right_horizontal',
     ])
     def test_errors_spanning_boundaries(self, code, decoder, locations):
-        error = RotatedPlanar3DPauli(code)
+        error = dict()
         for pauli, location in locations:
             assert location in code.qubit_coordinates
-            error.site(pauli, location)
-        assert bsf_wt(error.to_bsf()) == len(locations)
+            error[location] = pauli
+        assert bsf_wt(code.to_bsf(error)) == len(locations)
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (error.to_bsf() + correction) % 2
+        total_error = (code.to_bsf(error) + correction) % 2
         assert not np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
             'Total error in codespace'
         )
@@ -333,16 +333,16 @@ class TestSweepCorners:
         (9, 9, 5)
     ])
     def test_sweep_errors_on_extreme_layer(self, code, decoder, location):
-        error = RotatedPlanar3DPauli(code)
+        error = dict()
         assert location in code.qubit_coordinates
-        error.site('Z', location)
-        assert bsf_wt(error.to_bsf()) == 1
+        error[location] = 'Z'
+        assert bsf_wt(code.to_bsf(error)) == 1
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (error.to_bsf() + correction) % 2
+        total_error = (code.to_bsf(error) + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
             'Total error not in codespace'
         )
@@ -358,15 +358,15 @@ class TestSweepCorners:
     def test_all_1_qubit_errors_correctable(self, code, decoder, pauli):
         uncorrectable_locations = []
         for location in code.qubit_coordinates:
-            error = RotatedPlanar3DPauli(code)
-            error.site(pauli, location)
-            assert bsf_wt(error.to_bsf()) == 1
+            error = dict()
+            error[location] = pauli
+            assert bsf_wt(code.to_bsf(error)) == 1
 
             syndrome = code.measure_syndrome(error)
             assert np.any(syndrome != 0)
 
             correction = decoder.decode(code, syndrome)
-            total_error = (error.to_bsf() + correction) % 2
+            total_error = (code.to_bsf(error) + correction) % 2
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
             correctable = True
@@ -389,16 +389,16 @@ class TestSweepCorners:
         error_locations = combinations(list(code.qubit_index), weight)
         uncorrectable_error_locations = []
         for locations in error_locations:
-            error = RotatedPlanar3DPauli(code)
+            error = dict()
             for location in locations:
-                error.site(pauli, location)
-            assert bsf_wt(error.to_bsf()) == len(locations)
+                error[location] = pauli
+            assert bsf_wt(code.to_bsf(error)) == len(locations)
 
             syndrome = code.measure_syndrome(error)
             assert np.any(syndrome != 0)
 
             correction = decoder.decode(code, syndrome)
-            total_error = (error.to_bsf() + correction) % 2
+            total_error = (code.to_bsf(error) + correction) % 2
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
             correctable = True
@@ -483,20 +483,23 @@ class TestRotatedSweepDecoder3D:
                     y_face_bsf = code.stabilizer_matrix[code.face_index[y_face]]
                     z_face_bsf = code.stabilizer_matrix[code.face_index[z_face]]
 
-                    error = RotatedPlanar3DPauli(code)
-                    x_edge_bsf = error.site('Z', x_edge).to_bsf()
+                    error = dict()
+                    error[x_edge] = 'Z'
+                    x_edge_bsf = code.to_bsf(error)
                     assert np.all(bcommute(x_edge_bsf, x_face_bsf) == 0)
                     assert np.any(bcommute(x_edge_bsf, y_face_bsf) == 1)
                     assert np.any(bcommute(x_edge_bsf, z_face_bsf) == 1)
 
-                    error = RotatedPlanar3DPauli(code)
-                    y_edge_bsf = error.site('Z', y_edge).to_bsf()
+                    error = dict()
+                    error[y_edge] = 'Z'
+                    y_edge_bsf = code.to_bsf(error)
                     assert np.all(bcommute(y_edge_bsf, y_face_bsf) == 0)
                     assert np.any(bcommute(y_edge_bsf, x_face_bsf) == 1)
                     assert np.any(bcommute(y_edge_bsf, z_face_bsf) == 1)
 
-                    error = RotatedPlanar3DPauli(code)
-                    z_edge_bsf = error.site('Z', z_edge).to_bsf()
+                    error = dict()
+                    error[z_edge] = 'Z'
+                    z_edge_bsf = code.to_bsf(error)
                     assert np.any(bcommute(z_edge_bsf, z_face_bsf) == 0)
                     assert np.any(bcommute(z_edge_bsf, x_face_bsf) == 1)
                     assert np.any(bcommute(z_edge_bsf, y_face_bsf) == 1)
@@ -522,8 +525,9 @@ class TestRotatedSweepDecoder3D:
                 if sign:
                     sign_flip_syndrome[code.face_index[face]] = 1
 
-            error = RotatedPlanar3DPauli(code)
-            error_bsf = error.site('Z', edge).to_bsf()
+            error = dict()
+            error[edge] = 'Z'
+            error_bsf = code.to_bsf(error)
             pauli_syndrome = bcommute(code.stabilizer_matrix[:n_faces], error_bsf)
 
             assert np.all(pauli_syndrome == sign_flip_syndrome)

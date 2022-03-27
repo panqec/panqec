@@ -39,7 +39,7 @@ class TestDeformedXZZXErrorModel:
     def test_max_noise(self, code, rng, noise, original, deformed):
         error_model = DeformedXZZXErrorModel(*noise)
         error = error_model.generate(code, probability=1, rng=rng)
-        pauli = Toric3DPauli(code, bsf=error)
+        pauli = code.from_bsf(error)
         ranges = [range(length) for length in code.shape]
         for edge, x, y, z in itertools.product(*ranges):
             if edge == code.X_AXIS:
@@ -50,7 +50,7 @@ class TestDeformedXZZXErrorModel:
     def test_original_all_X_becomes_Z_on_deformed_axis(self, code):
         error_model = DeformedXZZXErrorModel(1, 0, 0)
         error = error_model.generate(code, probability=1)
-        pauli = Toric3DPauli(code, bsf=error)
+        pauli = code.from_bsf(error)
 
         ranges = [range(length) for length in code.shape]
         for axis, x, y, z in itertools.product(*ranges):
@@ -62,7 +62,7 @@ class TestDeformedXZZXErrorModel:
     def test_original_all_Z_becomes_X_on_deformed_axis(self, code):
         error_model = DeformedXZZXErrorModel(0, 0, 1)
         error = error_model.generate(code, probability=1)
-        pauli = Toric3DPauli(code, bsf=error)
+        pauli = code.from_bsf(error)
 
         ranges = [range(length) for length in code.shape]
         for axis, x, y, z in itertools.product(*ranges):
@@ -74,7 +74,7 @@ class TestDeformedXZZXErrorModel:
     def test_all_Y_deformed_is_still_all_Y(self, code):
         error_model = DeformedXZZXErrorModel(0, 1, 0)
         error = error_model.generate(code, probability=1)
-        pauli = Toric3DPauli(code, bsf=error)
+        pauli = code.from_bsf(error)
 
         ranges = [range(length) for length in code.shape]
         for axis, x, y, z in itertools.product(*ranges):
@@ -118,8 +118,8 @@ class TestDeformOperator:
 
     def test_only_x_edges_are_different(self, code):
         L_x, L_y, L_z = code.size
-        original_pauli = Toric3DPauli(code, bsf=self.noise)
-        deformed_pauli = Toric3DPauli(code, bsf=self.deformed)
+        original_pauli = code.from_bsf(self.noise)
+        deformed_pauli = code.from_bsf(self.deformed)
 
         ranges = [range(length) for length in code.shape]
 
@@ -159,9 +159,9 @@ class TestDeformedDecoder:
         decoder = DeformedSweepMatchDecoder(error_model, probability)
 
         # Single-qubit X error on undeformed edge.
-        error_pauli = Toric3DPauli(code)
-        error_pauli.site('X', (code.Y_AXIS, 0, 0, 0))
-        error = error_pauli.to_bsf()
+        error_pauli = dict()
+        error_pauli[(code.Y_AXIS, 0, 0, 0)] = 'X'
+        error = code.to_bsf(error_pauli)
         assert np.any(error != 0)
 
         # Calculate the syndrome and make sure it's nontrivial.
@@ -196,9 +196,9 @@ class TestDeformedDecoder:
         decoder = DeformedSweepMatchDecoder(error_model, probability)
 
         # Single-qubit X error on undeformed edge.
-        error_pauli = Toric3DPauli(code)
-        error_pauli.site('X', (code.Y_AXIS, 0, 0, 0))
-        error = error_pauli.to_bsf()
+        error_pauli = dict()
+        error_pauli[(code.Y_AXIS, 0, 0, 0)] = 'X'
+        error = code.to_bsf(error_pauli)
         assert np.any(error != 0)
 
         # Calculate the syndrome and make sure it's nontrivial.
@@ -216,8 +216,8 @@ class TestDeformedDecoder:
         decoder = DeformedSweepMatchDecoder(error_model, probability)
         assert decoder._matcher._error_model.direction == (0.1, 0.2, 0.7)
         matching = decoder._matcher.get_matcher(code)
-        assert matching.stabiliser_graph.distance(0, 0) == 0
-        distance_matrix = np.array(matching.stabiliser_graph.all_distances)
+        assert matching.stabilizer_graph.distance(0, 0) == 0
+        distance_matrix = np.array(matching.stabilizer_graph.all_distances)
         n_vertices = int(np.product(code.size))
         assert distance_matrix.shape == (n_vertices, n_vertices)
 
@@ -238,8 +238,8 @@ class TestDeformedDecoder:
         decoder = DeformedSweepMatchDecoder(error_model, probability)
         assert decoder._matcher._error_model.direction == (0.4, 0.2, 0.4)
         matching = decoder._matcher.get_matcher(code)
-        assert matching.stabiliser_graph.distance(0, 0) == 0
-        distance_matrix = np.array(matching.stabiliser_graph.all_distances)
+        assert matching.stabilizer_graph.distance(0, 0) == 0
+        distance_matrix = np.array(matching.stabilizer_graph.all_distances)
         n_vertices = int(np.product(code.size))
         assert distance_matrix.shape == (n_vertices, n_vertices)
 
@@ -292,13 +292,13 @@ class TestDeformedSweepDecoder3D:
         assert issubclass(correction.dtype.type, np.integer)
 
     def test_all_3_faces_active(self, code):
-        error_pauli = Toric3DPauli(code)
+        error_pauli = dict()
         sites = [
             (0, 1, 1, 1), (2, 1, 2, 1)
         ]
         for site in sites:
-            error_pauli.site('Z', site)
-        error = error_pauli.to_bsf()
+            error_pauli[site] = 'Z'
+        error = code.to_bsf(error_pauli)
         error_model = DeformedXZZXErrorModel(1/3, 1/3, 1/3)
         probability = 0.5
         decoder = DeformedSweepDecoder3D(error_model, probability)
@@ -348,8 +348,8 @@ class TestMatchingXNoiseOnYZEdgesOnly:
             )
 
             # Error and correction as objects.
-            error_pauli = Toric3DPauli(code, bsf=error)
-            correction_pauli = Toric3DPauli(code, bsf=correction)
+            error_pauli = code.from_bsf(error)
+            correction_pauli = code.from_bsf(correction)
 
             # Lattice vertex locations.
             locations = list(itertools.product(*[
@@ -395,8 +395,8 @@ class TestFoliatedDecoderXNoiseOnYZEdgesOnly:
             )
 
             # Error and correction as objects.
-            error_pauli = Toric3DPauli(code, bsf=error)
-            correction_pauli = Toric3DPauli(code, bsf=correction)
+            error_pauli = code.from_bsf(error)
+            correction_pauli = code.from_bsf(correction)
 
             # Lattice vertex locations.
             locations = list(itertools.product(*[

@@ -6,93 +6,83 @@ Toric code in 3D.
 """
 import numpy as np
 from ..bpauli import barray_to_bvector, new_barray
-from .generic._stabilizer_code import StabilizerCode  # noqa
-from .generic._stabilizer_pauli import StabilizerPauli  # noqa
-from .toric_2d._toric_2d_code import Toric2DCode  # noqa
-from .toric_2d._toric_2d_pauli import Toric2DPauli  # noqa
-from .planar_2d._planar_2d_code import Planar2DCode  # noqa
-from .planar_2d._planar_2d_pauli import Planar2DPauli  # noqa
-from .rotated_planar_2d._rotated_planar_2d_code import RotatedPlanar2DCode  # noqa
-from .rotated_planar_2d._rotated_planar_2d_pauli import RotatedPlanar2DPauli  # noqa
-from .toric_3d._toric_3d_code import Toric3DCode  # noqa
-from .toric_3d._toric_3d_pauli import Toric3DPauli  # noqa
-from .planar_3d._planar_3d_code import Planar3DCode  # noqa
-from .planar_3d._planar_3d_pauli import Planar3DPauli  # noqa
-from .rotated_planar_3d._rotated_planar_3d_code import RotatedPlanar3DCode  # noqa
-from .rotated_planar_3d._rotated_planar_3d_pauli import RotatedPlanar3DPauli  # noqa
+from .base._stabilizer_code import StabilizerCode  # noqa
+from .surface_2d._toric_2d_code import Toric2DCode  # noqa
+from .surface_2d._planar_2d_code import Planar2DCode  # noqa
+from .surface_2d._rotated_planar_2d_code import RotatedPlanar2DCode  # noqa
+from .surface_3d._toric_3d_code import Toric3DCode  # noqa
+from .surface_3d._planar_3d_code import Planar3DCode  # noqa
+from .surface_3d._rotated_planar_3d_code import RotatedPlanar3DCode  # noqa
 from .rhombic._rhombic_code import RhombicCode  # noqa
-from .rhombic._rhombic_pauli import RhombicPauli  # noqa
-from .rotated_toric_3d._rotated_toric_3d_code import RotatedToric3DCode  # noqa
-from .rotated_toric_3d._rotated_toric_3d_pauli import RotatedToric3DPauli  # noqa
-from .xcube._xcube_code import XCubeCode  # noqa
-from .xcube._xcube_pauli import XCubePauli  # noqa
+from .surface_3d._rotated_toric_3d_code import RotatedToric3DCode  # noqa
+from .fractons._xcube_code import XCubeCode  # noqa
 
 
-def get_vertex_stabilisers(L: int) -> np.ndarray:
+def get_vertex_stabilizers(L: int) -> np.ndarray:
     """Z operators on edges around vertices."""
-    vertex_stabilisers = []
+    vertex_stabilizers = []
     for x in range(L):
         for y in range(L):
             for z in range(L):
 
-                # Stabiliser at a vertex
-                stabiliser = new_barray(L)
+                # Stabilizer at a vertex
+                stabilizer = new_barray(L)
 
                 # Apply Z in x edges
-                stabiliser[0, x, y, z, 1] = 1
-                stabiliser[0, (x + L - 1) % L, y, z, 1] = 1
+                stabilizer[0, x, y, z, 1] = 1
+                stabilizer[0, (x + L - 1) % L, y, z, 1] = 1
 
                 # Apply Z on y edges
-                stabiliser[1, x, y, z, 1] = 1
-                stabiliser[1, x, (y + L - 1) % L, z, 1] = 1
+                stabilizer[1, x, y, z, 1] = 1
+                stabilizer[1, x, (y + L - 1) % L, z, 1] = 1
 
                 # Apply Z on z edges
-                stabiliser[2, x, y, z, 1] = 1
-                stabiliser[2, x, y, (z + L - 1) % L, 1] = 1
+                stabilizer[2, x, y, z, 1] = 1
+                stabilizer[2, x, y, (z + L - 1) % L, 1] = 1
 
-                vertex_stabilisers.append(barray_to_bvector(stabiliser, L))
-    return np.array(vertex_stabilisers)
+                vertex_stabilizers.append(barray_to_bvector(stabilizer, L))
+    return np.array(vertex_stabilizers)
 
 
-def get_face_stabilisers(L: int) -> np.ndarray:
+def get_face_stabilizers(L: int) -> np.ndarray:
     """X operators on edges around faces."""
-    face_stabilisers = []
+    face_stabilizers = []
     for x in range(L):
         for y in range(L):
             for z in range(L):
 
                 # Apply X in x face
-                stabiliser = new_barray(L)
-                stabiliser[1, x, y, z, 0] = 1
-                stabiliser[2, x, y, z, 0] = 1
-                stabiliser[1, x, y, (z + 1) % L, 0] = 1
-                stabiliser[2, x, (y + 1) % L, z, 0] = 1
-                face_stabilisers.append(barray_to_bvector(stabiliser, L))
+                stabilizer = new_barray(L)
+                stabilizer[1, x, y, z, 0] = 1
+                stabilizer[2, x, y, z, 0] = 1
+                stabilizer[1, x, y, (z + 1) % L, 0] = 1
+                stabilizer[2, x, (y + 1) % L, z, 0] = 1
+                face_stabilizers.append(barray_to_bvector(stabilizer, L))
 
                 # Apply X in y face
-                stabiliser = new_barray(L)
-                stabiliser[0, x, y, z, 0] = 1
-                stabiliser[2, x, y, z, 0] = 1
-                stabiliser[0, x, y, (z + 1) % L, 0] = 1
-                stabiliser[2, (x + 1) % L, y, z, 0] = 1
-                face_stabilisers.append(barray_to_bvector(stabiliser, L))
+                stabilizer = new_barray(L)
+                stabilizer[0, x, y, z, 0] = 1
+                stabilizer[2, x, y, z, 0] = 1
+                stabilizer[0, x, y, (z + 1) % L, 0] = 1
+                stabilizer[2, (x + 1) % L, y, z, 0] = 1
+                face_stabilizers.append(barray_to_bvector(stabilizer, L))
 
                 # Apply X in z face
-                stabiliser = new_barray(L)
-                stabiliser[0, x, y, z, 0] = 1
-                stabiliser[1, x, y, z, 0] = 1
-                stabiliser[0, x, (y + 1) % L, z, 0] = 1
-                stabiliser[1, (x + 1) % L, y, z, 0] = 1
-                face_stabilisers.append(barray_to_bvector(stabiliser, L))
-    return np.array(face_stabilisers)
+                stabilizer = new_barray(L)
+                stabilizer[0, x, y, z, 0] = 1
+                stabilizer[1, x, y, z, 0] = 1
+                stabilizer[0, x, (y + 1) % L, z, 0] = 1
+                stabilizer[1, (x + 1) % L, y, z, 0] = 1
+                face_stabilizers.append(barray_to_bvector(stabilizer, L))
+    return np.array(face_stabilizers)
 
 
-def get_all_stabilisers(L):
-    face_stabilisers = get_face_stabilisers(L)
-    vertex_stabilisers = get_vertex_stabilisers(L)
-    stabilisers = np.concatenate([face_stabilisers, vertex_stabilisers])
+def get_all_stabilizers(L):
+    face_stabilizers = get_face_stabilizers(L)
+    vertex_stabilizers = get_vertex_stabilizers(L)
+    stabilizers = np.concatenate([face_stabilizers, vertex_stabilizers])
 
-    return np.array(stabilisers)
+    return np.array(stabilizers)
 
 
 def get_X_logicals(L):

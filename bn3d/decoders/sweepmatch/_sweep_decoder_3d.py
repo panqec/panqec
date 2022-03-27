@@ -1,9 +1,10 @@
 import itertools
-from typing import Tuple
+from typing import Tuple, Dict
 import numpy as np
 from qecsim.model import Decoder
 from ...models import Toric3DCode
-from ...models import Toric3DPauli
+
+Operator = Dict[Tuple, str]
 
 
 class SweepDecoder3D(Decoder):
@@ -85,7 +86,7 @@ class SweepDecoder3D(Decoder):
         signs = self.get_sign_array(code, syndrome)
 
         # Keep track of the correction needed.
-        correction = Toric3DPauli(code)
+        correction = dict()
 
         # Initialize the number of sweeps.
         i_sweep = 0
@@ -95,10 +96,10 @@ class SweepDecoder3D(Decoder):
             signs = self.sweep_move(signs, correction)
             i_sweep += 1
 
-        return correction.to_bsf()
+        return code.to_bsf(correction)
 
     def sweep_move(
-        self, signs: np.ndarray, correction: Toric3DPauli
+        self, signs: np.ndarray, correction: Operator
     ) -> np.ndarray:
         """Apply the sweep move once."""
 
@@ -127,6 +128,6 @@ class SweepDecoder3D(Decoder):
 
         for location in flip_locations:
             self.flip_edge(location, new_signs)
-            correction.site('Z', location)
+            correction[location] = 'Z'
 
         return new_signs

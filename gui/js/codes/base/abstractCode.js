@@ -28,6 +28,12 @@ class AbstractCode {
 
         this.SIZE = {radiusEdge: 0.05, radiusVertex: 0.1, lengthEdge: 1};
         let length = this.SIZE.lengthEdge;
+
+        this.offset = {
+            x: this.SIZE.lengthEdge * (this.Lx) / 2 - this.SIZE.lengthEdge/5,
+            y: this.SIZE.lengthEdge * (this.Ly) / 2 - this.SIZE.lengthEdge/5,
+            z: this.SIZE.lengthEdge * (this.Lz) / 2 - this.SIZE.lengthEdge/5
+        };
     }
 
     updateStabilizers() {

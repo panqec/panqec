@@ -8,7 +8,7 @@ from bn3d.noise import (
 )
 from bn3d.bpauli import get_bvector_index
 from bn3d.noise import PauliErrorModel, XNoiseOnYZEdgesOnly
-from bn3d.models import Toric3DCode, Toric3DPauli
+from bn3d.models import Toric3DCode
 import bn3d.bsparse as bsparse
 
 
@@ -260,7 +260,7 @@ class TestXNoiseOnYZEdgesOnly:
     def test_generate_probability_half(self, code, error_model, rng):
         probability = 0.5
         error = error_model.generate(code, probability=probability, rng=rng)
-        pauli = Toric3DPauli(code, bsf=error)
+        pauli = code.from_bsf(error)
         indices = list(itertools.product(*[
             range(length) for length in code.size
         ]))
@@ -286,7 +286,7 @@ class TestXNoiseOnYZEdgesOnly:
 
     def test_generate_probability_one(self, code, error_model, rng):
         error = error_model.generate(code, probability=1, rng=rng)
-        pauli = Toric3DPauli(code, bsf=error)
+        pauli = code.from_bsf(error)
         indices = itertools.product(*[
             range(length) for length in code.size
         ])

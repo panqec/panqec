@@ -98,8 +98,8 @@ def test_ascii_art(code):
 def test_syndrome_calculation(code):
 
     # Construct a single-qubit X error somewhere.
-    error = Toric2DPauli(code)
-    error.site('X', (1, 2, 3))
+    error = dict()
+    error[(1, 2, 3)] = 'X'
     assert code.ascii_art(pauli=error) == (
         '┼─·─┼─·─┼─·─┼─·─┼─·\n'
         '·   ·   ·   ·   ·  \n'
@@ -112,7 +112,7 @@ def test_syndrome_calculation(code):
     )
 
     # Calculate the syndrome.
-    syndrome = bsp(error.to_bsf(), code.stabilizer_matrix.T)
+    syndrome = bsp(code.to_bsf(error), code.stabilizer_matrix.T)
     assert code.ascii_art(syndrome=syndrome) == (
         '┼───┼───┼───┼───┼──\n'
         '│   │   │   │   │  \n'
@@ -126,14 +126,14 @@ def test_syndrome_calculation(code):
 
 
 def test_mwpm_decoder(code, decoder):
-    error = Toric2DPauli(code)
-    error.site('X', (1, 2, 3))
-    error.site('X', (1, 2, 2))
-    error.site('X', (0, 2, 1))
-    error.site('X', (0, 1, 1))
-    error.site('X', (1, 0, 2))
-    error.site('X', (1, 0, 3))
-    error.site('X', (0, 1, 3))
+    error = dict()
+    error[(1, 2, 3)] = 'X'
+    error[(1, 2, 2)] = 'X'
+    error[(0, 2, 1)] = 'X'
+    error[(0, 1, 1)] = 'X'
+    error[(1, 0, 2)] = 'X'
+    error[(1, 0, 3)] = 'X'
+    error[(0, 1, 3)] = 'X'
     assert code.ascii_art(pauli=error) == (
         '┼─·─┼─·─┼─·─┼─·─┼─·\n'
         '·   ·   X   X   ·  \n'
@@ -145,7 +145,7 @@ def test_mwpm_decoder(code, decoder):
         '·   ·   ·   ·   ·  '
     )
 
-    syndrome = bsp(error.to_bsf(), code.stabilizer_matrix.T)
+    syndrome = bsp(code.to_bsf(error), code.stabilizer_matrix.T)
     assert code.ascii_art(syndrome=syndrome) == (
         '┼───┼───┼───┼───┼──\n'
         '│   │   │   │   │  \n'
@@ -169,7 +169,7 @@ def test_mwpm_decoder(code, decoder):
         '·   ·   ·   ·   ·  '
     )
 
-    total_error = (error.to_bsf() + correction) % 2
+    total_error = (code.to_bsf(error) + correction) % 2
     assert code.ascii_art(pauli=code.new_pauli(bsf=total_error)) == (
         '┼─·─┼─·─┼─·─┼─·─┼─·\n'
         '·   ·   X   X   ·  \n'

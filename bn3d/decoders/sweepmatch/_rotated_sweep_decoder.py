@@ -2,7 +2,6 @@ from typing import Tuple, Dict
 import numpy as np
 from qecsim.model import Decoder
 from ...models import RotatedPlanar3DCode
-from ...models import RotatedPlanar3DPauli
 Indexer = Dict[Tuple[int, int, int], int]
 
 
@@ -48,7 +47,7 @@ class RotatedSweepDecoder3D(Decoder):
         signs = self.get_initial_state(code, syndrome)
 
         # Keep track of the correction needed.
-        correction = RotatedPlanar3DPauli(code)
+        correction = {}
 
         # Sweep directions to take
         sweep_directions = [
@@ -74,7 +73,7 @@ class RotatedSweepDecoder3D(Decoder):
                     i_sweep += 1
             i_round += 1
 
-        return correction.to_bsf()
+        return code.to_bsf(correction)
 
     def get_sweep_faces(self, vertex, sweep_direction, code):
         """Get the coordinates of neighbouring faces in sweep direction."""
@@ -125,7 +124,7 @@ class RotatedSweepDecoder3D(Decoder):
         return direction
 
     def sweep_move(
-        self, signs: Indexer, correction: RotatedPlanar3DPauli,
+        self, signs: Indexer, correction: Dict[Tuple, str],
         sweep_direction: Tuple[int, int, int], code: RotatedPlanar3DCode
     ) -> Indexer:
         """Apply the sweep move once along a particular direciton."""
@@ -185,7 +184,7 @@ class RotatedSweepDecoder3D(Decoder):
         new_signs = signs.copy()
         for location in flip_locations:
             self.flip_edge(location, new_signs, code)
-            correction.site('Z', location)
+            correction[location] = 'Z'
 
         return new_signs
 

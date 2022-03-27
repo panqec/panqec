@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from bn3d.bpauli import bsf_wt
-from bn3d.models import Toric3DCode, Toric3DPauli
+from bn3d.models import Toric3DCode
 import bn3d.bsparse as bsparse
 from scipy.sparse import csr_matrix
 
@@ -72,13 +72,13 @@ class TestToric3DPauli:
         assert bsf_wt(vertex_operator.to_bsf()) == 6
 
         # Same operator applied site by site.
-        operator = Toric3DPauli(code)
-        operator.site('X', (2, 3, 2))
-        operator.site('X', (3, 2, 2))
-        operator.site('X', (1, 2, 2))
-        operator.site('X', (2, 1, 2))
-        operator.site('X', (2, 2, 1))
-        operator.site('X', (2, 2, 3))
+        operator = dict()
+        operator[(2, 3, 2)] = 'X'
+        operator[(3, 2, 2)] = 'X'
+        operator[(1, 2, 2)] = 'X'
+        operator[(2, 1, 2)] = 'X'
+        operator[(2, 2, 1)] = 'X'
+        operator[(2, 2, 3)] = 'X'
 
         assert bsf_wt(operator.to_bsf()) == 6
 

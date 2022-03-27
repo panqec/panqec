@@ -260,7 +260,7 @@ class StabilizerCode(metaclass=ABCMeta):
 
     def measure_syndrome(self, error) -> np.ndarray:
         """Perfectly measure syndromes given Pauli error."""
-        return bcommute(self.stabilizers, error.to_bsf())
+        return bcommute(self.stabilizers, self.to_bsf(error))
 
     def is_stabilizer(self, location: Tuple, stab_type: str = None):
         """Returns whether a given location in the coordinate system
