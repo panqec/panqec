@@ -54,7 +54,7 @@ class DeformedXZZXErrorModel(PauliErrorModel):
         if code.id not in deformed_axis.keys():
             raise NotImplementedError(f"Code {code.id} has no XZZX deformation implemented")
 
-        for location, index in enumerate(code.qubit_coordinates):
+        for index, location in enumerate(code.qubit_coordinates):
             if code.axis(location) == deformed_axis[code.id]:
                 is_deformed[index] = True
 
