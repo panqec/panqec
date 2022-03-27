@@ -58,10 +58,14 @@ class SweepDecoder3D(Decoder):
         location_4 = tuple(np.mod(face_4, limits))
 
         # Flip the signs (well actually 0s and 1s).
-        signs[code.stabilizer_index[location_1]] = 1 - signs[code.stabilizer_index[location_1]]  # type: ignore
-        signs[code.stabilizer_index[location_2]] = 1 - signs[code.stabilizer_index[location_2]]  # type: ignore
-        signs[code.stabilizer_index[location_3]] = 1 - signs[code.stabilizer_index[location_3]]  # type: ignore
-        signs[code.stabilizer_index[location_4]] = 1 - signs[code.stabilizer_index[location_4]]  # type: ignore
+        if code.is_stabilizer(location_1):
+            signs[code.stabilizer_index[location_1]] = 1 - signs[code.stabilizer_index[location_1]]  # type: ignore
+        if code.is_stabilizer(location_2):
+            signs[code.stabilizer_index[location_2]] = 1 - signs[code.stabilizer_index[location_2]]  # type: ignore
+        if code.is_stabilizer(location_3):
+            signs[code.stabilizer_index[location_3]] = 1 - signs[code.stabilizer_index[location_3]]  # type: ignore
+        if code.is_stabilizer(location_4):
+            signs[code.stabilizer_index[location_4]] = 1 - signs[code.stabilizer_index[location_4]]  # type: ignore
 
     def get_default_direction(self):
         """The default direction when all faces are excited."""
@@ -102,7 +106,7 @@ class SweepDecoder3D(Decoder):
 
         print("Before", correction)
 
-        return code.to_bsf(correction)
+        return code.to_bsf(correction).toarray()[0]
 
     def sweep_move(
         self, signs: np.ndarray, correction: Operator,
@@ -120,9 +124,12 @@ class SweepDecoder3D(Decoder):
         # Sweep through every edge.
         for x, y, z in np.array(code.stabilizer_coordinates)[code.z_indices]:
             # Get the syndromes on each face in sweep direction.
-            x_face = signs[code.stabilizer_index[tuple(np.mod((x, y + 1, z + 1), limits))]]  # type: ignore  # noqa: E501
-            y_face = signs[code.stabilizer_index[tuple(np.mod((x + 1, y, z + 1), limits))]]  # type: ignore  # noqa: E501
-            z_face = signs[code.stabilizer_index[tuple(np.mod((x + 1, y + 1, z), limits))]]  # type: ignore  # noqa: E501
+            x_face_loc = tuple(np.mod((x, y + 1, z + 1), limits))
+            y_face_loc = tuple(np.mod((x + 1, y, z + 1), limits))
+            z_face_loc = tuple(np.mod((x + 1, y + 1, z), limits))
+            x_face = code.is_stabilizer(x_face_loc) and signs[code.stabilizer_index[x_face_loc]]  # type: ignore  # noqa: E501
+            y_face = code.is_stabilizer(y_face_loc) and signs[code.stabilizer_index[y_face_loc]]  # type: ignore  # noqa: E501
+            z_face = code.is_stabilizer(z_face_loc) and signs[code.stabilizer_index[z_face_loc]]  # type: ignore  # noqa: E501
 
             x_edge = tuple(np.mod((x + 1, y, z), limits))
             y_edge = tuple(np.mod((x, y + 1, z), limits))

@@ -1,7 +1,7 @@
 from typing import Tuple, Dict
 import numpy as np
 from qecsim.model import Decoder
-from ...models import RotatedPlanar3DCode
+
 Indexer = Dict[Tuple[int, int, int], int]
 
 
@@ -15,26 +15,25 @@ class RotatedSweepDecoder3D(Decoder):
         self._rng = np.random.default_rng(seed)
         self.max_rounds = max_rounds
 
-    def get_full_size(self, code) -> Tuple[int, ...]:
-        all_index = np.concatenate([code.qubit_coordinates, code.stabilizer_coordinates])
+    def get_face_syndromes(self, code, full_syndrome: np.ndarray) -> np.ndarray:
+        """Get only the syndromes for the vertex Z stabilizers.
+        Z vertex stabilizers syndromes are discarded for this decoder.
+        """
+        face_syndromes = code.extract_x_syndrome(full_syndrome)
+        return face_syndromes
 
-        return tuple(all_index.max(axis=0))
-
+    # TODO: make this more space-efficient, don't store zeros.
     def get_initial_state(
-        self, code: RotatedPlanar3DCode, syndrome: np.ndarray
+        self, code, syndrome: np.ndarray
     ) -> Indexer:
         """Get initial cellular automaton state from syndrome."""
-        face_coordinates = [stab for stab in code.stabilizer_coordinates
-                            if code.stabilizer_type(stab) == 'face']
-        n_faces = len(face_coordinates)
-        face_syndromes = syndrome[:n_faces]
-        signs = dict()
-        for index, face in enumerate(face_coordinates):
-            signs[face] = int(face_syndromes[index])
+        signs = syndrome.copy()
+        signs[code.z_indices] = 0
+
         return signs
 
     def decode(
-        self, code: RotatedPlanar3DCode, syndrome: np.ndarray
+        self, code, syndrome: np.ndarray
     ) -> np.ndarray:
         """Get Z corrections given measured syndrome."""
 
@@ -46,7 +45,7 @@ class RotatedSweepDecoder3D(Decoder):
         signs = self.get_initial_state(code, syndrome)
 
         # Keep track of the correction needed.
-        correction = {}
+        correction = dict()
 
         # Sweep directions to take
         sweep_directions = [
@@ -58,24 +57,24 @@ class RotatedSweepDecoder3D(Decoder):
 
         # Keep sweeping in all directions until there are no syndromes.
         i_round = 0
-        while any(signs.values()) and i_round < self.max_rounds:
+        while any(signs) and i_round < self.max_rounds:
             for sweep_direction in sweep_directions:
 
                 # Initialize the number of sweeps.
                 i_sweep = 0
 
                 # Keep sweeping until there are no syndromes.
-                while any(signs.values()) and i_sweep < max_sweeps:
+                while any(signs) and i_sweep < max_sweeps:
                     signs = self.sweep_move(
                         signs, correction, sweep_direction, code
                     )
                     i_sweep += 1
             i_round += 1
 
-        return code.to_bsf(correction)
+        return code.to_bsf(correction).toarray()[0]
 
     def get_sweep_faces(self, vertex, sweep_direction, code):
-        """Get the coordinates of neighbouring faces in sweep direction."""
+        """Get the coordinates of neighboring faces in sweep direction."""
         x, y, z = vertex
         s_x, s_y, s_z = sweep_direction
 
@@ -123,8 +122,8 @@ class RotatedSweepDecoder3D(Decoder):
         return direction
 
     def sweep_move(
-        self, signs: Indexer, correction: Dict[Tuple, str],
-        sweep_direction: Tuple[int, int, int], code: RotatedPlanar3DCode
+        self, signs: np.ndarray, correction: np.ndarray,
+        sweep_direction: Tuple[int, int, int], code,
     ) -> Indexer:
         """Apply the sweep move once along a particular direciton."""
 
@@ -140,6 +139,9 @@ class RotatedSweepDecoder3D(Decoder):
                 x_edge, y_edge, z_edge = self.get_sweep_edges(
                     vertex, sweep_direction, code
                 )
+                x_face_index = code.stabilizer_index[x_face]
+                y_face_index = code.stabilizer_index[y_face]
+                z_face_index = code.stabilizer_index[z_face]
 
                 # Check faces and edges are in lattice before proceeding.
                 faces_valid = tuple(
@@ -147,20 +149,20 @@ class RotatedSweepDecoder3D(Decoder):
                     for face in [x_face, y_face, z_face]
                 )
                 edges_valid = tuple(
-                    edge in code.qubit_coordinates
+                    edge in code.qubit_index
                     for edge in [x_edge, y_edge, z_edge]
                 )
                 if all(faces_valid) and all(edges_valid):
 
-                    if signs[x_face] and signs[y_face] and signs[z_face]:
+                    if signs[x_face_index] and signs[y_face_index] and signs[z_face_index]:
                         direction = self.get_default_direction()
                         edge_flip = {0: x_edge, 1: y_edge, 2: z_edge}[direction]
                         flip_locations.append(edge_flip)
-                    elif signs[y_face] and signs[z_face]:
+                    elif signs[y_face_index] and signs[z_face_index]:
                         flip_locations.append(x_edge)
-                    elif signs[x_face] and signs[z_face]:
+                    elif signs[x_face_index] and signs[z_face_index]:
                         flip_locations.append(y_edge)
-                    elif signs[x_face] and signs[y_face]:
+                    elif signs[x_face_index] and signs[y_face_index]:
                         flip_locations.append(z_edge)
 
                 """
@@ -169,12 +171,10 @@ class RotatedSweepDecoder3D(Decoder):
                     i_face_valid = faces_valid.index(True)
                     i_edge_invalid = edges_valid.index(False)
                     i_edge_valid = edges_valid.index(True)
-
                     # Check valid face is orthogonal to missing edge.
                     if i_face_valid == i_edge_invalid:
                         valid_face = [x_face, y_face, z_face][i_face_valid]
                         valid_edge = [x_edge, y_edge, z_edge][i_edge_valid]
-
                         # Flip an edge if the face has a syndrome.
                         if signs[valid_face]:
                             flip_locations.append(valid_edge)
@@ -188,7 +188,7 @@ class RotatedSweepDecoder3D(Decoder):
         return new_signs
 
     def flip_edge(
-        self, edge: Tuple, signs: Indexer, code: RotatedPlanar3DCode
+        self, edge: Tuple, signs: Indexer, code
     ):
         """Flip signs at index and update correction."""
 
@@ -236,4 +236,4 @@ class RotatedSweepDecoder3D(Decoder):
 
         # Flip the state of the faces.
         for face in faces:
-            signs[face] = 1 - signs[face]
+            signs[code.stabilizer_index[face]] = 1 - signs[code.stabilizer_index[face]]

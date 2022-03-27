@@ -22,15 +22,11 @@ class RotatedPlanarPymatchingDecoder(Toric3DPymatchingDecoder):
 
     def __init__(self):
         self._matchers = {}
-        self._n_faces = {}
-        self._n_qubits = {}
 
     def new_matcher(self, code: StabilizerCode):
         """Return a new Matching object."""
-        self._n_faces[code.label] = code.get_face_stabilizers().shape[0]
-        n_qubits = code.n
-        self._n_qubits[code.label] = n_qubits
-        return Matching(code.Hx[:, :n_qubits])
+
+        return Matching(code.Hz)
 
     def get_vertex_syndromes(
         self, code: Toric3DCode, full_syndrome: np.ndarray
@@ -39,8 +35,8 @@ class RotatedPlanarPymatchingDecoder(Toric3DPymatchingDecoder):
 
         X face stabiziliers syndromes are discarded for this decoder.
         """
-        n_faces = self._n_faces[code.label]
-        vertex_syndromes = full_syndrome[n_faces:]
+        vertex_syndromes = code.extract_z_syndrome(full_syndrome)
+
         return vertex_syndromes
 
     def decode(self, code: Toric3DCode, syndrome: np.ndarray) -> np.ndarray:
@@ -59,7 +55,7 @@ class RotatedPlanarPymatchingDecoder(Toric3DPymatchingDecoder):
         x_correction = matcher.decode(vertex_syndromes, num_neighbours=None)
 
         # Load it into the X block of the full bsf.
-        n_qubits = self._n_qubits[code.label]
+        n_qubits = code.n
         correction[:n_qubits] = x_correction
 
         return correction
