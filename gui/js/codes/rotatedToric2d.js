@@ -33,8 +33,8 @@ class RotatedToric2DCode extends AbstractCode {
         this.SIZE = {radiusEdge: 0.05 / (this.Lx/4), radiusVertex: 0.1 / (this.Lx/4), lengthEdge: 0.5 / (0.05 + this.Lx/4)};
 
         this.offset = {
-            x: this.SIZE.lengthEdge * (this.Lx) / 2 - this.SIZE.lengthEdge/4,
-            y: this.SIZE.lengthEdge * (this.Ly) / 2 - this.SIZE.lengthEdge/4
+            x: 0,
+            y: 0
         };
     }
 
@@ -135,11 +135,6 @@ class RpRotatedToric2DCode extends AbstractCode {
             maxDeactivatedStabilizer: {'vertex': 0.2, 'face': 0.2}
         }
 
-        this.offset = {
-            x: this.SIZE.lengthEdge * (this.Lx) / 2 - this.SIZE.lengthEdge/5,
-            y: this.SIZE.lengthEdge * (this.Ly) / 2 - this.SIZE.lengthEdge/5
-        };
-
         this.SIZE = {radiusEdge: 0.05 / (this.Lx/5), radiusVertex: 0.1 / (this.Lx/5), lengthEdge: 0.5 / (0.05 + this.Lx/5)};
     }
 
@@ -153,8 +148,8 @@ class RpRotatedToric2DCode extends AbstractCode {
                                                      transparent: true});
         const qubit = new THREE.Mesh(geometry, material);
 
-        qubit.position.x = x * this.SIZE.lengthEdge / 2  - this.offset.x;
-        qubit.position.y = y * this.SIZE.lengthEdge / 2  - this.offset.y;
+        qubit.position.x = x * this.SIZE.lengthEdge / 2;
+        qubit.position.y = y * this.SIZE.lengthEdge / 2;
 
         return qubit
     }
@@ -171,8 +166,8 @@ class RpRotatedToric2DCode extends AbstractCode {
                                                      side: THREE.DoubleSide});
         const face = new THREE.Mesh(geometry, material);
 
-        face.position.x = x * this.SIZE.lengthEdge / 2 - this.offset.x;
-        face.position.y = y * this.SIZE.lengthEdge / 2 - this.offset.y;
+        face.position.x = x * this.SIZE.lengthEdge / 2;
+        face.position.y = y * this.SIZE.lengthEdge / 2;
 
         return face
     }

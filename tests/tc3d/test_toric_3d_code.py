@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from bn3d.bpauli import bcommute, brank, bsf_wt, bsf_to_pauli
+from bn3d.bpauli import bcommute, bsf_wt
 from bn3d.models import Toric3DCode
 import bn3d.bsparse as bsparse
 
@@ -49,8 +49,8 @@ class TestToric3DCode:
             assert bsparse.equal(stabilizers[:, :n], 0)
 
         assert all(
-            'X' not in bsf_to_pauli(stabilizer)
-            and 'Y' not in bsf_to_pauli(stabilizer)
+            'X' not in code.from_bsf(stabilizer)
+            and 'Y' not in code.from_bsf(stabilizer)
             for stabilizer in stabilizers
         )
 

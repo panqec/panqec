@@ -63,7 +63,7 @@ class RotatedPlanar2DCode(StabilizerCode):
         else:
             pauli = 'X'
 
-        deformed_pauli = {'X': 'Z', 'Z': 'X'}[pauli]
+        deformed_pauli = {'Z': 'X', 'X': 'Z'}[pauli]
 
         delta = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
 

@@ -10,8 +10,8 @@ import { RhombicCode } from './codes/rhombic.js';
 import { XCubeCode } from './codes/xcube.js';
 import { RotatedToric3DCode, RpRotatedToric3DCode } from './codes/rotatedToric3d.js';
 
-var defaultCode = codeDimension == 2 ? 'toric-2d' : 'toric-3d';
-var defaultSize = codeDimension == 2 ? 4 : 4;
+var defaultCode = codeDimension == 2 ? 'rotated-planar-2d' : 'toric-3d';
+var defaultSize = codeDimension == 2 ? 6 : 4;
 
 const params = {
     errorProbability: 0.1,
@@ -23,7 +23,7 @@ const params = {
     channel_update: false,
     errorModel: 'Depolarizing',
     codeName: defaultCode,
-    rotated: false,
+    rotated: true,
     coprime: false,
     deformed_axis: 'None'
 };

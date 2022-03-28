@@ -13,37 +13,6 @@ from . import bsparse
 from scipy.sparse import csr_matrix
 
 
-def barray_to_bvector(a: np.ndarray, L: int) -> np.ndarray:
-    """Convert shape (3, L, L, L, 2) binary array to binary vector."""
-    return np.concatenate([
-        a[:, :, :, :, 0].transpose((1, 2, 3, 0)).reshape(3*L**3),
-        a[:, :, :, :, 1].transpose((1, 2, 3, 0)).reshape(3*L**3)
-    ])
-
-
-def get_bvector_index(
-    edge: int, x: int, y: int, z: int, block: int, L: int
-) -> int:
-    return block*3*L**3 + x*3*L**2 + y*3*L + z*3 + edge
-
-
-def bvector_to_barray(s: np.ndarray, L: int) -> np.ndarray:
-    """Convert binary vector to shape (3, L, L, L, 2) binary array."""
-    a = np.zeros((3, L, L, L, 2), dtype=s.dtype)
-    for edge in range(3):
-        for x in range(L):
-            for y in range(L):
-                for z in range(L):
-                    for block in range(2):
-                        index = get_bvector_index(edge, x, y, z, block, L)
-                        a[edge, x, y, z, block] = s[index]
-    return a
-
-
-def new_barray(L: int) -> np.ndarray:
-    return np.zeros((3, L, L, L, 2), dtype=np.uint)
-
-
 def bcommute(a, b) -> np.ndarray:
     """Array of 0 for commutes and 1 for anticommutes bvectors."""
 

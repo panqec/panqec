@@ -27,13 +27,6 @@ class AbstractCode {
         this.stabilizers = new Array(this.m);
 
         this.SIZE = {radiusEdge: 0.05, radiusVertex: 0.1, lengthEdge: 1};
-        let length = this.SIZE.lengthEdge;
-
-        this.offset = {
-            x: this.SIZE.lengthEdge * (this.Lx) / 2 - this.SIZE.lengthEdge/5,
-            y: this.SIZE.lengthEdge * (this.Ly) / 2 - this.SIZE.lengthEdge/5,
-            z: this.SIZE.lengthEdge * (this.Lz) / 2 - this.SIZE.lengthEdge/5
-        };
     }
 
     updateStabilizers() {
@@ -153,6 +146,9 @@ class AbstractCode {
     }
 
     build(scene) {
+        let maxQubitCoordinates = {'x': 0, 'y': 0, 'z': 0};
+        let maxStabCoordinates = {'x': 0, 'y': 0, 'z': 0};
+
         for (let index=0; index < this.n; index++) {
             let qubit = this.buildQubit(index);
 
@@ -162,10 +158,14 @@ class AbstractCode {
             qubit.location = this.qubitCoordinates[index];
             this.qubits[index] = qubit;
 
-            scene.add(qubit)
+            maxQubitCoordinates['x'] = Math.max(qubit.position.x, maxQubitCoordinates['x']);
+            maxQubitCoordinates['y'] = Math.max(qubit.position.x, maxQubitCoordinates['y']);
+            maxQubitCoordinates['z'] = Math.max(qubit.position.x, maxQubitCoordinates['z']);
+
+            scene.add(qubit);
         }
         for (let index=0; index < this.m; index++) {
-            var stabilizer = this.buildStabilizer(index)
+            let stabilizer = this.buildStabilizer(index);
 
             stabilizer.isActivated = false;
 
@@ -175,7 +175,27 @@ class AbstractCode {
 
             this.stabilizers[index] = stabilizer;
 
+            maxStabCoordinates['x'] = Math.max(stabilizer.position.x, maxStabCoordinates['x']);
+            maxStabCoordinates['y'] = Math.max(stabilizer.position.x, maxStabCoordinates['y']);
+            maxStabCoordinates['z'] = Math.max(stabilizer.position.x, maxStabCoordinates['z']);
+
             scene.add(stabilizer);
+        }
+
+        var offset = {'x': Math.max(maxStabCoordinates['x'], maxQubitCoordinates['x']) / 2,
+                      'y': Math.max(maxStabCoordinates['y'], maxQubitCoordinates['y']) / 2,
+                      'z': Math.max(maxStabCoordinates['z'], maxQubitCoordinates['z']) / 2}
+
+        for (let qubit of this.qubits) {
+            qubit.position.x -= offset['x'];
+            qubit.position.y -= offset['y'];
+            qubit.position.z -= offset['z'];
+        }
+
+        for (let stab of this.stabilizers) {
+            stab.position.x -= offset['x'];
+            stab.position.y -= offset['y'];
+            stab.position.z -= offset['z'];
         }
     }
 }

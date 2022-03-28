@@ -27,7 +27,7 @@ from .decoders import (
     DeformedSweepMatchDecoder, FoliatedMatchingDecoder,
     DeformedRotatedSweepMatchDecoder
 )
-from .error_models import PauliErrorModel, XNoiseOnYZEdgesOnly
+from .error_models import PauliErrorModel
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
