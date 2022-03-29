@@ -284,8 +284,8 @@ class BeliefPropagationOSDDecoder(Decoder):
         syndrome = np.array(syndrome, dtype=int)
 
         if is_css:
-            syndrome_z = syndrome[code.Hz.shape[0]:]
-            syndrome_x = syndrome[:code.Hz.shape[0]]
+            syndrome_z = code.extract_z_syndrome(syndrome)
+            syndrome_x = code.extract_x_syndrome(syndrome)
 
         pi, px, py, pz = self.get_probabilities(code)
 
@@ -347,7 +347,7 @@ class BeliefPropagationOSDDecoder(Decoder):
                 z_decoder.update_channel_probs(probabilities_z)
 
                 # Decode Z errors
-                z_decoder.decode(syndrome_z)
+                z_decoder.decode(syndrome_x)
                 z_correction = z_decoder.osdw_decoding
 
                 # Bayes update of the probability
@@ -358,7 +358,7 @@ class BeliefPropagationOSDDecoder(Decoder):
                     x_decoder.update_channel_probs(new_x_probs)
 
                 # Decode X errors
-                x_decoder.decode(syndrome_x)
+                x_decoder.decode(syndrome_z)
                 x_correction = x_decoder.osdw_decoding
 
                 correction = np.concatenate([x_correction, z_correction])

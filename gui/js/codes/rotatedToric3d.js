@@ -41,9 +41,9 @@ class RotatedToric3DCode extends AbstractCode {
                                                       transparent: true});
         const qubit = new THREE.Mesh(geometry, material);
 
-        qubit.position.x = (length * Math.SQRT2 / 4) * x - this.offset.x;
-        qubit.position.y = (length * Math.SQRT2 / 4) * y - this.offset.y;
-        qubit.position.z = length * z / 2 - this.offset.z;
+        qubit.position.x = (length * Math.SQRT2 / 4) * x;
+        qubit.position.y = (length * Math.SQRT2 / 4) * y;
+        qubit.position.z = length * z / 2;
 
         if (this.qubitAxis[index] == 2) {
             qubit.rotateX(Math.PI / 2);
@@ -69,9 +69,9 @@ class RotatedToric3DCode extends AbstractCode {
                                                      transparent: true});
         const vertex = new THREE.Mesh(geometry, material);
 
-        vertex.position.x = (length * Math.SQRT2 / 4) * x - this.offset.x;
-        vertex.position.y = (length * Math.SQRT2 / 4) * y - this.offset.y;
-        vertex.position.z = length * z / 2 - this.offset.z;
+        vertex.position.x = (length * Math.SQRT2 / 4) * x;
+        vertex.position.y = (length * Math.SQRT2 / 4) * y;
+        vertex.position.z = length * z / 2;
 
         return vertex;
     }
@@ -88,9 +88,9 @@ class RotatedToric3DCode extends AbstractCode {
                                                      side: THREE.DoubleSide});
         const face = new THREE.Mesh(geometry, material);
 
-        face.position.x = (length * Math.SQRT2 / 4) * x - this.offset.x;
-        face.position.y = (length * Math.SQRT2 / 4) * y - this.offset.y;
-        face.position.z = length * z / 2 - this.offset.z;
+        face.position.x = (length * Math.SQRT2 / 4) * x;
+        face.position.y = (length * Math.SQRT2 / 4) * y;
+        face.position.z = length * z / 2;
 
         face.rotateZ(Math.PI/4)
 
@@ -153,9 +153,9 @@ class RpRotatedToric3DCode extends AbstractCode {
                                                      transparent: true});
         const qubit = new THREE.Mesh(geometry, material);
 
-        qubit.position.x = (length * Math.SQRT2 / 4) * x - this.offset.x;
-        qubit.position.y = (length * Math.SQRT2 / 4) * y - this.offset.y;
-        qubit.position.z = length * z / 2 - this.offset.z;
+        qubit.position.x = (length * Math.SQRT2 / 4) * x;
+        qubit.position.y = (length * Math.SQRT2 / 4) * y;
+        qubit.position.z = length * z / 2;
 
         return qubit;
     }
@@ -171,9 +171,9 @@ class RpRotatedToric3DCode extends AbstractCode {
                                                      transparent: true, side: THREE.DoubleSide});
         const octa = new THREE.Mesh(geometry, material);
 
-        octa.position.x = (length * Math.SQRT2 / 4) * x - this.offset.x;
-        octa.position.y = (length * Math.SQRT2 / 4) * y - this.offset.y;
-        octa.position.z = length * z / 2 - this.offset.z;
+        octa.position.x = (length * Math.SQRT2 / 4) * x;
+        octa.position.y = (length * Math.SQRT2 / 4) * y;
+        octa.position.z = length * z / 2;
 
         octa.rotateZ(Math.PI/4)
 
@@ -199,9 +199,9 @@ class RpRotatedToric3DCode extends AbstractCode {
                                                      transparent: true, side: THREE.DoubleSide});
         const face = new THREE.Mesh(geometry, material);
 
-        face.position.x = (length * Math.SQRT2 / 4) * x - this.offset.x;
-        face.position.y = (length * Math.SQRT2 / 4) * y - this.offset.y;
-        face.position.z = length * z / 2 - this.offset.z;
+        face.position.x = (length * Math.SQRT2 / 4) * x;
+        face.position.y = (length * Math.SQRT2 / 4) * y;
+        face.position.z = length * z / 2;
 
         if (z % 2 == 0) {
             face.rotateX(Math.PI/2);
