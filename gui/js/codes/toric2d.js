@@ -5,30 +5,26 @@ import { AbstractCode } from './base/abstractCode.js';
 export {Toric2DCode, RpToric2DCode};
 
 class Toric2DCode extends AbstractCode {
-    constructor(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis,  stabilizerType) {
-        super(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis,  stabilizerType);
+    COLOR = {
+        deactivatedStabilizer: {'vertex': 0xf2f2fc, 'face': 0xf1c232},
+        activatedStabilizer: {'vertex': 0xf1c232, 'face': 0xf1c232},
 
-        this.COLOR = {
-            deactivatedStabilizer: {'vertex': 0xf2f2fc, 'face': 0xf1c232},
-            activatedStabilizer: {'vertex': 0xf1c232, 'face': 0xf1c232},
+        deactivatedQubit: 0xffbcbc,
+        errorX: 0xFF4B3E,
+        errorZ: 0x48BEFF,
+        errorY: 0x058C42
+    };
 
-            deactivatedQubit: 0xffbcbc,
-            errorX: 0xFF4B3E,
-            errorZ: 0x48BEFF,
-            errorY: 0x058C42
-        };
+    OPACITY = {
+        minActivatedQubit: 1,
+        maxActivatedQubit: 1,
+        minDeactivatedQubit: 0.1,
+        maxDeactivatedQubit: 0.6,
 
-        this.OPACITY = {
-            minActivatedQubit: 1,
-            maxActivatedQubit: 1,
-            minDeactivatedQubit: 0.1,
-            maxDeactivatedQubit: 0.6,
-
-            minActivatedStabilizer: {'vertex': 1, 'face': 0.6},
-            maxActivatedStabilizer: {'vertex': 1, 'face': 0.6},
-            minDeactivatedStabilizer: {'vertex': 0.1, 'face': 0},
-            maxDeactivatedStabilizer: {'vertex': 0.6, 'face': 0}
-        }
+        minActivatedStabilizer: {'vertex': 1, 'face': 0.6},
+        maxActivatedStabilizer: {'vertex': 1, 'face': 0.6},
+        minDeactivatedStabilizer: {'vertex': 0.1, 'face': 0},
+        maxDeactivatedStabilizer: {'vertex': 0.6, 'face': 0}
     }
 
     buildQubit(index) {
@@ -98,30 +94,26 @@ class Toric2DCode extends AbstractCode {
 
 
 class RpToric2DCode extends AbstractCode {
-    constructor(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis,  stabilizerType) {
-        super(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis,  stabilizerType);
+    COLOR = {
+        activatedStabilizer: {'vertex': 0xfabc2a, 'face': 0xFA824C},
+        deactivatedStabilizer: {'vertex': 0xFAFAC6, 'face': 0xe79e90},
 
-        this.COLOR = {
-            activatedStabilizer: {'vertex': 0xfabc2a, 'face': 0xFA824C},
-            deactivatedStabilizer: {'vertex': 0xFAFAC6, 'face': 0xe79e90},
+        deactivatedQubit: 0xffbcbc,
+        errorX: 0xFF4B3E,
+        errorZ: 0x4381C1,
+        errorY: 0x058C42
+    };
 
-            deactivatedQubit: 0xffbcbc,
-            errorX: 0xFF4B3E,
-            errorZ: 0x4381C1,
-            errorY: 0x058C42
-        };
+    OPACITY = {
+        minActivatedQubit: 1,
+        maxActivatedQubit: 1,
+        minDeactivatedQubit: 0.1,
+        maxDeactivatedQubit: 0.6,
 
-        this.OPACITY = {
-            minActivatedQubit: 1,
-            maxActivatedQubit: 1,
-            minDeactivatedQubit: 0.1,
-            maxDeactivatedQubit: 0.6,
-
-            minActivatedStabilizer: {'vertex': 0.9, 'face': 0.9},
-            maxActivatedStabilizer: {'vertex': 0.9, 'face': 0.9},
-            minDeactivatedStabilizer: {'vertex': 0.1, 'face': 0.1},
-            maxDeactivatedStabilizer: {'vertex': 0.2, 'face': 0.2}
-        }
+        minActivatedStabilizer: {'vertex': 0.9, 'face': 0.9},
+        maxActivatedStabilizer: {'vertex': 0.9, 'face': 0.9},
+        minDeactivatedStabilizer: {'vertex': 0.1, 'face': 0.1},
+        maxDeactivatedStabilizer: {'vertex': 0.2, 'face': 0.2}
     }
 
     buildQubit(index) {

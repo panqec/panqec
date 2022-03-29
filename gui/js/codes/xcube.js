@@ -5,32 +5,26 @@ import { AbstractCode } from './base/abstractCode.js';
 export {XCubeCode};
 
 class XCubeCode extends AbstractCode {
-    constructor(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis,  stabilizerType) {
-        super(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis,  stabilizerType);
+    COLOR = {
+        activatedStabilizer: {'face': 0xfa7921, 'cube': 0xf1c232},
+        deactivatedStabilizer: {'face': 0xf2f2cc, 'cube': 0xf2f28c},
 
-        this.COLOR = {
-            activatedStabilizer: {'face': 0xfa7921, 'cube': 0xf1c232},
-            deactivatedStabilizer: {'face': 0xf2f2cc, 'cube': 0xf2f28c},
+        deactivatedQubit: 0xffbcbc,
+        errorX: 0xFF4B3E,
+        errorZ: 0x4381C1,
+        errorY: 0x058C42
+    };
 
-            deactivatedQubit: 0xffbcbc,
-            errorX: 0xFF4B3E,
-            errorZ: 0x4381C1,
-            errorY: 0x058C42
-        };
+    OPACITY = {
+        minActivatedQubit: 1,
+        maxActivatedQubit: 1,
+        minDeactivatedQubit: 0.1,
+        maxDeactivatedQubit: 0.6,
 
-        this.OPACITY = {
-            minActivatedQubit: 1,
-            maxActivatedQubit: 1,
-            minDeactivatedQubit: 0.1,
-            maxDeactivatedQubit: 0.6,
-
-            minActivatedStabilizer: {'face': 0.8, 'cube': 0.6},
-            maxActivatedStabilizer: {'face': 0.8, 'cube': 0.6},
-            minDeactivatedStabilizer: {'face': 0, 'cube': 0},
-            maxDeactivatedStabilizer: {'face': 0, 'cube': 0}
-        }
-
-        this.SIZE = {radiusEdge: 0.05, radiusVertex: 0.1, lengthEdge: 1};
+        minActivatedStabilizer: {'face': 0.8, 'cube': 0.6},
+        maxActivatedStabilizer: {'face': 0.8, 'cube': 0.6},
+        minDeactivatedStabilizer: {'face': 0, 'cube': 0},
+        maxDeactivatedStabilizer: {'face': 0, 'cube': 0}
     }
 
     buildQubit(index) {

@@ -26,24 +26,6 @@ class RotatedToric2DCode extends AbstractCode {
         maxDeactivatedStabilizer: {'vertex': 0.6, 'face': 0}
     };
 
-    constructor(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis,  stabilizerType) {
-        super(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis,  stabilizerType);
-
-        this.
-
-        this.OPACITY = {
-            minActivatedQubit: 1,
-            maxActivatedQubit: 1,
-            minDeactivatedQubit: 0.1,
-            maxDeactivatedQubit: 0.6,
-
-            minActivatedStabilizer: {'vertex': 1, 'face': 0.6},
-            maxActivatedStabilizer: {'vertex': 1, 'face': 0.6},
-            minDeactivatedStabilizer: {'vertex': 0.1, 'face': 0},
-            maxDeactivatedStabilizer: {'vertex': 0.6, 'face': 0}
-        };
-    }
-
     buildQubit(index) {
         var [x, y] = this.qubitCoordinates[index];
 
@@ -54,10 +36,8 @@ class RotatedToric2DCode extends AbstractCode {
                                                       transparent: true});
         const qubit = new THREE.Mesh(geometry, material);
 
-        console.log(qubit)
-
-        qubit.position.x = x * this.SIZE.lengthEdge / 2;
-        qubit.position.y = y * this.SIZE.lengthEdge / 2;
+        qubit.position.x = x * this.SIZE.lengthEdge * Math.sqrt(2) / 4;
+        qubit.position.y = y * this.SIZE.lengthEdge * Math.sqrt(2) / 4;
 
         if (this.qubitAxis[index] == 0) {
             qubit.rotateZ(Math.PI / 4)
@@ -66,7 +46,7 @@ class RotatedToric2DCode extends AbstractCode {
             qubit.rotateZ(-Math.PI / 4)
         }
 
-        return qubit
+        return qubit;
     }
 
     buildVertex(index) {
@@ -79,16 +59,16 @@ class RotatedToric2DCode extends AbstractCode {
                                                      transparent: true});
         const vertex = new THREE.Mesh(geometry, material);
 
-        vertex.position.x = x * this.SIZE.lengthEdge / 2;
-        vertex.position.y = y * this.SIZE.lengthEdge / 2;
+        vertex.position.x = x * this.SIZE.lengthEdge * Math.sqrt(2) / 4;
+        vertex.position.y = y * this.SIZE.lengthEdge * Math.sqrt(2) / 4;
 
-        return vertex
+        return vertex;
     }
 
     buildFace(index) {
         var [x, y] =this.stabilizerCoordinates[index];
 
-        const geometry = new THREE.PlaneGeometry(this.SIZE.lengthEdge*Math.sqrt(2), this.SIZE.lengthEdge*Math.sqrt(2));
+        const geometry = new THREE.PlaneGeometry(this.SIZE.lengthEdge*Math.sqrt(2)/2, this.SIZE.lengthEdge*Math.sqrt(2)/2);
 
         const material = new THREE.MeshToonMaterial({color: this.COLOR.activatedStabilizer['face'],
                                                      opacity: this.OPACITY.maxDeactivatedStabilizer['face'],
@@ -96,12 +76,12 @@ class RotatedToric2DCode extends AbstractCode {
                                                      side: THREE.DoubleSide});
         const face = new THREE.Mesh(geometry, material);
 
-        face.position.x = x * this.SIZE.lengthEdge / 2;
-        face.position.y = y * this.SIZE.lengthEdge / 2;
+        face.position.x = x * this.SIZE.lengthEdge * Math.sqrt(2) / 4;
+        face.position.y = y * this.SIZE.lengthEdge * Math.sqrt(2) / 4;
 
         face.rotateZ(Math.PI / 4)
 
-        return face
+        return face;
     }
 
     buildStabilizer(index) {
@@ -112,39 +92,34 @@ class RotatedToric2DCode extends AbstractCode {
             var stabilizer = this.buildFace(index);
         }
 
-        return stabilizer
+        return stabilizer;
     }
 }
 
 
 class RpRotatedToric2DCode extends AbstractCode {
-    constructor(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis,  stabilizerType) {
-        super(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis,  stabilizerType);
+    COLOR = {
+        activatedStabilizer: {'vertex': 0xfabc2a, 'face': 0xFA824C},
+        deactivatedStabilizer: {'vertex': 0xFAFAC6, 'face': 0xe79e90},
 
-        this.COLOR = {
-            activatedStabilizer: {'vertex': 0xfabc2a, 'face': 0xFA824C},
-            deactivatedStabilizer: {'vertex': 0xFAFAC6, 'face': 0xe79e90},
+        deactivatedQubit: 0xffbcbc,
+        errorX: 0xFF4B3E,
+        errorZ: 0x4381C1,
+        errorY: 0x058C42
+    };
 
-            deactivatedQubit: 0xffbcbc,
-            errorX: 0xFF4B3E,
-            errorZ: 0x4381C1,
-            errorY: 0x058C42
-        };
+    OPACITY = {
+        minActivatedQubit: 1,
+        maxActivatedQubit: 1,
+        minDeactivatedQubit: 0.1,
+        maxDeactivatedQubit: 0.6,
 
-        this.OPACITY = {
-            minActivatedQubit: 1,
-            maxActivatedQubit: 1,
-            minDeactivatedQubit: 0.1,
-            maxDeactivatedQubit: 0.6,
+        minActivatedStabilizer: {'vertex': 0.9, 'face': 0.9},
+        maxActivatedStabilizer: {'vertex': 0.9, 'face': 0.9},
+        minDeactivatedStabilizer: {'vertex': 0.1, 'face': 0.1},
+        maxDeactivatedStabilizer: {'vertex': 0.2, 'face': 0.2}
+    };
 
-            minActivatedStabilizer: {'vertex': 0.9, 'face': 0.9},
-            maxActivatedStabilizer: {'vertex': 0.9, 'face': 0.9},
-            minDeactivatedStabilizer: {'vertex': 0.1, 'face': 0.1},
-            maxDeactivatedStabilizer: {'vertex': 0.2, 'face': 0.2}
-        }
-
-        this.SIZE = {radiusEdge: 0.05 / (this.Lx/5), radiusVertex: 0.1 / (this.Lx/5), lengthEdge: 0.5 / (0.05 + this.Lx/5)};
-    }
 
     buildQubit(index) {
         var [x, y] =this.qubitCoordinates[index];
@@ -159,7 +134,7 @@ class RpRotatedToric2DCode extends AbstractCode {
         qubit.position.x = x * this.SIZE.lengthEdge / 2;
         qubit.position.y = y * this.SIZE.lengthEdge / 2;
 
-        return qubit
+        return qubit;
     }
 
     buildStabilizer(index) {
@@ -177,6 +152,6 @@ class RpRotatedToric2DCode extends AbstractCode {
         face.position.x = x * this.SIZE.lengthEdge / 2;
         face.position.y = y * this.SIZE.lengthEdge / 2;
 
-        return face
+        return face;
     }
 }
