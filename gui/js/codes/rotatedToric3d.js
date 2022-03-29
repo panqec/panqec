@@ -97,7 +97,7 @@ class RotatedToric3DCode extends AbstractCode {
         if (z % 2 == 0) {
             face.rotateX(Math.PI/2);
 
-            if ((x + y) % 4 == 0) {
+            if ((x + y) % 4 == 2) {
                 face.rotateY(Math.PI/2);
             }
         }
@@ -207,7 +207,7 @@ class RpRotatedToric3DCode extends AbstractCode {
         if (z % 2 == 0) {
             face.rotateX(Math.PI/2);
 
-            if ((x + y) % 4 != 0) {
+            if ((x + y) % 4 != 2) {
                 face.rotateY(Math.PI/4);
             }
             else {

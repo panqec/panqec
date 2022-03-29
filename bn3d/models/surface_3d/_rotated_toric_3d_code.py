@@ -10,9 +10,9 @@ def on_defect_boundary(Lx, Ly, x, y):
     """Determine whether or not to defect each boundary."""
     defect_x_boundary = False
     defect_y_boundary = False
-    if Lx % 2 == 1 and x == 2*Lx-1:
+    if Lx % 2 == 1 and x == 2*Lx:
         defect_x_boundary = True
-    if Ly % 2 == 1 and y == 2*Ly-1:
+    if Ly % 2 == 1 and y == 2*Ly:
         defect_y_boundary = True
     return defect_x_boundary, defect_y_boundary
 
@@ -34,16 +34,16 @@ class RotatedToric3DCode(StabilizerCode):
         coordinates = []
 
         # Horizontal
-        for x in range(0, 2*Lx, 2):
-            for y in range(0, 2*Ly, 2):
+        for x in range(1, 2*Lx, 2):
+            for y in range(1, 2*Ly, 2):
                 for z in range(1, 2*Lz, 2):
                     coordinates.append((x, y, z))
 
         # Vertical
-        for x in range(1, 2*Lx, 2):
-            for y in range(1, 2*Ly, 2):
+        for x in range(2, 2*Lx+1, 2):
+            for y in range(2, 2*Ly+1, 2):
                 for z in range(2, 2*Lz, 2):
-                    if (x + y) % 4 == 0:
+                    if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
 
         return coordinates
@@ -53,24 +53,24 @@ class RotatedToric3DCode(StabilizerCode):
         Lx, Ly, Lz = self.size
 
         # Vertices
-        for x in range(1, 2*Lx, 2):
-            for y in range(1, 2*Ly, 2):
+        for x in range(2, 2*Lx+1, 2):
+            for y in range(2, 2*Ly+1, 2):
                 for z in range(1, 2*Lz, 2):
                     if (x + y) % 4 == 0:
                         coordinates.append((x, y, z))
 
         # Horizontal faces
-        for x in range(1, 2*Lx + 1, 2):
-            for y in range(1, 2*Ly + 1, 2):
+        for x in range(2, 2*Lx+1, 2):
+            for y in range(2, 2*Ly+1, 2):
                 for z in range(1, 2*Lz, 2):
                     if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
 
         # Vertical faces
-        for x in range(0, 2*Lx, 2):
-            for y in range(0, 2*Ly, 2):
+        for x in range(1, 2*Lx, 2):
+            for y in range(1, 2*Ly, 2):
                 for z in range(2, 2*Lz, 2):
-                    if not ((Lx % 2 == 0 and y == 0) or (Ly % 2 == 0 and x == 0)):
+                    if not ((Lx % 2 == 0 and y == 1) or (Ly % 2 == 0 and x == 1)):
                         coordinates.append((x, y, z))
 
         return coordinates
@@ -80,7 +80,7 @@ class RotatedToric3DCode(StabilizerCode):
             raise ValueError(f"Invalid coordinate {location} for a stabilizer")
 
         x, y, z = location
-        if (x + y) % 4 == 0 and z % 2 == 1:
+        if (x + y) % 4 == 2 and z % 2 == 1:
             return 'vertex'
         else:
             return 'face'
@@ -107,10 +107,10 @@ class RotatedToric3DCode(StabilizerCode):
             if z % 2 == 1:
                 delta = [(-1, -1, 0), (1, 1, 0), (-1, 1, 0), (1, -1, 0)]
             # x-normal so face is in yz-plane.
-            elif (x + y) % 4 == 2:
+            elif (x + y) % 4 == 0:
                 delta = [(-1, -1, 0), (1, 1, 0), (0, 0, -1), (0, 0, 1)]
             # y-normal so face is in zx-plane.
-            elif (x + y) % 4 == 0:
+            elif (x + y) % 4 == 2:
                 delta = [(-1, 1, 0), (1, -1, 0), (0, 0, -1), (0, 0, 1)]
 
         operator = dict()
@@ -119,8 +119,8 @@ class RotatedToric3DCode(StabilizerCode):
             qubit_location = (qx % (2*Lx), qy % (2*Ly), qz)
 
             if self.is_qubit(qubit_location):
-                defect_x_on_edge = defect_x_boundary and qubit_location[0] == 0
-                defect_y_on_edge = defect_y_boundary and qubit_location[1] == 0
+                defect_x_on_edge = defect_x_boundary and qubit_location[0] == 1
+                defect_y_on_edge = defect_y_boundary and qubit_location[1] == 1
                 has_defect = (defect_x_on_edge != defect_y_on_edge)
 
                 is_deformed = (self.axis(qubit_location) == deformed_axis)
@@ -137,9 +137,9 @@ class RotatedToric3DCode(StabilizerCode):
 
         if z % 2 == 0:
             axis = self.Z_AXIS
-        elif (x + y) % 4 == 0:
-            axis = self.X_AXIS
         elif (x + y) % 4 == 2:
+            axis = self.X_AXIS
+        elif (x + y) % 4 == 0:
             axis = self.Y_AXIS
 
         return axis
