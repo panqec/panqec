@@ -172,11 +172,7 @@ class StabilizerCode(metaclass=ABCMeta):
     @property
     def is_css(self) -> bool:
         if self._is_css is None:
-            H1 = self.stabilizer_matrix[:, :self.n]
-            H2 = self.stabilizer_matrix[:, self.n:]
-
-            # CSS if the rows of nonzero elements between H1 and H2 don't intersect
-            self._is_css = (len(np.intersect1d(H1.nonzero()[0], H2.nonzero()[0])) == 0)
+            self._is_css = not np.any(np.logical_and(self.x_indices, self.z_indices))
 
         return self._is_css
 
@@ -211,7 +207,7 @@ class StabilizerCode(metaclass=ABCMeta):
 
         if self._Hx.shape[0] == 0:
             H = self.stabilizer_matrix[:, :self.n]
-            self._Hx = H[H.getnnz(1) > 0]
+            self._Hx = H[self.x_indices]
 
         return self._Hx
 
@@ -227,16 +223,13 @@ class StabilizerCode(metaclass=ABCMeta):
 
         if self._Hz.shape[0] == 0:
             H = self.stabilizer_matrix[:, self.n:]
-            self._Hz = H[H.getnnz(1) > 0]
+            self._Hz = H[self.z_indices]
 
         return self._Hz
 
     @property
     def x_indices(self) -> np.ndarray:
         """For CSS codes. Returns the indices of the X stabilizers"""
-
-        if not self.is_css:
-            raise ValueError("This method only works for CSS codes")
 
         if self._x_indices is None:
             Hx = self.stabilizer_matrix[:, :self.n]
@@ -246,10 +239,7 @@ class StabilizerCode(metaclass=ABCMeta):
 
     @property
     def z_indices(self) -> np.ndarray:
-        """For CSS codes. Returns the indices of the X stabilizers"""
-
-        if not self.is_css:
-            raise ValueError("This method only works for CSS codes")
+        """For CSS codes. Returns the indices of the Z stabilizers"""
 
         if self._z_indices is None:
             Hz = self.stabilizer_matrix[:, self.n:]
@@ -304,7 +294,7 @@ class StabilizerCode(metaclass=ABCMeta):
         """Returns whether a given location in the coordinate system
         corresponds to a stabilizer or not
         """
-        _is_stabilizer = (location in self.stabilizer_coordinates) and\
+        _is_stabilizer = (location in self.stabilizer_index) and\
                          (stab_type is None or self.stabilizer_type(location) == stab_type)
 
         return _is_stabilizer
