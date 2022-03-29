@@ -300,19 +300,36 @@ function buildInstructions() {
 
     var instructions = document.createElement('div');
     instructions.id = 'instructions';
-    instructions.innerHTML =
-    "\
-        <table style='border-spacing: 10px'>\
-        <tr><td><b>Ctrl-left click</b></td><td>X error</td></tr>\
-        <tr><td><b>Ctrl-right click</b></td><td>Z error</td></tr>\
-        <tr><td><b>Backspace</b></td><td>Remove errors</td></tr>\
-        <tr><td><b>R</b></td><td>Random errors</td></tr>\
-        <tr><td><b>D</b></td><td>Decode</td></tr>\
-        <tr><td><b>O</b></td><td>Toggle Opacity</td></tr>\
-        <tr><td><b>Z</b></td><td>Logical Z</td></tr>\
-        <tr><td><b>X</b></td><td>Logical X</td></tr>\
-        </table>\
-    ";
+    if (codeDimension == 3) {
+        instructions.innerHTML =
+        "\
+            <table style='border-spacing: 10px'>\
+            <tr><td><b>Ctrl-left click</b></td><td>X error</td></tr>\
+            <tr><td><b>Ctrl-right click</b></td><td>Z error</td></tr>\
+            <tr><td><b>Backspace</b></td><td>Remove errors</td></tr>\
+            <tr><td><b>R</b></td><td>Random errors</td></tr>\
+            <tr><td><b>D</b></td><td>Decode</td></tr>\
+            <tr><td><b>O</b></td><td>Toggle Opacity</td></tr>\
+            <tr><td><b>Z</b></td><td>Logical Z</td></tr>\
+            <tr><td><b>X</b></td><td>Logical X</td></tr>\
+            </table>\
+        ";
+    }
+    else {
+        instructions.innerHTML =
+        "\
+            <table style='border-spacing: 10px'>\
+            <tr><td><b>Left click</b></td><td>X error</td></tr>\
+            <tr><td><b>Right click</b></td><td>Z error</td></tr>\
+            <tr><td><b>Backspace</b></td><td>Remove errors</td></tr>\
+            <tr><td><b>R</b></td><td>Random errors</td></tr>\
+            <tr><td><b>D</b></td><td>Decode</td></tr>\
+            <tr><td><b>O</b></td><td>Toggle Opacity</td></tr>\
+            <tr><td><b>Z</b></td><td>Logical Z</td></tr>\
+            <tr><td><b>X</b></td><td>Logical X</td></tr>\
+            </table>\
+        ";
+    }
     document.body.appendChild(instructions);
     document.body.appendChild(closingCross);
 }
@@ -326,7 +343,7 @@ function buildReturnArrow() {
 }
 
 function onDocumentMouseDown(event) {
-    if (event.ctrlKey || event.shiftKey) {
+    if (event.ctrlKey || event.shiftKey || codeDimension == 2) {
         mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
         mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 
@@ -337,7 +354,7 @@ function onDocumentMouseDown(event) {
 
         let selectedQubit = intersects[0].object;
 
-        if (event.ctrlKey) {
+        if (event.ctrlKey || codeDimension == 2) {
             switch (event.button) {
                 case 0: // left click
                     var x = selectedQubit.location[0]
