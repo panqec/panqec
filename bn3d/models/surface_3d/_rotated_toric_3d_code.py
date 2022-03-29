@@ -116,7 +116,11 @@ class RotatedToric3DCode(StabilizerCode):
         operator = dict()
         for d in delta:
             qx, qy, qz = tuple(np.add(location, d))
-            qubit_location = (qx % (2*Lx), qy % (2*Ly), qz)
+            if qx > 2*Lx:
+                qx = 1
+            if qy > 2*Ly:
+                qy = 1
+            qubit_location = (qx, qy, qz)
 
             if self.is_qubit(qubit_location):
                 defect_x_on_edge = defect_x_boundary and qubit_location[0] == 1
