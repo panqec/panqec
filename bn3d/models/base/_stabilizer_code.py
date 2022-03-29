@@ -313,7 +313,7 @@ class StabilizerCode(metaclass=ABCMeta):
         """Returns whether a given location in the coordinate system
         corresponds to a qubit or not
         """
-        return location in self.qubit_coordinates
+        return location in self.qubit_index
 
     @abstractmethod
     def get_qubit_coordinates(self) -> List[Tuple]:
