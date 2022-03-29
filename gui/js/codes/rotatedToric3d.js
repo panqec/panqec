@@ -92,13 +92,13 @@ class RotatedToric3DCode extends AbstractCode {
         face.position.y = (length * Math.SQRT2 / 4) * y;
         face.position.z = length * z / 2;
 
-        face.rotateZ(Math.PI/4)
+        face.rotateZ(Math.PI/4);
 
         if (z % 2 == 0) {
-            face.rotateX(Math.PI/2)
+            face.rotateX(Math.PI/2);
 
             if ((x + y) % 4 == 0) {
-                face.rotateY(Math.PI/2)
+                face.rotateY(Math.PI/2);
             }
         }
 
@@ -124,14 +124,15 @@ class RpRotatedToric3DCode extends AbstractCode {
         this.COLOR = {
             deactivatedStabilizer: {'vertex': 0xfa7921, 'face': 0xf1c232},
             activatedStabilizer: {'vertex': 0xfa7921, 'face': 0xf1c232},
-            deactivatedQubit: 0xffbcbc,
+            deactivatedQubit: 0xf2f2fc,
             errorX: 0xFF4B3E,
             errorZ: 0x4381C1,
             errorY: 0x058C42
         };
 
         this.OPACITY = {
-            activatedQubit: 1,
+            minActivatedQubit: 1,
+            maxActivatedQubit: 1,
             minDeactivatedQubit: 0.1,
             maxDeactivatedQubit: 0.4,
 
