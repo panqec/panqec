@@ -98,12 +98,10 @@ function buildScene3D() {
     scene.background = new THREE.Color(COLORS.background);
 
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-    let radius = 4;
-    let theta = 3 + 1.4;
-    let phi = Math.PI/2;
-    camera.position.z = radius * Math.cos(theta);
-    camera.position.y = radius * Math.sin(phi) * Math.sin(theta);
-    camera.position.x = radius * Math.cos(phi) * Math.sin(theta);
+
+    camera.position.x = 2.5;
+    camera.position.y = 2.5;
+    camera.position.z = 4.5;
 
     const dirLight2 = new THREE.DirectionalLight( 0x002288 );
     dirLight2.position.set( - 1, - 1, - 1 );
@@ -177,7 +175,12 @@ async function buildCode() {
     code = new codeClass[params.codeName][rotated](size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis, stabilizerType);
     code.logical_x = logical_x;
     code.logical_z = logical_z;
-    code.build(scene);
+    var maxCoordinates = code.build(scene);
+
+    if (codeDimension == 2) {
+        var fov = (camera.fov * Math.PI) / 180;
+        camera.position.z = Math.max(maxCoordinates['x'], maxCoordinates['y']) / (2*Math.tan(fov/2)) + 10;
+    }
 }
 
 function changeLatticeSize() {
@@ -447,6 +450,7 @@ async function decode() {
 }
 
 function onDocumentKeyDown(event) {
+    console.log(camera.position)
     var keyCode = event.which;
 
     if (keyCode == KEY_CODE['d']) {

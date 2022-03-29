@@ -5,35 +5,30 @@ import { AbstractCode } from './base/abstractCode.js';
 export {RhombicCode};
 
 class RhombicCode extends AbstractCode {
+    COLOR = {
+        activatedStabilizer: {'triangle': 0xf1c232, 'cube': 0xf1c232},
+        deactivatedStabilizer: {'triangle': 0xf2f2cc, 'cube': 0xf2f2cc},
+
+        deactivatedQubit: 0xffbcbc,
+        errorX: 0xFF4B3E,
+        errorZ: 0x4381C1,
+        errorY: 0x058C42
+    };
+
+    OPACITY = {
+        minActivatedQubit: 1,
+        maxActivatedQubit: 1,
+        minDeactivatedQubit: 0.1,
+        maxDeactivatedQubit: 0.6,
+
+        minActivatedStabilizer: {'triangle': 1, 'cube': 0.6},
+        maxActivatedStabilizer: {'triangle': 1, 'cube': 0.6},
+        minDeactivatedStabilizer: {'triangle': 0.1, 'cube': 0.1},
+        maxDeactivatedStabilizer: {'triangle': 0.6, 'cube': 0.3}
+    };
+
     constructor(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis,  stabilizerType) {
         super(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis,  stabilizerType);
-
-        this.COLOR = {
-            activatedStabilizer: {'triangle': 0xf1c232, 'cube': 0xf1c232},
-            deactivatedStabilizer: {'triangle': 0xf2f2cc, 'cube': 0xf2f2cc},
-
-            deactivatedQubit: 0xffbcbc,
-            errorX: 0xFF4B3E,
-            errorZ: 0x4381C1,
-            errorY: 0x058C42
-        };
-
-        this.OPACITY = {
-            minActivatedQubit: 1,
-            maxActivatedQubit: 1,
-            minDeactivatedQubit: 0.1,
-            maxDeactivatedQubit: 0.6,
-
-            minActivatedStabilizer: {'triangle': 1, 'cube': 0.6},
-            maxActivatedStabilizer: {'triangle': 1, 'cube': 0.6},
-            minDeactivatedStabilizer: {'triangle': 0.1, 'cube': 0.1},
-            maxDeactivatedStabilizer: {'triangle': 0.6, 'cube': 0.3}
-        }
-
-        this.SIZE = {radiusEdge: 0.05, radiusVertex: 0.1, lengthEdge: 1};
-
-        console.log(this.m)
-        console.log(this.stabilizerCoordinates)
     }
 
     buildQubit(index) {

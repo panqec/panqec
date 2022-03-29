@@ -3,6 +3,10 @@ import nj from 'https://cdn.jsdelivr.net/npm/@d4c/numjs/build/module/numjs.min.j
 export {AbstractCode };
 
 class AbstractCode {
+    COLOR = {};
+    OPACITY = {};
+    SIZE = {radiusEdge: 0.07, radiusVertex: 0.14, lengthEdge: 1};
+
     constructor(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis, stabilizerType) {
         this.H = nj.array(H)
         this.qubitCoordinates = qubitCoordinates;
@@ -25,8 +29,6 @@ class AbstractCode {
         this.qubits = new Array(this.n);
         this.errors = nj.zeros(2*this.n);
         this.stabilizers = new Array(this.m);
-
-        this.SIZE = {radiusEdge: 0.05, radiusVertex: 0.1, lengthEdge: 1};
     }
 
     updateStabilizers() {
@@ -182,9 +184,13 @@ class AbstractCode {
             scene.add(stabilizer);
         }
 
-        var offset = {'x': Math.max(maxStabCoordinates['x'], maxQubitCoordinates['x']) / 2,
-                      'y': Math.max(maxStabCoordinates['y'], maxQubitCoordinates['y']) / 2,
-                      'z': Math.max(maxStabCoordinates['z'], maxQubitCoordinates['z']) / 2}
+        var maxCoordinates = {'x': Math.max(maxStabCoordinates['x'], maxQubitCoordinates['x']),
+                              'y': Math.max(maxStabCoordinates['y'], maxQubitCoordinates['y']),
+                              'z': Math.max(maxStabCoordinates['z'], maxQubitCoordinates['z'])};
+
+        var offset = {'x': maxCoordinates['x'] / 2,
+                      'y': maxCoordinates['y'] / 2,
+                      'z': maxCoordinates['z'] / 2};
 
         for (let qubit of this.qubits) {
             qubit.position.x -= offset['x'];
@@ -197,5 +203,7 @@ class AbstractCode {
             stab.position.y -= offset['y'];
             stab.position.z -= offset['z'];
         }
+
+        return maxCoordinates;
     }
 }
