@@ -1,10 +1,10 @@
 import numpy as np
 import pytest
 from qecsim.paulitools import bsf_to_pauli, bsf_wt
-from bn3d.error_models import PauliErrorModel
-from bn3d.models import Toric3DCode
-import bn3d.bsparse as bsparse
-from bn3d.utils import get_direction_from_bias_ratio
+from panqec.error_models import PauliErrorModel
+from panqec.models import Toric3DCode
+import panqec.bsparse as bsparse
+from panqec.utils import get_direction_from_bias_ratio
 
 
 class TestPauliNoise:

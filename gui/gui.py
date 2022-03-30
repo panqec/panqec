@@ -1,18 +1,18 @@
 import numpy as np
 
 from flask import Flask, send_from_directory, request, json, render_template
-from bn3d.models import (
+from panqec.models import (
     Toric2DCode, RotatedPlanar2DCode, Planar2DCode,
     Toric3DCode, RotatedPlanar3DCode, RhombicCode,
     Planar3DCode, RotatedToric3DCode, XCubeCode
 )
-from bn3d.decoders import (
+from panqec.decoders import (
     Toric2DPymatchingDecoder, RotatedSweepMatchDecoder,
     RotatedInfiniteZBiasDecoder, SweepMatchDecoder, Toric2DPymatchingDecoder
 )
-from bn3d.decoders import BeliefPropagationOSDDecoder, MemoryBeliefPropagationDecoder, DeformedSweepMatchDecoder
-from bn3d.error_models import PauliErrorModel
-from bn3d.error_models import (
+from panqec.decoders import BeliefPropagationOSDDecoder, MemoryBeliefPropagationDecoder, DeformedSweepMatchDecoder
+from panqec.error_models import PauliErrorModel
+from panqec.error_models import (
     DeformedXZZXErrorModel, DeformedXYErrorModel, DeformedRhombicErrorModel
 )
 

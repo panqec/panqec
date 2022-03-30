@@ -13,7 +13,7 @@ from qecsim.models.basic import FiveQubitCode
 from qecsim.models.generic import NaiveDecoder
 from qecsim.paulitools import pauli_to_bsf, bsf_to_pauli
 from qecsim.app import run
-from bn3d.error_models import PauliErrorModel
+from panqec.error_models import PauliErrorModel
 
 
 @pytest.fixture

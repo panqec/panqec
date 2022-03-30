@@ -1,17 +1,17 @@
 import itertools
 import pytest
 import numpy as np
-from bn3d.bpauli import bcommute
-from bn3d.models import Toric3DCode
-from bn3d.error_models import PauliErrorModel
-from bn3d.error_models import (
+from panqec.bpauli import bcommute
+from panqec.models import Toric3DCode
+from panqec.error_models import PauliErrorModel
+from panqec.error_models import (
     DeformedXZZXErrorModel
 )
-from bn3d.decoders import (
+from panqec.decoders import (
     DeformedSweepMatchDecoder, DeformedSweepDecoder3D,
     DeformedToric3DPymatchingDecoder, FoliatedMatchingDecoder
 )
-from bn3d.bpauli import bvector_to_pauli_string
+from panqec.bpauli import bvector_to_pauli_string
 
 
 @pytest.fixture

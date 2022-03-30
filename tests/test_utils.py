@@ -1,7 +1,7 @@
 import json
 import pytest
 import numpy as np
-from bn3d.utils import (
+from panqec.utils import (
     sizeof_fmt, identity, NumpyEncoder, list_where_str, list_where, set_where,
 )
 

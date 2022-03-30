@@ -1,9 +1,9 @@
 import pytest
 import numpy as np
-from bn3d.models import Toric2DCode
+from panqec.models import Toric2DCode
 from qecsim.paulitools import bsf_wt
-from bn3d.decoders import Toric2DPymatchingDecoder
-from bn3d.bpauli import bcommute
+from panqec.decoders import Toric2DPymatchingDecoder
+from panqec.bpauli import bcommute
 
 
 @pytest.fixture

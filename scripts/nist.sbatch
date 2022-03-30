@@ -14,6 +14,6 @@ pwd
 echo "SLURM_JOB_ID=$SLURM_JOB_ID"
 date
 
-bn3d run --file ${input_file} --trials ${n_trials}${options}
+panqec run --file ${input_file} --trials ${n_trials}${options}
 
 date

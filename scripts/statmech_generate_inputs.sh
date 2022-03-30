@@ -12,7 +12,7 @@ queue=debugq
 # Example run.
 name=test_9
 data_dir=$statmech_dir/$name
-bn3d statmech generate $data_dir --targets $targets_dir/$name.json
-bn3d statmech pi-sbatch --data_dir $data_dir \
+panqec statmech generate $data_dir --targets $targets_dir/$name.json
+panqec statmech pi-sbatch --data_dir $data_dir \
     --n_array 6 --queue $queue --wall_time $wall_time \
     $sbatch_dir/$name.sbatch

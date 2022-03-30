@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
-from bn3d.bpauli import bcommute, bsf_wt
-from bn3d.models import Toric3DCode
-import bn3d.bsparse as bsparse
+from panqec.bpauli import bcommute, bsf_wt
+from panqec.models import Toric3DCode
+import panqec.bsparse as bsparse
 
 
 class TestToric3DCode:

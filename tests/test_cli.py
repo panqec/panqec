@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from click.testing import CliRunner
 
-from bn3d.cli import cli, read_bias_ratios, read_range_input
+from panqec.cli import cli, read_bias_ratios, read_range_input
 
 
 @pytest.fixture

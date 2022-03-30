@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from bn3d.models import RotatedPlanar3DCode
+from panqec.models import RotatedPlanar3DCode
 from .stabilizer_code_test import StabilizerCodeTest
 
 

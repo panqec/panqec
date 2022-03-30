@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from bn3d.statmech.rbim2d import RandomBondIsingModel2D, WilsonLoop2D, Energy
+from panqec.statmech.rbim2d import RandomBondIsingModel2D, WilsonLoop2D, Energy
 
 
 class TestObservables:

@@ -2,11 +2,11 @@ import itertools
 import pytest
 import numpy as np
 from qecsim.paulitools import bsf_wt
-from bn3d.models import Toric3DCode
-from bn3d.decoders import SweepDecoder3D
-from bn3d.bpauli import bcommute
-from bn3d.error_models import PauliErrorModel
-from bn3d.utils import set_where
+from panqec.models import Toric3DCode
+from panqec.decoders import SweepDecoder3D
+from panqec.bpauli import bcommute
+from panqec.error_models import PauliErrorModel
+from panqec.utils import set_where
 
 
 @pytest.mark.skip(reason='sparse')

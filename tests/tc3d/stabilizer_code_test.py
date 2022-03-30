@@ -1,6 +1,6 @@
 import pytest
 from abc import ABCMeta, abstractmethod
-from bn3d.models import StabilizerCode
+from panqec.models import StabilizerCode
 
 
 class StabilizerCodeTest(metaclass=ABCMeta):

@@ -7,12 +7,12 @@ import numpy as np
 from tqdm import tqdm
 from itertools import combinations
 from qecsim.model import StabilizerCode
-from bn3d.models import RotatedToric3DCode
-from bn3d.bpauli import (
+from panqec.models import RotatedToric3DCode
+from panqec.bpauli import (
     bcommute, bvector_to_pauli_string, brank, apply_deformation
 )
-from bn3d.error_models import DeformedXZZXErrorModel
-from bn3d.decoders import BeliefPropagationOSDDecoder
+from panqec.error_models import DeformedXZZXErrorModel
+from panqec.decoders import BeliefPropagationOSDDecoder
 from scipy.special import comb
 
 from .stabilizer_code_test import StabilizerCodeTest

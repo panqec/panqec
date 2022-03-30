@@ -1,13 +1,13 @@
-# bn3d
+# PanQEC
 
-Biased noise for 3D quantum error-correcting codes
+Simulation and visualization of quantum error correction codes
 
 # Setup for development
 
 Clone the repo and enter the repo
 ```
-git clone https://github.com/ehua7365/bn3d.git
-cd bn3d
+git clone https://github.com/ehua7365/panqec.git
+cd panqec
 ```
 
 Install Python3.8 if you haven't already.
@@ -42,13 +42,13 @@ cp env_template.txt .env
 Your `.env` file contains environmental varaibles that can be read in for to
 customize.
 
-Edit the .env file to change the `BN3D_DIR` path to a directory on
+Edit the .env file to change the `PANQEC_DIR` path to a directory on
 your storage device where you want the output files to be written.
 If you don't do this, as a fallback, the data files will be written to the
 `temp` directory in this repository.
 
 Optionally, if you use dark theme in Jupyter Lab, setting
-`BN3D_DARK_THEME=True` in the `.env` file will make the plots show up nicer.
+`PANQEC_DARK_THEME=True` in the `.env` file will make the plots show up nicer.
 
 # Run the tests
 After you've activated your virtual environment and installed the dependences,
@@ -119,7 +119,7 @@ the code and its parameters, the noise model and its parameters and a decoder
 To run the file, just use
 
 ```
-bn3d run --file myinputs.json --trials 100
+panqec run --file myinputs.json --trials 100
 ```
 
 You may also have the option of running many different parameters.
@@ -162,7 +162,7 @@ you can put in the `slurm/inputs/` directory.
 
 To generate `.sbatch` files, run
 ```
-bn3d slurm gen --n_trials 1000 --partition defq --cores 3 --time 10:00:00
+panqec slurm gen --n_trials 1000 --partition defq --cores 3 --time 10:00:00
 ```
 After running this command, `.sbatch` files will be created in the directory
 `slurm/sbatch/`.
@@ -176,7 +176,7 @@ works nicely with the file system there.
 To generate sbatch files for NIST cluster for job `deformed_rays` split over 19
 sbatch files.
 ```
-bn3d slurm gennist deformed_rays --n_trials 1000 --split 100
+panqec slurm gennist deformed_rays --n_trials 1000 --split 100
 ```
 This will split the job into 100 sbatch files, saved to the `slurm/sbatch`
 directory, each of which run 1000 repeated trials.
@@ -185,7 +185,7 @@ in the same directory as where the generated `sbatch` files are saved.
 
 For more options see the help
 ```
-bn3d slurm gennist --help
+panqec slurm gennist --help
 ```
 You can adjust the walltime, memory, etc.
 
@@ -205,7 +205,7 @@ Once you have a json input file, there is a unique list of parameters.
 All you need to do is have something like this line in your sbatch file.
 
 ```
-bn3d run --file /path/to/inputs.json --trials 1000 --start $START --n_runs $N_RUNS
+panqec run --file /path/to/inputs.json --trials 1000 --start $START --n_runs $N_RUNS
 ```
 
 The `--trials` flag is the number of Monte Carlo runs.
@@ -241,7 +241,7 @@ coming out of the command line.
 ## XZZX rotated surface code with BP-OSD, equal aspect, odd sizes
 To generate the input files in an inputs directory, run the following command
 ```
-bn3d generate-input -i /path/to/inputdir \
+panqec generate-input -i /path/to/inputdir \
         -l rotated -b planar -d xzzx -r equal \
         --decoder BeliefPropagationOSDDecoder --bias Z
 ```
@@ -249,7 +249,7 @@ The input `.json` files will be generated and saved to the given directory,
 which you can check by opening some of them and inspecting them.
 To understand what the above flags mean, you can always ask for help.
 ```
-bn3d generate-input --help
+panqec generate-input --help
 ```
 
 Suppose you want to run one of these generated input files for 50 trials of
@@ -257,7 +257,7 @@ sampling and say it's named `xzzx-rotated-planar-bias-1.00-p-0.250.json`.
 Then you can run.
 
 ```
-bn3d run -f /path/to/inputdir/xzzx-rotated-planar-bias-1.00-p-0.250.json \
+panqec run -f /path/to/inputdir/xzzx-rotated-planar-bias-1.00-p-0.250.json \
         -t 50 -o /path/to/outputdir
 ```
 The above will run simulations for 50 trials each and save the results to the
@@ -317,7 +317,7 @@ cores in a certain way.
 To create a merged results directory, just run,
 just run
 ```
-bn3d merge-dirs -o temp/paper/rot_bposd_xzzx_zbias/results
+panqec merge-dirs -o temp/paper/rot_bposd_xzzx_zbias/results
 ```
 Doing so would create a directory `temp/paper/rot_bposd_xzzx_zbias/results`
 that contains all the results.
@@ -361,7 +361,7 @@ into `temp/statmech/test_7`.
 
 To generate some inputs, run
 ```
-bn3d statmech generate temp/statmech/test_7
+panqec statmech generate temp/statmech/test_7
 ```
 
 You will notice that many `.json` files have geen generated in
@@ -375,7 +375,7 @@ Suppose you want to sample one of these inputs and it's called
 `input_0123456890abcdef.json`.
 To do so, run
 ```
-bn3d statmech sample temp/statmech/test_7/input_0123456890abcdef.json
+panqec statmech sample temp/statmech/test_7/input_0123456890abcdef.json
 ```
 
 You will notice that results will be saved to the `results` directory,
@@ -392,19 +392,19 @@ of how to parallelize to running across array jobs with many cores each.
 If running locally,
 you can use the command to run them all in parallel
 ```
-bn3d statmech sample-parallel temp/statmech/test_7
+panqec statmech sample-parallel temp/statmech/test_7
 ```
 You can adjust the options depending on how many cores you have.
 
 To perform the analysis, you can use the command
 ```
-bn3d statmech analyse temp/statmech/test_7
+panqec statmech analyse temp/statmech/test_7
 ```
 To plot the results, go to Jupyter lab and open `notebooks/13-eh-statmech_test_7.ipynb`.
 Run the notebook and you should see the plots of the observables,
 from which you should hopefully see phase transitions!
 (Although something seems wrong because it's not crossing!)
- 
+
 Of course, that was rather noisy data with only 10 disorders.
 You may want to increase the `n_disorder` to 100 or 1000 to get meaningful
 plots.
@@ -440,8 +440,8 @@ Then run the following commands to generate,
 sample and analyse.
 
 ```
-bn3d statmech generate temp/statmech/test_8
-bn3d statmech sample-parallel temp/statmech/test_8
-bn3d statmech analyse temp/statmech/test_8
+panqec statmech generate temp/statmech/test_8
+panqec statmech sample-parallel temp/statmech/test_8
+panqec statmech analyse temp/statmech/test_8
 ```
 The sampling takes about 10 minutes to run on a laptop with 8 cores.

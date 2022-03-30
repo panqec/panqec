@@ -1,5 +1,5 @@
 import numpy as np
-from bn3d.plots._hashing_bound import project_triangle
+from panqec.plots._hashing_bound import project_triangle
 
 
 def test_project_triangle():

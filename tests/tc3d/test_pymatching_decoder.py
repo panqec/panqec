@@ -1,9 +1,9 @@
 import itertools
 import pytest
 import numpy as np
-from bn3d.bpauli import bcommute, bsf_wt
-from bn3d.models import Toric3DCode
-from bn3d.decoders import Toric3DPymatchingDecoder
+from panqec.bpauli import bcommute, bsf_wt
+from panqec.models import Toric3DCode
+from panqec.decoders import Toric3DPymatchingDecoder
 
 
 class TestToric3DPymatchingDecoder:

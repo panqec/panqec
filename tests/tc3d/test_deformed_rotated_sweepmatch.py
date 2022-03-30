@@ -1,10 +1,10 @@
 from typing import Tuple
 import numpy as np
 import pytest
-from bn3d.models import RotatedPlanar3DCode
-from bn3d.decoders import DeformedRotatedSweepMatchDecoder
-from bn3d.error_models import DeformedXZZXErrorModel
-from bn3d.bpauli import bcommute, get_effective_error
+from panqec.models import RotatedPlanar3DCode
+from panqec.decoders import DeformedRotatedSweepMatchDecoder
+from panqec.error_models import DeformedXZZXErrorModel
+from panqec.bpauli import bcommute, get_effective_error
 
 
 class TestDeformedRotatedPlanarPymatchingDecoder:

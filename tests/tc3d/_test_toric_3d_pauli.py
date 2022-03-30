@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
-from bn3d.bpauli import bsf_wt
-from bn3d.models import Toric3DCode
-import bn3d.bsparse as bsparse
+from panqec.bpauli import bsf_wt
+from panqec.models import Toric3DCode
+import panqec.bsparse as bsparse
 from scipy.sparse import csr_matrix
 
 

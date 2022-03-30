@@ -6,8 +6,8 @@ Tests for custom implementation of pauli bit strings.
 """
 import pytest
 import numpy as np
-from bn3d.models import Toric2DCode
-from bn3d.bpauli import (
+from panqec.models import Toric2DCode
+from panqec.bpauli import (
     pauli_string_to_bvector, bvector_to_pauli_string, bvector_to_barray,
     barray_to_bvector, bcommute, get_effective_error, bvector_to_int,
     bvectors_to_ints, ints_to_bvectors, apply_deformation

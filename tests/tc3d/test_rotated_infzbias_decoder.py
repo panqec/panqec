@@ -2,10 +2,10 @@ import pytest
 from itertools import combinations
 import numpy as np
 from qecsim.paulitools import bsf_wt
-from bn3d.bpauli import bcommute
-from bn3d.decoders import split_posts_at_active_fences
-from bn3d.models import RotatedPlanar3DCode
-from bn3d.decoders import RotatedInfiniteZBiasDecoder
+from panqec.bpauli import bcommute
+from panqec.decoders import split_posts_at_active_fences
+from panqec.models import RotatedPlanar3DCode
+from panqec.decoders import RotatedInfiniteZBiasDecoder
 
 
 @pytest.mark.parametrize('active_fences, segments, n_fences', [

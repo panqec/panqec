@@ -2,11 +2,11 @@ import pytest
 from itertools import combinations
 import numpy as np
 from qecsim.paulitools import bsf_wt
-from bn3d.bpauli import bcommute
-from bn3d.models import (
+from panqec.bpauli import bcommute
+from panqec.models import (
     RotatedPlanar3DCode
 )
-from bn3d.decoders import RotatedSweepMatchDecoder, RotatedSweepDecoder3D
+from panqec.decoders import RotatedSweepMatchDecoder, RotatedSweepDecoder3D
 
 
 @pytest.mark.skip(reason='sparse')

@@ -1,7 +1,7 @@
 import os
 import json
 import pytest
-from bn3d.statmech.controllers import SimpleController, DataManager
+from panqec.statmech.controllers import SimpleController, DataManager
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 SAMPLE_INPUTS_JSON = os.path.join(BASE_DIR, 'sample_inputs.json')

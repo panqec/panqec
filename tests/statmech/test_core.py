@@ -1,10 +1,10 @@
 import os
 import pytest
 from shutil import copyfile
-from bn3d.statmech.core import (
+from panqec.statmech.core import (
     generate_inputs, start_sampling, filter_input_hashes
 )
-from bn3d.statmech.controllers import DataManager
+from panqec.statmech.controllers import DataManager
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')

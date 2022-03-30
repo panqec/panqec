@@ -2,9 +2,9 @@ import itertools
 import pytest
 import numpy as np
 from qecsim.paulitools import bsf_wt
-from bn3d.bpauli import bcommute
-from bn3d.models import Toric3DCode
-from bn3d.decoders import SweepMatchDecoder
+from panqec.bpauli import bcommute
+from panqec.models import Toric3DCode
+from panqec.decoders import SweepMatchDecoder
 
 
 @pytest.mark.skip(reason='sparse')

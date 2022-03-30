@@ -1,13 +1,13 @@
 lint:
-	flake8 bn3d tests gui
-	mypy bn3d tests gui
+	flake8 panqec tests gui
+	mypy panqec tests gui
 coverage:
-	pytest --cov=bn3d --cov-report=html
+	pytest --cov=panqec --cov-report=html
 	python -m http.server 8080 --directory ./htmlcov/
 test:
-	pytest --cov=bn3d
+	pytest --cov=panqec
 clean:
-	find bn3d -type f -name '*.py[co]' -delete
-	find bn3d -type d -name '__pycache__' -delete
+	find panqec -type f -name '*.py[co]' -delete
+	find panqec -type d -name '__pycache__' -delete
 	find tests -type f -name '*.py[co]' -delete
 	find tests -type d -name '__pycache__' -delete

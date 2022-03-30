@@ -2,10 +2,10 @@
 # Then change these variables to whatever you want.
 
 # Use this to change the default output directory.
-# export BN3D_DIR=/path/to/directory/
+# export PANQEC_DIR=/path/to/directory/
 
 # Use this to change the default slurm file directory.
-# export SLURM_DIR=/home/ehua7365/Documents/bn3d/slurm
+# export SLURM_DIR=/home/ehua7365/Documents/panqec/slurm
 
 # Uncomment this to use dark theme for plotting.
-# export BN3D_DARK_THEME=True
+# export PANQEC_DARK_THEME=True

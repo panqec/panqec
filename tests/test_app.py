@@ -4,8 +4,8 @@ import pytest
 import numpy as np
 from qecsim.models.basic import FiveQubitCode
 from qecsim.models.generic import NaiveDecoder
-from bn3d.error_models import PauliErrorModel
-from bn3d.app import (
+from panqec.error_models import PauliErrorModel
+from panqec.app import (
     read_input_json, run_once, Simulation, expand_input_ranges, run_file,
     merge_results_dicts
 )
