@@ -6,6 +6,7 @@ requirements = [
     'python-dotenv',
     'qecsim',
     'pandas',
+    'flask'
 ]
 
 setup(
