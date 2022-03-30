@@ -7,7 +7,7 @@ import numpy as np
 import json
 from json.decoder import JSONDecodeError
 from .app import run_file, merge_results_dicts
-from .config import CODES, ERROR_MODELS, DECODERS, BN3D_DIR, BASE_DIR
+from .config import CODES, ERROR_MODELS, DECODERS, PANQEC_DIR, BASE_DIR
 from .slurm import (
     generate_sbatch, get_status, generate_sbatch_nist, count_input_runs,
     clear_out_folder, clear_sbatch_folder
@@ -36,7 +36,7 @@ def cli(ctx):
 @click.option('-t', '--trials', default=100, type=click.INT, show_default=True)
 @click.option('-s', '--start', default=None, type=click.INT, show_default=True)
 @click.option(
-    '-o', '--output_dir', default=BN3D_DIR, type=click.STRING,
+    '-o', '--output_dir', default=PANQEC_DIR, type=click.STRING,
     show_default=True
 )
 @click.option(
