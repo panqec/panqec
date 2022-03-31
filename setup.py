@@ -5,7 +5,9 @@ requirements = [
     'tqdm',
     'python-dotenv',
     'qecsim',
+    'psutil',
     'pandas',
+    'ldpc',
 ]
 
 setup(
