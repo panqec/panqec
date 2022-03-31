@@ -11,12 +11,14 @@ class BeliefPropagationOSDDecoder(Decoder):
     def __init__(self, error_model: ErrorModel,
                  probability: float,
                  max_bp_iter: int = 10,
-                 channel_update: bool = False):
+                 channel_update: bool = False,
+                 osd_order: int = 10):
         super().__init__()
         self._error_model = error_model
         self._probability = probability
         self._max_bp_iter = max_bp_iter
         self._channel_update = channel_update
+        self._osd_order = osd_order
 
         self._x_decoder: Dict = dict()
         self._z_decoder: Dict = dict()
@@ -102,7 +104,7 @@ class BeliefPropagationOSDDecoder(Decoder):
                     bp_method="msl",
                     ms_scaling_factor=0,
                     osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
-                    osd_order=6
+                    osd_order=self._osd_order
                 )
 
                 x_decoder = bposd_decoder(
@@ -113,7 +115,7 @@ class BeliefPropagationOSDDecoder(Decoder):
                     bp_method="msl",
                     ms_scaling_factor=0,
                     osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
-                    osd_order=6
+                    osd_order=self._osd_order
                 )
                 self._x_decoder[code.label] = x_decoder
                 self._z_decoder[code.label] = z_decoder
@@ -126,7 +128,7 @@ class BeliefPropagationOSDDecoder(Decoder):
                     bp_method="msl",
                     ms_scaling_factor=0,
                     osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
-                    osd_order=6
+                    osd_order=self._osd_order
                 )
                 self._decoder[code.label] = decoder
 

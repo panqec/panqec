@@ -17,7 +17,7 @@ from .decoders import (
     Toric3DPymatchingDecoder, SweepMatchDecoder,
     RotatedSweepMatchDecoder, RotatedInfiniteZBiasDecoder
 )
-from .decoders.bposd.bp_os_decoder import BeliefPropagationOSDDecoder
+from .decoders.bposd.bposd_decoder import BeliefPropagationOSDDecoder
 from .decoders.sweepmatch._toric_2d_match_decoder import Toric2DPymatchingDecoder
 from .error_models import (
     DeformedXZZXErrorModel, DeformedXYErrorModel,

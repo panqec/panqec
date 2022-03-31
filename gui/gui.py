@@ -147,8 +147,7 @@ def send_correction():
 
     if decoder_name == 'bp-osd':
         decoder = BeliefPropagationOSDDecoder(error_model, p,
-                                              max_bp_iter=max_bp_iter,
-                                              joschka=True)
+                                              max_bp_iter=max_bp_iter)
     elif decoder_name == 'mbp':
         decoder = MemoryBeliefPropagationDecoder(error_model, p,
                                                  max_bp_iter=max_bp_iter,

@@ -17,6 +17,6 @@ from .optimal._rotated_infzbias_decoder import (  # noqa
     split_posts_at_active_fences
 )
 
-from .bposd.bp_os_decoder import BeliefPropagationOSDDecoder  # noqa
+from .bposd.bposd_decoder import BeliefPropagationOSDDecoder  # noqa
 from .bposd.mbp_decoder import MemoryBeliefPropagationDecoder  # noqa
 from .foliated._foliated_decoder import FoliatedMatchingDecoder  # noqa

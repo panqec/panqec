@@ -270,8 +270,7 @@ def generate_input(
 
             if decoder == "BeliefPropagationOSDDecoder":
                 decoder_model = "BeliefPropagationOSDDecoder"
-                decoder_parameters = {'joschka': True,
-                                      'max_bp_iter': 10}
+                decoder_parameters = {'max_bp_iter': 10}
             else:
                 decoder_model = decoder
                 decoder_parameters = {}
