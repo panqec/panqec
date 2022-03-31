@@ -260,7 +260,7 @@ for repeat in $(seq 1 5); do
     rm -rf $paper_dir/$name/inputs
     rm -rf $paper_dir/$name/logs
     sizes="10,14,18,22"
-    wall_time="7-00:00"
+    wall_time="8-00:00"
     memory="90GB"
     bn3d generate-input -i "$paper_dir/$name/inputs" \
         --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
