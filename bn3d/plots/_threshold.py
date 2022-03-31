@@ -14,7 +14,7 @@ from ..analysis import quadratic
 
 def detailed_plot(
     plt, results_df, error_model, x_limits=None, save_folder=None,
-    yscale=None, eta_key='eta_x',
+    yscale=None, eta_key='eta_x', min_y_axis=1e-3,
     thresholds_df=None,
 ):
     """Plot routine on loop.
@@ -94,7 +94,7 @@ def detailed_plot(
             ax.set_yscale(yscale)
         if x_limits != 'auto':
             ax.set_xlim(x_limits[i_ax])
-            ax.set_ylim(1e-3, 1e0)
+            ax.set_ylim(min_y_axis, 1)
 
         ax.set_title(title)
         ax.locator_params(axis='x', nbins=6)
@@ -115,7 +115,7 @@ def detailed_plot(
 
 def xyz_sector_plot(
     plt, results_df, error_model, x_limits=None, save_folder=None,
-    yscale=None, eta_key='eta_x',
+    yscale=None, eta_key='eta_x', min_y_axis=1e-3,
     thresholds_df=None,
 ):
     """Plot the different sectors (pure X, pure Y, pure Z) crossover plots
@@ -135,6 +135,8 @@ def xyz_sector_plot(
         If given will save save figure as png to directory.
     yscale : Optional[str]
         Set to 'log' to make yscale logarithmic.
+    min_y_axis: Optional[float]
+        Minimum value in the yscale (relevant in logarithmic scale)
     thresholds_df : Optional[pd.DataFrame]
         Plot the estimated threshold if given.
     """
@@ -196,7 +198,7 @@ def xyz_sector_plot(
             ax.set_yscale(yscale)
         if x_limits != 'auto':
             ax.set_xlim(x_limits[i_ax])
-            ax.set_ylim(1e-3, 1e0)
+            ax.set_ylim(min_y_axis, 1e0)
 
         ax.set_title(title)
         ax.locator_params(axis='x', nbins=6)
@@ -215,11 +217,16 @@ def xyz_sector_plot(
         plt.savefig(f'{filename}.png')
 
 
-
-def update_plot(plt, results_df, error_model):
+def update_plot(plt, results_df, error_model, xlim=None, ylim=None, save_folder=None,
+                yscale=None, eta_key='eta_x', min_y_axis=1e-3):
     """Plot routine on loop."""
     df = results_df.copy()
     df.sort_values('probability', inplace=True)
+
+    if xlim is None:
+        xlim = (0, 0.5)
+    if ylim is None:
+        ylim = (0, 1.)
 
     for code_size in np.sort(df['size'].unique()):
         df_filtered = df[
@@ -228,12 +235,23 @@ def update_plot(plt, results_df, error_model):
         plt.errorbar(
             df_filtered['probability'], df_filtered['p_est'],
             yerr=df_filtered['p_se'],
-            label=df_filtered['code'].iloc[0]
+            label=r'$d={}$'.format(df_filtered['size'].iloc[0][0]),
+            capsize=1,
+            linestyle='-',
+            marker='.'
         )
-    plt.title(error_model)
-    plt.xlabel('Physical Error Rate', fontsize=20)
-    plt.ylabel('Logical Error Rate', fontsize=20)
-    plt.legend()
+
+    if xlim != 'auto':
+        plt.xlim(xlim)
+        plt.ylim(ylim)
+
+    if yscale is not None:
+        plt.yscale(yscale)
+
+    # plt.title(error_model)
+    plt.xlabel('Physical Error Rate', fontsize=16)
+    plt.ylabel('Logical Error Rate', fontsize=16)
+    plt.legend(prop={'size': 12})
 
 
 def plot_data_collapse(plt, df_trunc, params_opt, params_bs):

@@ -7,7 +7,7 @@ routines are useful specifically for dealing with the 3D code.
 :Author:
     Eric Huang
 """
-from typing import Type, Union, List
+from typing import Union, List
 import numpy as np
 from . import bsparse
 from scipy.sparse import csr_matrix
@@ -89,14 +89,12 @@ def bcommute(a, b) -> np.ndarray:
         n = int(a.shape[1]/2)
 
         # Commute commutator by binary symplectic form.
-        commutes = np.zeros((a.shape[0], b.shape[0]), dtype=np.uint)
-        for i_a in range(a.shape[0]):
-            for i_b in range(b.shape[0]):
-                a_X = a[i_a, :n]
-                a_Z = a[i_a, n:]
-                b_X = b[i_b, :n]
-                b_Z = b[i_b, n:]
-                commutes[i_a, i_b] = np.sum(a_X*b_Z + a_Z*b_X) % 2
+        a_X = a[:, :n]
+        a_Z = a[:, n:]
+        b_X = b[:, :n]
+        b_Z = b[:, n:]
+
+        commutes = (a_X.dot(b_Z.T) + a_Z.dot(b_X.T)) % 2
 
         if output_shape is not None:
             commutes = commutes.reshape(output_shape)
@@ -109,17 +107,22 @@ def _bcommute_sparse(a, b):
 
     # Commute commutator by binary symplectic form.
     n = int(a.shape[1]/2)
-    commutes = np.zeros((a.shape[0], b.shape[0]), dtype=np.uint8)
-    for i_a in range(a.shape[0]):
-        for i_b in range(b.shape[0]):
-            a_X = a[i_a, :n]
-            a_Z = a[i_a, n:]
-            b_X = b[i_b, :n]
-            b_Z = b[i_b, n:]
-            commutes[i_a, i_b] = (bsparse.dot(a_X, b_Z) + bsparse.dot(a_Z, b_X)) % 2
+
+    if not bsparse.is_sparse(a):
+        a = bsparse.from_array(a)
+    if not bsparse.is_sparse(b):
+        b = bsparse.from_array(b)
+
+    a_X = a[:, :n]
+    a_Z = a[:, n:]
+    b_X = b[:, :n]
+    b_Z = b[:, n:]
+
+    commutes = (a_X.dot(b_Z.T) + a_Z.dot(b_X.T))
+    commutes.data %= 2
 
     if commutes.shape[0] == 1 or commutes.shape[1] == 1:
-        commutes = commutes.flatten()
+        commutes = bsparse.to_array(commutes).flatten()
 
     return commutes
 
@@ -301,11 +304,13 @@ def bsf_wt(bsf):
     :rtype: int
     """
     if isinstance(bsf, np.ndarray):
-        assert np.array_equal(bsf % 2, bsf), 'BSF {} is not in binary form'.format(bsf)
+        assert np.array_equal(bsf % 2, bsf), \
+                'BSF {} is not in binary form'.format(bsf)
         return np.count_nonzero(sum(np.hsplit(bsf, 2)))
 
     elif isinstance(bsf, csr_matrix):
-        assert np.all(bsf.data == 1), 'BSF {} is not in binary form'.format(bsf)
+        assert np.all(bsf.data == 1), \
+                'BSF {} is not in binary form'.format(bsf)
 
         n = bsf.shape[1] // 2
         x_indices = bsf.indices[bsf.indices < n]
@@ -313,7 +318,10 @@ def bsf_wt(bsf):
 
         return len(np.union1d(x_indices, z_indices))
     else:
-        raise TypeError(f"bsf matrix should be a numpy array or csr_matrix, not {type(bsf)}")
+        raise TypeError(
+            f"bsf matrix should be a numpy array or "
+            f"csr_matrix, not {type(bsf)}"
+        )
 
 
 def bsf_to_pauli(bsf):
@@ -329,9 +337,10 @@ def bsf_to_pauli(bsf):
     """
 
     if isinstance(bsf, np.ndarray):
-        assert np.array_equal(bsf % 2, bsf), 'BSF {} is not in binary form'.format(bsf)
+        assert np.array_equal(bsf % 2, bsf), \
+                'BSF {} is not in binary form'.format(bsf)
 
-        def _to_pauli(b, t=str.maketrans('0123', 'IXZY')):  # noqa: B008 (deliberately reuse t)
+        def _to_pauli(b, t=str.maketrans('0123', 'IXZY')):  # noqa: B008,E501 (deliberately reuse t)
             xs, zs = np.hsplit(b, 2)
             ps = (xs + zs * 2).astype(str)  # 0=I, 1=X, 2=Z, 3=Y
             return ''.join(ps).translate(t)
@@ -341,7 +350,8 @@ def bsf_to_pauli(bsf):
         else:
             return [_to_pauli(b) for b in bsf]
     else:
-        assert np.all(bsf.data == 1), 'BSF {} is not in binary form'.format(bsf)
+        assert np.all(bsf.data == 1), \
+                'BSF {} is not in binary form'.format(bsf)
 
         def _to_pauli(b):
             n = bsf.shape[1] // 2

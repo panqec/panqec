@@ -17,6 +17,10 @@ class RhombicCode(IndexedSparseCode):
         return (3 * np.product(self.size), 3, min(self.size))
 
     @property
+    def dimension(self) -> int:
+        return 3
+
+    @property
     def label(self) -> str:
         return 'Rhombic {}x{}x{}'.format(*self.size)
 
@@ -146,7 +150,6 @@ class RhombicCode(IndexedSparseCode):
 
         ranges = [range(1, 2*Lx, 2), range(1, 2*Ly, 2), range(1, 2*Lz, 2)]
         coordinates = []
-        print(list(itertools.product(*ranges)))
         for x, y, z in itertools.product(*ranges):
             if (x + y + z) % 4 == 1:
                 coordinates.append((x, y, z))

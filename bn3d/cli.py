@@ -497,6 +497,56 @@ def nist_sbatch(
 
 
 @click.command()
+@click.argument('qsub_file', required=True)
+@click.option('-d', '--data_dir', type=click.Path(exists=True), required=True)
+@click.option('-n', '--n_array', default=6, type=click.INT, show_default=True)
+@click.option(
+    '-w', '--wall_time', default='0-23:00', type=str, show_default=True
+)
+@click.option(
+    '-m', '--memory', default='32GB', type=str, show_default=True
+)
+@click.option(
+    '-t', '--trials', default=1000, type=click.INT, show_default=True
+)
+@click.option(
+    '-s', '--split', default=1, type=click.INT, show_default=True
+)
+@click.option('-p', '--partition', default='pml', type=str, show_default=True)
+def generate_qsub(
+    qsub_file, data_dir, n_array, wall_time, memory, trials, split, partition
+):
+    """Generate qsub (PBS) file with parallel array jobs."""
+    template_file = os.path.join(
+        os.path.dirname(BASE_DIR), 'scripts', 'qsub_template.sh'
+    )
+    with open(template_file) as f:
+        text = f.read()
+
+    inputs_dir = os.path.join(data_dir, 'inputs')
+    assert os.path.isdir(inputs_dir), (
+        f'{inputs_dir} missing, please create it and generate inputs'
+    )
+    name = os.path.basename(data_dir)
+    replace_map = {
+        '${TIME}': wall_time,
+        '${MEMORY}': memory,
+        '${NAME}': name,
+        '${NARRAY}': str(n_array),
+        '${DATADIR}': os.path.abspath(data_dir),
+        '${TRIALS}': str(trials),
+        '${SPLIT}': str(split),
+        '${QUEUE}': partition,
+    }
+    for template_string, value in replace_map.items():
+        text = text.replace(template_string, value)
+
+    with open(qsub_file, 'w') as f:
+        f.write(text)
+    print(f'Wrote to {qsub_file}')
+
+
+@click.command()
 @click.option('--n_trials', default=1000, type=click.INT, show_default=True)
 @click.option('--partition', default='defq', show_default=True)
 @click.option('--time', default='10:00:00', show_default=True)
@@ -572,3 +622,4 @@ cli.add_command(pi_sbatch)
 cli.add_command(cc_sbatch)
 cli.add_command(merge_dirs)
 cli.add_command(nist_sbatch)
+cli.add_command(generate_qsub)

@@ -1,6 +1,5 @@
 from typing import Dict, Tuple, Optional
 from abc import ABCMeta
-import numpy as np
 from ._indexed_code import IndexedCode
 from ... import bsparse
 
@@ -18,17 +17,20 @@ class IndexedSparseCode(IndexedCode, metaclass=ABCMeta):
         if L_z is None:
             L_z = L_x
 
-        self._size = (L_x, L_y, L_z)
+        if self.dimension == 2:
+            self._size = (L_x, L_y)
+        else:
+            self._size = (L_x, L_y, L_z)
+
+        self._qubit_index = self._create_qubit_indices()
+        self._vertex_index = self._create_vertex_indices()
+        self._face_index = self._create_face_indices()
 
         self._stabilizers = bsparse.empty_row(2*self.n_k_d[0])
         self._Hx = bsparse.empty_row(self.n_k_d[0])
         self._Hz = bsparse.empty_row(self.n_k_d[0])
         self._logical_xs = bsparse.empty_row(self.n_k_d[0])
         self._logical_zs = bsparse.empty_row(self.n_k_d[0])
-
-        self._qubit_index = self._create_qubit_indices()
-        self._vertex_index = self._create_vertex_indices()
-        self._face_index = self._create_face_indices()
 
     @property
     def stabilizers(self):

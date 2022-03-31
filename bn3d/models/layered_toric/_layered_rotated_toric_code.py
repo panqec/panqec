@@ -25,6 +25,10 @@ class LayeredRotatedToricCode(IndexedSparseCode):
         return (len(self.qubit_index), k, min(L_x, L_y))
 
     @property
+    def dimension(self) -> int:
+        return 3
+
+    @property
     def logical_xs(self) -> np.ndarray:
         """Get the unique logical X operator."""
 
@@ -52,7 +56,15 @@ class LayeredRotatedToricCode(IndexedSparseCode):
             # Odd times even.
             else:
                 logical = self.pauli_class(self)
+
                 for x, y, z in self.qubit_index:
+                    # Error on half of the qubits (toy purpose, not a logical)
+                    # if z == 1:
+                    #     if (x + y) % 4 == 0:
+                    #         logical.site('X', (x, y, z))
+                    #     elif (x + y) % 4 == 2:
+                    #         logical.site('Z', (x, y, z))
+
                     # Z on every layer in deformed code. (FAIL, in stabilizer)
                     """
                     if z % 2 == 1:
@@ -118,6 +130,12 @@ class LayeredRotatedToricCode(IndexedSparseCode):
             else:
                 logical = self.pauli_class(self)
                 for x, y, z in self.qubit_index:
+                    # Error on half of the qubits (toy purpose, not a logical)
+                    # if z == 1:
+                    #     if (x + y) % 4 == 0:
+                    #         logical.site('X', (x, y, z))
+                    #     elif (x + y) % 4 == 2:
+                    #         logical.site('Z', (x, y, z))
                     if L_x % 2 == 1:
                         if y == 1:
                             logical.site('Y', (x, y, z))
@@ -131,8 +149,19 @@ class LayeredRotatedToricCode(IndexedSparseCode):
         return self._logical_zs
 
     def axis(self, location):
-        # TODO: implement the actual method
-        return self.X_AXIS
+        x, y, z = location
+
+        if location not in self.qubit_index:
+            raise ValueError(f'Location {location} does not correspond to a qubit')
+
+        if z % 2 == 0:
+            axis = self.Z_AXIS
+        elif (x + y) % 4 == 2:
+            axis = self.X_AXIS
+        elif (x + y) % 4 == 0:
+            axis = self.Y_AXIS
+
+        return axis
 
     def _create_qubit_indices(self):
         L_x, L_y, L_z = self.size

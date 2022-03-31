@@ -17,6 +17,10 @@ class PlanarCode3D(IndexedSparseCode):
         return (3 * Lx*Ly*Lz + Ly*Lz - Lx*Lz - Lx*Ly, 1, Lx + 1)
 
     @property
+    def dimension(self) -> int:
+        return 3
+
+    @property
     def label(self) -> str:
         return 'Planar {}x{}x{}'.format(*self.size)
 

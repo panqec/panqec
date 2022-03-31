@@ -15,10 +15,9 @@ class TestToricCode3D:
         new_code = ToricCode3D(L_x, L_y, L_z)
         return new_code
 
-    @pytest.mark.skip(reason='sparse')
     def test_cubic_code(self):
         code = ToricCode3D(5)
-        assert np.all(code.size == [5, 5, 5])
+        assert code.size == (5, 5, 5)
 
     def test_get_vertex_Z_stabilizers(self, code):
         n, k, d = code.n_k_d
@@ -138,20 +137,20 @@ class TestCommutationRelationsToricCode3D:
         return new_code
 
     def test_stabilizers_commute_with_each_other(self, code):
-        assert np.all(bcommute(code.stabilizers, code.stabilizers) == 0)
+        assert np.all(bcommute(code.stabilizers, code.stabilizers).data == 0)
 
     def test_Z_logicals_commute_with_each_other(self, code):
-        assert np.all(bcommute(code.logical_zs, code.logical_zs) == 0)
+        assert np.all(bcommute(code.logical_zs, code.logical_zs).data == 0)
 
     def test_X_logicals_commute_with_each_other(self, code):
-        assert np.all(bcommute(code.logical_xs, code.logical_xs) == 0)
+        assert np.all(bcommute(code.logical_xs, code.logical_xs).data == 0)
 
     def test_stabilizers_commute_with_logicals(self, code):
         if isinstance(code.logical_xs, np.ndarray):
             logicals = np.concatenate([code.logical_xs, code.logical_zs])
         else:
             logicals = bsparse.vstack([code.logical_xs, code.logical_zs])
-        assert np.all(bcommute(logicals, code.stabilizers) == 0)
+        assert np.all(bcommute(logicals, code.stabilizers).data == 0)
 
     def test_logicals_anticommute_correctly(self, code):
         assert np.all(

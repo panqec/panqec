@@ -30,7 +30,7 @@ def run_once(
         raise ValueError('Error probability must be in [0, 1].')
 
     if rng is None:
-        rng = np.random
+        rng = np.random.default_rng()
 
     error = error_model.generate(code, probability=error_probability, rng=rng)
     syndrome = bcommute(code.stabilizers, error)

@@ -7,11 +7,10 @@ Settings from environmental variables and config files.
 import os
 from dotenv import load_dotenv
 from qecsim.models.basic import FiveQubitCode
-from qecsim.models.toric import ToricCode
 from qecsim.models.generic import NaiveDecoder
 from .models import (
-    ToricCode3D,
-    RotatedPlanarCode3D, RotatedToricCode3D,
+    ToricCode3D, ToricCode2D,
+    RotatedPlanarCode3D, XCubeCode,
     LayeredRotatedToricCode, RhombicCode
 )
 from .decoders import (
@@ -22,7 +21,7 @@ from .decoders.bposd.bp_os_decoder import BeliefPropagationOSDDecoder
 from .decoders.sweepmatch._toric_2d_match_decoder import Toric2DPymatchingDecoder
 from .error_models import (
     DeformedXZZXErrorModel, DeformedXYErrorModel,
-    DeformedRhombicErrorModel,
+    DeformedRhombicErrorModel, DeformedRandomErrorModel
 )
 from .decoders import (
     DeformedSweepMatchDecoder, FoliatedMatchingDecoder,
@@ -57,17 +56,18 @@ if os.getenv('BN3D_DIR') is not None:
 
 # Register your models here.
 CODES = {
-    'ToricCode': ToricCode,
+    'ToricCode2D': ToricCode2D,
     'ToricCode3D': ToricCode3D,
     'RhombicCode': RhombicCode,
     'RotatedPlanarCode3D': RotatedPlanarCode3D,
-    'RotatedToricCode3D': RotatedToricCode3D,
     'FiveQubitCode': FiveQubitCode,
     'LayeredRotatedToricCode': LayeredRotatedToricCode,
+    'XCubeCode': XCubeCode
 }
 ERROR_MODELS = {
     'PauliErrorModel': PauliErrorModel,
     'DeformedXZZXErrorModel': DeformedXZZXErrorModel,
+    'DeformedRandomErrorModel': DeformedRandomErrorModel,
     'DeformedXYErrorModel': DeformedXYErrorModel,
     'DeformedRhombicErrorModel': DeformedRhombicErrorModel,
     'XNoiseOnYZEdgesOnly': XNoiseOnYZEdgesOnly,

@@ -24,7 +24,7 @@ class DeformedToric3DPymatchingDecoder(Toric3DPymatchingDecoder):
     def new_matcher(self, code: StabilizerCode):
         """Return a new Matching object."""
         # Get the number of X stabilizers (faces).
-        n_faces = int(np.product(code.shape))
+        n_faces = int(3*np.product(code.size))
         self._n_faces[code.label] = n_faces
         n_qubits = code.n_k_d[0]
 
@@ -37,25 +37,33 @@ class DeformedToric3DPymatchingDecoder(Toric3DPymatchingDecoder):
         """Get MWPM weights for deformed Pauli noise."""
 
         # The x-edges are deformed.
-        deformed_edge = code.X_AXIS
+        deformed_axis = {
+            'ToricCode3D': code.Z_AXIS,
+            'PlanarCode3D': code.Z_AXIS,
+            'XCubeCode': code.Z_AXIS,
+            'LayeredRotatedToricCode': code.X_AXIS,
+            'RotatedPlanarCode3D': code.Z_AXIS,
+            'RhombicCode': code.Z_AXIS,
+            'ToricCode2D': code.X_AXIS,
+            'Planar2DCode': code.X_AXIS,
+            'RotatedPlanar2DCode': code.X_AXIS
+        }
+        deformed_edge = deformed_axis[code.id]
 
         regular_weight, deformed_weight = get_regular_and_deformed_weights(
             self._error_model.direction, self._probability, self._epsilon
         )
 
         # All weights are regular weights to start off with.
-        weights = np.ones(code.shape, dtype=float)*regular_weight
-
-        # The ranges of indices to iterate over.
-        ranges = [range(length) for length in code.shape]
+        weights = np.ones(code.n_k_d[0], dtype=float)*regular_weight
 
         # The weights on the deformed edge are different.
-        for axis, x, y, z in itertools.product(*ranges):
-            if axis == deformed_edge:
-                weights[axis, x, y, z] = deformed_weight
+        for edge, index in code.qubit_index.items():
+            if code.axis(edge) == deformed_edge:
+                weights[index] = deformed_weight
 
         # Return flattened arrays.
-        return weights.flatten()
+        return weights
 
 
 class DeformedSweepDecoder3D(SweepDecoder3D):
