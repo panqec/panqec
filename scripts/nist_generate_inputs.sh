@@ -256,7 +256,7 @@ mkdir -p temp/paper/share
 
 # Extra rhombic
 for repeat in $(seq 1 5); do
-    name=det_rhombic_bposd_xzzx_xbias_extra
+    name=det_rhombic_bposd_xzzx_xbias_extra_$repeat
     rm -rf $paper_dir/$name/inputs
     rm -rf $paper_dir/$name/logs
     sizes="10,14,18,22"
