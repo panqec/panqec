@@ -246,7 +246,8 @@ function buildGUI() {
     const decoderFolder = gui.addFolder('Decoder')
     decoderFolder.add(params, 'decoder', {
         'BP-OSD': 'bp-osd', 'BP-OSD-2': 'bp-osd-2',
-        'SweepMatch': 'sweepmatch', 'InfZOpt': 'infzopt'
+        'SweepMatch': 'sweepmatch', 'InfZOpt': 'infzopt',
+        'Matching 2D': 'matching'
     }).name('Decoder');
     decoderFolder.add(params, 'max_bp_iter', 1, 100, 1).name('Max iterations BP');
     decoderFolder.add(buttons, 'decode').name("▶ Decode (d)");

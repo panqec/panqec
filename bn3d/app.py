@@ -443,7 +443,6 @@ def _parse_decoder_dict(
 
 def parse_run(run: Dict[str, Any]) -> Simulation:
     """Parse a single dict describing the run."""
-    print("Parse run")
     code = _parse_code_dict(run['code'])
     error_model = _parse_error_model_dict(run['noise'])
     probability = run['probability']

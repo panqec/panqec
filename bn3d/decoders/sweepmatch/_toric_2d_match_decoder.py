@@ -25,6 +25,7 @@ class Toric2DPymatchingDecoder(Decoder):
 
         # Matcher for X stabilizers to detect Z errors.
         H_x = code.stabilizers[n_vertices:, :n_qubits]
+
         return Matching(H_z), Matching(H_x)
 
     def get_matchers(self, code: ToricCode) -> Tuple[Matching, Matching]:
