@@ -270,7 +270,8 @@ def generate_input(
 
             if decoder == "BeliefPropagationOSDDecoder":
                 decoder_model = "BeliefPropagationOSDDecoder"
-                decoder_parameters = {'max_bp_iter': 10}
+                decoder_parameters = {'max_bp_iter': 10,
+                                      'osd_order': 50}
             else:
                 decoder_model = decoder
                 decoder_parameters = {}
