@@ -3,7 +3,7 @@
   "ranges": {
     "label": "undeformed_02",
     "code": {
-      "model": "ToricCode3D",
+      "model": "Toric3DCode",
       "parameters": [
         {"L_x": 4},
         {"L_x": 6},

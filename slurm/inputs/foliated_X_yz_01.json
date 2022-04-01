@@ -3,7 +3,7 @@
   "ranges": {
     "label": "foliated_X_yz_01",
     "code": {
-      "model": "ToricCode3D",
+      "model": "Toric3DCode",
       "parameters": [
         {"L_x": 4},
         {"L_x": 6},

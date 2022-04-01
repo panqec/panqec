@@ -3,7 +3,7 @@
   "ranges": {
     "label": "deformed_x_only",
     "code": {
-      "model": "ToricCode3D",
+      "model": "Toric3DCode",
       "parameters": [
         {"L_x": 4},
         {"L_x": 6},
