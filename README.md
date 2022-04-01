@@ -14,6 +14,8 @@ Install Python3.8 if you haven't already.
 ```
 sudo apt-get install python3.8
 ```
+Note if you're on a cluster, you may need to refer to your cluster's manual
+about how to load it.
 
 Install virtualenv if you haven't already
 ```
@@ -23,6 +25,11 @@ python3.8 -m pip install virtualenv
 Create a virtual environment.
 ```
 python3.8 -m virtualenv --python=/usr/bin/python3.8 venv
+```
+Note if you're on a cluster, instead of `/usr/bin/python3.8` it might be
+something else, which you can find out using the command
+```
+which python3.8
 ```
 
 Activate the virtual environment
@@ -49,6 +56,12 @@ If you don't do this, as a fallback, the data files will be written to the
 
 Optionally, if you use dark theme in Jupyter Lab, setting
 `BN3D_DARK_THEME=True` in the `.env` file will make the plots show up nicer.
+
+Before you start running things on the cluster,
+make sure you create this folder if it doesn't exist already.
+```
+mkdir -p temp/paper/share
+```
 
 # Run the tests
 After you've activated your virtual environment and installed the dependences,

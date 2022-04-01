@@ -2,6 +2,7 @@ paper_dir=temp/paper
 mkdir -p "$paper_dir"
 sbatch_dir=temp/paper/sbatch
 mkdir -p "$sbatch_dir"
+mkdir -p temp/paper/share
 
 wall_time="24:00:00"
 memory="64GB"
@@ -29,30 +30,52 @@ memory="64GB"
 #         --wall_time "$wall_time" --trials 1667 --split 1 $sbatch_dir/$name.sbatch
 # done
 
-# Subthreshold scaling coprime 4k+2 runs for scaling with distance.
-for repeat in $(seq 1 10); do
-    name=sts_coprime_scaling_eta300_$repeat
+# # Subthreshold scaling coprime 4k+2 runs for scaling with distance.
+# for repeat in $(seq 1 10); do
+#     name=sts_coprime_scaling_eta300_$repeat
+#     rm -rf $paper_dir/$name/inputs
+#     rm -rf $paper_dir/$name/logs
+#     sizes="6,10,14,18"
+#     bn3d generate-input -i "$paper_dir/$name/inputs" \
+#         --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
+#         --ratio coprime \
+#         --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+#         --eta "inf" --prob "0.08:0.12:0.01"
+#     bn3d cc-sbatch --data_dir "$paper_dir/$name" --n_array 5 --memory $memory \
+#         --wall_time "$wall_time" --trials 50000 --split 32 $sbatch_dir/$name.sbatch
+# done
+# 
+# # Threshold runs for coprime 4k+2.
+# name=thr_coprime_scaling_eta300
+# rm -rf $paper_dir/$name/inputs
+# rm -rf $paper_dir/$name/logs
+# sizes="6,10,14,18"
+# bn3d generate-input -i "$paper_dir/$name/inputs" \
+#     --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
+#     --ratio coprime \
+#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+#     --eta "300" --prob "0.20:0.40:0.02"
+# bn3d cc-sbatch --data_dir "$paper_dir/$name" --n_array 12 --memory $memory \
+#     --wall_time "$wall_time" --trials 10000 --split 32 $sbatch_dir/$name.sbatch
+
+
+
+# Extra rhombic
+for repeat in $(seq 1 40); do
+    name=det_rhombic_bposd_xzzx_xbias_extra_$repeat
     rm -rf $paper_dir/$name/inputs
     rm -rf $paper_dir/$name/logs
-    sizes="6,10,14,18"
+    sizes="10,14,18,22"
     bn3d generate-input -i "$paper_dir/$name/inputs" \
-        --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
-        --ratio coprime \
-        --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-        --eta "inf" --prob "0.08:0.12:0.01"
-    bn3d cc-sbatch --data_dir "$paper_dir/$name" --n_array 5 --memory $memory \
-        --wall_time "$wall_time" --trials 50000 --split 32 $sbatch_dir/$name.sbatch
+        --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
+        --ratio equal \
+        --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+        --eta "1000" --prob "0.50"
+    bn3d generate-input -i "$paper_dir/$name/inputs" \
+        --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
+        --ratio equal \
+        --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+        --eta "inf" --prob "0.30:0.50:0.02"
+    bn3d cc-sbatch --data_dir "$paper_dir/$name" --n_array 13 --memory "$memory" \
+        --wall_time "$wall_time" --trials 250 --split 4 $sbatch_dir/$name.sbatch
 done
-
-# Threshold runs for coprime 4k+2.
-name=thr_coprime_scaling_eta300
-rm -rf $paper_dir/$name/inputs
-rm -rf $paper_dir/$name/logs
-sizes="6,10,14,18"
-bn3d generate-input -i "$paper_dir/$name/inputs" \
-    --code_class LayeredRotatedToricCode --noise_class DeformedXZZXErrorModel \
-    --ratio coprime \
-    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-    --eta "300" --prob "0.20:0.40:0.02"
-bn3d cc-sbatch --data_dir "$paper_dir/$name" --n_array 12 --memory $memory \
-    --wall_time "$wall_time" --trials 10000 --split 32 $sbatch_dir/$name.sbatch
