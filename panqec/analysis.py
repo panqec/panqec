@@ -101,7 +101,7 @@ def get_results_df(
         # )
         # print('n_trials = ', min(sim.n_results for sim in batch_sim))
         for sim, batch_result in zip(batch_sim, batch_results):
-            n_logicals = batch_result['k'][1]
+            n_logicals = batch_result['k']
 
             # Small fix for the current situation. TO REMOVE in later versions
             if n_logicals == -1:
