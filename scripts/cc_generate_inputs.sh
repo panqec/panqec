@@ -61,21 +61,30 @@ memory="64GB"
 
 
 # Extra rhombic
+common_name=det_rhombic_bposd_xzzx_xbias_extra
+name=${common_name}_temp
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="10,14,18,22"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+    --eta "1000" --prob "0.50"
+bn3d generate-input -i "$paper_dir/$name/inputs" \
+    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+    --eta "inf" --prob "0.30:0.50:0.02"
+
 for repeat in $(seq 1 40); do
-    name=det_rhombic_bposd_xzzx_xbias_extra_$repeat
+    name=${common_name}_${repeat}
+    mkdir -p $paper_dir/$name
     rm -rf $paper_dir/$name/inputs
     rm -rf $paper_dir/$name/logs
-    sizes="10,14,18,22"
-    bn3d generate-input -i "$paper_dir/$name/inputs" \
-        --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-        --ratio equal \
-        --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-        --eta "1000" --prob "0.50"
-    bn3d generate-input -i "$paper_dir/$name/inputs" \
-        --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-        --ratio equal \
-        --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-        --eta "inf" --prob "0.30:0.50:0.02"
+    cp -R $paper_dir/${common_name}_temp/inputs $paper_dir/$name/inputs
     bn3d cc-sbatch --data_dir "$paper_dir/$name" --n_array 13 --memory "$memory" \
         --wall_time "$wall_time" --trials 250 --split 4 $sbatch_dir/$name.sbatch
 done
+
+rm -rf $paper_dir/${common_name}_temp
