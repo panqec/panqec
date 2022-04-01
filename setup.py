@@ -7,6 +7,7 @@ requirements = [
     'qecsim',
     'psutil',
     'pandas',
+    'click',
     'ldpc',
 ]
 
