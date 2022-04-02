@@ -299,7 +299,7 @@ class BeliefPropagationOSDDecoder(Decoder):
 
 
 if __name__ == "__main__":
-    from panqec.models import RotatedPlanar3DCode
+    from panqec.codes import RotatedPlanar3DCode
     import qecsim.paulitools as pt
     from panqec.error_models import PauliErrorModel
 

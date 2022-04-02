@@ -2,7 +2,7 @@ import itertools
 import pytest
 import numpy as np
 from panqec.bpauli import bcommute, bsf_wt
-from panqec.models import Toric3DCode
+from panqec.codes import Toric3DCode
 from panqec.decoders import Toric3DPymatchingDecoder
 
 

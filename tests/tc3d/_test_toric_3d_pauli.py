@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from panqec.bpauli import bsf_wt
-from panqec.models import Toric3DCode
+from panqec.codes import Toric3DCode
 import panqec.bsparse as bsparse
 from scipy.sparse import csr_matrix
 

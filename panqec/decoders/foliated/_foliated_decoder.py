@@ -9,7 +9,7 @@ from typing import Dict, List
 import numpy as np
 from pymatching import Matching
 from qecsim.model import StabilizerCode, Decoder
-from ...models import Toric3DCode
+from ...codes import Toric3DCode
 
 
 class FoliatedMatchingDecoder(Decoder):

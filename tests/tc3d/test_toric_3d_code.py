@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from panqec.bpauli import bcommute, bsf_wt
-from panqec.models import Toric3DCode
+from panqec.codes import Toric3DCode
 import panqec.bsparse as bsparse
 
 

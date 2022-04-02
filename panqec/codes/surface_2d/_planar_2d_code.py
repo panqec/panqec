@@ -1,5 +1,5 @@
 from typing import Tuple, Dict, List
-from panqec.models import StabilizerCode
+from panqec.codes import StabilizerCode
 import numpy as np
 
 Operator = Dict[Tuple[int, int], str]  # Location to pauli ('X', 'Y' or 'Z')

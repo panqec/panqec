@@ -1,7 +1,7 @@
 from typing import Tuple
 import numpy as np
 import pytest
-from panqec.models import RotatedPlanar3DCode
+from panqec.codes import RotatedPlanar3DCode
 from panqec.decoders import DeformedRotatedSweepMatchDecoder
 from panqec.error_models import DeformedXZZXErrorModel
 from panqec.bpauli import bcommute, get_effective_error

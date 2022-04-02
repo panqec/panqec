@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm
 from itertools import combinations
 from qecsim.model import StabilizerCode
-from panqec.models import RotatedToric3DCode
+from panqec.codes import RotatedToric3DCode
 from panqec.bpauli import (
     bcommute, bvector_to_pauli_string, brank, apply_deformation
 )

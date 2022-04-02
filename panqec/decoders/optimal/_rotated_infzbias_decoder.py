@@ -2,7 +2,7 @@ from typing import Dict, Tuple, List
 import numpy as np
 from qecsim.model import Decoder
 from pymatching import Matching
-from ...models import RotatedPlanar3DCode
+from ...codes import RotatedPlanar3DCode
 from ..sweepmatch._rotated_sweep_decoder import RotatedSweepDecoder3D
 Indexer = Dict[Tuple[int, int, int], int]
 

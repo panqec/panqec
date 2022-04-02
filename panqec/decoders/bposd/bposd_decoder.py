@@ -166,7 +166,7 @@ class BeliefPropagationOSDDecoder(Decoder):
 
 
 def test_decoder():
-    from panqec.models import Toric3DCode
+    from panqec.codes import Toric3DCode
     from panqec.bpauli import bcommute, get_effective_error
     from panqec.error_models import DeformedRandomErrorModel
     import time

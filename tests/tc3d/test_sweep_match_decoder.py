@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 from qecsim.paulitools import bsf_wt
 from panqec.bpauli import bcommute
-from panqec.models import Toric3DCode
+from panqec.codes import Toric3DCode
 from panqec.decoders import SweepMatchDecoder
 
 

@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from panqec.models import Toric2DCode
+from panqec.codes import Toric2DCode
 from qecsim.paulitools import bsf_wt
 from panqec.decoders import Toric2DPymatchingDecoder
 from panqec.bpauli import bcommute

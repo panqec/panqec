@@ -2,7 +2,7 @@ import functools
 from typing import Tuple
 import numpy as np
 import panqec.bsparse as bsparse
-from panqec.models import StabilizerCode
+from panqec.codes import StabilizerCode
 from . import BaseErrorModel
 
 

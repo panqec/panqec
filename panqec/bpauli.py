@@ -96,6 +96,8 @@ def _bcommute_sparse(a, b):
     return commutes
 
 
+
+
 def pauli_string_to_bvector(pauli_string: str) -> np.ndarray:
     X_block = []
     Z_block = []

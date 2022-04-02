@@ -1,7 +1,7 @@
 import numpy as np
 
 from flask import Flask, send_from_directory, request, json, render_template
-from panqec.models import (
+from panqec.codes import (
     Toric2DCode, RotatedPlanar2DCode, Planar2DCode,
     Toric3DCode, RotatedPlanar3DCode, RhombicCode,
     Planar3DCode, RotatedToric3DCode, XCubeCode

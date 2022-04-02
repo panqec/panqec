@@ -1,7 +1,7 @@
 from typing import Tuple, Dict
 import numpy as np
 from qecsim.model import Decoder
-from panqec.models import Toric3DCode
+from panqec.codes import Toric3DCode
 
 Indexer = Dict[Tuple[int, int, int], int]
 Operator = Dict[Tuple[int, int, int], str]

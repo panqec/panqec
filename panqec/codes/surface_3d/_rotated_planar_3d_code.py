@@ -1,6 +1,6 @@
 from typing import Tuple, Dict, List
 import numpy as np
-from panqec.models import StabilizerCode
+from panqec.codes import StabilizerCode
 
 Operator = Dict[Tuple[int, int, int], str]  # Location to pauli ('X', 'Y' or 'Z')
 Coordinates = List[Tuple[int, int, int]]  # List of locations

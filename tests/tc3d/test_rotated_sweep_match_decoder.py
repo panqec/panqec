@@ -3,7 +3,7 @@ from itertools import combinations
 import numpy as np
 from qecsim.paulitools import bsf_wt
 from panqec.bpauli import bcommute
-from panqec.models import (
+from panqec.codes import (
     RotatedPlanar3DCode
 )
 from panqec.decoders import RotatedSweepMatchDecoder, RotatedSweepDecoder3D

@@ -5,7 +5,7 @@ from typing import Dict
 import numpy as np
 from qecsim.model import StabilizerCode
 from pymatching import Matching
-from ...models import Toric3DCode
+from ...codes import Toric3DCode
 from ._pymatching_decoder import Toric3DPymatchingDecoder
 
 

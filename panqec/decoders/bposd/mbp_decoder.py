@@ -251,7 +251,7 @@ def test_symplectic_to_pauli():
 
 
 def test_decoder():
-    from panqec.models import Planar2DCode, Toric2DCode
+    from panqec.codes import Planar2DCode, Toric2DCode
     from panqec.bpauli import get_effective_error
     from panqec.error_models import PauliErrorModel
     import time

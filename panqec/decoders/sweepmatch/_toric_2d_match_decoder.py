@@ -2,7 +2,7 @@ from typing import Dict, Tuple
 import numpy as np
 from pymatching import Matching
 from qecsim.model import Decoder
-from panqec.models import Toric2DCode
+from panqec.codes import Toric2DCode
 
 
 class Toric2DPymatchingDecoder(Decoder):

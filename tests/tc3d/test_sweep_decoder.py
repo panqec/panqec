@@ -2,7 +2,7 @@ import itertools
 import pytest
 import numpy as np
 from qecsim.paulitools import bsf_wt
-from panqec.models import Toric3DCode
+from panqec.codes import Toric3DCode
 from panqec.decoders import SweepDecoder3D
 from panqec.bpauli import bcommute
 from panqec.error_models import PauliErrorModel

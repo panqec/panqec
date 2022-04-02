@@ -1,7 +1,7 @@
 from typing import Tuple
 from abc import ABCMeta, abstractmethod
 import numpy as np
-from panqec.models import StabilizerCode
+from panqec.codes import StabilizerCode
 from scipy.sparse import csr_matrix
 
 

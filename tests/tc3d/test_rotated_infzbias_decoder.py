@@ -4,7 +4,7 @@ import numpy as np
 from qecsim.paulitools import bsf_wt
 from panqec.bpauli import bcommute
 from panqec.decoders import split_posts_at_active_fences
-from panqec.models import RotatedPlanar3DCode
+from panqec.codes import RotatedPlanar3DCode
 from panqec.decoders import RotatedInfiniteZBiasDecoder
 
 

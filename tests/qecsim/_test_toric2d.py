@@ -7,7 +7,7 @@ Test 2D toric code using qecsim.
 
 import pytest
 import numpy as np
-from panqec.models import Toric2DCode
+from panqec.codes import Toric2DCode
 from qecsim.models.toric import ToricMWPMDecoder
 from qecsim.paulitools import bsp
 

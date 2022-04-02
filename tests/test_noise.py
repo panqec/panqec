@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from qecsim.paulitools import bsf_to_pauli, bsf_wt
 from panqec.error_models import PauliErrorModel
-from panqec.models import Toric3DCode
+from panqec.codes import Toric3DCode
 import panqec.bsparse as bsparse
 from panqec.utils import get_direction_from_bias_ratio
 

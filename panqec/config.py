@@ -8,7 +8,7 @@ import os
 from dotenv import load_dotenv
 from qecsim.models.basic import FiveQubitCode
 from qecsim.models.generic import NaiveDecoder
-from .models import (
+from .codes import (
     Toric3DCode, Toric2DCode,
     RotatedPlanar3DCode, XCubeCode,
     RotatedToric3DCode, RhombicCode

@@ -2,7 +2,7 @@ import itertools
 import pytest
 import numpy as np
 from panqec.bpauli import bcommute
-from panqec.models import Toric3DCode
+from panqec.codes import Toric3DCode
 from panqec.error_models import PauliErrorModel
 from panqec.error_models import (
     DeformedXZZXErrorModel
