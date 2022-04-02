@@ -4,6 +4,6 @@ Documentation
 Stabilizer code
 ---------------
 
-.. automodule:: panqec.models.base._stabilizer_code
+.. automodule:: panqec.models
     :members:
     :special-members: __init__
