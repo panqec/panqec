@@ -9,6 +9,7 @@ from .. import (
     SweepDecoder3D, Toric3DPymatchingDecoder, RotatedPlanarPymatchingDecoder,
     RotatedSweepDecoder3D
 )
+import panqec.bsparse as bsparse
 
 
 class DeformedToric3DPymatchingDecoder(Toric3DPymatchingDecoder):
@@ -116,7 +117,7 @@ class DeformedSweepMatchDecoder(BaseDecoder):
 
         correction = (z_correction + x_correction) % 2
         correction = correction.astype(np.uint)
-        return correction
+        return bsparse.from_array(correction)
 
 
 class DeformedRotatedSweepMatchDecoder(DeformedSweepMatchDecoder):

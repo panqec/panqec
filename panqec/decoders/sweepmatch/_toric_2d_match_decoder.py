@@ -3,6 +3,7 @@ import numpy as np
 from pymatching import Matching
 from panqec.decoders import BaseDecoder
 from panqec.codes import Toric2DCode
+import panqec.bsparse as bsparse
 
 
 class Toric2DPymatchingDecoder(BaseDecoder):
@@ -57,4 +58,4 @@ class Toric2DPymatchingDecoder(BaseDecoder):
         correction[n_qubits:] = correction_x
         correction[:n_qubits] = correction_z
 
-        return correction
+        return bsparse.from_array(correction)

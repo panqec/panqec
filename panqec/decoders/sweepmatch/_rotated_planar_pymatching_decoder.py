@@ -5,7 +5,8 @@ from typing import Dict
 import numpy as np
 from panqec.codes import StabilizerCode
 from pymatching import Matching
-from ...codes import Toric3DCode
+from panqec.codes import Toric3DCode
+import panqec.bsparse as bsparse
 from ._pymatching_decoder import Toric3DPymatchingDecoder
 
 
@@ -58,4 +59,4 @@ class RotatedPlanarPymatchingDecoder(Toric3DPymatchingDecoder):
         n_qubits = code.n
         correction[:n_qubits] = x_correction
 
-        return correction
+        return bsparse.from_array(correction)

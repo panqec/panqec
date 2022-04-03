@@ -37,7 +37,8 @@ def run_once(
     error = error_model.generate(code, probability=error_probability, rng=rng)
     syndrome = bcommute(code.stabilizer_matrix, error)
     correction = decoder.decode(code, syndrome)
-    total_error = (correction + error) % 2
+    total_error = correction + error
+    total_error.data %= 2
     effective_error = get_effective_error(
         total_error, code.logicals_x, code.logicals_z
     )

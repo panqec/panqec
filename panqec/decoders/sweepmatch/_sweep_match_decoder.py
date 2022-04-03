@@ -3,6 +3,7 @@ from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
 from ._sweep_decoder_3d import SweepDecoder3D
 from ._pymatching_decoder import Toric3DPymatchingDecoder
+import panqec.bsparse as bsparse
 
 
 class SweepMatchDecoder(BaseDecoder):
@@ -24,4 +25,4 @@ class SweepMatchDecoder(BaseDecoder):
         correction = (x_correction + z_correction) % 2
         correction = correction.astype(np.uint)
 
-        return correction
+        return bsparse.from_array(correction)

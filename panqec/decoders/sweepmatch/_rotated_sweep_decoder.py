@@ -71,7 +71,7 @@ class RotatedSweepDecoder3D(BaseDecoder):
                     i_sweep += 1
             i_round += 1
 
-        return code.to_bsf(correction).toarray()[0]
+        return code.to_bsf(correction)
 
     def get_sweep_faces(self, vertex, sweep_direction, code):
         """Get the coordinates of neighboring faces in sweep direction."""

@@ -6,7 +6,8 @@ import numpy as np
 from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
 from pymatching import Matching
-from ...codes import Toric3DCode
+from panqec.codes import Toric3DCode
+import panqec.bsparse as bsparse
 
 
 class Toric3DPymatchingDecoder(BaseDecoder):
@@ -68,4 +69,4 @@ class Toric3DPymatchingDecoder(BaseDecoder):
         # Load it into the X block of the full bsf.
         correction[:code.n] = x_correction
 
-        return correction
+        return bsparse.from_array(correction)

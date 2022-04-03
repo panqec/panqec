@@ -106,7 +106,7 @@ class SweepDecoder3D(BaseDecoder):
 
         print("Before", correction)
 
-        return code.to_bsf(correction).toarray()[0]
+        return code.to_bsf(correction)
 
     def sweep_move(
         self, signs: np.ndarray, correction: Operator,

@@ -5,6 +5,7 @@ from ldpc import bposd_decoder
 from panqec.codes import StabilizerCode
 from panqec.error_models import BaseErrorModel
 from panqec.decoders import BaseDecoder
+import panqec.bsparse as bsparse
 
 
 class BeliefPropagationOSDDecoder(BaseDecoder):
@@ -164,7 +165,7 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
             correction = decoder.osdw_decoding
             correction = np.concatenate([correction[n_qubits:], correction[:n_qubits]])
 
-        return correction
+        return bsparse.from_array(correction)
 
 
 def test_decoder():

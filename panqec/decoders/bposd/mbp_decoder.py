@@ -197,10 +197,10 @@ def mbp_decoder(H,
     return correction_symplectic
 
 
-class MemoryBeliefPropagationDecoder(Decoder):
+class MemoryBeliefPropagationDecoder(BaseDecoder):
     label = 'MBP decoder'
 
-    def __init__(self, error_model: ErrorModel,
+    def __init__(self, error_model: BaseErrorModel,
                  probability: float,
                  max_bp_iter: int = 10,
                  alpha: float = 0.75,
