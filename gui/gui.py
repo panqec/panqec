@@ -217,7 +217,7 @@ def send_random_errors():
     error_spec = [
         (
             bsf_to_str_map[
-                (errors[i_qubit], errors[i_qubit + n_qubits])
+                (errors[0, i_qubit], errors[0, i_qubit + n_qubits])
             ],
             [
                 coords for index, coords in enumerate(code.qubit_coordinates)
@@ -227,7 +227,7 @@ def send_random_errors():
         for i_qubit in range(n_qubits)
     ]
     error_spec = [spec for spec in error_spec if spec[0] != 'I']
-    return json.dumps(errors.tolist())
+    return json.dumps(errors.toarray()[0].tolist())
 
 
 def run_gui():
