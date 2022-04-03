@@ -54,14 +54,14 @@ class PauliErrorModel(BaseErrorModel):
             pauli_i = bsparse.zero_row(2*code.n)
 
             pauli_x = bsparse.zero_row(2*code.n)
-            pauli_x[i] = 1
+            pauli_x[0, i] = 1
 
             pauli_z = bsparse.zero_row(2*code.n)
-            pauli_z[code.n + i] = 1
+            pauli_z[0, code.n + i] = 1
 
             pauli_y = bsparse.zero_row(2*code.n)
-            pauli_y[i] = 1
-            pauli_y[code.n + i] = 1
+            pauli_y[0, i] = 1
+            pauli_y[0, code.n + i] = 1
 
             error += rng.choice([pauli_i, pauli_x, pauli_y, pauli_z],
                                 p=[p_i[i], p_x[i], p_y[i], p_z[i]])
