@@ -1,6 +1,6 @@
 from typing import Tuple
 import numpy as np
-from qecsim.model import StabilizerCode
+from panqec.codes import StabilizerCode
 from . import PauliErrorModel
 
 

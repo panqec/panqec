@@ -8,11 +8,12 @@ Foliated decoder for X noise only.
 from typing import Dict, List
 import numpy as np
 from pymatching import Matching
-from qecsim.model import StabilizerCode, Decoder
+from panqec.codes import StabilizerCode
+from panqec.decoders import BaseDecoder
 from ...codes import Toric3DCode
 
 
-class FoliatedMatchingDecoder(Decoder):
+class FoliatedMatchingDecoder(BaseDecoder):
     """Corrects X noise on y and z edges by many 2D Toric codes.
 
     Can handle multiple codes at once.

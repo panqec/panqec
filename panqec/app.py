@@ -9,7 +9,9 @@ import itertools
 from typing import List, Dict, Callable, Union, Any, Optional, Tuple
 import datetime
 import numpy as np
-from qecsim.model import StabilizerCode, ErrorModel, Decoder
+from panqec.codes import StabilizerCode
+from panqec.decoders import BaseDecoder
+from panqec.error_models import BaseErrorModel
 from .bpauli import bcommute, get_effective_error
 from .config import (
     CODES, ERROR_MODELS, DECODERS, PANQEC_DIR
@@ -19,8 +21,8 @@ from .utils import identity, NumpyEncoder
 
 def run_once(
     code: StabilizerCode,
-    error_model: ErrorModel,
-    decoder: Decoder,
+    error_model: BaseErrorModel,
+    decoder: BaseDecoder,
     error_probability: float,
     rng=None
 ) -> dict:
@@ -83,15 +85,15 @@ class Simulation:
 
     start_time: datetime.datetime
     code: StabilizerCode
-    error_model: ErrorModel
-    decoder: Decoder
+    error_model: BaseErrorModel
+    decoder: BaseDecoder
     error_probability: float
     label: str
     _results: dict = {}
     rng = None
 
     def __init__(
-        self, code: StabilizerCode, error_model: ErrorModel, decoder: Decoder,
+        self, code: StabilizerCode, error_model: BaseErrorModel, decoder: BaseDecoder,
         probability: float, rng=None
     ):
         self.code = code
@@ -409,7 +411,7 @@ def _parse_code_dict(code_dict: Dict[str, Any]) -> StabilizerCode:
     return code
 
 
-def _parse_error_model_dict(noise_dict: Dict[str, Any]) -> ErrorModel:
+def _parse_error_model_dict(noise_dict: Dict[str, Any]) -> BaseErrorModel:
     error_model_name = noise_dict['model']
     error_model_params: Union[list, dict] = []
     if 'parameters' in noise_dict:
@@ -424,9 +426,9 @@ def _parse_error_model_dict(noise_dict: Dict[str, Any]) -> ErrorModel:
 
 def _parse_decoder_dict(
     decoder_dict: Dict[str, Any],
-    error_model: ErrorModel,
+    error_model: BaseErrorModel,
     probability: float
-) -> Decoder:
+) -> BaseDecoder:
     decoder_name = decoder_dict['model']
     decoder_class = DECODERS[decoder_name]
     decoder_params: dict = {}

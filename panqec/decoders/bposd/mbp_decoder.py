@@ -1,5 +1,7 @@
 import numpy as np
-from qecsim.model import Decoder, StabilizerCode, ErrorModel
+from panqec.codes import StabilizerCode
+from panqec.decoders import BaseDecoder
+from panqec.error_models import BaseErrorModel
 from typing import Tuple, Dict
 import panqec.bsparse as bsparse
 from panqec.bpauli import bcommute

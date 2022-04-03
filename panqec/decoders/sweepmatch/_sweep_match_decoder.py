@@ -1,10 +1,11 @@
 import numpy as np
-from qecsim.model import Decoder, StabilizerCode
+from panqec.codes import StabilizerCode
+from panqec.decoders import BaseDecoder
 from ._sweep_decoder_3d import SweepDecoder3D
 from ._pymatching_decoder import Toric3DPymatchingDecoder
 
 
-class SweepMatchDecoder(Decoder):
+class SweepMatchDecoder(BaseDecoder):
 
     label = 'Toric 3D Sweep Pymatching Decoder'
     _sweeper: SweepDecoder3D

@@ -6,8 +6,6 @@ Settings from environmental variables and config files.
 """
 import os
 from dotenv import load_dotenv
-from qecsim.models.basic import FiveQubitCode
-from qecsim.models.generic import NaiveDecoder
 from .codes import (
     Toric3DCode, Toric2DCode,
     RotatedPlanar3DCode, XCubeCode,
@@ -60,7 +58,6 @@ CODES = {
     'Toric3DCode': Toric3DCode,
     'RhombicCode': RhombicCode,
     'RotatedPlanar3DCode': RotatedPlanar3DCode,
-    'FiveQubitCode': FiveQubitCode,
     'RotatedToric3DCode': RotatedToric3DCode,
     'XCubeCode': XCubeCode
 }
@@ -76,7 +73,6 @@ DECODERS = {
     'Toric3DPymatchingDecoder': Toric3DPymatchingDecoder,
     'SweepMatchDecoder': SweepMatchDecoder,
     'RotatedSweepMatchDecoder': RotatedSweepMatchDecoder,
-    'NaiveDecoder': NaiveDecoder,
     'DeformedSweepMatchDecoder': DeformedSweepMatchDecoder,
     'FoliatedMatchingDecoder': FoliatedMatchingDecoder,
     'DeformedRotatedSweepMatchDecoder': DeformedRotatedSweepMatchDecoder,

@@ -2,7 +2,9 @@ from typing import Tuple
 import itertools
 import numpy as np
 from pymatching import Matching
-from qecsim.model import Decoder, StabilizerCode, ErrorModel
+from panqec.codes import StabilizerCode
+from panqec.decoders import BaseDecoder
+from panqec.error_models import BaseErrorModel
 from .. import (
     SweepDecoder3D, Toric3DPymatchingDecoder, RotatedPlanarPymatchingDecoder,
     RotatedSweepDecoder3D
@@ -11,11 +13,11 @@ from .. import (
 
 class DeformedToric3DPymatchingDecoder(Toric3DPymatchingDecoder):
 
-    _error_model: ErrorModel
+    _error_model: BaseErrorModel
     _probability: float
     _epsilon: float
 
-    def __init__(self, error_model: ErrorModel, probability: float):
+    def __init__(self, error_model: BaseErrorModel, probability: float):
         super(DeformedToric3DPymatchingDecoder, self).__init__()
         self._error_model = error_model
         self._probability = probability
@@ -60,7 +62,7 @@ class DeformedToric3DPymatchingDecoder(Toric3DPymatchingDecoder):
 
 class DeformedSweepDecoder3D(SweepDecoder3D):
 
-    _error_model: ErrorModel
+    _error_model: BaseErrorModel
     _probability: float
     _p_edges: int
 
@@ -92,13 +94,13 @@ class DeformedSweepDecoder3D(SweepDecoder3D):
         return direction
 
 
-class DeformedSweepMatchDecoder(Decoder):
+class DeformedSweepMatchDecoder(BaseDecoder):
 
     label = 'Deformed Toric 3D Sweep Pymatching Decoder'
     _sweeper: DeformedSweepDecoder3D
     _matcher: DeformedToric3DPymatchingDecoder
 
-    def __init__(self, error_model: ErrorModel, probability: float):
+    def __init__(self, error_model: BaseErrorModel, probability: float):
         self._sweeper = DeformedSweepDecoder3D(
             error_model, probability
         )
@@ -119,7 +121,7 @@ class DeformedSweepMatchDecoder(Decoder):
 
 class DeformedRotatedSweepMatchDecoder(DeformedSweepMatchDecoder):
 
-    def __init__(self, error_model: ErrorModel, probability: float):
+    def __init__(self, error_model: BaseErrorModel, probability: float):
         self._sweeper = RotatedSweepDecoder3D()
         self._matcher = DeformedRotatedPlanarPymatchingDecoder(
             error_model, probability
@@ -128,7 +130,7 @@ class DeformedRotatedSweepMatchDecoder(DeformedSweepMatchDecoder):
 
 class DeformedRotatedPlanarPymatchingDecoder(RotatedPlanarPymatchingDecoder):
 
-    def __init__(self, error_model: ErrorModel, probability: float):
+    def __init__(self, error_model: BaseErrorModel, probability: float):
         super(DeformedRotatedPlanarPymatchingDecoder, self).__init__()
         self._error_model = error_model
         self._probability = probability

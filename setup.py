@@ -4,9 +4,9 @@ requirements = [
     'PyMatching',
     'tqdm',
     'python-dotenv',
-    'qecsim',
     'pandas',
-    'flask'
+    'flask',
+    'ldpc'
 ]
 
 setup(

@@ -1,3 +1,5 @@
+from .base._base_decoder import BaseDecoder  # noqa
+
 from .sweepmatch._pymatching_decoder import Toric3DPymatchingDecoder  # noqa
 from .sweepmatch._rotated_planar_pymatching_decoder import RotatedPlanarPymatchingDecoder  # noqa
 from .sweepmatch._rotated_sweep_decoder import RotatedSweepDecoder3D  # noqa

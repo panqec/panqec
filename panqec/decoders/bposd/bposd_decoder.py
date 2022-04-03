@@ -1,14 +1,16 @@
 from typing import Dict
 import numpy as np
-from qecsim.model import Decoder, StabilizerCode, ErrorModel
 from typing import Tuple
 from ldpc import bposd_decoder
+from panqec.codes import StabilizerCode
+from panqec.error_models import BaseErrorModel
+from panqec.decoders import BaseDecoder
 
 
-class BeliefPropagationOSDDecoder(Decoder):
+class BeliefPropagationOSDDecoder(BaseDecoder):
     label = 'BP-OSD decoder'
 
-    def __init__(self, error_model: ErrorModel,
+    def __init__(self, error_model: BaseErrorModel,
                  probability: float,
                  max_bp_iter: int = 10,
                  channel_update: bool = False,

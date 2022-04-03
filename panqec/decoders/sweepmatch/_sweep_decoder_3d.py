@@ -1,13 +1,13 @@
 from typing import Tuple, Dict
 import numpy as np
-from qecsim.model import Decoder
+from panqec.decoders import BaseDecoder
 from panqec.codes import Toric3DCode
 
 Indexer = Dict[Tuple[int, int, int], int]
 Operator = Dict[Tuple[int, int, int], str]
 
 
-class SweepDecoder3D(Decoder):
+class SweepDecoder3D(BaseDecoder):
 
     label: str = 'Toric 3D Sweep Decoder'
     _rng: np.random.Generator

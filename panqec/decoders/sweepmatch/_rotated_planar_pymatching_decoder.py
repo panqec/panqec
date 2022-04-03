@@ -3,7 +3,7 @@ Decoder for Rotated Planar 3D Code using Pymatching.
 """
 from typing import Dict
 import numpy as np
-from qecsim.model import StabilizerCode
+from panqec.codes import StabilizerCode
 from pymatching import Matching
 from ...codes import Toric3DCode
 from ._pymatching_decoder import Toric3DPymatchingDecoder

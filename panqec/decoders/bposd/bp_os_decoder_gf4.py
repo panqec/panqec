@@ -1,5 +1,7 @@
 import numpy as np
-from qecsim.model import Decoder, StabilizerCode, ErrorModel
+from panqec.codes import StabilizerCode
+from panqec.decoders import BaseDecoder
+from panqec.error_models import BaseErrorModel
 from typing import Tuple, List, Dict
 import galois
 
@@ -224,10 +226,10 @@ def bp_osd_decoder(
     return correction
 
 
-class BeliefPropagationOSDDecoder(Decoder):
+class BeliefPropagationOSDDecoder(BaseDecoder):
     label = 'BP-OSD decoder'
 
-    def __init__(self, error_model: ErrorModel,
+    def __init__(self, error_model: BaseErrorModel,
                  probability: float,
                  max_bp_iter: int = 10,
                  joschka: bool = True):

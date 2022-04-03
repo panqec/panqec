@@ -1,11 +1,11 @@
 from typing import Tuple, Dict
 import numpy as np
-from qecsim.model import Decoder
+from panqec.decoders import BaseDecoder
 
 Indexer = Dict[Tuple[int, int, int], int]
 
 
-class RotatedSweepDecoder3D(Decoder):
+class RotatedSweepDecoder3D(BaseDecoder):
 
     label = 'Rotated Code 3D Sweep Decoder'
     _rng: np.random.Generator

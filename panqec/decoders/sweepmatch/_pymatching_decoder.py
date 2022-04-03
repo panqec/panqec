@@ -3,12 +3,13 @@ Decoder for 3D Toric Code using Pymatching.
 """
 from typing import Dict
 import numpy as np
-from qecsim.model import Decoder, StabilizerCode
+from panqec.codes import StabilizerCode
+from panqec.decoders import BaseDecoder
 from pymatching import Matching
 from ...codes import Toric3DCode
 
 
-class Toric3DPymatchingDecoder(Decoder):
+class Toric3DPymatchingDecoder(BaseDecoder):
     """Pymatching decoder for decoding point sector of 3D Toric Codes.
 
     Can decode multiple different codes.

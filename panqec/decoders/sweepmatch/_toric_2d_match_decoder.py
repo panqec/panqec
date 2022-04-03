@@ -1,11 +1,11 @@
 from typing import Dict, Tuple
 import numpy as np
 from pymatching import Matching
-from qecsim.model import Decoder
+from panqec.decoders import BaseDecoder
 from panqec.codes import Toric2DCode
 
 
-class Toric2DPymatchingDecoder(Decoder):
+class Toric2DPymatchingDecoder(BaseDecoder):
     """Pymatching decoder for 2D Toric Code for unbiased noise."""
 
     label = 'Toric 2D Pymatching'

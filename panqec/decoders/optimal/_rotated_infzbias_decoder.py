@@ -1,6 +1,6 @@
 from typing import Dict, Tuple, List
 import numpy as np
-from qecsim.model import Decoder
+from panqec.decoders import BaseDecoder
 from pymatching import Matching
 from ...codes import RotatedPlanar3DCode
 from ..sweepmatch._rotated_sweep_decoder import RotatedSweepDecoder3D
@@ -129,7 +129,7 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
         return new_signs
 
 
-class XLineDecoder(Decoder):
+class XLineDecoder(BaseDecoder):
 
     label = 'Rotated Infinite Z Bias Point Sector Decoder'
 
@@ -202,7 +202,7 @@ class XLineDecoder(Decoder):
         return correction
 
 
-class RotatedInfiniteZBiasDecoder(Decoder):
+class RotatedInfiniteZBiasDecoder(BaseDecoder):
     """An optimal decoder for infinite Z bias on deformed noise."""
 
     label = 'Rotated Infinite Z Bias Decoder'
