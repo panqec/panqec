@@ -1,7 +1,6 @@
 import itertools
 from typing import Tuple, Dict, List
 import numpy as np
-from sympy import zeta
 from panqec.codes import StabilizerCode
 
 Operator = Dict[Tuple, str]  # Location to pauli ('X', 'Y' or 'Z')
