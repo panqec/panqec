@@ -1,9 +1,9 @@
 import functools
 from typing import Tuple
 import numpy as np
-import panqec.bsparse as bsparse
 from panqec.codes import StabilizerCode
 from . import BaseErrorModel
+from panqec.bpauli import pauli_to_bsf
 
 
 class PauliErrorModel(BaseErrorModel):
@@ -49,22 +49,12 @@ class PauliErrorModel(BaseErrorModel):
 
         p_i, p_x, p_y, p_z = self.probability_distribution(code, probability)
 
-        error = bsparse.zero_row(2*code.n)
-        for i in range(code.n):
-            pauli_i = bsparse.zero_row(2*code.n)
+        error_pauli = ''.join([rng.choice(
+            ('I', 'X', 'Y', 'Z'),
+            p=[p_i[i], p_x[i], p_y[i], p_z[i]]
+        ) for i in range(code.n)])
 
-            pauli_x = bsparse.zero_row(2*code.n)
-            pauli_x[0, i] = 1
-
-            pauli_z = bsparse.zero_row(2*code.n)
-            pauli_z[0, code.n + i] = 1
-
-            pauli_y = bsparse.zero_row(2*code.n)
-            pauli_y[0, i] = 1
-            pauli_y[0, code.n + i] = 1
-
-            error += rng.choice([pauli_i, pauli_x, pauli_y, pauli_z],
-                                p=[p_i[i], p_x[i], p_y[i], p_z[i]])
+        error = pauli_to_bsf(error_pauli)
 
         return error
 

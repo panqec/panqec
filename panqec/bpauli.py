@@ -96,6 +96,16 @@ def _bcommute_sparse(a, b):
     return commutes
 
 
+def pauli_to_bsf(error_pauli):
+    ps = np.array(list(error_pauli))
+    xs = (ps == 'X') + (ps == 'Y')
+    zs = (ps == 'Z') + (ps == 'Y')
+
+    error = np.hstack((xs, zs))
+
+    error_sparse = bsparse.from_array(error)
+
+    return error_sparse
 
 
 def pauli_string_to_bvector(pauli_string: str) -> np.ndarray:
