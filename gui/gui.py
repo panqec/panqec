@@ -172,10 +172,10 @@ def send_correction():
 
     correction = decoder.decode(code, syndrome)
 
-    correction_x = correction[:n_qubits]
-    correction_z = correction[n_qubits:]
+    correction_x = correction[0, :n_qubits]
+    correction_z = correction[0, n_qubits:]
 
-    return json.dumps({'x': correction_x.tolist(), 'z': correction_z.tolist()})
+    return json.dumps({'x': correction_x.toarray()[0].tolist(), 'z': correction_z.toarray()[0].tolist()})
 
 
 @app.route('/new-errors', methods=['POST'])
