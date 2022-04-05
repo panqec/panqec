@@ -84,9 +84,9 @@ class Planar2DCode(StabilizerCode):
         x, y = location
 
         if (x % 2 == 1) and (y % 2 == 0):
-            axis = self.X_AXIS
+            axis = 'x'
         elif (x % 2 == 0) and (y % 2 == 1):
-            axis = self.Y_AXIS
+            axis = 'y'
         else:
             raise ValueError(f'Location {location} does not correspond to a qubit')
 

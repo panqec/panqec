@@ -1,8 +1,9 @@
 from typing import Dict, Tuple, Optional, List
 from abc import ABCMeta, abstractmethod
 import numpy as np
-from ...bpauli import bcommute
-from ... import bsparse
+import json
+from panqec.bpauli import bcommute
+from panqec import bsparse
 from scipy.sparse import csr_matrix
 
 Operator = Dict[Tuple, str]  # Coordinate to pauli ('X', 'Y' or 'Z')
@@ -380,7 +381,6 @@ class StabilizerCode(metaclass=ABCMeta):
         (i.e. the number of logical qubits) and n the number of qubits
         """
 
-    # @abstractmethod
     def stabilizer_representation(self, location, rotated_picture=False) -> Dict:
         """Returns a dictionary of visualization parameters for the input stabilizer,
         that can be used by the web visualizer.
@@ -404,8 +404,24 @@ class StabilizerCode(metaclass=ABCMeta):
         representation: Dict
             Dictionary to send to the GUI
         """
+        stab_type = self.stabilizer_type(location)
 
-    # @abstractmethod
+        with open('panqec/codes/gui-config.json', 'r') as f:
+            data = json.load(f)
+
+        code_name = self.id
+        picture = 'rotated' if rotated_picture else 'kitaev'
+
+        representation = data[code_name]['stabilizers'][picture][stab_type]
+        representation['type'] = stab_type
+        representation['location'] = location
+
+        for activation in ['activated', 'deactivated']:
+            color_name = representation['color'][activation]
+            representation['color'][activation] = self.colormap[color_name]
+
+        return representation
+
     def qubit_representation(self, location, rotated_picture=False) -> Dict:
         """Returns a dictionary of visualization parameters for the input qubit,
         that can be used by the web visualizer.
@@ -426,3 +442,19 @@ class StabilizerCode(metaclass=ABCMeta):
         representation: Dict
             Dictionary to send to the GUI
         """
+        with open('panqec/codes/gui-config.json', 'r') as f:
+            data = json.load(f)
+
+        code_name = self.id
+        picture = 'rotated' if rotated_picture else 'kitaev'
+
+        representation = data[code_name]['qubits'][picture]
+
+        representation['params']['axis'] = self.qubit_axis(location)
+        representation['location'] = location
+
+        for pauli in ['I', 'X', 'Y', 'Z']:
+            color_name = representation['color'][pauli]
+            representation['color'][pauli] = self.colormap[color_name]
+
+        return representation

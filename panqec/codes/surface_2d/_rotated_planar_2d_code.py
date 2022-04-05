@@ -81,9 +81,9 @@ class RotatedPlanar2DCode(StabilizerCode):
         x, y = location
 
         if (x + y) % 4 == 2:
-            axis = self.X_AXIS
+            axis = 'x'
         elif (x + y) % 4 == 0:
-            axis = self.Y_AXIS
+            axis = 'y'
         else:
             raise ValueError(f'Location {location} does not correspond to a qubit')
 
