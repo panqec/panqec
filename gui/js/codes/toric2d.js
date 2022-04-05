@@ -1,5 +1,6 @@
 import * as THREE from 'https://cdn.skypack.dev/three@v0.130.1';
 
+import { create_shape } from '../shapes.js';
 import { AbstractCode } from './base/abstractCode.js';
 
 export {Toric2DCode, RpToric2DCode};
@@ -28,54 +29,25 @@ class Toric2DCode extends AbstractCode {
     }
 
     buildQubit(index) {
-        let [x, y] = this.qubitCoordinates[index];  
-
-        const geometry = new THREE.CylinderGeometry(this.SIZE.radiusEdge, this.SIZE.radiusEdge, this.SIZE.lengthEdge, 32);
-
-        const material = new THREE.MeshPhongMaterial({color: this.COLOR.deactivatedQubit,
-                                                      opacity: this.OPACITY.maxDeactivatedQubit,
-                                                      transparent: true});
-        const qubit = new THREE.Mesh(geometry, material);
-
-        qubit.position.x = x * this.SIZE.lengthEdge / 2;
-        qubit.position.y = y * this.SIZE.lengthEdge / 2;
-
-        if (this.qubitAxis[index] == 0) {
-            qubit.rotateZ(Math.PI / 2)
-        }
+        var axis = ['x', 'y', 'z'];
+        var params = {'length': 2, 'radius': this.SIZE.radiusEdge,
+                      'axis': axis[this.qubitAxis[index]],
+                      'angle': 0};
+        var qubit = create_shape['cylinder'](this.qubitCoordinates[index], params);
 
         return qubit
     }
 
     buildVertex(index) {
-        let [x, y] = this.stabilizerCoordinates[index];
-
-        const geometry = new THREE.SphereGeometry(this.SIZE.radiusVertex, 32, 32);
-
-        const material = new THREE.MeshToonMaterial({color: this.COLOR.deactivatedStabilizer['vertex'],
-                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['vertex'],
-                                                     transparent: true});
-        const vertex = new THREE.Mesh(geometry, material);
-
-        vertex.position.x = x * this.SIZE.lengthEdge / 2;
-        vertex.position.y = y * this.SIZE.lengthEdge / 2;
+        var params = {'radius': this.SIZE.radiusVertex};
+        var vertex = create_shape['sphere'](this.stabilizerCoordinates[index], params);
 
         return vertex
     }
 
     buildFace(index) {
-        let [x, y] = this.stabilizerCoordinates[index];
-
-        const geometry = new THREE.PlaneGeometry(this.SIZE.lengthEdge/2*Math.sqrt(2), this.SIZE.lengthEdge/2*Math.sqrt(2));
-
-        const material = new THREE.MeshToonMaterial({color: this.COLOR.activatedStabilizer['face'],
-                                                     opacity: this.OPACITY.maxDeactivatedStabilizer['face'],
-                                                     transparent: true,
-                                                     side: THREE.DoubleSide});
-        const face = new THREE.Mesh(geometry, material);
-
-        face.position.x = x * this.SIZE.lengthEdge / 2;
-        face.position.y = y * this.SIZE.lengthEdge / 2;
+        var params = {'w': 1.5, 'h': 1.5, 'angle': 0, 'plane': 'xy'};
+        var face = create_shape['face'](this.stabilizerCoordinates[index], params);
 
         return face
     }
@@ -126,8 +98,8 @@ class RpToric2DCode extends AbstractCode {
                                                      transparent: true});
         const qubit = new THREE.Mesh(geometry, material);
 
-        qubit.position.x = x * this.SIZE.lengthEdge / 2;
-        qubit.position.y = y * this.SIZE.lengthEdge / 2;
+        qubit.position.x = x  / 2;
+        qubit.position.y = y  / 2;
 
         return qubit
     }
@@ -144,8 +116,8 @@ class RpToric2DCode extends AbstractCode {
                                                      side: THREE.DoubleSide});
         const face = new THREE.Mesh(geometry, material);
 
-        face.position.x = x * this.SIZE.lengthEdge / 2;
-        face.position.y = y * this.SIZE.lengthEdge / 2;
+        face.position.x = x  / 2;
+        face.position.y = y  / 2;
 
         face.rotateZ(Math.PI/4)
 

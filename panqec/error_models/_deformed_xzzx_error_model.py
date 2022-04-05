@@ -40,22 +40,22 @@ class DeformedXZZXErrorModel(PauliErrorModel):
     def _get_deformation_indices(self, code: StabilizerCode):
         is_deformed = [False for _ in range(code.n)]
 
-        deformed_axis = {'Toric3DCode': code.Z_AXIS,
-                         'Planar3DCode': code.Z_AXIS,
-                         'XCubeCode': code.Z_AXIS,
-                         'RotatedToric3DCode': code.X_AXIS,
-                         'RotatedPlanar3DCode': code.Z_AXIS,
-                         'RhombicCode': code.Z_AXIS,
+        deformed_axis = {'Toric3DCode': 'z',
+                         'Planar3DCode': 'z',
+                         'XCubeCode': 'z',
+                         'RotatedToric3DCode': 'x',
+                         'RotatedPlanar3DCode': 'z',
+                         'RhombicCode': 'z',
 
-                         'Toric2DCode': code.X_AXIS,
-                         'Planar2DCode': code.X_AXIS,
-                         'RotatedPlanar2DCode': code.X_AXIS}
+                         'Toric2DCode': 'x',
+                         'Planar2DCode': 'x',
+                         'RotatedPlanar2DCode': 'x'}
 
         if code.id not in deformed_axis.keys():
             raise NotImplementedError(f"Code {code.id} has no XZZX deformation implemented")
 
         for index, location in enumerate(code.qubit_coordinates):
-            if code.axis(location) == deformed_axis[code.id]:
+            if code.qubit_axis(location) == deformed_axis[code.id]:
                 is_deformed[index] = True
 
         return is_deformed

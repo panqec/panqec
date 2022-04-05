@@ -37,9 +37,9 @@ class XCubeCode extends AbstractCode {
                                                       transparent: true});
         const qubit = new THREE.Mesh(geometry, material);
 
-        qubit.position.x = x * this.SIZE.lengthEdge / 2;
-        qubit.position.y = y * this.SIZE.lengthEdge / 2;
-        qubit.position.z = z * this.SIZE.lengthEdge / 2;
+        qubit.position.x = x  / 2;
+        qubit.position.y = y  / 2;
+        qubit.position.z = z  / 2;
 
         if (this.qubitAxis[index] == 0) {
             qubit.rotateZ(Math.PI / 2)
@@ -63,9 +63,9 @@ class XCubeCode extends AbstractCode {
         const face = new THREE.Mesh(geometry, material);
         face.visible = false;
 
-        face.position.x = x * this.SIZE.lengthEdge / 2;
-        face.position.y = y * this.SIZE.lengthEdge / 2;
-        face.position.z = z * this.SIZE.lengthEdge / 2;
+        face.position.x = x  / 2;
+        face.position.y = y  / 2;
+        face.position.z = z  / 2;
 
         if (axis == 0) {
             face.rotateY(Math.PI / 2)
@@ -90,9 +90,9 @@ class XCubeCode extends AbstractCode {
                                                      transparent: true});
         const cube = new THREE.Mesh(geometry, material);
 
-        cube.position.x = x * this.SIZE.lengthEdge / 2;
-        cube.position.y = y * this.SIZE.lengthEdge / 2;
-        cube.position.z = z * this.SIZE.lengthEdge / 2;
+        cube.position.x = x  / 2;
+        cube.position.y = y  / 2;
+        cube.position.z = z  / 2;
 
         var geo = new THREE.EdgesGeometry( cube.geometry );
         var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 2,

@@ -3,12 +3,7 @@ import { OrbitControls } from 'https://cdn.skypack.dev/three@0.130.0/examples/js
 import { OutlineEffect } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/effects/OutlineEffect.js';
 import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat.gui.module';
 
-import { Toric2DCode, RpToric2DCode } from './codes/toric2d.js';
-import { RotatedToric2DCode, RpRotatedToric2DCode } from './codes/rotatedToric2d.js';
-import { Toric3DCode, RpToric3DCode } from './codes/toric3d.js';
-import { RhombicCode } from './codes/rhombic.js';
-import { XCubeCode } from './codes/xcube.js';
-import { RotatedToric3DCode, RpRotatedToric3DCode } from './codes/rotatedToric3d.js';
+import { TopologicalCode } from './topologicalCode.js';
 
 var defaultCode = codeDimension == 2 ? 'toric-2d' : 'toric-3d';
 var defaultSize = codeDimension == 2 ? 6 : 4;
@@ -140,14 +135,12 @@ function buildScene3D() {
 }
 
 async function buildCode() {
-    let stabilizers = await getStabilizerMatrices();
-    let H = stabilizers['H'];
-    let qubitCoordinates = stabilizers['qubit_coordinates'];
-    let qubitAxis = stabilizers['qubit_axis'];
-    let stabilizerCoordinates = stabilizers['stabilizer_coordinates'];
-    let stabilizerType = stabilizers['stabilizer_type'];
-    let logical_z = stabilizers['logical_z'];
-    let logical_x = stabilizers['logical_x'];
+    let data = await getCodeData();
+    let H = data['H'];
+    let qubits = data['qubits'];
+    let stabilizers = data['stabilizers'];
+    let logical_z = data['logical_z'];
+    let logical_x = data['logical_x'];
     let Lx = codeSize.Lx;
     let Ly = codeSize.Ly;
     let Lz = codeSize.Lz;
@@ -159,20 +152,7 @@ async function buildCode() {
         var size = [Lx, Ly, Lz]
     }
 
-    // For each code, [unrotated picture class, rotated picture class]
-    let codeClass = {'toric-2d': [Toric2DCode, RpToric2DCode],
-                     'planar-2d': [Toric2DCode, RpToric2DCode],
-                     'rotated-planar-2d': [RotatedToric2DCode, RpRotatedToric2DCode],
-                     'toric-3d': [Toric3DCode, RpToric3DCode],
-                     'rotated-planar-3d': [RotatedToric3DCode, RpRotatedToric3DCode],
-                     'rotated-toric-3d': [RotatedToric3DCode, RpRotatedToric3DCode],
-                     'planar-3d': [Toric3DCode, RpToric3DCode],
-                     'rhombic': [RhombicCode, RhombicCode],
-                     'xcube': [XCubeCode, XCubeCode]
-                     }
-
-    let rotated = + params.rotated
-    code = new codeClass[params.codeName][rotated](size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis, stabilizerType);
+    code = new TopologicalCode(size, H, qubits, stabilizers);
     code.logical_x = logical_x;
     code.logical_z = logical_z;
     var maxCoordinates = code.build(scene);
@@ -208,8 +188,8 @@ function changeLatticeSize() {
     buildCode();
 }
 
-async function getStabilizerMatrices() {
-    let response = await fetch('/stabilizer-matrix', {
+async function getCodeData() {
+    let response = await fetch('/code-data', {
         headers: {
             'Content-Type': 'application/json'
           },
@@ -219,7 +199,8 @@ async function getStabilizerMatrices() {
             'Ly': codeSize.Ly,
             'Lz': codeSize.Lz,
             'code_name': params.codeName,
-            'deformed_axis': params.deformed_axis
+            'deformed_axis': params.deformed_axis,
+            'rotated_picture': params.rotated
         })
     });
 

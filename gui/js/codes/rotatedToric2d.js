@@ -1,6 +1,7 @@
 import * as THREE from 'https://cdn.skypack.dev/three@v0.130.1';
 
 import { AbstractCode } from './base/abstractCode.js';
+import { create_shape } from '../shapes.js';
 
 export {RotatedToric2DCode, RpRotatedToric2DCode};
 
@@ -36,8 +37,8 @@ class RotatedToric2DCode extends AbstractCode {
                                                       transparent: true});
         const qubit = new THREE.Mesh(geometry, material);
 
-        qubit.position.x = x * this.SIZE.lengthEdge * Math.sqrt(2) / 4;
-        qubit.position.y = y * this.SIZE.lengthEdge * Math.sqrt(2) / 4;
+        qubit.position.x = x  * Math.sqrt(2) / 4;
+        qubit.position.y = y  * Math.sqrt(2) / 4;
 
         if (this.qubitAxis[index] == 0) {
             qubit.rotateZ(Math.PI / 4)
@@ -59,8 +60,8 @@ class RotatedToric2DCode extends AbstractCode {
                                                      transparent: true});
         const vertex = new THREE.Mesh(geometry, material);
 
-        vertex.position.x = x * this.SIZE.lengthEdge * Math.sqrt(2) / 4;
-        vertex.position.y = y * this.SIZE.lengthEdge * Math.sqrt(2) / 4;
+        vertex.position.x = x  * Math.sqrt(2) / 4;
+        vertex.position.y = y  * Math.sqrt(2) / 4;
 
         return vertex;
     }
@@ -76,8 +77,8 @@ class RotatedToric2DCode extends AbstractCode {
                                                      side: THREE.DoubleSide});
         const face = new THREE.Mesh(geometry, material);
 
-        face.position.x = x * this.SIZE.lengthEdge * Math.sqrt(2) / 4;
-        face.position.y = y * this.SIZE.lengthEdge * Math.sqrt(2) / 4;
+        face.position.x = x  * Math.sqrt(2) / 4;
+        face.position.y = y  * Math.sqrt(2) / 4;
 
         face.rotateZ(Math.PI / 4)
 
@@ -131,8 +132,8 @@ class RpRotatedToric2DCode extends AbstractCode {
                                                      transparent: true});
         const qubit = new THREE.Mesh(geometry, material);
 
-        qubit.position.x = x * this.SIZE.lengthEdge / 2;
-        qubit.position.y = y * this.SIZE.lengthEdge / 2;
+        qubit.position.x = x  / 2;
+        qubit.position.y = y  / 2;
 
         return qubit;
     }
@@ -149,7 +150,7 @@ class RpRotatedToric2DCode extends AbstractCode {
                                                      side: THREE.DoubleSide});
         const face = new THREE.Mesh(geometry, material);
 
-        face.position.x = x * this.SIZE.lengthEdge / 2;
+        face.position.x = x  / 2;
         face.position.y = y * this.SIZE.lengthEdge / 2;
 
         return face;

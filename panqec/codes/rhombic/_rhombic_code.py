@@ -101,20 +101,20 @@ class RhombicCode(StabilizerCode):
             qubit_location = tuple(np.add([x, y, z], d) % (2*np.array(self.size)))
 
             if self.is_qubit(qubit_location):
-                is_deformed = (self.axis(qubit_location) == deformed_axis)
+                is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
                 operator[qubit_location] = deformed_pauli if is_deformed else pauli
 
         return operator
 
-    def axis(self, location):
+    def qubit_axis(self, location):
         x, y, z = location
 
         if (z % 2 == 0) and (x % 2 == 1) and (y % 2 == 0):
-            axis = self.X_AXIS
+            axis = 'x'
         elif (z % 2 == 0) and (x % 2 == 0) and (y % 2 == 1):
-            axis = self.Y_AXIS
+            axis = 'y'
         elif (z % 2 == 1) and (x % 2 == 0) and (y % 2 == 0):
-            axis = self.Z_AXIS
+            axis = 'z'
         else:
             raise ValueError(f'Location {location} does not correspond to a qubit')
 

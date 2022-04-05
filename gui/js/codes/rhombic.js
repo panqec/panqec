@@ -41,9 +41,9 @@ class RhombicCode extends AbstractCode {
                                                       transparent: true});
         const qubit = new THREE.Mesh(geometry, material);
 
-        qubit.position.x = x * this.SIZE.lengthEdge / 2;
-        qubit.position.y = y * this.SIZE.lengthEdge / 2;
-        qubit.position.z = z * this.SIZE.lengthEdge / 2;
+        qubit.position.x = x  / 2;
+        qubit.position.y = y  / 2;
+        qubit.position.z = z  / 2;
 
         if (this.qubitAxis[index] == 0) {
             qubit.rotateZ(Math.PI / 2);
@@ -62,9 +62,9 @@ class RhombicCode extends AbstractCode {
 
         const geometry = new THREE.BufferGeometry();
 
-        let pos_x = x * this.SIZE.lengthEdge / 2;
-        let pos_y = y * this.SIZE.lengthEdge / 2;
-        let pos_z = z * this.SIZE.lengthEdge / 2;
+        let pos_x = x  / 2;
+        let pos_y = y  / 2;
+        let pos_z = z  / 2;
 
         let delta_1 = [[1, 1, 1], [-1, -1, 1], [1, -1, -1], [-1, 1, -1]];
         let delta_2 = [[1, 1, -1], [-1, -1, -1], [1, -1, 1], [-1, 1, 1]];
@@ -114,9 +114,9 @@ class RhombicCode extends AbstractCode {
         wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
         cube.add(wireframe);
 
-        cube.position.x = x * this.SIZE.lengthEdge / 2;
-        cube.position.y = y * this.SIZE.lengthEdge / 2;
-        cube.position.z = z * this.SIZE.lengthEdge / 2;
+        cube.position.x = x  / 2;
+        cube.position.y = y  / 2;
+        cube.position.z = z  / 2;
 
         return cube
     }

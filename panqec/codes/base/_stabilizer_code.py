@@ -14,11 +14,9 @@ class StabilizerCode(metaclass=ABCMeta):
     Any subclass should override the following four methods:
     - get_qubit_coordinates() to define all the coordinates in the lattice
     that contain qubits
-    - get_vertex_coordinates() to define all the coordinates in the lattice
-    that contain vertices (could also be another type of stabilizer)
-    - get_face_coordinates() to define all the coordinates in the lattice
-    that contain faces (could also be another type of stabilizer)
-    - axis(location) to return the axis of a qubit at a given location (when qubit
+    - get_stabilizer_coordinates() to define all the coordinates in the lattice
+    that contain stabilizers
+    - qubit_axis(location) to return the axis of a qubit at a given location (when qubit
     have an orientation in space, for instance when they are edges)
 
     Using only those methods, a StabilizerCode will then automatically create the
@@ -34,7 +32,7 @@ class StabilizerCode(metaclass=ABCMeta):
         self, L_x: int,
         L_y: Optional[int] = None,
         L_z: Optional[int] = None,
-        deformed_axis: Optional[int] = None
+        deformed_axis: Optional[str] = None
     ):
         """Constructor for the StabilizerCode class
 
@@ -47,9 +45,9 @@ class StabilizerCode(metaclass=ABCMeta):
             Dimension of the lattice in the y direction
         L_z: int, optional
             Dimension of the lattice in the z direction
-        deformed_axis: int, optional
+        deformed_axis: str, optional
             If given, will determine whether to apply a Clifford deformation on this axis.
-            The axis is a number between 0 and d, where d is the dimension of the code.
+            The axis is a string in ['x', 'y', 'z'].
             Can be used to easily create codes such as the XZZX surface code (arXiv: 2009.07851)
         """
 
@@ -79,6 +77,17 @@ class StabilizerCode(metaclass=ABCMeta):
         self._is_css = None
         self._x_indices = None
         self._z_indices = None
+
+        self.colormap = {'red': '0xFF4B3E',
+                         'blue': '0x48BEFF',
+                         'green': '0x058C42',
+                         'pink': '0xffbcbc',
+                         'white': '0xf2f2fc',
+                         'gold': '0xf1c232',
+                         'coral': '0xFA824C',
+                         'light-yellow': '0xFAFAC6',
+                         'salmon': '0xe79e90',
+                         'orange': '0xFA824C'}
 
     @property
     @abstractmethod
@@ -325,7 +334,6 @@ class StabilizerCode(metaclass=ABCMeta):
         in a coordinate system that contain a qubit) and then converting it to a dictionary
         with the correct format
         """
-        raise NotImplementedError
 
     @abstractmethod
     def get_stabilizer_coordinates(self) -> List[Tuple]:
@@ -335,22 +343,19 @@ class StabilizerCode(metaclass=ABCMeta):
         in a coordinate system that contain a qubit) and then converting it to a dictionary
         with the correct format
         """
-        raise NotImplementedError
 
     @abstractmethod
-    def axis(self, location) -> int:
+    def qubit_axis(self, location) -> int:
         """ Return the axis of a qubit sitting at given location.
         Useful when qubits have an orientation in space, for instance when they are edges,
         to simplify the construction of stabilizers and the Clifford deformations
         """
-        raise NotImplementedError
 
     @abstractmethod
     def stabilizer_type(self, location) -> str:
         """ Return the type of a stabilizer sitting at `location`.
         E.g. 'vertex' or 'face' in toric codes
         """
-        raise NotImplementedError
 
     @abstractmethod
     def get_stabilizer(self, location, deformed_axis=None) -> Operator:
@@ -358,7 +363,6 @@ class StabilizerCode(metaclass=ABCMeta):
         ('X', 'Y' or 'Z') to each qubit location in the support of the stabilizer
         E.g. for a vertex stabilizer, `get_stabilizer((1,1)) -> {(1,0): 'X', (0, 1): 'X', (2, 1): 'X', (1, 2): 'X'}`
         """
-        raise NotImplementedError
 
     @abstractmethod
     def get_logicals_x(self) -> Operator:
@@ -367,7 +371,6 @@ class StabilizerCode(metaclass=ABCMeta):
         It should have dimension k x 2n, with k the number of logicals X
         (i.e. the number of logical qubits) and n the number of qubits
         """
-        raise NotImplementedError
 
     @abstractmethod
     def get_logicals_z(self) -> Operator:
@@ -376,4 +379,50 @@ class StabilizerCode(metaclass=ABCMeta):
         It should have dimension k x 2n, with k the number of logicals X
         (i.e. the number of logical qubits) and n the number of qubits
         """
-        raise NotImplementedError
+
+    # @abstractmethod
+    def stabilizer_representation(self, location, rotated_picture=False) -> Dict:
+        """Returns a dictionary of visualization parameters for the input stabilizer,
+        that can be used by the web visualizer.
+
+        It should contain 4 keys:
+            - 'type': the type of stabilizer, e.g. 'vertex'
+            - 'location': [x, y, z],
+            - 'object': the type of object to use for visualization, e.g. 'sphere'
+            - 'params': a dictionary of parameters for the chosen object
+
+        Parameters
+        ----------
+        location: Tuple
+            Coordinates of the stabilizer
+        rotated_picture: bool
+            For codes that have a rotated picture, can be used to differentiate
+            the two types visualizations
+
+        Returns
+        ----------
+        representation: Dict
+            Dictionary to send to the GUI
+        """
+
+    # @abstractmethod
+    def qubit_representation(self, location, rotated_picture=False) -> Dict:
+        """Returns a dictionary of visualization parameters for the input qubit,
+        that can be used by the web visualizer.
+            - 'location': [x, y, z],
+            - 'object': the type of object to use for visualization, e.g. 'sphere'
+            - 'params': a dictionary of parameters for the chosen object
+
+        Parameters
+        ----------
+        location: Tuple
+            Coordinates of the qubit
+        rotated_picture: bool
+            For codes that have a rotated picture, can be used to differentiate
+            the two types visualizations
+
+        Returns
+        ----------
+        representation: Dict
+            Dictionary to send to the GUI
+        """

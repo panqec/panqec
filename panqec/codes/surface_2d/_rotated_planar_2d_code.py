@@ -72,12 +72,12 @@ class RotatedPlanar2DCode(StabilizerCode):
             qubit_location = tuple(np.add(location, d))
 
             if self.is_qubit(qubit_location):
-                is_deformed = (self.axis(qubit_location) == deformed_axis)
+                is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
                 operator[qubit_location] = deformed_pauli if is_deformed else pauli
 
         return operator
 
-    def axis(self, location):
+    def qubit_axis(self, location):
         x, y = location
 
         if (x + y) % 4 == 2:

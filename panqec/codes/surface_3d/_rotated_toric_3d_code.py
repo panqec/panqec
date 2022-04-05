@@ -127,24 +127,24 @@ class RotatedToric3DCode(StabilizerCode):
                 defect_y_on_edge = defect_y_boundary and qubit_location[1] == 1
                 has_defect = (defect_x_on_edge != defect_y_on_edge)
 
-                is_deformed = (self.axis(qubit_location) == deformed_axis)
+                is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
 
                 operator[qubit_location] = deformed_pauli if is_deformed != has_defect else pauli
 
         return operator
 
-    def axis(self, location: Tuple[int, int, int]) -> int:
+    def qubit_axis(self, location: Tuple[int, int, int]) -> int:
         x, y, z = location
 
         if location not in self.qubit_coordinates:
             raise ValueError(f'Location {location} does not correspond to a qubit')
 
         if z % 2 == 0:
-            axis = self.Z_AXIS
+            axis = 'z'
         elif (x + y) % 4 == 2:
-            axis = self.X_AXIS
+            axis = 'x'
         elif (x + y) % 4 == 0:
-            axis = self.Y_AXIS
+            axis = 'y'
 
         return axis
 

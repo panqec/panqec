@@ -75,18 +75,18 @@ class Toric2DCode(StabilizerCode):
             qubit_location = tuple(np.add(location, d) % (2*np.array(self.size)))
 
             if self.is_qubit(qubit_location):
-                is_deformed = (self.axis(qubit_location) == deformed_axis)
+                is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
                 operator[qubit_location] = deformed_pauli if is_deformed else pauli
 
         return operator
 
-    def axis(self, location) -> int:
+    def qubit_axis(self, location) -> int:
         x, y = location
 
         if (x % 2 == 1) and (y % 2 == 0):
-            axis = self.X_AXIS
+            axis = 'x'
         elif (x % 2 == 0) and (y % 2 == 1):
-            axis = self.Y_AXIS
+            axis = 'y'
         else:
             raise ValueError(f'Location {location} does not correspond to a qubit')
 
@@ -131,3 +131,93 @@ class Toric2DCode(StabilizerCode):
         logicals.append(operator)
 
         return logicals
+
+    def qubit_representation(self, location, rotated_picture=False):
+        representation = {
+            'kitaev': {
+                'object': 'cylinder',
+                'color': {
+                    'I': self.colormap['pink'],
+                    'X': self.colormap['red'],
+                    'Y': self.colormap['green'],
+                    'Z': self.colormap['blue']},
+                'opacity': {
+                    'activated': {'min': 1, 'max': 1},
+                    'deactivated': {'min': 0.1, 'max': 0.6}},
+                'params': {
+                    'length': 2,
+                    'radius': 0.1,
+                    'axis': self.qubit_axis(location),
+                    'angle': 0
+                }
+            },
+            'rotated': {
+                'object': 'sphere',
+                'color': {
+                    'I': self.colormap['white'],
+                    'X': self.colormap['red'],
+                    'Y': self.colormap['green'],
+                    'Z': self.colormap['blue']},
+                'opacity': {
+                    'activated': {'min': 1, 'max': 1},
+                    'deactivated': {'min': 0.1, 'max': 0.6}},
+                'params': {'radius': 0.2}
+            }
+        }
+
+        picture = 'rotated' if rotated_picture else 'kitaev'
+
+        rep = representation[picture]
+        rep['location'] = location
+
+        return rep
+
+    def stabilizer_representation(self, location, rotated_picture=False):
+        stab_type = self.stabilizer_type(location)
+
+        representation = {
+            'kitaev': {
+                'vertex': {
+                    'object': 'sphere',
+                    'color': {'activated': self.colormap['gold'],
+                              'deactivated': self.colormap['white']},
+                    'opacity': {'activated': {'min': 1, 'max': 1},
+                                'deactivated': {'min': 0.1, 'max': 0.6}},
+                    'params': {'radius': 0.2}
+                },
+                'face': {
+                    'object': 'face',
+                    'color': {'activated': self.colormap['gold'],
+                              'deactivated': self.colormap['blue']},
+                    'opacity': {'activated': {'min': 0.6, 'max': 0.6},
+                                'deactivated': {'min': 0., 'max': 0.}},
+                    'params': {'w': 1.5, 'h': 1.5, 'plane': 'xy', 'angle': 0}
+                },
+            },
+            'rotated': {
+                'vertex': {
+                    'object': 'face',
+                    'color': {'activated': self.colormap['gold'],
+                              'deactivated': self.colormap['light-yellow']},
+                    'opacity': {'activated': {'min': 0.9, 'max': 0.9},
+                                'deactivated': {'min': 0.1, 'max': 0.2}},
+                    'params': {'w': 2/np.sqrt(2), 'h': 2/np.sqrt(2), 'plane': 'xy', 'angle': np.pi/4}
+                },
+                'face': {
+                    'object': 'face',
+                    'color': {'activated': self.colormap['orange'],
+                              'deactivated': self.colormap['salmon']},
+                    'opacity': {'activated': {'min': 0.9, 'max': 0.9},
+                                'deactivated': {'min': 0.1, 'max': 0.2}},
+                    'params': {'w': 2/np.sqrt(2), 'h': 2/np.sqrt(2), 'plane': 'xy', 'angle': np.pi/4}
+                },
+            }
+        }
+
+        picture = 'rotated' if rotated_picture else 'kitaev'
+
+        rep = representation[picture][stab_type]
+        rep['type'] = stab_type
+        rep['location'] = location
+
+        return rep

@@ -1,18 +1,14 @@
 import nj from 'https://cdn.jsdelivr.net/npm/@d4c/numjs/build/module/numjs.min.js'
 
-export {AbstractCode };
+import { create_shape } from './shapes.js'
 
-class AbstractCode {
-    COLOR = {};
-    OPACITY = {};
-    SIZE = {radiusEdge: 0.1, radiusVertex: 0.2};
+export { TopologicalCode };
 
-    constructor(size, H, qubitCoordinates, stabilizerCoordinates, qubitAxis, stabilizerType) {
+class TopologicalCode {
+    constructor(size, H, qubitData, stabilizerData) {
         this.H = nj.array(H)
-        this.qubitCoordinates = qubitCoordinates;
-        this.stabilizerCoordinates = stabilizerCoordinates
-        this.qubitAxis = qubitAxis
-        this.stabilizerType = stabilizerType
+        this.qubitData = qubitData;
+        this.stabilizerData = stabilizerData;
 
         this.Lx = size[0];
         this.Ly = size[1];
@@ -20,8 +16,8 @@ class AbstractCode {
             this.Lz = size[2];
         }
 
-        this.n = this.qubitCoordinates.length // number of qubits
-        this.m = this.stabilizerCoordinates.length // number of stabilizers
+        this.n = this.qubitData.length // number of qubits
+        this.m = this.stabilizerData.length // number of stabilizers
 
         this.opacityActivated = false;
         this.currentIndexLogical = {'X': 0, 'Z': 0};
@@ -60,22 +56,23 @@ class AbstractCode {
             this.errors.set(this.n + qubit.index, (this.errors.get(this.n + qubit.index) + 1) % 2)
         }
 
+        var opacityLevel = this.opacityActivated ? 'min' : 'max';
         if (qubit.hasError['X'] || qubit.hasError['Z']) {
-            qubit.material.opacity = this.opacityActivated ? this.OPACITY.minActivatedQubit : this.OPACITY.maxActivatedQubit;
+            qubit.material.opacity = qubit.opacity['activated'][opacityLevel]
 
             if (qubit.hasError['X'] && qubit.hasError['Z']) {
-                qubit.material.color.setHex(this.COLOR.errorY);
+                qubit.material.color.setHex(qubit.color['Y']);
             }
             else if (qubit.hasError['X']) {
-                qubit.material.color.setHex(this.COLOR.errorX);
+                qubit.material.color.setHex(qubit.color['X']);
             }
             else {
-                qubit.material.color.setHex(this.COLOR.errorZ);
+                qubit.material.color.setHex(qubit.color['Z']);
             }
         }
         else {
-            qubit.material.opacity = this.opacityActivated ? this.OPACITY.minDeactivatedQubit : this.OPACITY.maxDeactivatedQubit;
-            qubit.material.color.setHex(this.COLOR.deactivatedQubit);
+            qubit.material.opacity = qubit.opacity['deactivated'][opacityLevel]
+            qubit.material.color.setHex(qubit.color['I']);
         }
 
         this.updateStabilizers();
@@ -104,63 +101,67 @@ class AbstractCode {
     changeOpacity() {
         this.opacityActivated = !this.opacityActivated
 
+        var opacityLevel = this.opacityActivated ? 'min' : 'max';
+
         this.qubits.forEach(q => {
-            if (!q.hasError['X'] && !q.hasError['Z']) {
-                q.material.opacity = this.opacityActivated ? this.OPACITY.minDeactivatedQubit : this.OPACITY.maxDeactivatedQubit;
-            }
-            else {
-                q.material.opacity = this.opacityActivated ? this.OPACITY.minActivatedQubit : this.OPACITY.maxActivatedQubit;
-            }
+            let activatedStr = q.hasError['X'] || !q.hasError['Z'] ? 'activated' : 'deactivated';
+            q.material.opacity = q.opacity[activatedStr][opacityLevel];
         });
 
         this.stabilizers.forEach(s => {
-            let stabType = s.type
-            if (!s.isActivated) {
-                s.material.opacity = this.opacityActivated ?
-                this.OPACITY.minDeactivatedStabilizer[stabType] : this.OPACITY.maxDeactivatedStabilizer[stabType];
-            }
-            else {
-                s.material.opacity = this.opacityActivated ?
-                this.OPACITY.minActivatedStabilizer[stabType] : this.OPACITY.maxActivatedStabilizer[stabType];
-            }
+            let activatedStr = s.isActivated ? 'activated' : 'deactivated';
+            s.material.opacity = s.opacity[activatedStr][opacityLevel];
         });
     }
 
     toggleStabilizer(stabilizer, activate, toggleVisible=false) {
         stabilizer.isActivated = activate;
+        var activateStr = activate ? 'activated' : 'deactivated';
+        var opacityLevel = this.opacityActivated ? 'min' : 'max'
+
         stabilizer.visible = activate || !toggleVisible;
-        if (this.opacityActivated) {
-            stabilizer.material.opacity = activate ? this.OPACITY.minActivatedStabilizer[stabilizer.type] : this.OPACITY.minDeactivatedStabilizer[stabilizer.type];
-        }
-        else {
-            stabilizer.material.opacity = activate ? this.OPACITY.maxActivatedStabilizer[stabilizer.type] : this.OPACITY.maxDeactivatedStabilizer[stabilizer.type];
-        }
-        let color = activate ? this.COLOR.activatedStabilizer[stabilizer.type] : this.COLOR.deactivatedStabilizer[stabilizer.type];
-        stabilizer.material.color.setHex(color);
+        stabilizer.material.opacity = stabilizer.opacity[activateStr][opacityLevel];
+        stabilizer.material.color.setHex(stabilizer.color[activateStr]);
     }
 
     buildQubit(index) {
-        throw new Error('You have to implement the method buildQubit!');
+        console.log(this.qubitData[index]['object'])
+        var qubit = create_shape[this.qubitData[index]['object']](this.qubitData[index]['location'], this.qubitData[index]['params']);
+
+        qubit.index = index
+        qubit.color = this.qubitData[index]['color']
+        qubit.opacity = this.qubitData[index]['opacity']
+
+        return qubit
     }
 
     buildStabilizer(index) {
-        throw new Error('You have to implement the method buildStabilizer!');
+        var stabilizer = create_shape[this.stabilizerData[index]['object']](this.stabilizerData[index]['location'],
+                                                                     this.stabilizerData[index]['params']);
+
+        stabilizer.index = index;
+        stabilizer.color = this.stabilizerData[index]['color']
+        stabilizer.opacity = this.stabilizerData[index]['opacity']
+        stabilizer.type = this.stabilizerData[index]['type']
+
+        return stabilizer
     }
 
     build(scene) {
         let maxQubitCoordinates = {'x': 0, 'y': 0, 'z': 0};
         let maxStabCoordinates = {'x': 0, 'y': 0, 'z': 0};
+        var opacityLevel = this.opacityActivated ? 'min' : 'max'
 
         for (let index=0; index < this.n; index++) {
             let qubit = this.buildQubit(index);
 
-            qubit.material.color.setHex(this.COLOR.deactivatedQubit);
-            qubit.material.opacity = this.OPACITY.maxDeactivatedQubit;
+            qubit.material.color.setHex(qubit.color['I']);
+            qubit.material.opacity = qubit.opacity['deactivated'][opacityLevel]
 
             qubit.hasError = {'X': false, 'Z': false};
 
             qubit.index = index;
-            qubit.location = this.qubitCoordinates[index];
+            qubit.location = this.qubitData[index]['location'];
             this.qubits[index] = qubit;
 
             maxQubitCoordinates['x'] = Math.max(qubit.position.x, maxQubitCoordinates['x']);
@@ -172,14 +173,14 @@ class AbstractCode {
         for (let index=0; index < this.m; index++) {
             let stabilizer = this.buildStabilizer(index);
 
-            var stabType = this.stabilizerType[index];
-            stabilizer.material.color.setHex(this.COLOR.deactivatedStabilizer[stabType]);
-            stabilizer.material.opacity = this.OPACITY.maxDeactivatedStabilizer[stabType];
+            var stabType = this.stabilizerData[index]['type'];
+            stabilizer.material.color.setHex(stabilizer.color['deactivated']);
+            stabilizer.material.opacity = stabilizer.opacity['deactivated'][opacityLevel];
 
             stabilizer.isActivated = false;
 
             stabilizer.index = index;
-            stabilizer.location = this.stabilizerCoordinates[index];
+            stabilizer.location = this.stabilizerData[index]['location'];
             stabilizer.type = stabType;
 
             this.stabilizers[index] = stabilizer;

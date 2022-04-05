@@ -74,16 +74,15 @@ def send_js(path):
     return send_from_directory('js', path)
 
 
-@app.route('/stabilizer-matrix', methods=['POST'])
-def send_stabilizer_matrix():
+@app.route('/code-data', methods=['POST'])
+def send_code_data():
     Lx = request.json['Lx']
     Ly = request.json['Ly']
     if 'Lz' in request.json:
         Lz = request.json['Lz']
     code_name = request.json['code_name']
     deformed_axis = request.json['deformed_axis']
-
-    deformed_axis = {'x': 0, 'y': 1, 'z': 2, 'None': None}[deformed_axis]
+    rotated_picture = request.json['rotated_picture']
 
     if code_name in code_names['2d']:
         code = code_class[code_name](Lx, Ly, deformed_axis=deformed_axis)
@@ -92,17 +91,17 @@ def send_stabilizer_matrix():
     else:
         raise ValueError(f'Code {code_name} not recognized')
 
-    qubit_axis = [code.axis(location) for location in code.qubit_coordinates]
-    stabilizer_type = [code.stabilizer_type(location) for location in code.stabilizer_coordinates]
+    qubits = [code.qubit_representation(location, rotated_picture)
+              for location in code.qubit_coordinates]
+    stabilizers = [code.stabilizer_representation(location, rotated_picture)
+                   for location in code.stabilizer_coordinates]
 
     logical_z = code.logicals_z
     logical_x = code.logicals_x
 
     return json.dumps({'H': code.stabilizer_matrix.toarray().tolist(),
-                       'qubit_coordinates': code.qubit_coordinates,
-                       'qubit_axis': qubit_axis,
-                       'stabilizer_coordinates': code.stabilizer_coordinates,
-                       'stabilizer_type': stabilizer_type,
+                       'qubits': qubits,
+                       'stabilizers': stabilizers,
                        'logical_z': logical_z.toarray().tolist(),
                        'logical_x': logical_x.toarray().tolist()})
 
@@ -123,8 +122,6 @@ def send_correction():
     error_model_name = content['error_model']
     code_name = content['code_name']
     deformed_axis = content['deformed_axis']
-
-    deformed_axis = {'x': 0, 'y': 1, 'z': 2, 'None': None}[deformed_axis]
 
     if code_name in code_names['2d']:
         code = code_class[code_name](Lx, Ly, deformed_axis=deformed_axis)
@@ -190,8 +187,6 @@ def send_random_errors():
     error_model_name = content['error_model']
     code_name = content['code_name']
     deformed_axis = content['deformed_axis']
-
-    deformed_axis = {'x': 0, 'y': 1, 'z': 2, 'None': None}[deformed_axis]
 
     if code_name in code_names['2d']:
         code = code_class[code_name](Lx, Ly, deformed_axis=deformed_axis)

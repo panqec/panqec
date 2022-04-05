@@ -102,23 +102,23 @@ class RotatedPlanar3DCode(StabilizerCode):
             qubit_location = tuple(np.add(location, d))
 
             if self.is_qubit(qubit_location):
-                is_deformed = (self.axis(qubit_location) == deformed_axis)
+                is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
                 operator[qubit_location] = deformed_pauli if is_deformed else pauli
 
         return operator
 
-    def axis(self, location):
+    def qubit_axis(self, location):
         x, y, z = location
 
         if location not in self.qubit_coordinates:
             raise ValueError(f'Location {location} does not correspond to a qubit')
 
         if (z % 2 == 0):
-            axis = self.Z_AXIS
+            axis = 'z'
         elif (x + y) % 4 == 2:
-            axis = self.X_AXIS
+            axis = 'x'
         elif (x + y) % 4 == 0:
-            axis = self.Y_AXIS
+            axis = 'y'
 
         return axis
 

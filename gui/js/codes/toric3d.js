@@ -36,9 +36,9 @@ class Toric3DCode extends AbstractCode {
                                                       transparent: true});
         const qubit = new THREE.Mesh(geometry, material);
 
-        qubit.position.x = x * this.SIZE.lengthEdge / 2;
-        qubit.position.y = y * this.SIZE.lengthEdge / 2;
-        qubit.position.z = z * this.SIZE.lengthEdge / 2;
+        qubit.position.x = x  / 2;
+        qubit.position.y = y  / 2;
+        qubit.position.z = z  / 2;
 
         if (this.qubitAxis[index] == 0) {
             qubit.rotateZ(Math.PI / 2)
@@ -60,9 +60,9 @@ class Toric3DCode extends AbstractCode {
                                                      transparent: true});
         const vertex = new THREE.Mesh(geometry, material);
 
-        vertex.position.x = x * this.SIZE.lengthEdge / 2;
-        vertex.position.y = y * this.SIZE.lengthEdge / 2;
-        vertex.position.z = z * this.SIZE.lengthEdge / 2;
+        vertex.position.x = x  / 2;
+        vertex.position.y = y  / 2;
+        vertex.position.z = z  / 2;
 
         return vertex
     }
@@ -78,9 +78,9 @@ class Toric3DCode extends AbstractCode {
                                                      side: THREE.DoubleSide});
         const face = new THREE.Mesh(geometry, material);
 
-        face.position.x = x * this.SIZE.lengthEdge / 2;
-        face.position.y = y * this.SIZE.lengthEdge / 2;
-        face.position.z = z * this.SIZE.lengthEdge / 2;
+        face.position.x = x  / 2;
+        face.position.y = y  / 2;
+        face.position.z = z  / 2;
 
         // Axis normal to the face
         let x_axis = ((z % 2 == 1) && (x % 2 == 0));
