@@ -10,36 +10,17 @@ git clone https://github.com/ehua7365/panqec.git
 cd panqec
 ```
 
-Install Python3.8 if you haven't already.
-```
-sudo apt-get install python3.8
-```
-
-Install virtualenv if you haven't already
-```
-python3.8 -m pip install virtualenv
-```
-
-Create a virtual environment.
-```
-python3.8 -m virtualenv --python=/usr/bin/python3.8 venv
-```
-
-Activate the virtual environment
-```
-source venv/bin/activate
-```
-
-Install the dependencies for development mode.
+Within a Python 3.8 environment, install the library and its dependencies for development mode.
 ```
 pip install -r requirements/dev.txt
+pip install -e .
 ```
 
 Copy the `env_template.txt` file and rename it to `.env`.
 ```
 cp env_template.txt .env
 ```
-Your `.env` file contains environmental varaibles that can be read in for to
+Your `.env` file contains environmental variables that can be read in for to
 customize.
 
 Edit the .env file to change the `PANQEC_DIR` path to a directory on
