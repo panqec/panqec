@@ -162,8 +162,9 @@ class StabilizerCode(metaclass=ABCMeta):
 
     @property
     def logicals_x(self) -> csr_matrix:
-        """Logical X operator, as a k x 2n sparse matrix in the binary symplectic format,
-        where k is the number of logical X operators, and n the number of qubits.
+        """Logical X operator, as a k x 2n sparse matrix in the binary
+        symplectic format, where k is the number of logical X operators,
+        and n the number of qubits.
         """
         if self._logicals_x.size == 0:
             for logical_op in self.get_logicals_x():
@@ -290,17 +291,58 @@ class StabilizerCode(metaclass=ABCMeta):
 
         return self._z_indices
 
-    def extract_x_syndrome(self, syndrome: np.ndarray) -> np.ndarray:
-        """For CSS codes. Returns the part of the syndrome that corresponds to X stabilizers"""
+    def extract_x_syndrome(self, syndrome: csr_matrix) -> csr_matrix:
+        """For CSS codes only. Returns the part of the syndrome that
+        corresponds to X stabilizers.
+
+        Parameters
+        ----------
+        syndrome: csr_matrix
+            Syndrome as a sparse row of dimension 1xm, where m is the number
+            of stabilizers.
+
+        Returns
+        -------
+        x_syndrome: csr_matrix
+            Syndrome reduced to X stabilizers
+        """
 
         return syndrome[self.x_indices]
 
-    def extract_z_syndrome(self, syndrome: np.ndarray) -> np.ndarray:
-        """For CSS codes. Returns the part of the syndrome that corresponds to Z stabilizers"""
+    def extract_z_syndrome(self, syndrome: csr_matrix) -> csr_matrix:
+        """For CSS codes only. Returns the part of the syndrome that
+        corresponds to Z stabilizers.
+
+        Parameters
+        ----------
+        syndrome: csr_matrix
+            Syndrome as a sparse row of dimension 1xm, where m is the number
+            of stabilizers.
+
+        Returns
+        -------
+        z_syndrome: csr_matrix
+            Syndrome reduced to X stabilizers
+        """
 
         return syndrome[self.z_indices]
 
     def to_bsf(self, operator: Operator) -> csr_matrix:
+        """Convert an operator (given as a dictionary qubit_location -> pauli)
+        to a sparse row in the binary symplectic format.
+
+        Parameters
+        ----------
+        operator: Dict[Tuple, str]
+            Operator given as a dictionary that assigns a Pauli operator
+            ('X', 'Y' or 'Z') to each qubit location in its support
+
+        Returns
+        -------
+        bsf_operator: scipy.sparse.csr_matrix
+            Sparse row of dimension 1x2n in the binary symplectic format
+            (where n is the number of qubits)
+        """
         bsf_operator = bsparse.zero_row(2*self.n)
 
         for qubit_location in operator.keys():
@@ -312,6 +354,21 @@ class StabilizerCode(metaclass=ABCMeta):
         return bsf_operator
 
     def from_bsf(self, bsf_operator: csr_matrix) -> Operator:
+        """Convert an operator given as a sparse row in the binary
+        symplectic format to a dictionary qubit_location -> pauli.
+
+        Parameters
+        ----------
+        bsf_operator: scipy.sparse.csr_matrix
+            Sparse row of dimension 1x2n in the binary symplectic format
+            (where n is the number of qubits)
+        Returns
+        -------
+        operator: Dict[Tuple, str]
+            Operator given as a dictionary that assigns a Pauli operator
+            ('X', 'Y' or 'Z') to each qubit location in its support
+
+        """
         assert bsf_operator.shape[0] == 1
 
         operator = dict()
@@ -329,9 +386,23 @@ class StabilizerCode(metaclass=ABCMeta):
 
         return operator
 
-    def measure_syndrome(self, error) -> np.ndarray:
-        """Perfectly measure syndromes given Pauli error."""
-        return bcommute(self.stabilizer_matrix, self.to_bsf(error))
+    def measure_syndrome(self, error: csr_matrix) -> csr_matrix:
+        """Noiseless syndrome corresponding to a given Pauli error.
+
+        Parameters
+        ----------
+        error: scipy.sparse.csr_matrix
+            Error given as sparse row of dimension 1x2n in the binary
+            symplectic format.
+
+        Returns
+        -------
+        syndrome: scipy.sparse.csr_matrix
+            Syndrome, as a sparse row of dimension 1xm (where m is the number
+            of stabilizers)
+        """
+
+        return bcommute(self.stabilizer_matrix, error)
 
     def is_stabilizer(self, location: Tuple, stab_type: str = None):
         """Returns whether a given location in the coordinate system
@@ -344,62 +415,123 @@ class StabilizerCode(metaclass=ABCMeta):
 
     def is_qubit(self, location: Tuple):
         """Returns whether a given location in the coordinate system
-        corresponds to a qubit or not
+        corresponds to a qubit or not. It is done by checking that the input
+        location is a key in the dictionary `self.qubit_index`.
+
+        Parameters
+        ----------
+        location : Tuple
+            Location as a tuple of coordinates
+
+        Returns
+        -------
+        Bool
+            Whether the location is a qubit in the coordinate system.
         """
         return location in self.qubit_index
 
     @abstractmethod
     def get_qubit_coordinates(self) -> List[Tuple]:
-        """Create qubit indices.
-        Should return a dictionary that assigns an index to a given qubit coordinate.
-        It can be constructed by first creating a list of coordinates (all the locations
-        in a coordinate system that contain a qubit) and then converting it to a dictionary
-        with the correct format
+        """Give the list of all the qubit coordinates, in a coordinate system
+        that should contain both the qubits and the stabilizers.
+        This function is used to set the attributes `self.qubit_coordinates`
+        and `self.qubit_index`.
+
+        Returns
+        -------
+        qubit_coordinates: List[Tuple]
+            List of coordinates
         """
 
     @abstractmethod
     def get_stabilizer_coordinates(self) -> List[Tuple]:
-        """Create stabilizer indices.
-        Should return a dictionary that assigns an index to a given stabilizer coordinate.
-        It can be constructed by first creating a list of coordinates (all the locations
-        in a coordinate system that contain a qubit) and then converting it to a dictionary
-        with the correct format
+        """Create list of stabilizer coordinates, in a coordinate system
+        that should contain both the qubits and the stabilizers.
+        This function is used to set the attributes `self.stabilizer_coordinates`
+        and `self.stabilizer_index`.
         """
 
     @abstractmethod
-    def qubit_axis(self, location) -> int:
-        """ Return the axis of a qubit sitting at given location.
-        Useful when qubits have an orientation in space, for instance when they are edges,
-        to simplify the construction of stabilizers and the Clifford deformations
+    def qubit_axis(self, location: Tuple) -> str:
+        """ Return the orientation of a qubit sitting at given location
+        (as a string representing the axis 'x', 'y' or 'z').
+        Useful when qubits have an orientation in space, for instance when
+        they are edges, to help establish the visual representation of the
+        code in the GUI, to simplify the construction of stabilizers,
+        and to create Clifford deformations.
+
+        Parameters
+        ----------
+        location: Tuple
+            Location of the qubit in the coordinate system.
+
+        Returns
+        -------
+        axis: str
+            Either 'x', 'y' or 'z', depending on the orientation axis of the
+            qubit.
         """
 
     @abstractmethod
-    def stabilizer_type(self, location) -> str:
-        """ Return the type of a stabilizer sitting at `location`.
+    def stabilizer_type(self, location: Tuple) -> str:
+        """ Return the type of a stabilizer sitting at a given location.
         E.g. 'vertex' or 'face' in toric codes
         """
 
     @abstractmethod
-    def get_stabilizer(self, location, deformed_axis=None) -> Operator:
-        """ Returns a stabilizer, formatted as dictionary that assigns a Pauli operator
-        ('X', 'Y' or 'Z') to each qubit location in the support of the stabilizer
-        E.g. for a vertex stabilizer, `get_stabilizer((1,1)) -> {(1,0): 'X', (0, 1): 'X', (2, 1): 'X', (1, 2): 'X'}`
+    def get_stabilizer(self, location: Tuple, deformed_axis: str = None) -> Operator:
+        """ Returns a stabilizer, formatted as dictionary that assigns a Pauli
+        operator ('X', 'Y' or 'Z') to each qubit location in the support of
+        the stabilizer.
+
+        For example, for a vertex stabilizer in the 2D toric code, we could have
+        `get_stabilizer((1,1)) -> {(1,0): 'X', (0, 1): 'X', (2, 1): 'X', (1, 2): 'X'}`
+
+        Parameters
+        ----------
+        location: Tuple
+            Location of the stabilizer in the coordinate system
+        deformed_axis: str, optional
+            If given, represents an axis ('x', 'y' or 'z') that we want to
+            Clifford-deform, by applying a Clifford transformation to all the
+            qubits oriented along the given axis
+            (e.g. `deformed_axis='x' in the 2D toric code could give an
+            XZZX surface code, where the transformation Pauli X <-> Z
+            has been applied to all the vertical qubits of the code)
+
+        Returns
+        -------
+        stabilizer: Dict[Tuple, str]
+            Dictionary that assigns a Pauli operator ('X', 'Y' or 'Z') to each
+            qubit location in the support of the stabilizer
         """
 
     @abstractmethod
     def get_logicals_x(self) -> Operator:
-        """Return the logical X operators as a dictionary that assigns a Pauli operator
-        ('X', 'Y' or 'Z') to each qubit location in the support of the logical operator
-        It should have dimension k x 2n, with k the number of logicals X
-        (i.e. the number of logical qubits) and n the number of qubits
+        """Returns the list of logical X operators, where each operator is a
+        dictionary that assigns a Pauli operator ('X', 'Y' or 'Z') to each
+        qubit location in its support.
+
+        Returns
+        -------
+        logicals: List[Dict[Tuple, str]]
+            List of dictionaries, where each dictionary assign a Pauli
+            operator ('X', 'Y' or 'Z') to each qubit location in the support
+            of the logical operator.
         """
 
     @abstractmethod
     def get_logicals_z(self) -> Operator:
-        """Return the logical Z operators as a dictionary that assigns a Pauli operator
-        ('X', 'Y' or 'Z') to each qubit location in the support of the logical operator
-        It should have dimension k x 2n, with k the number of logicals X
-        (i.e. the number of logical qubits) and n the number of qubits
+        """Returns the list of logical Z operators, where each operator is a
+        dictionary that assigns a Pauli operator ('X', 'Y' or 'Z') to each
+        qubit location in its support.
+
+        Returns
+        -------
+        logicals: List[Dict[Tuple, str]]
+            List of dictionaries, where each dictionary assign a Pauli
+            operator ('X', 'Y' or 'Z') to each qubit location in the support
+            of the logical operator.
         """
 
     def stabilizer_representation(self, location, rotated_picture=False) -> Dict:
