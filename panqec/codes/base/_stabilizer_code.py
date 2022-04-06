@@ -495,7 +495,7 @@ class StabilizerCode(metaclass=ABCMeta):
             If given, represents an axis ('x', 'y' or 'z') that we want to
             Clifford-deform, by applying a Clifford transformation to all the
             qubits oriented along the given axis
-            (e.g. `deformed_axis='x' in the 2D toric code could give an
+            (e.g. `deformed_axis='x'` in the 2D toric code could give an
             XZZX surface code, where the transformation Pauli X <-> Z
             has been applied to all the vertical qubits of the code)
 
@@ -507,7 +507,7 @@ class StabilizerCode(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def get_logicals_x(self) -> Operator:
+    def get_logicals_x(self) -> List[Operator]:
         """Returns the list of logical X operators, where each operator is a
         dictionary that assigns a Pauli operator ('X', 'Y' or 'Z') to each
         qubit location in its support.
@@ -521,7 +521,7 @@ class StabilizerCode(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def get_logicals_z(self) -> Operator:
+    def get_logicals_z(self) -> List[Operator]:
         """Returns the list of logical Z operators, where each operator is a
         dictionary that assigns a Pauli operator ('X', 'Y' or 'Z') to each
         qubit location in its support.
@@ -534,15 +534,15 @@ class StabilizerCode(metaclass=ABCMeta):
             of the logical operator.
         """
 
-    def stabilizer_representation(self, location, rotated_picture=False) -> Dict:
+    def stabilizer_representation(self, location: Tuple, rotated_picture=False) -> Dict:
         """Returns a dictionary of visualization parameters for the input stabilizer,
         that can be used by the web visualizer.
 
         It should contain 4 keys:
-            - 'type': the type of stabilizer, e.g. 'vertex'
-            - 'location': [x, y, z],
-            - 'object': the type of object to use for visualization, e.g. 'sphere'
-            - 'params': a dictionary of parameters for the chosen object
+        - 'type': the type of stabilizer, e.g. 'vertex'
+        - 'location': [x, y, z],
+        - 'object': the type of object to use for visualization, e.g. 'sphere'
+        - 'params': a dictionary of parameters for the chosen object
 
         Parameters
         ----------
@@ -553,7 +553,7 @@ class StabilizerCode(metaclass=ABCMeta):
             the two types visualizations
 
         Returns
-        ----------
+        -------
         representation: Dict
             Dictionary to send to the GUI
         """
@@ -575,12 +575,12 @@ class StabilizerCode(metaclass=ABCMeta):
 
         return representation
 
-    def qubit_representation(self, location, rotated_picture=False) -> Dict:
+    def qubit_representation(self, location: Tuple, rotated_picture=False) -> Dict:
         """Returns a dictionary of visualization parameters for the input qubit,
         that can be used by the web visualizer.
-            - 'location': [x, y, z],
-            - 'object': the type of object to use for visualization, e.g. 'sphere'
-            - 'params': a dictionary of parameters for the chosen object
+        - 'location': [x, y, z],
+        - 'object': the type of object to use for visualization, e.g. 'sphere'
+        - 'params': a dictionary of parameters for the chosen object
 
         Parameters
         ----------
@@ -591,7 +591,7 @@ class StabilizerCode(metaclass=ABCMeta):
             the two types visualizations
 
         Returns
-        ----------
+        -------
         representation: Dict
             Dictionary to send to the GUI
         """
