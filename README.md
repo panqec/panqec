@@ -206,16 +206,12 @@ Hence, there should be a way to save chains when then equilibrate and run them
 later to get finer data.
 Analysis should be aggregated at the end.
 
-# Run the 3D GUI
-To run the 3D GUI, after you have activated the environment, run
+# Start the 3D GUI
+To start the 3D GUI, run
 ```
-python3 gui/gui.py
+panqec start-gui
 ```
 Then open your browser and go to the link printed out in the command line.
-Click on "3D Toric Code".
-
-If you find the browser non-responsive check back on what error messages are
-coming out of the command line.
 
 # Reproducing results of paper
 

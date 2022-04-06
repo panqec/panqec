@@ -14,6 +14,8 @@ from .slurm import (
 )
 from .statmech.cli import statmech
 from .utils import get_direction_from_bias_ratio
+from gui.gui import app
+
 from glob import glob
 
 
@@ -28,6 +30,12 @@ def cli(ctx):
     """
     if not ctx.invoked_subcommand:
         print(ctx.get_help())
+
+
+@click.command()
+@click.option('-p', '--port', 'port')
+def start_gui(port: Optional[int]):
+    app.run(port=port)
 
 
 @click.command()
@@ -613,6 +621,7 @@ slurm.add_command(gennist)
 slurm.add_command(status)
 slurm.add_command(count)
 slurm.add_command(clear)
+cli.add_command(start_gui)
 cli.add_command(run)
 cli.add_command(ls)
 cli.add_command(slurm)
