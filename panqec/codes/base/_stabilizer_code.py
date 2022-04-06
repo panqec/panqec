@@ -88,7 +88,8 @@ class StabilizerCode(metaclass=ABCMeta):
                          'coral': '0xFA824C',
                          'light-yellow': '0xFAFAC6',
                          'salmon': '0xe79e90',
-                         'orange': '0xFA824C'}
+                         'light-orange': '0xFA824C',
+                         'orange': '0xfa7921'}
 
     @property
     @abstractmethod

@@ -95,7 +95,7 @@ class XCubeCode(StabilizerCode):
             qubit_location = tuple(np.add([x, y, z], d) % (2*np.array(self.size)))
 
             if self.is_qubit(qubit_location):
-                is_deformed = (self.axis(qubit_location) == deformed_axis)
+                is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
                 operator[qubit_location] = deformed_pauli if is_deformed else pauli
 
         return operator
@@ -203,3 +203,17 @@ class XCubeCode(StabilizerCode):
             logicals.append(operator)
 
         return logicals
+
+    def stabilizer_representation(self, location, rotated_picture=False) -> Dict:
+        representation = super().stabilizer_representation(location, rotated_picture)
+
+        if self.stabilizer_type(location) == 'face':
+            axis, x, y, z = location
+            representation['location'] = [x, y, z]
+
+            if axis == 0:
+                representation['params']['normal'] = [1, 0, 0]
+            if axis == 1:
+                representation['params']['normal'] = [0, 1, 0]
+
+        return representation

@@ -69,7 +69,7 @@
                     "params": {"radius": 0.2}
                 },
                 "face": {
-                    "object": "face",
+                    "object": "rectangle",
                     "color": {
                         "activated": "gold",
                         "deactivated": "blue"
@@ -87,14 +87,14 @@
                     "params": {
                         "w": 1.5,
                         "h": 1.5,
-                        "plane": "xy",
+                        "normal": [0,0,1],
                         "angle": 0
                     }
                 }
             },
             "rotated": {
                 "vertex": {
-                    "object": "face",
+                    "object": "rectangle",
                     "color": {
                         "activated": "gold",
                         "deactivated": "light-yellow"
@@ -112,14 +112,14 @@
                     "params": {
                         "w": 1.4142,
                         "h": 1.4142,
-                        "plane": "xy",
+                        "normal": [0,0,1],
                         "angle": 0.7854
                     }
                 },
                 "face": {
-                    "object": "face",
+                    "object": "rectangle",
                     "color": {
-                        "activated": "orange",
+                        "activated": "light-orange",
                         "deactivated": "salmon"
                     },
                     "opacity": {
@@ -135,7 +135,7 @@
                     "params": {
                         "w": 1.4142,
                         "h": 1.4142,
-                        "plane": "xy",
+                        "normal": [0,0,1],
                         "angle": 0.7854
                     }
                 }
@@ -213,7 +213,7 @@
                     "params": {"radius": 0.2}
                 },
                 "face": {
-                    "object": "face",
+                    "object": "rectangle",
                     "color": {
                         "activated": "gold",
                         "deactivated": "blue"
@@ -231,14 +231,14 @@
                     "params": {
                         "w": 1.5,
                         "h": 1.5,
-                        "plane": "xy",
+                        "normal": [0,0,1],
                         "angle": 0
                     }
                 }
             },
             "rotated": {
                 "vertex": {
-                    "object": "face",
+                    "object": "rectangle",
                     "color": {
                         "activated": "gold",
                         "deactivated": "light-yellow"
@@ -256,14 +256,14 @@
                     "params": {
                         "w": 1.4142,
                         "h": 1.4142,
-                        "plane": "xy",
+                        "normal": [0,0,1],
                         "angle": 0.7854
                     }
                 },
                 "face": {
-                    "object": "face",
+                    "object": "rectangle",
                     "color": {
-                        "activated": "orange",
+                        "activated": "light-orange",
                         "deactivated": "salmon"
                     },
                     "opacity": {
@@ -279,7 +279,7 @@
                     "params": {
                         "w": 1.4142,
                         "h": 1.4142,
-                        "plane": "xy",
+                        "normal": [0,0,1],
                         "angle": 0.7854
                     }
                 }
@@ -357,7 +357,7 @@
                     "params": {"radius": 0.2828}
                 },
                 "face": {
-                    "object": "face",
+                    "object": "rectangle",
                     "color": {
                         "activated": "gold",
                         "deactivated": "blue"
@@ -373,16 +373,16 @@
                         }
                     },
                     "params": {
-                        "w": 1.3,
-                        "h": 1.3,
-                        "plane": "xy",
+                        "w": 2.1213,
+                        "h": 2.1213,
+                        "normal": [0,0,1],
                         "angle": 0.7854
                     }
                 }
             },
             "rotated": {
                 "vertex": {
-                    "object": "face",
+                    "object": "rectangle",
                     "color": {
                         "activated": "gold",
                         "deactivated": "light-yellow"
@@ -400,14 +400,14 @@
                     "params": {
                         "w": 2,
                         "h": 2,
-                        "plane": "xy",
+                        "normal": [0,0,1],
                         "angle": 0
                     }
                 },
                 "face": {
-                    "object": "face",
+                    "object": "rectangle",
                     "color": {
-                        "activated": "orange",
+                        "activated": "light-orange",
                         "deactivated": "salmon"
                     },
                     "opacity": {
@@ -423,7 +423,855 @@
                     "params": {
                         "w": 2,
                         "h": 2,
-                        "plane": "xy",
+                        "normal": [0,0,1],
+                        "angle": 0
+                    }
+                }
+            }
+        }
+    },
+
+    "Toric3DCode": {
+        "qubits": {
+            "kitaev": {
+                "object": "cylinder",
+                "color": {
+                    "I": "pink",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.6
+                    }
+                },
+                "params": {
+                    "length": 2,
+                    "radius": 0.1,
+                    "angle": 0
+                }
+            },
+            "rotated": {
+                "object": "sphere",
+                "color": {
+                    "I": "white",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.4
+                    }
+                },
+                "params": {
+                    "radius": 0.2
+                }
+            }
+        },
+        "stabilizers": {
+            "kitaev": {
+                "vertex": {
+                    "object": "sphere",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "white"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 1,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.6
+                        }
+                    },
+                    "params": {"radius": 0.2}
+                },
+                "face": {
+                    "object": "rectangle",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "blue"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.6,
+                            "max": 0.6
+                        },
+                        "deactivated": {
+                            "min": 0,
+                            "max": 0
+                        }
+                    },
+                    "params": {
+                        "w": 1.5,
+                        "h": 1.5,
+                        "normal": [1, 0, 0],
+                        "angle": 0
+                    }
+                }
+            },
+            "rotated": {
+                "vertex": {
+                    "object": "octahedron",
+                    "color": {
+                        "activated": "orange",
+                        "deactivated": "orange"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.9,
+                            "max": 0.9
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.3
+                        }
+                    },
+                    "params": {
+                        "length": 1,
+                        "angle": 0
+                    }
+                },
+                "face": {
+                    "object": "rectangle",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "gold"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.9,
+                            "max": 0.9
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.3
+                        }
+                    },
+                    "params": {
+                        "w": 1.4142,
+                        "h": 1.4142,
+                        "normal": [0,0,1],
+                        "angle": 0.7854
+                    }
+                }
+            }
+        }
+    },
+
+    "Planar3DCode": {
+        "qubits": {
+            "kitaev": {
+                "object": "cylinder",
+                "color": {
+                    "I": "pink",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.6
+                    }
+                },
+                "params": {
+                    "length": 2,
+                    "radius": 0.1,
+                    "angle": 0
+                }
+            },
+            "rotated": {
+                "object": "sphere",
+                "color": {
+                    "I": "white",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.4
+                    }
+                },
+                "params": {
+                    "radius": 0.2
+                }
+            }
+        },
+        "stabilizers": {
+            "kitaev": {
+                "vertex": {
+                    "object": "sphere",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "white"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 1,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.6
+                        }
+                    },
+                    "params": {"radius": 0.2}
+                },
+                "face": {
+                    "object": "rectangle",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "blue"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.6,
+                            "max": 0.6
+                        },
+                        "deactivated": {
+                            "min": 0,
+                            "max": 0
+                        }
+                    },
+                    "params": {
+                        "w": 1.5,
+                        "h": 1.5,
+                        "normal": [0,0,1],
+                        "angle": 0
+                    }
+                }
+            },
+            "rotated": {
+                "vertex": {
+                    "object": "octahedron",
+                    "color": {
+                        "activated": "orange",
+                        "deactivated": "orange"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.9,
+                            "max": 0.9
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.3
+                        }
+                    },
+                    "params": {
+                        "length": 1,
+                        "angle": 0
+                    }
+                },
+                "face": {
+                    "object": "rectangle",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "gold"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.9,
+                            "max": 0.9
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.3
+                        }
+                    },
+                    "params": {
+                        "w": 1.4142,
+                        "h": 1.4142,
+                        "normal": [0,0,1],
+                        "angle": 0.7854
+                    }
+                }
+            }
+        }
+    },
+
+    "RotatedPlanar3DCode": {
+        "qubits": {
+            "kitaev": {
+                "object": "cylinder",
+                "color": {
+                    "I": "pink",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.6
+                    }
+                },
+                "params": {
+                    "length": 2.8284,
+                    "radius": 0.1,
+                    "angle": -0.7854
+                }
+            },
+            "rotated": {
+                "object": "sphere",
+                "color": {
+                    "I": "white",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.4
+                    }
+                },
+                "params": {
+                    "radius": 0.2
+                }
+            }
+        },
+        "stabilizers": {
+            "kitaev": {
+                "vertex": {
+                    "object": "sphere",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "white"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 1,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.6
+                        }
+                    },
+                    "params": {"radius": 0.2}
+                },
+                "face": {
+                    "object": "rectangle",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "blue"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.6,
+                            "max": 0.6
+                        },
+                        "deactivated": {
+                            "min": 0,
+                            "max": 0
+                        }
+                    },
+                    "params": {
+                        "w": 2.1213,
+                        "h": 2.1213,
+                        "normal": [0,0,1],
+                        "angle": 0.7854
+                    }
+                }
+            },
+            "rotated": {
+                "vertex": {
+                    "object": "octahedron",
+                    "color": {
+                        "activated": "orange",
+                        "deactivated": "orange"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.9,
+                            "max": 0.9
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.3
+                        }
+                    },
+                    "params": {
+                        "length": 1.4142,
+                        "angle": 0.7854
+                    }
+                },
+                "face": {
+                    "object": "rectangle",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "gold"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.9,
+                            "max": 0.9
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.3
+                        }
+                    },
+                    "params": {
+                        "w": 2,
+                        "h": 2,
+                        "normal": [0,0,1],
+                        "angle": 0.7854
+                    }
+                }
+            }
+        }
+    },
+
+    "RotatedToric3DCode": {
+        "qubits": {
+            "kitaev": {
+                "object": "cylinder",
+                "color": {
+                    "I": "pink",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.6
+                    }
+                },
+                "params": {
+                    "length": 2.8284,
+                    "radius": 0.1,
+                    "angle": -0.7854
+                }
+            },
+            "rotated": {
+                "object": "sphere",
+                "color": {
+                    "I": "white",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.4
+                    }
+                },
+                "params": {
+                    "radius": 0.2
+                }
+            }
+        },
+        "stabilizers": {
+            "kitaev": {
+                "vertex": {
+                    "object": "sphere",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "white"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 1,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.6
+                        }
+                    },
+                    "params": {"radius": 0.2}
+                },
+                "face": {
+                    "object": "rectangle",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "blue"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.6,
+                            "max": 0.6
+                        },
+                        "deactivated": {
+                            "min": 0,
+                            "max": 0
+                        }
+                    },
+                    "params": {
+                        "w": 2.1213,
+                        "h": 2.1213,
+                        "normal": [0,0,1],
+                        "angle": 0.7854
+                    }
+                }
+            },
+            "rotated": {
+                "vertex": {
+                    "object": "octahedron",
+                    "color": {
+                        "activated": "orange",
+                        "deactivated": "orange"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.9,
+                            "max": 0.9
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.3
+                        }
+                    },
+                    "params": {
+                        "length": 1.4142,
+                        "angle": 0.7854
+                    }
+                },
+                "face": {
+                    "object": "rectangle",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "gold"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.9,
+                            "max": 0.9
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.3
+                        }
+                    },
+                    "params": {
+                        "w": 2,
+                        "h": 2,
+                        "normal": [0,0,1],
+                        "angle": 0.7854
+                    }
+                }
+            }
+        }
+    },
+
+    "RhombicCode": {
+        "qubits": {
+            "kitaev": {
+                "object": "cylinder",
+                "color": {
+                    "I": "pink",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.6
+                    }
+                },
+                "params": {
+                    "length": 2,
+                    "radius": 0.1,
+                    "angle": 0
+                }
+            },
+            "rotated": {
+                "object": "cylinder",
+                "color": {
+                    "I": "pink",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.6
+                    }
+                },
+                "params": {
+                    "length": 2,
+                    "radius": 0.1,
+                    "angle": 0
+                }
+            }
+        },
+        "stabilizers": {
+            "kitaev": {
+                "cube": {
+                    "object": "cube",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "white"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.6,
+                            "max": 0.6
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.3
+                        }
+                    },
+                    "params": {"length": 1.5}
+                },
+                "triangle": {
+                    "object": "triangle",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "light-yellow"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 1,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0.2,
+                            "max": 0.6
+                        }
+                    },
+                    "params": {
+                        "vertices": [[1, 0, 0],
+                                     [0, 1, 0],
+                                     [0, 0, 1]]
+                    }
+                }
+            },
+            "rotated": {
+                "cube": {
+                    "object": "cube",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "white"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.6,
+                            "max": 0.6
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.3
+                        }
+                    },
+                    "params": {"length": 1.5}
+                },
+                "triangle": {
+                    "object": "triangle",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "light-yellow"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 1,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.6
+                        }
+                    },
+                    "params": {
+                        "vertices": [[1, 0, 0],
+                                     [0, 1, 0],
+                                     [0, 0, 1]]
+                    }
+                }
+            }
+        }
+    },
+
+    "XCubeCode": {
+        "qubits": {
+            "kitaev": {
+                "object": "cylinder",
+                "color": {
+                    "I": "pink",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.6
+                    }
+                },
+                "params": {
+                    "length": 2,
+                    "radius": 0.1,
+                    "angle": 0
+                }
+            },
+            "rotated": {
+                "object": "cylinder",
+                "color": {
+                    "I": "pink",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.6
+                    }
+                },
+                "params": {
+                    "length": 2,
+                    "radius": 0.1,
+                    "angle": 0
+                }
+            }
+        },
+        "stabilizers": {
+            "kitaev": {
+                "cube": {
+                    "object": "cube",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "gold"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.6,
+                            "max": 0.6
+                        },
+                        "deactivated": {
+                            "min": 0,
+                            "max": 0
+                        }
+                    },
+                    "params": {"length": 1.5}
+                },
+                "face": {
+                    "object": "rectangle",
+                    "color": {
+                        "activated": "orange",
+                        "deactivated": "orange"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 1,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0,
+                            "max": 0
+                        }
+                    },
+                    "params": {
+                        "w": 1.5,
+                        "h": 1.5,
+                        "normal": [0, 0, 1],
+                        "angle": 0
+                    }
+                }
+            },
+            "rotated": {
+                "cube": {
+                    "object": "cube",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "gold"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.6,
+                            "max": 0.6
+                        },
+                        "deactivated": {
+                            "min": 0,
+                            "max": 0
+                        }
+                    },
+                    "params": {"length": 1.5}
+                },
+                "face": {
+                    "object": "rectangle",
+                    "color": {
+                        "activated": "orange",
+                        "deactivated": "orange"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 1,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0,
+                            "max": 0
+                        }
+                    },
+                    "params": {
+                        "w": 1.5,
+                        "h": 1.5,
+                        "normal": [0, 0, 1],
                         "angle": 0
                     }
                 }

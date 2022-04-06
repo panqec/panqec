@@ -234,3 +234,44 @@ class RotatedToric3DCode(StabilizerCode):
             logicals.append(operator)
 
         return logicals
+
+    def qubit_representation(self, location, rotated_picture=False) -> Dict:
+        representation = super().qubit_representation(location, rotated_picture)
+
+        if self.qubit_axis(location) == 'z':
+            representation['params']['length'] = 2
+
+        return representation
+
+    def stabilizer_representation(self, location, rotated_picture=False) -> Dict:
+        representation = super().stabilizer_representation(location, rotated_picture)
+
+        x, y, z = location
+        if not rotated_picture and self.stabilizer_type(location) == 'face':
+            if z % 2 == 1:
+                representation['params']['normal'] = [0, 0, 1]
+                representation['params']['angle'] = np.pi/4
+            else:
+                representation['params']['w'] = 1.5
+                representation['params']['angle'] = 0
+
+                if (x + y) % 4 == 0:
+                    representation['params']['normal'] = [1, 1, 0]
+                else:
+                    representation['params']['normal'] = [-1, 1, 0]
+
+        if rotated_picture and self.stabilizer_type(location) == 'face':
+            if z % 2 == 1:
+                representation['params']['normal'] = [0, 0, 1]
+                representation['params']['angle'] = 0
+            else:
+                representation['params']['w'] = 1.4142
+                representation['params']['h'] = 1.4142
+                representation['params']['angle'] = np.pi/4
+
+                if (x + y) % 4 == 0:
+                    representation['params']['normal'] = [1, 1, 0]
+                else:
+                    representation['params']['normal'] = [-1, 1, 0]
+
+        return representation

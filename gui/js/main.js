@@ -94,9 +94,9 @@ function buildScene3D() {
 
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
-    camera.position.x = 2.5;
-    camera.position.y = 2.5;
-    camera.position.z = 4.5;
+    camera.position.x = 5;
+    camera.position.y = 3.5;
+    camera.position.z = 7;
 
     const dirLight2 = new THREE.DirectionalLight( 0x002288 );
     dirLight2.position.set( - 1, - 1, - 1 );

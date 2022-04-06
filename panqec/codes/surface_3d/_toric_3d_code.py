@@ -182,3 +182,25 @@ class Toric3DCode(StabilizerCode):
         logicals.append(operator)
 
         return logicals
+
+    def stabilizer_representation(self, location, rotated_picture=False) -> Dict:
+        representation = super().stabilizer_representation(location, rotated_picture)
+
+        x, y, z = location
+        if not rotated_picture and self.stabilizer_type(location) == 'face':
+            if z % 2 == 0:  # xy plane
+                representation['params']['normal'] = [0, 0, 1]
+            elif x % 2 == 0:  # yz plane
+                representation['params']['normal'] = [1, 0, 0]
+            else:  # xz plane
+                representation['params']['normal'] = [0, 1, 0]
+
+        if rotated_picture and self.stabilizer_type(location) == 'face':
+            if z % 2 == 0:
+                representation['params']['normal'] = [0, 0, 1]
+            elif x % 2 == 0:
+                representation['params']['normal'] = [1, 0, 0]
+            else:
+                representation['params']['normal'] = [0, 1, 0]
+
+        return representation

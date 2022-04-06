@@ -177,3 +177,24 @@ class RhombicCode(StabilizerCode):
         logicals.append(operator)
 
         return logicals
+
+    def stabilizer_representation(self, location, rotated_picture=False) -> Dict:
+        representation = super().stabilizer_representation(location, rotated_picture)
+
+        if self.stabilizer_type(location) == 'triangle':
+            axis, x, y, z = location
+            representation['location'] = [x, y, z]
+
+            delta_1 = [[1, 1, 1], [-1, -1, 1], [1, -1, -1], [-1, 1, -1]]
+            delta_2 = [[1, 1, -1], [-1, -1, -1], [1, -1, 1], [-1, 1, 1]]
+
+            delta = delta_1 if ((x + y + z) % 4 == 0) else delta_2
+
+            a = 0.5
+            dx, dy, dz = tuple(a * np.array(delta[axis]))
+
+            representation['params']['vertices'] = [[dx, 0, 0],
+                                                    [0, dy, 0],
+                                                    [0, 0, dz]]
+
+        return representation

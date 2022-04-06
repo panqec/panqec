@@ -104,7 +104,7 @@ class TopologicalCode {
         var opacityLevel = this.opacityActivated ? 'min' : 'max';
 
         this.qubits.forEach(q => {
-            let activatedStr = q.hasError['X'] || !q.hasError['Z'] ? 'activated' : 'deactivated';
+            let activatedStr = (q.hasError['X'] || q.hasError['Z']) ? 'activated' : 'deactivated';
             q.material.opacity = q.opacity[activatedStr][opacityLevel];
         });
 
@@ -114,18 +114,25 @@ class TopologicalCode {
         });
     }
 
-    toggleStabilizer(stabilizer, activate, toggleVisible=false) {
+    toggleStabilizer(stabilizer, activate) {
         stabilizer.isActivated = activate;
         var activateStr = activate ? 'activated' : 'deactivated';
         var opacityLevel = this.opacityActivated ? 'min' : 'max'
 
-        stabilizer.visible = activate || !toggleVisible;
         stabilizer.material.opacity = stabilizer.opacity[activateStr][opacityLevel];
         stabilizer.material.color.setHex(stabilizer.color[activateStr]);
+
+        // Prevents a weird glitch with opacity-0 objects
+        stabilizer.visible = (stabilizer.material.opacity != 0)
+
+        // For objects with a wireframe
+        if (stabilizer.children.length > 0 && stabilizer.children[0].type == 'LineSegment') {
+            var wireframe = stabilizer.children[0]
+            wireframe.material.opacity = stabilizer.material.opacity > 0 ? 1 : 0;
+        }
     }
 
     buildQubit(index) {
-        console.log(this.qubitData[index]['object'])
         var qubit = create_shape[this.qubitData[index]['object']](this.qubitData[index]['location'], this.qubitData[index]['params']);
 
         qubit.index = index
@@ -176,6 +183,15 @@ class TopologicalCode {
             var stabType = this.stabilizerData[index]['type'];
             stabilizer.material.color.setHex(stabilizer.color['deactivated']);
             stabilizer.material.opacity = stabilizer.opacity['deactivated'][opacityLevel];
+
+            // Prevents a weird glitch with opacity-0 objects
+            stabilizer.visible = (stabilizer.material.opacity != 0)
+
+            // For objects with a wireframe
+            if (stabilizer.children.length > 0 && stabilizer.children[0].type == 'LineSegment') {
+                var wireframe = stabilizer.children[0]
+                wireframe.material.opacity = stabilizer.material.opacity > 0 ? 1 : 0;
+            }
 
             stabilizer.isActivated = false;
 
