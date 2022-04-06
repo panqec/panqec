@@ -4,7 +4,7 @@ import numpy as np
 import json
 from panqec.bpauli import bcommute
 from panqec import bsparse
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, dok_matrix
 
 Operator = Dict[Tuple, str]  # Coordinate to pauli ('X', 'Y' or 'Z')
 
@@ -201,9 +201,29 @@ class StabilizerCode(metaclass=ABCMeta):
         """
 
         if bsparse.is_empty(self._stabilizer_matrix):
-            for stabilizer_location in self.stabilizer_index:
+            sparse_dict = {}
+            self._stabilizer_matrix = dok_matrix((self.n_stabilizers, 2*self.n))
+
+            for i_stab, stabilizer_location in enumerate(self.stabilizer_coordinates):
                 stabilizer_op = self.get_stabilizer(stabilizer_location, deformed_axis=self._deformed_axis)
-                self._stabilizer_matrix = bsparse.vstack([self._stabilizer_matrix, self.to_bsf(stabilizer_op)])
+
+                for qubit_location in stabilizer_op.keys():
+                    if stabilizer_op[qubit_location] in ['X', 'Y']:
+                        i_qubit = self.qubit_index[qubit_location]
+                        if (i_stab, i_qubit) in sparse_dict.keys():
+                            sparse_dict[(i_stab, i_qubit)] += 1
+                        else:
+                            sparse_dict[(i_stab, i_qubit)] = 1
+                    if stabilizer_op[qubit_location] in ['Y', 'Z']:
+                        i_qubit = self.n + self.qubit_index[qubit_location]
+                        if (i_stab, i_qubit) in sparse_dict.keys():
+                            sparse_dict[(i_stab, i_qubit)] += 1
+                        else:
+                            sparse_dict[(i_stab, i_qubit)] = 1
+
+            self._stabilizer_matrix._update(sparse_dict)
+            self._stabilizer_matrix = self._stabilizer_matrix.tocsr()
+            self._stabilizer_matrix.data %= 2
 
         return self._stabilizer_matrix
 

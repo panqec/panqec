@@ -90,10 +90,10 @@ class XCubeCode(StabilizerCode):
             else:
                 delta = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0)]
 
+        Lx, Ly, Lz = self.size
         operator = dict()
         for d in delta:
-            qubit_location = tuple(np.add([x, y, z], d) % (2*np.array(self.size)))
-
+            qubit_location = ((x + d[0]) % (2*Lx), (y + d[1]) % (2*Ly), (z + d[2]) % (2*Lz))
             if self.is_qubit(qubit_location):
                 is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
                 operator[qubit_location] = deformed_pauli if is_deformed else pauli

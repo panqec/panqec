@@ -169,14 +169,14 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
 
 
 def test_decoder():
-    from panqec.codes import Toric3DCode
+    from panqec.codes import XCubeCode
     from panqec.bpauli import bcommute, get_effective_error
     from panqec.error_models import DeformedRandomErrorModel
     import time
     rng = np.random.default_rng()
 
-    L = 20
-    code = Toric3DCode(L, L, L)
+    L = 21
+    code = XCubeCode(L, L, L)
 
     probability = 0.1
     r_x, r_y, r_z = [0.1, 0.1, 0.8]
@@ -186,30 +186,37 @@ def test_decoder():
         error_model, probability
     )
 
+    print("Create stabilizer matrix")
+    code.stabilizer_matrix
+
+    print("Create Hx and Hz")
+    code.Hx
+    code.Hz
+
     # Start timer
-    start = time.time()
+    # start = time.time()
 
-    n_iter = 5
-    for i in range(n_iter):
-        print(f"\nRun {code.label} {i}...")
-        print("Generate errors")
-        error = error_model.generate(code, probability=probability, rng=rng)
-        print("Calculate syndrome")
-        syndrome = bcommute(code.stabilizer_matrix, error)
-        print("Decode")
-        correction = decoder.decode(code, syndrome)
-        print("Get total error")
-        total_error = (correction + error) % 2
-        print("Get effective error")
-        effective_error = get_effective_error(
-            total_error, code.logicals_x, code.logicals_z
-        )
-        print("Check codespace")
-        codespace = bool(np.all(bcommute(code.stabilizer_matrix, total_error) == 0))
-        success = bool(np.all(effective_error == 0)) and codespace
-        print(success)
+    # n_iter = 5
+    # for i in range(n_iter):
+    #     print(f"\nRun {code.label} {i}...")
+    #     print("Generate errors")
+    #     error = error_model.generate(code, probability=probability, rng=rng)
+    #     print("Calculate syndrome")
+    #     syndrome = bcommute(code.stabilizer_matrix, error)
+    #     print("Decode")
+    #     correction = decoder.decode(code, syndrome)
+    #     print("Get total error")
+    #     total_error = (correction + error) % 2
+    #     print("Get effective error")
+    #     effective_error = get_effective_error(
+    #         total_error, code.logicals_x, code.logicals_z
+    #     )
+    #     print("Check codespace")
+    #     codespace = bool(np.all(bcommute(code.stabilizer_matrix, total_error) == 0))
+    #     success = bool(np.all(effective_error == 0)) and codespace
+    #     print(success)
 
-    print("Average time per iteration", (time.time() - start) / n_iter)
+    # print("Average time per iteration", (time.time() - start) / n_iter)
 
 
 if __name__ == '__main__':

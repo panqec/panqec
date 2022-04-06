@@ -63,10 +63,6 @@ def insert_mod2(index: int, row_matrix):
     if len(row_matrix.shape) != 2 or row_matrix.shape[0] != 1:
         raise ValueError(f"The input should be a row matrix, not a {row_matrix.shape}-matrix")
 
-    # Check that the row only contains 1s
-    if not np.all(row_matrix.data == 1):
-        raise ValueError("The row matrix should only contain 0 and 1")
-
     # If matrix[index] is not zero, put it to zero
     if index in row_matrix.indices:
         row_matrix.indices = np.setdiff1d(row_matrix.indices, [index])
