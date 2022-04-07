@@ -7,9 +7,7 @@ Coordinates = List[Tuple[int, int, int]]  # List of locations
 
 
 class RotatedPlanar3DCode(StabilizerCode):
-    @property
-    def dimension(self) -> int:
-        return 3
+    dimension = 3
 
     @property
     def label(self) -> str:

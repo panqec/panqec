@@ -93,11 +93,15 @@ class StabilizerCode(metaclass=ABCMeta):
 
     @property
     @abstractmethod
+    def dimension(self) -> int:
+        """Dimension of the code (usually 2 or 3)"""
+
+    @property
+    @abstractmethod
     def label(self) -> str:
         """Label uniquely identifying a code, including its lattice dimensions
         Example: 'Toric 3D {Lx}x{Ly}x{Lz}'
         """
-        raise NotImplementedError
 
     @property
     def id(self) -> str:

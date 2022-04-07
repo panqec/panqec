@@ -1,6 +1,5 @@
 from typing import Tuple, Dict, List
 import numpy as np
-import json
 from panqec.codes import StabilizerCode
 
 Operator = Dict[Tuple[int, int], str]  # Location to pauli ('X', 'Y' or 'Z')
@@ -8,9 +7,7 @@ Coordinates = List[Tuple[int, int]]  # List of locations
 
 
 class Toric2DCode(StabilizerCode):
-    @property
-    def dimension(self) -> int:
-        return 2
+    dimension = 2
 
     @property
     def label(self) -> str:

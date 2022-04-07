@@ -19,12 +19,13 @@ from panqec.error_models import (
 import webbrowser
 import argparse
 
-code_names = {'2d': ['toric-2d', 'rotated-planar-2d', 'planar-2d'],
-              '3d': ['toric-3d', 'planar-3d', 'rotated-planar-3d', 'rhombic', 'rotated-toric-3d', 'xcube']}
+code_class = {'Toric 2D': Toric2DCode, 'Planar 2D': Planar2DCode, 'Rotated Planar 2D': RotatedPlanar2DCode,
+              'Toric 3D': Toric3DCode, 'Rotated Toric 3D': RotatedToric3DCode, 'Rotated Planar 3D': RotatedPlanar3DCode,
+              'Rhombic': RhombicCode, 'Planar 3D': Planar3DCode, 'XCube': XCubeCode}
 
-code_class = {'toric-2d': Toric2DCode, 'planar-2d': Planar2DCode, 'rotated-planar-2d': RotatedPlanar2DCode,
-              'toric-3d': Toric3DCode, 'rotated-toric-3d': RotatedToric3DCode, 'rotated-planar-3d': RotatedPlanar3DCode,
-              'rhombic': RhombicCode, 'planar-3d': Planar3DCode, 'xcube': XCubeCode}
+code_names = {'2d': [code[0] for code in code_class.items() if code[1].dimension == 2],
+              '3d': [code[0] for code in code_class.items() if code[1].dimension == 3]}
+
 
 error_model_class = {'None': PauliErrorModel,
                      'XZZX': DeformedXZZXErrorModel,
@@ -72,6 +73,14 @@ def favicon():
 @app.route('/js/<path:path>')
 def send_js(path):
     return send_from_directory('js', path)
+
+
+@app.route('/code-names', methods=['POST'])
+def send_code_names():
+    if request.json['dimension'] == 2:
+        return json.dumps(code_names['2d'])
+    else:
+        return json.dumps(code_names['3d'])
 
 
 @app.route('/code-data', methods=['POST'])

@@ -8,9 +8,7 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class RhombicCode(StabilizerCode):
-    @property
-    def dimension(self) -> int:
-        return 3
+    dimension = 3
 
     @property
     def label(self) -> str:

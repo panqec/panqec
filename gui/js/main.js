@@ -5,7 +5,7 @@ import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat
 
 import { TopologicalCode } from './topologicalCode.js';
 
-var defaultCode = codeDimension == 2 ? 'toric-2d' : 'toric-3d';
+var defaultCode = codeDimension == 2 ? 'Toric 2D' : 'Toric 3D';
 var defaultSize = codeDimension == 2 ? 6 : 4;
 
 const params = {
@@ -23,7 +23,7 @@ const params = {
     deformed_axis: 'None'
 };
 
-let codeSize = {Lx: defaultSize, Ly: defaultSize, Lz: defaultSize}
+let codeSize = {Lx: defaultSize, Ly: defaultSize, Lz: defaultSize};
 
 const buttons = {
     'decode': decode,
@@ -209,16 +209,25 @@ async function getCodeData() {
     return data;
 }
 
-function buildGUI() {
+async function getCodeNames() {
+    let response = await fetch('/code-names', {
+        headers: {
+            'Content-Type': 'application/json'
+          },
+        method: 'POST',
+        body: JSON.stringify({'dimension': codeDimension})
+    });
+
+    let data  = await response.json();
+
+    return data;
+}
+
+async function buildGUI() {
     gui = new GUI({width: 300});
     const codeFolder = gui.addFolder('Code')
 
-    var codes2d = {'Toric': 'toric-2d', 'Planar': 'planar-2d', 'Rotated planar': 'rotated-planar-2d'};
-    var codes3d = {'Toric 3D': 'toric-3d', 'Planar 3D': 'planar-3d',
-                   'Rotated Planar 3D': 'rotated-planar-3d',
-                   'Rhombic': 'rhombic', 'Rotated Toric 3D': 'rotated-toric-3d', 'XCube': 'xcube'};
-
-    var codes = codeDimension == 2 ? codes2d : codes3d;
+    let codes = await getCodeNames();
 
     codeFolder.add(params, 'codeName', codes).name('Code type').onChange(changeLatticeSize);
     codeFolder.add(params, 'rotated').name('Rotated picture').onChange(changeLatticeSize);
