@@ -558,6 +558,7 @@ def plot_combined_threshold_vs_bias(plt, Line2D, thresholds_df,
                                     markers=['o', 'x'],
                                     linestyles=['-', '--'],
                                     depolarizing_labels=[True, False],
+                                    figsize=(5,4),
                                     pdf=None):
     n_plots = len(thresholds_df)
 
@@ -575,7 +576,7 @@ def plot_combined_threshold_vs_bias(plt, Line2D, thresholds_df,
             hashing=hashing
         )
 
-    plt.rcParams['figure.figsize'] = (5, 4)
+    plt.rcParams['figure.figsize'] = figsize
 
     if pdf:
         plt.savefig(pdf, bbox_inches='tight')
