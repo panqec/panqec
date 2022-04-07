@@ -362,14 +362,6 @@ def get_code_df(results_df: pd.DataFrame) -> pd.DataFrame:
     """DataFrame of codes available."""
     code_df = results_df[['code', 'n', 'k', 'd']].copy()
     code_df = code_df.drop_duplicates().reset_index(drop=True)
-    code_df = pd.concat([
-        code_df,
-        pd.DataFrame(
-            [code_df['n'], code_df['k'], code_df['d']],
-            index=code_df.index,
-            columns=['n', 'k', 'd']
-        )
-    ], axis=1)
     code_df = code_df.sort_values(by='n').reset_index(drop=True)
     return code_df
 
