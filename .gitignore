@@ -143,3 +143,5 @@ dmypy.json
 
 gui/static/node_modules
 gui/static/package-lock.json
+
+temp/
