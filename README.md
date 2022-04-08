@@ -31,7 +31,25 @@ If you don't do this, as a fallback, the data files will be written to the
 Optionally, if you use dark theme in Jupyter Lab, setting
 `PANQEC_DARK_THEME=True` in the `.env` file will make the plots show up nicer.
 
+# Start the GUI
+
+To start the GUI, run
+```
+panqec start-gui
+```
+Then open your browser and go to the link printed out in the command line.
+
+# Build the documentation
+
+Within the root directory of the repository, run
+```
+sphinx-build -b html docs/ docs/_build/html
+```
+You can then read it by opening the file `docs/_build/html/index.html` on
+your web browser.
+
 # Run the tests
+
 After you've activated your virtual environment and installed the dependences,
 you can run the tests to make sure everything has been correctly installed.
 
