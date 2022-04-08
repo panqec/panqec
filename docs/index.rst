@@ -20,6 +20,7 @@ To make a feature request or report a bug, please visit the PanQEC `GitHub repos
 
    installation.md
    documentation.md
+   tutorials/Adding new code
 
 Indices and tables
 ==================
