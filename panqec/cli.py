@@ -14,8 +14,7 @@ from .slurm import (
 )
 from .statmech.cli import statmech
 from .utils import get_direction_from_bias_ratio
-from gui.gui import app
-
+from panqec.gui import GUI
 from glob import glob
 
 
@@ -35,7 +34,8 @@ def cli(ctx):
 @click.command()
 @click.option('-p', '--port', 'port')
 def start_gui(port: Optional[int]):
-    app.run(port=port)
+    gui = GUI()
+    gui.run(port=port)
 
 
 @click.command()

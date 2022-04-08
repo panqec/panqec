@@ -105,7 +105,8 @@ class Toric3DCode(StabilizerCode):
 
         operator = dict()
         for d in delta:
-            qubit_location = tuple(np.add(location, d) % (2*np.array(self.size)))
+            Lx, Ly, Lz = self.size
+            qubit_location = ((x + d[0]) % (2*Lx), (y + d[1]) % (2*Ly), (z + d[2]) % (2*Lz))
 
             if self.is_qubit(qubit_location):
                 is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
