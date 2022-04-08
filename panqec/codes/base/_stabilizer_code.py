@@ -3,9 +3,13 @@ import os
 from abc import ABCMeta, abstractmethod
 import numpy as np
 import json
+from scipy.sparse import csr_matrix, dok_matrix
+
+import panqec
 from panqec.bpauli import bcommute
 from panqec import bsparse
-from scipy.sparse import csr_matrix, dok_matrix
+
+os.environ['PANQEC_DIR'] = os.path.dirname(panqec.__file__)
 
 Operator = Dict[Tuple, str]  # Coordinate to pauli ('X', 'Y' or 'Z')
 
@@ -568,7 +572,7 @@ class StabilizerCode(metaclass=ABCMeta):
             Dictionary to send to the GUI
         """
         if json_file is None:
-            json_file = os.path.join(os.environ['PANQEC_DIR'], 'panqec/codes/gui-config.json')
+            json_file = os.path.join(os.environ['PANQEC_DIR'], 'codes', 'gui-config.json')
 
         stab_type = self.stabilizer_type(location)
 
@@ -614,11 +618,11 @@ class StabilizerCode(metaclass=ABCMeta):
             Dictionary to send to the GUI
         """
         if json_file is None:
-            json_file = os.path.join(os.environ['PANQEC_DIR'], 'panqec/codes/gui-config.json')
+            json_file = os.path.join(os.environ['PANQEC_DIR'], 'codes', 'gui-config.json')
 
         with open(json_file, 'r') as f:
             data = json.load(f)
-            
+
         code_name = self.id
 
         # if self.id == 'MyToric3DCode':
