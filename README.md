@@ -6,7 +6,7 @@ Simulation and visualization of quantum error correction codes
 
 Clone the repo and enter the repo
 ```
-git clone https://github.com/ehua7365/panqec.git
+git clone https://github.com/panqec/panqec.git
 cd panqec
 ```
 
@@ -47,6 +47,12 @@ sphinx-build -b html docs/ docs/_build/html
 ```
 You can then read it by opening the file `docs/_build/html/index.html` on
 your web browser.
+
+Alternatively, after building you can you serve it locally with
+```
+python -m http.server -d docs/_build/html 8000
+```
+then go to `localhost:8000` in your web browser to view the docs.
 
 # Run the tests
 
