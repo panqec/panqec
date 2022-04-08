@@ -11,6 +11,8 @@ pytest-cov==2.11.1
 pandas==1.2.4
 sphinx==4.5.0
 sphinx-rtd-theme==1.0.0
+nbsphinx==0.8.8
+myst-parser==0.17.0
 
 # GUI
 Flask==2.0.1
