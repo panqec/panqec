@@ -9,6 +9,7 @@ class RotatedSweepMatchDecoder(SweepMatchDecoder):
     _sweeper: RotatedSweepDecoder3D
     _matcher: RotatedPlanarPymatchingDecoder
 
-    def __init__(self):
+    def __init__(self, error_model, probability):
+        super().__init__(error_model, probability)
         self._sweeper = RotatedSweepDecoder3D()
         self._matcher = RotatedPlanarPymatchingDecoder()

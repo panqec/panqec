@@ -12,7 +12,7 @@ const params = {
     errorProbability: 0.3,
     L: defaultSize,
     noise_deformation: 'None',
-    decoder: 'bp-osd',
+    decoder: 'BP-OSD',
     max_bp_iter: 10,
     alpha: 0.4,
     channel_update: false,
@@ -209,8 +209,8 @@ async function getCodeData() {
     return data;
 }
 
-async function getCodeNames() {
-    let response = await fetch('/code-names', {
+async function getModelNames() {
+    let response = await fetch('/model-names', {
         headers: {
             'Content-Type': 'application/json'
           },
@@ -227,7 +227,9 @@ async function buildGUI() {
     gui = new GUI({width: 300});
     const codeFolder = gui.addFolder('Code')
 
-    let codes = await getCodeNames();
+    var models = await getModelNames();
+    var codes = models['codes'];
+    var decoders = models['decoders'];
 
     codeFolder.add(params, 'codeName', codes).name('Code type').onChange(changeLatticeSize);
     codeFolder.add(params, 'rotated').name('Rotated picture').onChange(changeLatticeSize);
@@ -250,16 +252,7 @@ async function buildGUI() {
 
     const decoderFolder = gui.addFolder('Decoder')
 
-    let decoderOptions = {'BP-OSD': 'bp-osd', 'MBP': 'mbp'}
-    if (codeDimension == 3)
-    {
-        decoderOptions['SweepMatch'] = 'sweepmatch';
-        decoderOptions['Optimal ∞ bias'] = 'infzopt';
-    }
-    else if (codeDimension == 2)
-        decoderOptions['Matching'] = 'matching';
-
-    decoderFolder.add(params, 'decoder', decoderOptions).name('Decoder');
+    decoderFolder.add(params, 'decoder', decoders).name('Decoder');
     decoderFolder.add(params, 'max_bp_iter', 1, 100, 1).name('Max iterations (BP)');
     decoderFolder.add(params, 'channel_update').name('Channel update (BP)');
     decoderFolder.add(params, 'alpha', 0.01, 2, 0.01).name('Alpha (MBP)');

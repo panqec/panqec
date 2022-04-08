@@ -12,7 +12,8 @@ class Toric2DPymatchingDecoder(BaseDecoder):
     label = 'Toric 2D Pymatching'
     _matchers: Dict[str, Tuple[Matching, Matching]] = {}
 
-    def __init__(self):
+    def __init__(self, error_model, probability):
+        super().__init__(error_model, probability)
         self._matchers = {}
 
     def _new_matchers(self, code: Toric2DCode) -> Tuple[Matching, Matching]:

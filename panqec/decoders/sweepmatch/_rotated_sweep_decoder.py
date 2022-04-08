@@ -11,7 +11,9 @@ class RotatedSweepDecoder3D(BaseDecoder):
     _rng: np.random.Generator
     max_rounds: int
 
-    def __init__(self, seed: int = 0, max_rounds: int = 4):
+    def __init__(self, error_model, probability,
+                 seed: int = 0, max_rounds: int = 4):
+        super().__init__(error_model, probability)
         self._rng = np.random.default_rng(seed)
         self.max_rounds = max_rounds
 

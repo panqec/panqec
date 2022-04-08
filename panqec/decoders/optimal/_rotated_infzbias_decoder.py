@@ -12,7 +12,8 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
 
     def get_edges_xy(self, code: RotatedPlanar3DCode):
         xy = [
-            (x, y) for x, y, z in code.face_index if z == 2
+            (x, y) for x, y, z in code.stabilizer_coordinates
+            if z == 2 and code.stabilizer_type((x, y, z)) == 'face'
         ]
         return xy
 
@@ -41,11 +42,13 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
         code: RotatedPlanar3DCode, z_plane: int
     ):
         """Do 2D matching on top and bottom boundary surfaces."""
+        face_coordinates = [location for location in code.stabilizer_coordinates
+                            if code.stabilizer_type(location) == 'face']
         edges = sorted([
             (x, y, z) for x, y, z in code.qubit_coordinates if z == z_plane
         ])
         faces = sorted([
-            (x, y, z) for x, y, z in code.face_index if z == z_plane
+            (x, y, z) for x, y, z in face_coordinates if z == z_plane
         ])
         edge_index = {
             location: index for index, location in enumerate(edges)
@@ -66,7 +69,7 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
         matcher = Matching(check_matrix)
 
         surface_syndromes = np.array([
-            signs[face]
+            signs[code.stabilizer_index[face]]
             for face in faces
         ], dtype=np.uint)
 
@@ -77,7 +80,6 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
         new_signs = signs.copy()
         for i_edge in np.where(surface_corrections)[0]:
             location = edges[i_edge]
-            print(location)
             self.flip_edge(location, new_signs, code)
             correction[location] = 'Z'
 
@@ -95,10 +97,10 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
 
         line_faces = [
             (x, y, 2*i + 2)
-            for i in range(L_z)
+            for i in range(L_z-1)
         ]
         line_syndromes = np.array([
-            signs[face]
+            signs[code.stabilizer_index[face]]
             for face in line_faces
         ])
         n_syndromes = sum(line_syndromes)
@@ -139,7 +141,10 @@ class XLineDecoder(BaseDecoder):
     ) -> np.ndarray:
         x, y = xy
         L_z = code.size[2]
-        n_faces = len(code.face_index)
+        face_coordinates = [location for location in code.stabilizer_coordinates
+                            if code.stabilizer_type(location) == 'face']
+
+        n_faces = len(face_coordinates)
 
         edges = [
             (x, y, 2*i + 2)
@@ -166,7 +171,7 @@ class XLineDecoder(BaseDecoder):
         matcher = Matching(check_matrix)
 
         line_syndromes = np.array([
-            syndrome[n_faces + code.vertex_index[vertex]]
+            syndrome[code.stabilizer_index[vertex]]
             for vertex in vertices
         ], dtype=np.uint)
 
@@ -209,9 +214,10 @@ class RotatedInfiniteZBiasDecoder(BaseDecoder):
     _matcher: XLineDecoder
     _sweeper: ZMatchingDecoder
 
-    def __init__(self):
-        self._matcher = XLineDecoder()
-        self._sweeper = ZMatchingDecoder()
+    def __init__(self, error_model, probability):
+        super().__init__(error_model, probability)
+        self._matcher = XLineDecoder(error_model, probability)
+        self._sweeper = ZMatchingDecoder(error_model, probability)
 
     def decode(
         self, code: RotatedPlanar3DCode, syndrome: np.ndarray

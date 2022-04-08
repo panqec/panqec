@@ -6,6 +6,10 @@ from scipy.sparse import csr_matrix
 class BaseDecoder(metaclass=ABCMeta):
     """Base class for decoders"""
 
+    def __init__(self, error_model, probability):
+        self._error_model = error_model
+        self._probability = probability
+
     @property
     @abstractmethod
     def label(self):
