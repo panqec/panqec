@@ -21,7 +21,8 @@ class RotatedPlanarPymatchingDecoder(Toric3DPymatchingDecoder):
     _n_faces: Dict[str, int] = {}
     _n_qubits: Dict[str, int] = {}
 
-    def __init__(self):
+    def __init__(self, error_model, probability):
+        super().__init__(error_model, probability)
         self._matchers = {}
 
     def new_matcher(self, code: StabilizerCode):

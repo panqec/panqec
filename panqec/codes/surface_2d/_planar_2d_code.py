@@ -7,9 +7,7 @@ Coordinates = List[Tuple[int, int]]  # List of locations
 
 
 class Planar2DCode(StabilizerCode):
-    @property
-    def dimension(self) -> int:
-        return 2
+    dimension = 2
 
     @property
     def label(self) -> str:

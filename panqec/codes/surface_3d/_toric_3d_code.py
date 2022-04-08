@@ -7,9 +7,7 @@ Coordinates = List[Tuple[int, int, int]]  # List of locations
 
 
 class Toric3DCode(StabilizerCode):
-    @property
-    def dimension(self) -> int:
-        return 3
+    dimension = 3
 
     @property
     def label(self) -> str:
@@ -107,7 +105,8 @@ class Toric3DCode(StabilizerCode):
 
         operator = dict()
         for d in delta:
-            qubit_location = tuple(np.add(location, d) % (2*np.array(self.size)))
+            Lx, Ly, Lz = self.size
+            qubit_location = ((x + d[0]) % (2*Lx), (y + d[1]) % (2*Ly), (z + d[2]) % (2*Lz))
 
             if self.is_qubit(qubit_location):
                 is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)

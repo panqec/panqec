@@ -1,6 +1,5 @@
 import itertools
 from typing import Tuple, Dict, List
-import numpy as np
 from panqec.codes import StabilizerCode
 
 Operator = Dict[Tuple, str]  # Location to pauli ('X', 'Y' or 'Z')
@@ -8,9 +7,7 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class XCubeCode(StabilizerCode):
-    @property
-    def dimension(self) -> int:
-        return 3
+    dimension = 3
 
     @property
     def label(self) -> str:

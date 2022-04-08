@@ -13,7 +13,9 @@ class SweepDecoder3D(BaseDecoder):
     _rng: np.random.Generator
     max_sweep_factor: int
 
-    def __init__(self, seed: int = 0, max_sweep_factor: int = 32):
+    def __init__(self, error_model, probability,
+                 seed: int = 0, max_sweep_factor: int = 32):
+        super().__init__(error_model, probability)
         self._rng = np.random.default_rng(seed)
         self.max_sweep_factor = max_sweep_factor
 
@@ -103,8 +105,6 @@ class SweepDecoder3D(BaseDecoder):
         while any(signs) and i_sweep < max_sweeps:
             signs = self.sweep_move(signs, correction, code)
             i_sweep += 1
-
-        print("Before", correction)
 
         return code.to_bsf(correction)
 

@@ -19,7 +19,8 @@ class Toric3DPymatchingDecoder(BaseDecoder):
     label = 'Toric 3D Pymatching'
     _matchers: Dict[str, Matching] = {}
 
-    def __init__(self):
+    def __init__(self, error_model, probability):
+        super().__init__(error_model, probability)
         self._matchers = {}
 
     def new_matcher(self, code: StabilizerCode):

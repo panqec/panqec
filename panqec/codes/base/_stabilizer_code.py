@@ -1,10 +1,15 @@
 from typing import Dict, Tuple, Optional, List
+import os
 from abc import ABCMeta, abstractmethod
 import numpy as np
 import json
+from scipy.sparse import csr_matrix, dok_matrix
+
+import panqec
 from panqec.bpauli import bcommute
 from panqec import bsparse
-from scipy.sparse import csr_matrix, dok_matrix
+
+os.environ['PANQEC_DIR'] = os.path.dirname(panqec.__file__)
 
 Operator = Dict[Tuple, str]  # Coordinate to pauli ('X', 'Y' or 'Z')
 
@@ -93,11 +98,15 @@ class StabilizerCode(metaclass=ABCMeta):
 
     @property
     @abstractmethod
+    def dimension(self) -> int:
+        """Dimension of the code (usually 2 or 3)"""
+
+    @property
+    @abstractmethod
     def label(self) -> str:
         """Label uniquely identifying a code, including its lattice dimensions
         Example: 'Toric 3D {Lx}x{Ly}x{Lz}'
         """
-        raise NotImplementedError
 
     @property
     def id(self) -> str:
@@ -534,9 +543,12 @@ class StabilizerCode(metaclass=ABCMeta):
             of the logical operator.
         """
 
-    def stabilizer_representation(self, location: Tuple, rotated_picture=False) -> Dict:
-        """Returns a dictionary of visualization parameters for the input stabilizer,
-        that can be used by the web visualizer.
+    def stabilizer_representation(self,
+                                  location: Tuple,
+                                  rotated_picture=False,
+                                  json_file=None) -> Dict:
+        """Returns a dictionary of visualization parameters for the input
+        stabilizer, that can be used by the web visualizer.
 
         It should contain 4 keys:
         - 'type': the type of stabilizer, e.g. 'vertex'
@@ -551,15 +563,20 @@ class StabilizerCode(metaclass=ABCMeta):
         rotated_picture: bool
             For codes that have a rotated picture, can be used to differentiate
             the two types visualizations
+        json_file: str
+            File with the initial configuration for the code
 
         Returns
         -------
         representation: Dict
             Dictionary to send to the GUI
         """
+        if json_file is None:
+            json_file = os.path.join(os.environ['PANQEC_DIR'], 'codes', 'gui-config.json')
+
         stab_type = self.stabilizer_type(location)
 
-        with open('panqec/codes/gui-config.json', 'r') as f:
+        with open(json_file, 'r') as f:
             data = json.load(f)
 
         code_name = self.id
@@ -575,9 +592,12 @@ class StabilizerCode(metaclass=ABCMeta):
 
         return representation
 
-    def qubit_representation(self, location: Tuple, rotated_picture=False) -> Dict:
-        """Returns a dictionary of visualization parameters for the input qubit,
-        that can be used by the web visualizer.
+    def qubit_representation(self,
+                             location: Tuple,
+                             rotated_picture=False,
+                             json_file=None) -> Dict:
+        """Returns a dictionary of visualization parameters for the input
+        qubit,  that can be used by the web visualizer.
         - 'location': [x, y, z],
         - 'object': the type of object to use for visualization, e.g. 'sphere'
         - 'params': a dictionary of parameters for the chosen object
@@ -589,16 +609,31 @@ class StabilizerCode(metaclass=ABCMeta):
         rotated_picture: bool
             For codes that have a rotated picture, can be used to differentiate
             the two types visualizations
+        json_file: str
+            File with the initial configuration for the code
 
         Returns
         -------
         representation: Dict
             Dictionary to send to the GUI
         """
-        with open('panqec/codes/gui-config.json', 'r') as f:
+        if json_file is None:
+            json_file = os.path.join(os.environ['PANQEC_DIR'], 'codes', 'gui-config.json')
+
+        with open(json_file, 'r') as f:
             data = json.load(f)
 
         code_name = self.id
+
+        # if self.id == 'MyToric3DCode':
+        #     print(data)
+        #     print()
+        #     print()
+        #     print(data[code_name])
+        #     print()
+        #     print(data[code_name]['qubits'])
+        #     print(data[code_name]['qubits'][picture])
+
         picture = 'rotated' if rotated_picture else 'kitaev'
 
         representation = data[code_name]['qubits'][picture]

@@ -20,9 +20,7 @@ def on_defect_boundary(Lx, Ly, x, y):
 class RotatedToric3DCode(StabilizerCode):
     """Rotated Toric Code for good subthreshold scaling."""
 
-    @property
-    def dimension(self) -> int:
-        return 3
+    dimension = 3
 
     @property
     def label(self) -> str:

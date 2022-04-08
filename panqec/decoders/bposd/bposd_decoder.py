@@ -16,9 +16,7 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
                  max_bp_iter: int = 1000,
                  channel_update: bool = False,
                  osd_order: int = 10):
-        super().__init__()
-        self._error_model = error_model
-        self._probability = probability
+        super().__init__(error_model, probability)
         self._max_bp_iter = max_bp_iter
         self._channel_update = channel_update
         self._osd_order = osd_order
