@@ -9,7 +9,7 @@ import panqec
 from panqec.bpauli import bcommute
 from panqec import bsparse
 
-os.environ['PANQEC_DIR'] = os.path.dirname(panqec.__file__)
+os.environ['PANQEC_ROOT_DIR'] = os.path.dirname(panqec.__file__)
 
 Operator = Dict[Tuple, str]  # Coordinate to pauli ('X', 'Y' or 'Z')
 
@@ -572,7 +572,7 @@ class StabilizerCode(metaclass=ABCMeta):
             Dictionary to send to the GUI
         """
         if json_file is None:
-            json_file = os.path.join(os.environ['PANQEC_DIR'], 'codes', 'gui-config.json')
+            json_file = os.path.join(os.environ['PANQEC_ROOT_DIR'], 'codes', 'gui-config.json')
 
         stab_type = self.stabilizer_type(location)
 
@@ -618,7 +618,7 @@ class StabilizerCode(metaclass=ABCMeta):
             Dictionary to send to the GUI
         """
         if json_file is None:
-            json_file = os.path.join(os.environ['PANQEC_DIR'], 'codes', 'gui-config.json')
+            json_file = os.path.join(os.environ['PANQEC_ROOT_DIR'], 'codes', 'gui-config.json')
 
         with open(json_file, 'r') as f:
             data = json.load(f)
