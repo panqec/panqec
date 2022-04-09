@@ -1,21 +1,21 @@
 # PanQEC
 
-PanQEC is a Python package that simplify the simulation and visualization of quantum error correction codes.
+PanQEC is a Python package that simplifies the simulation and visualization of quantum error correction codes.
 In particular, it provides the following features:
 
-* Simple implementation of topological codes, through lists of coordinates for qubits, stabilizers and logicals. Parity-check matrices and other properties of the code are automatically computed.
-* End-to-end sparse implementation of all the vectors and matrices, optimized for fast and memory-efficient simulations.
-* Library of high-level functions to evaluate the performance of a code with a given decoder and noise model. In particular, simulating the code and establishing its threshold and subthreshold scaling performance is made particularly easy.
-* 2D and 3D visualization of topological codes on the web browser, with a simple process to add your own codes on the visualization.
+* **Simple implementation of topological codes**, through lists of coordinates for qubits, stabilizers and logicals. Parity-check matrices and other properties of the code are automatically computed.
+* End-to-end **sparse implementation of all the vectors and matrices**, optimized for fast and memory-efficient simulations.
+* Library of high-level functions to evaluate the performance of a code with a given decoder and noise model. In particular, simulating the code and establishing its **threshold** and **subthreshold scaling** performance is made particularly easy.
+* **2D and 3D visualization of topological codes** on the web browser, with a simple process to add your own codes on the visualization.
 * Large collection of codes, error models and decoders.
 
 In its current version, PanQEC implements the following codes
 
-* 2D and 3D surface codes, with periodic/open boundary, on both the rotated and traditional lattices.
-* 3D rhombic code
-* Fractons codes: X-Cube model and Haah's code
+* **2D and 3D surface codes**, with periodic/open boundary, on both the rotated and traditional lattices.
+* **Rhombic code**
+* **Fractons codes**: X-Cube model and Haah's code
 
-We also include an option to Hadamard-deform all those codes, i.e. applying a Hadamard gate on all qubits of a given axis. It includes the XZZX version of the 2D and 3D surface codes.
+We also include an option to Hadamard-deform all those codes, i.e. applying a Hadamard gate on all qubits of a given axis. It includes the **XZZX version of the 2D and 3D surface codes**.
 
 PanQEC also currently offers the following decoders:
 
