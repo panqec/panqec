@@ -4,7 +4,7 @@ from flask import Flask, send_from_directory, request, json, render_template
 from panqec.codes import (
     Toric2DCode, RotatedPlanar2DCode, Planar2DCode,
     Toric3DCode, RotatedPlanar3DCode, RhombicCode,
-    Planar3DCode, RotatedToric3DCode, XCubeCode
+    Planar3DCode, RotatedToric3DCode, XCubeCode, HaahCode
 )
 from panqec.decoders import (
     Toric2DPymatchingDecoder, RotatedSweepMatchDecoder,
@@ -22,7 +22,7 @@ import argparse
 
 codes = {'Toric 2D': Toric2DCode, 'Planar 2D': Planar2DCode, 'Rotated Planar 2D': RotatedPlanar2DCode,
          'Toric 3D': Toric3DCode, 'Rotated Toric 3D': RotatedToric3DCode, 'Rotated Planar 3D': RotatedPlanar3DCode,
-         'Rhombic': RhombicCode, 'Planar 3D': Planar3DCode, 'XCube': XCubeCode}
+         'Rhombic': RhombicCode, 'Planar 3D': Planar3DCode, 'XCube': XCubeCode, "Haah's code": HaahCode}
 
 error_models = {'None': PauliErrorModel,
                 'XZZX': DeformedXZZXErrorModel,

@@ -114,7 +114,7 @@ function cube(location, params) {
 
     var geo = new THREE.EdgesGeometry( cube.geometry );
     var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 2,
-                                           opacity: 0, transparent: true });
+                                           opacity: 1, transparent: true });
     var wireframe = new THREE.LineSegments(geo, mat);
     wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
 

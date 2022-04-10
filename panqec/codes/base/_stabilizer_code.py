@@ -625,15 +625,6 @@ class StabilizerCode(metaclass=ABCMeta):
 
         code_name = self.id
 
-        # if self.id == 'MyToric3DCode':
-        #     print(data)
-        #     print()
-        #     print()
-        #     print(data[code_name])
-        #     print()
-        #     print(data[code_name]['qubits'])
-        #     print(data[code_name]['qubits'][picture])
-
         picture = 'rotated' if rotated_picture else 'kitaev'
 
         representation = data[code_name]['qubits'][picture]

@@ -12,6 +12,8 @@ from .surface_3d._rotated_planar_3d_code import RotatedPlanar3DCode  # noqa
 from .rhombic._rhombic_code import RhombicCode  # noqa
 from .surface_3d._rotated_toric_3d_code import RotatedToric3DCode  # noqa
 from .fractons._xcube_code import XCubeCode  # noqa
+from .fractons._haah_code import HaahCode  # noqa
+
 
 __all__ = [
     "StabilizerCode",
@@ -23,5 +25,6 @@ __all__ = [
     "RotatedPlanar3DCode",
     "RhombicCode",
     "RotatedToric3DCode",
-    "XCubeCode"
+    "XCubeCode",
+    "HaahCode"
 ]
