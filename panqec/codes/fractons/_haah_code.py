@@ -1,4 +1,3 @@
-import itertools
 from typing import Tuple, Dict, List
 from panqec.codes import StabilizerCode
 
