@@ -212,7 +212,7 @@ class StabilizerCode(metaclass=ABCMeta):
 
         if bsparse.is_empty(self._stabilizer_matrix):
             sparse_dict = {}
-            self._stabilizer_matrix = dok_matrix((self.n_stabilizers, 2*self.n))
+            self._stabilizer_matrix = dok_matrix((self.n_stabilizers, 2*self.n), dtype='uint8')
 
             for i_stab, stabilizer_location in enumerate(self.stabilizer_coordinates):
                 stabilizer_op = self.get_stabilizer(stabilizer_location, deformed_axis=self._deformed_axis)

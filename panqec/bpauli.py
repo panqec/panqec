@@ -90,9 +90,6 @@ def _bcommute_sparse(a, b):
     commutes = (a_X.dot(b_Z.T) + a_Z.dot(b_X.T))
     commutes.data %= 2
 
-    if commutes.shape[0] == 1 or commutes.shape[1] == 1:
-        commutes = bsparse.to_array(commutes).flatten()
-
     return commutes
 
 
