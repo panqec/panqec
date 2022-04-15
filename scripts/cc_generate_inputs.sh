@@ -65,7 +65,7 @@ common_name=det_rhombic_bposd_xzzx_xbias_extra
 name=${common_name}_temp
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
-sizes="10,14,18,22"
+sizes="10,14,18,20"
 bn3d generate-input -i "$paper_dir/$name/inputs" \
     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
     --ratio equal \
