@@ -136,8 +136,8 @@ class GUI():
             return json.dumps({'H': code.stabilizer_matrix.toarray().tolist(),
                                'qubits': qubits,
                                'stabilizers': stabilizers,
-                               'logical_z': logical_z,
-                               'logical_x': logical_x})
+                               'logical_z': logical_z.tolist(),
+                               'logical_x': logical_x.tolist()})
 
         @self.app.route('/decode', methods=['POST'])
         def send_correction():
@@ -165,8 +165,8 @@ class GUI():
 
             correction = decoder.decode(code, syndrome)
 
-            correction_x = correction[0, :code.n]
-            correction_z = correction[0, code.n:]
+            correction_x = correction[:code.n]
+            correction_z = correction[code.n:]
 
             return json.dumps({'x': correction_x.tolist(), 'z': correction_z.tolist()})
 
@@ -188,7 +188,7 @@ class GUI():
             error_spec = [
                 (
                     bsf_to_str_map[
-                        (errors[0, i_qubit], errors[0, i_qubit + code.n])
+                        (errors[i_qubit], errors[i_qubit + code.n])
                     ],
                     [
                         coords for index, coords in enumerate(code.qubit_coordinates)
