@@ -23,8 +23,7 @@ class SweepMatchDecoder(BaseDecoder):
         z_correction = self._sweeper.decode(code, syndrome)
         x_correction = self._matcher.decode(code, syndrome)
 
-        correction = x_correction + z_correction
-        correction.data %= 2
+        correction = (x_correction + z_correction) % 2
         correction = correction.astype(np.uint)
 
-        return bsparse.from_array(correction)
+        return correction

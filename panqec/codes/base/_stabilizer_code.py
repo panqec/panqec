@@ -6,7 +6,7 @@ import json
 from scipy.sparse import csr_matrix, dok_matrix
 
 import panqec
-from panqec.bpauli import bcommute
+from panqec.bpauli import bcommute, get_effective_error
 from panqec import bsparse
 
 os.environ['PANQEC_ROOT_DIR'] = os.path.dirname(panqec.__file__)
@@ -78,8 +78,8 @@ class StabilizerCode(metaclass=ABCMeta):
         self._stabilizer_matrix = bsparse.empty_row(2*self.n)
         self._Hx = bsparse.empty_row(self.n)
         self._Hz = bsparse.empty_row(self.n)
-        self._logicals_x = bsparse.empty_row(2*self.n)
-        self._logicals_z = bsparse.empty_row(2*self.n)
+        self._logicals_x = None
+        self._logicals_z = None
         self._is_css = None
         self._x_indices = None
         self._z_indices = None
@@ -170,26 +170,34 @@ class StabilizerCode(metaclass=ABCMeta):
         return len(self.stabilizer_index)
 
     @property
-    def logicals_x(self) -> csr_matrix:
+    def logicals_x(self) -> np.ndarray:
         """Logical X operator, as a k x 2n sparse matrix in the binary
         symplectic format, where k is the number of logical X operators,
         and n the number of qubits.
         """
-        if self._logicals_x.size == 0:
-            for logical_op in self.get_logicals_x():
-                self._logicals_x = bsparse.vstack([self._logicals_x, self.to_bsf(logical_op)])
+        if self._logicals_x is None:
+            logical_ops = self.get_logicals_x()
+            k = len(logical_ops)
+            self._logicals_x = np.zeros((k, 2*self.n), dtype='uint8')
+
+            for i, logical_op in enumerate(logical_ops):
+                self._logicals_x[i] = self.to_bsf(logical_op)
 
         return self._logicals_x
 
     @property
-    def logicals_z(self) -> csr_matrix:
+    def logicals_z(self) -> np.ndarray:
         """Logical Z operators in the binary symplectic format.
         It is a sparse matrix of dimension k x 2n, where k is the number
         of Z logicals and n the number of qubits.
         """
-        if self._logicals_z.size == 0:
-            for logical_op in self.get_logicals_z():
-                self._logicals_z = bsparse.vstack([self._logicals_z, self.to_bsf(logical_op)])
+        if self._logicals_z is None:
+            logical_ops = self.get_logicals_z()
+            k = len(logical_ops)
+            self._logicals_z = np.zeros((k, 2*self.n), dtype='uint8')
+
+            for i, logical_op in enumerate(logical_ops):
+                self._logicals_z[i] = self.to_bsf(logical_op)
 
         return self._logicals_z
 
@@ -300,45 +308,106 @@ class StabilizerCode(metaclass=ABCMeta):
 
         return self._z_indices
 
-    def extract_x_syndrome(self, syndrome: csr_matrix) -> csr_matrix:
+    def in_codespace(self, error: np.ndarray) -> bool:
+        """Check whether or not a given error is in the codespace,
+        i.e. whether it has a zero syndrome or not.
+
+        Parameters
+        ----------
+        error: np.ndarray
+            Error as an array of size 2n (where n is the number of qubits)
+            in the binary symplectic format
+
+        Returns
+        -------
+        bool
+            Whether or not the error is in the codespace
+        """
+
+        return bool(np.all(bcommute(self.stabilizer_matrix, error) == 0))
+
+    def logical_errors(self, error: np.ndarray) -> np.ndarray:
+        """Return the logical errors, as an array of size 2k
+        (where k is the number of logicals), such that each component is
+        1 if and only if it anticommutes with the corresponding logical.
+
+        By convention, the first k indices correspond to the X logicals
+        and the last k to the the Z logicals
+
+        Parameters
+        ----------
+        error: np.ndarray
+            Error as an array of size 2n (where n is the number of qubits)
+            in the binary symplectic format
+
+        Returns
+        -------
+        logical_errors: np.ndarray
+            Array of size 2k (where k is the number of logicals)
+            indicating whether the error commute with each X and Z logical.
+        """
+
+        return get_effective_error(
+            error, self.logicals_x, self.logicals_z
+        )
+
+    def is_logical_error(self, error) -> bool:
+        """Check whether or not a given error is in the codespace,
+        i.e. whether it has a zero syndrome or not.
+
+        Parameters
+        ----------
+        error: np.ndarray
+            Error as an array of size 2n (where n is the number of qubits)
+            in the binary symplectic format
+
+        Returns
+        -------
+        bool
+            Whether or not the error is in the codespace
+        """
+
+        return bool(np.any(self.logical_errors(error) != 0))
+
+    def extract_x_syndrome(self, syndrome: np.ndarray) -> np.ndarray:
         """For CSS codes only. Returns the part of the syndrome that
         corresponds to X stabilizers.
 
         Parameters
         ----------
-        syndrome: csr_matrix
+        syndrome: np.ndarray
             Syndrome as a sparse row of dimension 1xm, where m is the number
             of stabilizers.
 
         Returns
         -------
-        x_syndrome: csr_matrix
+        x_syndrome: np.ndarray
             Syndrome reduced to X stabilizers
         """
 
         return syndrome[self.x_indices]
 
-    def extract_z_syndrome(self, syndrome: csr_matrix) -> csr_matrix:
+    def extract_z_syndrome(self, syndrome: np.ndarray) -> np.ndarray:
         """For CSS codes only. Returns the part of the syndrome that
         corresponds to Z stabilizers.
 
         Parameters
         ----------
-        syndrome: csr_matrix
+        syndrome: np.ndarray
             Syndrome as a sparse row of dimension 1xm, where m is the number
             of stabilizers.
 
         Returns
         -------
-        z_syndrome: csr_matrix
+        z_syndrome: np.ndarray
             Syndrome reduced to X stabilizers
         """
 
         return syndrome[self.z_indices]
 
-    def to_bsf(self, operator: Operator) -> csr_matrix:
+    def to_bsf(self, operator: Operator) -> np.ndarray:
         """Convert an operator (given as a dictionary qubit_location -> pauli)
-        to a sparse row in the binary symplectic format.
+        to an array in the binary symplectic format.
 
         Parameters
         ----------
@@ -348,28 +417,28 @@ class StabilizerCode(metaclass=ABCMeta):
 
         Returns
         -------
-        bsf_operator: scipy.sparse.csr_matrix
-            Sparse row of dimension 1x2n in the binary symplectic format
+        bsf_operator: np.ndarray
+            Array of dimension 2n in the binary symplectic format
             (where n is the number of qubits)
         """
-        bsf_operator = bsparse.zero_row(2*self.n)
+        bsf_operator = np.zeros(2*self.n)
 
         for qubit_location in operator.keys():
             if operator[qubit_location] in ['X', 'Y']:
-                bsparse.insert_mod2(self.qubit_index[qubit_location], bsf_operator)
+                bsf_operator[self.qubit_index[qubit_location]] += 1
             if operator[qubit_location] in ['Y', 'Z']:
-                bsparse.insert_mod2(self.n + self.qubit_index[qubit_location], bsf_operator)
+                bsf_operator[self.n + self.qubit_index[qubit_location]] += 1
 
         return bsf_operator
 
-    def from_bsf(self, bsf_operator: csr_matrix) -> Operator:
+    def from_bsf(self, bsf_operator: np.ndarray) -> Operator:
         """Convert an operator given as a sparse row in the binary
         symplectic format to a dictionary qubit_location -> pauli.
 
         Parameters
         ----------
-        bsf_operator: scipy.sparse.csr_matrix
-            Sparse row of dimension 1x2n in the binary symplectic format
+        bsf_operator: np.ndarray
+            Array of dimension 2n in the binary symplectic format
             (where n is the number of qubits)
         Returns
         -------
@@ -395,19 +464,19 @@ class StabilizerCode(metaclass=ABCMeta):
 
         return operator
 
-    def measure_syndrome(self, error: csr_matrix) -> csr_matrix:
+    def measure_syndrome(self, error: np.ndarray) -> np.ndarray:
         """Noiseless syndrome corresponding to a given Pauli error.
 
         Parameters
         ----------
-        error: scipy.sparse.csr_matrix
-            Error given as sparse row of dimension 1x2n in the binary
+        error: np.ndarray
+            Error given as an array of dimension 2n in the binary
             symplectic format.
 
         Returns
         -------
-        syndrome: scipy.sparse.csr_matrix
-            Syndrome, as a sparse row of dimension 1xm (where m is the number
+        syndrome: np.ndarray
+            Syndrome, as an array of dimension m (where m is the number
             of stabilizers)
         """
 
@@ -483,7 +552,7 @@ class StabilizerCode(metaclass=ABCMeta):
 
     @abstractmethod
     def stabilizer_type(self, location: Tuple) -> str:
-        """ Return the type of a stabilizer sitting at a given location.
+        """ Returns the type of a stabilizer sitting at a given location.
         E.g. 'vertex' or 'face' in toric codes
         """
 

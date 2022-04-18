@@ -130,8 +130,8 @@ class GUI():
             stabilizers = [code.stabilizer_representation(location, rotated_picture)
                            for location in code.stabilizer_coordinates]
 
-            logical_z = code.logicals_z.toarray().tolist()
-            logical_x = code.logicals_x.toarray().tolist()
+            logical_z = code.logicals_z
+            logical_x = code.logicals_x
 
             return json.dumps({'H': code.stabilizer_matrix.toarray().tolist(),
                                'qubits': qubits,
@@ -168,7 +168,7 @@ class GUI():
             correction_x = correction[0, :code.n]
             correction_z = correction[0, code.n:]
 
-            return json.dumps({'x': correction_x.toarray()[0].tolist(), 'z': correction_z.toarray()[0].tolist()})
+            return json.dumps({'x': correction_x.tolist(), 'z': correction_z.tolist()})
 
         @self.app.route('/new-errors', methods=['POST'])
         def send_random_errors():
@@ -198,7 +198,7 @@ class GUI():
                 for i_qubit in range(code.n)
             ]
             error_spec = [spec for spec in error_spec if spec[0] != 'I']
-            return json.dumps(errors.toarray()[0].tolist())
+            return json.dumps(errors.tolist())
 
         self.app.run(port=port)
 

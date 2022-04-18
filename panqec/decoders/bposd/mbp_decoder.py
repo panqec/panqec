@@ -213,7 +213,7 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
         )
         correction = np.concatenate([correction[n_qubits:], correction[:n_qubits]])
 
-        return bsparse.from_array(correction)
+        return correction
 
 
 def test_symplectic_to_pauli():
@@ -261,8 +261,7 @@ def test_decoder():
         correction = decoder.decode(code, syndrome)
 
         print("Get total error")
-        total_error = correction + error
-        total_error.data %= 2
+        total_error = (correction + error) % 2
 
         print("Get effective error")
         effective_error = get_effective_error(

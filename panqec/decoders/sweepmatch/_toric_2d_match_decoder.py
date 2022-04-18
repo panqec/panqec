@@ -38,7 +38,6 @@ class Toric2DPymatchingDecoder(BaseDecoder):
 
         # The number of qubits.
         n_qubits = code.n
-        n_vertices = code.Hz.shape[0]
 
         # Initialize correction as full bsf.
         correction = np.zeros(2*n_qubits, dtype=np.uint)
@@ -47,16 +46,16 @@ class Toric2DPymatchingDecoder(BaseDecoder):
         matcher_z, matcher_x = self.get_matchers(code)
 
         # Keep only the vertex Z measurement syndrome, discard the rest.
-        syndromes_z = syndrome[:n_vertices]
-        syndromes_x = syndrome[n_vertices:]
+        syndromes_z = code.extract_z_syndrome(syndrome)
+        syndromes_x = code.extract_x_syndrome(syndrome)
 
         # Match each block using corresponding syndrome but applying correction
         # on the other block.
-        correction_z = matcher_z.decode(syndromes_z, num_neighbours=None)
-        correction_x = matcher_x.decode(syndromes_x, num_neighbours=None)
+        correction_x = matcher_z.decode(syndromes_z, num_neighbours=None)
+        correction_z = matcher_x.decode(syndromes_x, num_neighbours=None)
 
         # Load it into the X block of the full bsf.
-        correction[n_qubits:] = correction_x
-        correction[:n_qubits] = correction_z
+        correction[:code.n] = correction_x
+        correction[code.n:] = correction_z
 
-        return bsparse.from_array(correction)
+        return correction

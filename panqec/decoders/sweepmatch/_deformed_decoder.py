@@ -117,7 +117,7 @@ class DeformedSweepMatchDecoder(BaseDecoder):
 
         correction = (z_correction + x_correction) % 2
         correction = correction.astype(np.uint)
-        return bsparse.from_array(correction)
+        return correction
 
 
 class DeformedRotatedSweepMatchDecoder(DeformedSweepMatchDecoder):
