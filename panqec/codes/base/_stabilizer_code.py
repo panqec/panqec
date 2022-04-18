@@ -83,6 +83,7 @@ class StabilizerCode(metaclass=ABCMeta):
         self._is_css = None
         self._x_indices = None
         self._z_indices = None
+        self._d = None
 
         self.colormap = {'red': '0xFF4B3E',
                          'blue': '0x48BEFF',
@@ -126,7 +127,15 @@ class StabilizerCode(metaclass=ABCMeta):
     @property
     def d(self) -> int:
         """Distance of the code"""
-        return min(self.logicals_z.shape[1], self.logicals_x.shape[1])
+        if self._d is None:
+            weights_z = np.sum(np.logical_or(self.logicals_z[:, :self.n],
+                                             self.logicals_z[:, self.n:]), axis=1)
+            weights_x = np.sum(np.logical_or(self.logicals_x[:, :self.n],
+                                             self.logicals_x[:, self.n:]), axis=1)
+
+            self._d = min(np.min(weights_x), np.min(weights_z))
+
+        return self._d
 
     @property
     def qubit_coordinates(self) -> List[Tuple]:
