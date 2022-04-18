@@ -70,4 +70,4 @@ class Toric3DPymatchingDecoder(BaseDecoder):
         # Load it into the X block of the full bsf.
         correction[:code.n] = x_correction
 
-        return bsparse.from_array(correction)
+        return correction
