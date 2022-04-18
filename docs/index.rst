@@ -25,6 +25,7 @@ To make a feature request or report a bug, please visit the PanQEC `GitHub repos
    :maxdepth: 2
    :caption: Tutorials:
    
+   tutorials/Panqec basics
    tutorials/Adding new code
 
 Indices and tables
