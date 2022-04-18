@@ -60,4 +60,4 @@ class RotatedPlanarPymatchingDecoder(Toric3DPymatchingDecoder):
         n_qubits = code.n
         correction[:n_qubits] = x_correction
 
-        return bsparse.from_array(correction)
+        return correction

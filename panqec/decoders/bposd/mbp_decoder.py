@@ -160,7 +160,7 @@ def mbp_decoder(H,
 
         # ------------------ Break loop if syndrome reached ------------------
 
-        new_syndrome = bcommute(correction_symplectic, H)
+        new_syndrome = bcommute(H, correction_symplectic)
         if np.all(new_syndrome == syndrome):
             print("Syndrome reached\n")
             break
@@ -213,7 +213,7 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
         )
         correction = np.concatenate([correction[n_qubits:], correction[:n_qubits]])
 
-        return bsparse.from_array(correction)
+        return correction
 
 
 def test_symplectic_to_pauli():
@@ -255,23 +255,17 @@ def test_decoder():
         error[0, 58] = 1
 
         print("Calculate syndrome")
-        syndrome = bcommute(code.stabilizer_matrix, error)
+        syndrome = code.measure_syndrome(error)
 
         print("Decode")
         correction = decoder.decode(code, syndrome)
 
         print("Get total error")
-        total_error = correction + error
-        total_error.data %= 2
-
-        print("Get effective error")
-        effective_error = get_effective_error(
-            total_error, code.logicals_x, code.logicals_z
-        )
+        total_error = (correction + error) % 2
 
         print("Check codespace")
-        codespace = bool(np.all(bcommute(code.stabilizer_matrix, total_error) == 0))
-        success = bool(np.all(effective_error == 0)) and codespace
+        codespace = code.in_codespace(total_error)
+        success = not code.is_logical_error(total_error) and codespace
 
         print("Success:", success)
 

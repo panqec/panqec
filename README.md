@@ -1,6 +1,29 @@
 # PanQEC
 
-Simulation and visualization of quantum error correction codes
+PanQEC is a Python package that simplifies the simulation and visualization of quantum error correction codes.
+In particular, it provides the following features:
+
+* **Simple implementation of topological codes**, through lists of coordinates for qubits, stabilizers and logicals. Parity-check matrices and other properties of the code are automatically computed.
+* End-to-end **sparse implementation of all the vectors and matrices**, optimized for fast and memory-efficient simulations.
+* Library of high-level functions to evaluate the performance of a code with a given decoder and noise model. In particular, simulating the code and establishing its **threshold** and **subthreshold scaling** performance is made particularly easy.
+* **2D and 3D visualization of topological codes** on the web browser, with a simple process to add your own codes on the visualization. This visualizer can also be found [online](https://gui.quantumcodes.io)
+* Large collection of codes, error models and decoders.
+
+In its current version, PanQEC implements the following codes
+
+* **2D and 3D surface codes**, with periodic/open boundary, on both the rotated and traditional lattices.
+* **Rhombic code**
+* **Fractons codes**: X-Cube model and Haah's code
+
+We also include an option to Hadamard-deform all those codes, i.e. applying a Hadamard gate on all qubits of a given axis. It includes the **XZZX version of the 2D and 3D surface codes**.
+
+PanQEC also currently offers the following decoders:
+
+* **BP-OSD** (Belief Propagation with Ordered Statistic Decoding), using the library [ldpc](https://github.com/quantumgizmos/ldpc) developed by Joschka Roffe. Works for all codes.
+* **MBP** (Belief Propagation with Memory effect), as described in [this paper](https://arxiv.org/abs/2104.13659). Works for all codes.
+* **MWPM** (Minimum-Weight Perfect Matching decoder) for 2D surface codes, using the library [PyMatching](https://pymatching.readthedocs.io) developed by Oscar Higgott.
+* **SweepMatch** for 3D surface codes (using our implementation of the [sweep decoder](https://arxiv.org/abs/2004.07247) for loop-syndrome decoding and PyMatching for point-syndrome).
+
 
 # Setup for development
 
@@ -211,26 +234,6 @@ The `--trials` flag is the number of Monte Carlo runs.
 `$START` is the index to start.
 `$N_RUNS` is hte number of indices to run.
 
-# Statistical Mechanics Markov Chain Monte Carlo
-This package now also includes classes for dealing with classical statistical
-mechanics models which have a correspondence with quantum error correcting
-codes on lattices.
-They are implemented in an object-oriented manner.
-
-The main annoyance with running things on clusters is that things get killed
-and we have to start over again.
-It takes a long time for MC chains to equilibrate.
-Hence, there should be a way to save chains when then equilibrate and run them
-later to get finer data.
-Analysis should be aggregated at the end.
-
-# Start the 3D GUI
-To start the 3D GUI, run
-```
-panqec start-gui
-```
-Then open your browser and go to the link printed out in the command line.
-
 # Reproducing results of paper
 
 ## XZZX rotated surface code with BP-OSD, equal aspect, odd sizes
@@ -320,123 +323,8 @@ that contains all the results.
 You can then use the notebook `notebooks/14-eh-paper_figures.ipynb`
 to analyse the results.
 
-# Example of how to run statmech
-In the `temp/statmech` directory,
-create an empty directory, say `test_7` for example.
-Then create a file called `targets.json` with the following contents
-```
-{
-  "comments": "Just a single data point.",
-  "ranges": [
-    {
-      "spin_model": "RandomBondIsingModel2D",
-      "spin_model_params": [
-        {"L_x": 6, "L_y": 6},
-        {"L_x": 8, "L_y": 8},
-        {"L_x": 10, "L_y": 10}
-      ],
-      "disorder_model": "Rbim2DIidDisorder",
-      "disorder_params": [
-        {"p": 0.02}
-      ],
-      "temperature": [
-        1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8
-      ],
-      "max_tau": 11,
-      "n_disorder": 10
-    }
-  ]
-}
-```
+# The team
 
-This file specifies the inputs for this run.
-Here, `max_tau=10` means each MCMC run will sample for `2^10` sweeps,
-and `n_disorder=10` means 10 disorders will be generated and saved
-into `temp/statmech/test_7`.
+PanQEC is currently developed and maintained by [Eric Huang](https://github.com/ehua7365) and [Arthur Pesah](http://arthurpesah.me/). The implementation of 3D toric and fracton codes was done under the supervision of Arpit Dua, Michael Vasmer and Christopher Chubb.
 
-To generate some inputs, run
-```
-panqec statmech generate temp/statmech/test_7
-```
-
-You will notice that many `.json` files have geen generated in
-`temp/statmech/test_7/inputs`.
-Each of these contains a set of disorders,
-and is named with a hash of its contents.
-Note that `max_tau` and `n_disorder` are not in these input files.
-Instead, they are recorded in the `info.json` file.
-
-Suppose you want to sample one of these inputs and it's called
-`input_0123456890abcdef.json`.
-To do so, run
-```
-panqec statmech sample temp/statmech/test_7/input_0123456890abcdef.json
-```
-
-You will notice that results will be saved to the `results` directory,
-one results `.json` file for each `tau`.
-You may also notice the `models` directory saving the exact states at each tau.
-
-To run all of them at once,
-just use some bash script to run the above bash command for every input json
-file.
-On PBS or slurm,
-you would write an sbatch script.
-Checkout `scripts/statmech.sbatch` for an example
-of how to parallelize to running across array jobs with many cores each.
-If running locally,
-you can use the command to run them all in parallel
-```
-panqec statmech sample-parallel temp/statmech/test_7
-```
-You can adjust the options depending on how many cores you have.
-
-To perform the analysis, you can use the command
-```
-panqec statmech analyse temp/statmech/test_7
-```
-To plot the results, go to Jupyter lab and open `notebooks/13-eh-statmech_test_7.ipynb`.
-Run the notebook and you should see the plots of the observables,
-from which you should hopefully see phase transitions!
-(Although something seems wrong because it's not crossing!)
-
-Of course, that was rather noisy data with only 10 disorders.
-You may want to increase the `n_disorder` to 100 or 1000 to get meaningful
-plots.
-
-# Running 2D Repetition Code Stat Mech
-Use the following `temp/statmech/test_8/targets.json` file.
-```
-{
-  "comments": "2D Repetition Code Stat Mech.",
-  "ranges": [
-    {
-      "spin_model": "LoopModel2D",
-      "spin_model_params": [
-        {"L_x": 6, "L_y": 6},
-        {"L_x": 8, "L_y": 8},
-        {"L_x": 10, "L_y": 10}
-      ],
-      "disorder_model": "LoopModel2DIidDisorder",
-      "disorder_params": [
-        {"p": 0.10}
-      ],
-      "temperature": [
-        1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8
-      ],
-      "max_tau": 11,
-      "n_disorder": 10
-    }
-  ]
-}
-```
-
-Then run the following commands to generate,
-sample and analyse.
-
-```
-panqec statmech generate temp/statmech/test_8
-panqec statmech sample-parallel temp/statmech/test_8
-panqec statmech analyse temp/statmech/test_8
-```
-The sampling takes about 10 minutes to run on a laptop with 8 cores.
+Note: PanQEC was greatly inspired by [qecsim](https://qecsim.github.io/) at its inception, and we would like to thank its author David Tuckett for providing us with the first seed of this project.

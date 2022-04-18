@@ -20,6 +20,12 @@ To make a feature request or report a bug, please visit the PanQEC `GitHub repos
 
    installation.md
    documentation.md
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Tutorials:
+   
+   tutorials/Panqec basics
    tutorials/Adding new code
 
 Indices and tables
