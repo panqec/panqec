@@ -12,7 +12,7 @@ import numpy as np
 from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
 from panqec.error_models import BaseErrorModel
-from .bpauli import bcommute, get_effective_error
+from .bpauli import get_effective_error
 from .config import (
     CODES, ERROR_MODELS, DECODERS, PANQEC_DIR
 )
@@ -23,25 +23,25 @@ def run_once(
     code: StabilizerCode,
     error_model: BaseErrorModel,
     decoder: BaseDecoder,
-    error_probability: float,
+    probability: float,
     rng=None
 ) -> dict:
     """Run a simulation once and return the results as a dictionary."""
 
-    if not (0 <= error_probability <= 1):
-        raise ValueError('Error probability must be in [0, 1].')
+    if not (0 <= probability <= 1):
+        raise ValueError('Error rate must be in [0, 1].')
 
     if rng is None:
         rng = np.random.default_rng()
 
-    error = error_model.generate(code, probability=error_probability, rng=rng)
-    syndrome = bcommute(code.stabilizer_matrix, error)
-    correction = decoder.decode(code, syndrome)
+    error = error_model.generate(code, probability=probability, rng=rng)
+    syndrome = code.measure_syndrome(error)
+    correction = decoder.decode(syndrome, probability)
     total_error = (correction + error) % 2
     effective_error = get_effective_error(
         total_error, code.logicals_x, code.logicals_z
     )
-    codespace = bool(np.all(bcommute(code.stabilizer_matrix, total_error) == 0))
+    codespace = code.in_codespace(total_error)
     success = bool(np.all(effective_error == 0)) and codespace
 
     results = {
@@ -75,7 +75,7 @@ def run_file(
             code = simulation.code.label
             noise = simulation.error_model.label
             decoder = simulation.decoder.label
-            probability = simulation.error_probability
+            probability = simulation.probability
             print(f'    {code}, {noise}, {decoder}, {probability}')
     batch_sim.run(n_trials, progress=progress)
 
@@ -87,7 +87,7 @@ class Simulation:
     code: StabilizerCode
     error_model: BaseErrorModel
     decoder: BaseDecoder
-    error_probability: float
+    probability: float
     label: str
     _results: dict = {}
     rng = None
@@ -99,7 +99,7 @@ class Simulation:
         self.code = code
         self.error_model = error_model
         self.decoder = decoder
-        self.error_probability = probability
+        self.probability = probability
         self.rng = rng
         self.label = '_'.join([
             code.label, error_model.label, decoder.label, f'{probability}'
@@ -121,7 +121,7 @@ class Simulation:
         for i_trial in range(repeats):
             shot = run_once(
                 self.code, self.error_model, self.decoder,
-                error_probability=self.error_probability,
+                probability=self.probability,
                 rng=self.rng
             )
             for key, value in shot.items():
@@ -186,7 +186,7 @@ class Simulation:
                     'd': self.code.d,
                     'error_model': self.error_model.label,
                     'decoder': self.decoder.label,
-                    'error_probability': self.error_probability,
+                    'probability': self.probability,
                 }
             }, f, cls=NumpyEncoder)
 
@@ -205,7 +205,7 @@ class Simulation:
             'k': self.code.k,
             'd': self.code.d,
             'error_model': self.error_model.label,
-            'probability': self.error_probability,
+            'probability': self.probability,
             'n_success': np.sum(success),
             'n_fail': n_fail,
             'n_trials': len(success),
@@ -244,6 +244,8 @@ class BatchSimulation():
         output_dir: Optional[str] = None,
     ):
         self._simulations = []
+        self.code = {}
+        self.decoder = {}
         self.update_frequency = update_frequency
         self.save_frequency = save_frequency
         self.label = label
@@ -350,22 +352,31 @@ def _parse_parameters_range(parameters):
 
 
 def _parse_all_ranges(data: dict) -> Tuple[list, list, list, list]:
-
-    code_range: List[Dict] = [{}]
     if 'parameters' in data['code']:
-        code_range = _parse_parameters_range(data['code']['parameters'])
+        params_range = _parse_parameters_range(data['code']['parameters'])
+        code_range = []
+        for params in params_range:
+            code_range.append(data['code'].copy())
+            code_range[-1]['parameters'] = params
 
     noise_range: List[Dict] = [{}]
     if 'parameters' in data['noise']:
-        noise_range = _parse_parameters_range(data['noise']['parameters'])
+        params_range = _parse_parameters_range(data['noise']['parameters'])
+        noise_range = []
+        for params in params_range:
+            noise_range.append(data['noise'].copy())
+            noise_range[-1]['parameters'] = params
 
     decoder_range: List[Dict] = [{}]
     if 'parameters' in data['decoder']:
-        decoder_range = _parse_parameters_range(
-            data['decoder']['parameters']
-        )
+        params_range = _parse_parameters_range(data['decoder']['parameters'])
+        decoder_range = []
+        for params in params_range:
+            decoder_range.append(data['decoder'].copy())
+            decoder_range[-1]['parameters'] = params
 
     probability_range = _parse_parameters_range(data['probability'])
+
     return code_range, noise_range, decoder_range, probability_range
 
 
@@ -426,8 +437,8 @@ def _parse_error_model_dict(noise_dict: Dict[str, Any]) -> BaseErrorModel:
 
 def _parse_decoder_dict(
     decoder_dict: Dict[str, Any],
-    error_model: BaseErrorModel,
-    probability: float
+    code: StabilizerCode,
+    error_model: BaseErrorModel
 ) -> BaseDecoder:
     decoder_name = decoder_dict['model']
     decoder_class = DECODERS[decoder_name]
@@ -439,10 +450,12 @@ def _parse_decoder_dict(
 
     signature = inspect.signature(decoder_class)
 
+    if 'code' in signature.parameters.keys():
+        decoder_params['code'] = code
+
     if 'error_model' in signature.parameters.keys():
         decoder_params['error_model'] = error_model
-    if 'probability' in signature.parameters.keys():
-        decoder_params['probability'] = probability
+
     decoder = decoder_class(**decoder_params)
     return decoder
 
@@ -501,6 +514,34 @@ def count_runs(file_path: str) -> Optional[int]:
     return n_runs
 
 
+def get_simulations(
+    data: dict, start: Optional[int] = None, n_runs: Optional[int] = None
+) -> List[dict]:
+    simulations = []
+
+    (
+        code_range, noise_range, decoder_range, probability_range
+    ) = _parse_all_ranges(data['ranges'])
+
+    codes = [_parse_code_dict(code_dict) for code_dict in code_range]
+    error_models = [_parse_error_model_dict(noise_dict) for noise_dict in noise_range]
+
+    for (code, error_model, decoder_dict) in itertools.product(codes,
+                                                               error_models,
+                                                               decoder_range):
+        decoder = _parse_decoder_dict(decoder_dict, code, error_model)
+
+        for probability in probability_range:
+            simulations.append(Simulation(code, error_model, decoder, probability))
+
+    if start is not None:
+        simulations = simulations[start:]
+    if n_runs is not None:
+        simulations = simulations[:n_runs]
+
+    return simulations
+
+
 def read_input_dict(
     data: dict,
     start: Optional[int] = None,
@@ -517,10 +558,10 @@ def read_input_dict(
     batch_sim = BatchSimulation(*args, **kwargs)
     assert len(batch_sim._simulations) == 0
 
-    runs = get_runs(data, start=start, n_runs=n_runs)
+    simulations = get_simulations(data, start=start, n_runs=n_runs)
 
-    for single_run in runs:
-        batch_sim.append(parse_run(single_run))
+    for sim in simulations:
+        batch_sim.append(sim)
 
     return batch_sim
 

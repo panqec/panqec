@@ -1,3 +1,4 @@
+from configparser import Error
 import numpy as np
 from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
@@ -173,12 +174,13 @@ def mbp_decoder(H,
 class MemoryBeliefPropagationDecoder(BaseDecoder):
     label = 'MBP decoder'
 
-    def __init__(self, error_model: BaseErrorModel,
-                 probability: float,
+    def __init__(self,
+                 code: StabilizerCode,
+                 error_model: BaseErrorModel,
                  max_bp_iter: int = 10,
                  alpha: float = 0.4,
                  beta: float = 0.01):
-        super().__init__(error_model, probability)
+        super().__init__(code, error_model)
         self._max_bp_iter = max_bp_iter
         self._alpha = alpha
         self._beta = beta
@@ -233,12 +235,12 @@ def test_decoder():
 
     code = Toric2DCode(L, L)
 
-    probability = 0.3
+    error_rate = 0.3
     r_x, r_y, r_z = [0.333, 0.333, 0.334]
     error_model = PauliErrorModel(r_x, r_y, r_z)
 
     decoder = MemoryBeliefPropagationDecoder(
-        error_model, probability, max_bp_iter=max_bp_iter, alpha=alpha
+        code, error_model, max_bp_iter=max_bp_iter, alpha=alpha
     )
 
     # Start timer
@@ -248,17 +250,17 @@ def test_decoder():
     for i in range(n_iter):
         print(f"\n\nRun {code.label} {i}...")
         print("Generate errors")
-        # error = error_model.generate(code, probability=probability, rng=rng)
-        error = bsparse.zero_row(2*code.n)
-        error[0, 10] = 1
-        error[0, 52] = 1
-        error[0, 58] = 1
+        # error = error_model.generate(code, probability=error_rate, rng=rng)
+        error = np.zeros(2*code.n)
+        error[10] = 1
+        error[52] = 1
+        error[58] = 1
 
         print("Calculate syndrome")
-        syndrome = bcommute(code.stabilizer_matrix, error)
+        syndrome = code.measure_syndrome(error)
 
         print("Decode")
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome, error_rate)
 
         print("Get total error")
         total_error = (correction + error) % 2

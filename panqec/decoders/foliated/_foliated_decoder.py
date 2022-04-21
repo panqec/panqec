@@ -21,7 +21,7 @@ class FoliatedMatchingDecoder(BaseDecoder):
 
     label: str = 'Foliated PyMatching'
 
-    label = 'Toric 3D Pymatching'
+    label = 'Toric 3D Matching'
     _matcher_lists: Dict[str, List[Matching]] = {}
     _n_faces: Dict[str, int] = {}
 
@@ -108,7 +108,7 @@ class FoliatedMatchingDecoder(BaseDecoder):
         # Initialize correction as full bsf.
         correction = np.zeros(2*code.n, dtype=np.uint)
 
-        # Get the Pymatching Matching object.
+        # Get the Matching Matching object.
         matcher_list = self.get_matcher_list(code)
 
         # Keep only the vertex Z measurement syndrome, discard the rest.

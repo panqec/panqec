@@ -11,40 +11,28 @@ class RotatedSweepDecoder3D(BaseDecoder):
     _rng: np.random.Generator
     max_rounds: int
 
-    def __init__(self, error_model, probability,
+    def __init__(self, code, error_model,
                  seed: int = 0, max_rounds: int = 4):
-        super().__init__(error_model, probability)
+        super().__init__(code, error_model)
         self._rng = np.random.default_rng(seed)
         self.max_rounds = max_rounds
 
-    def get_face_syndromes(self, code, full_syndrome: np.ndarray) -> np.ndarray:
-        """Get only the syndromes for the vertex Z stabilizers.
-        Z vertex stabilizers syndromes are discarded for this decoder.
-        """
-        face_syndromes = code.extract_x_syndrome(full_syndrome)
-        return face_syndromes
-
-    # TODO: make this more space-efficient, don't store zeros.
-    def get_initial_state(
-        self, code, syndrome: np.ndarray
-    ) -> Indexer:
+    def get_initial_state(self, syndrome: np.ndarray) -> Indexer:
         """Get initial cellular automaton state from syndrome."""
         signs = syndrome.copy()
-        signs[code.z_indices] = 0
+        signs[self.code.z_indices] = 0
 
         return signs
 
-    def decode(
-        self, code, syndrome: np.ndarray
-    ) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray, error_rate: float) -> np.ndarray:
         """Get Z corrections given measured syndrome."""
 
         # Maximum number of times to apply sweep rule before giving up round.
-        largest_size = 2*int(max(code.size)) + 2
+        largest_size = 2*int(max(self.code.size)) + 2
         max_sweeps = 4*largest_size
 
         # The syndromes represented as an array of 0s and 1s.
-        signs = self.get_initial_state(code, syndrome)
+        signs = self.get_initial_state(syndrome)
 
         # Keep track of the correction needed.
         correction = dict()
@@ -68,14 +56,14 @@ class RotatedSweepDecoder3D(BaseDecoder):
                 # Keep sweeping until there are no syndromes.
                 while any(signs) and i_sweep < max_sweeps:
                     signs = self.sweep_move(
-                        signs, correction, sweep_direction, code
+                        signs, correction, sweep_direction
                     )
                     i_sweep += 1
             i_round += 1
 
-        return code.to_bsf(correction)
+        return self.code.to_bsf(correction)
 
-    def get_sweep_faces(self, vertex, sweep_direction, code):
+    def get_sweep_faces(self, vertex, sweep_direction):
         """Get the coordinates of neighboring faces in sweep direction."""
         x, y, z = vertex
         s_x, s_y, s_z = sweep_direction
@@ -99,7 +87,7 @@ class RotatedSweepDecoder3D(BaseDecoder):
         z_face = (x + 2*s_x, y + 2*s_y, z)
         return x_face, y_face, z_face
 
-    def get_sweep_edges(self, vertex, sweep_direction, code):
+    def get_sweep_edges(self, vertex, sweep_direction):
         """Get coordinates of neighbouring edges in sweep direction."""
         x, y, z = vertex
         s_x, s_y, s_z = sweep_direction
@@ -125,33 +113,33 @@ class RotatedSweepDecoder3D(BaseDecoder):
 
     def sweep_move(
         self, signs: np.ndarray, correction: np.ndarray,
-        sweep_direction: Tuple[int, int, int], code,
+        sweep_direction: Tuple[int, int, int]
     ) -> Indexer:
         """Apply the sweep move once along a particular direciton."""
 
         flip_locations = []
 
         # Apply sweep rule on every vertex.
-        for vertex in code.stabilizer_coordinates:
-            if code.stabilizer_type(vertex) == 'vertex':
+        for vertex in self.code.stabilizer_coordinates:
+            if self.code.stabilizer_type(vertex) == 'vertex':
                 # Get neighbouring faces and edges in the sweep direction.
                 x_face, y_face, z_face = self.get_sweep_faces(
-                    vertex, sweep_direction, code
+                    vertex, sweep_direction
                 )
                 x_edge, y_edge, z_edge = self.get_sweep_edges(
-                    vertex, sweep_direction, code
+                    vertex, sweep_direction
                 )
-                x_face_index = code.stabilizer_index[x_face]
-                y_face_index = code.stabilizer_index[y_face]
-                z_face_index = code.stabilizer_index[z_face]
+                x_face_index = self.code.stabilizer_index[x_face]
+                y_face_index = self.code.stabilizer_index[y_face]
+                z_face_index = self.code.stabilizer_index[z_face]
 
                 # Check faces and edges are in lattice before proceeding.
                 faces_valid = tuple(
-                    code.is_stabilizer(face, 'face')
+                    self.code.is_stabilizer(face, 'face')
                     for face in [x_face, y_face, z_face]
                 )
                 edges_valid = tuple(
-                    edge in code.qubit_index
+                    edge in self.code.qubit_index
                     for edge in [x_edge, y_edge, z_edge]
                 )
                 if all(faces_valid) and all(edges_valid):
@@ -184,13 +172,13 @@ class RotatedSweepDecoder3D(BaseDecoder):
 
         new_signs = signs.copy()
         for location in flip_locations:
-            self.flip_edge(location, new_signs, code)
+            self.flip_edge(location, new_signs)
             correction[location] = 'Z'
 
         return new_signs
 
     def flip_edge(
-        self, edge: Tuple, signs: Indexer, code
+        self, edge: Tuple, signs: Indexer
     ):
         """Flip signs at index and update correction."""
 
@@ -234,8 +222,8 @@ class RotatedSweepDecoder3D(BaseDecoder):
             ]
 
         # Only keep faces that are actually on the cut lattice.
-        faces = [face for face in faces if code.is_stabilizer(face, 'face')]
+        faces = [face for face in faces if self.code.is_stabilizer(face, 'face')]
 
         # Flip the state of the faces.
         for face in faces:
-            signs[code.stabilizer_index[face]] = 1 - signs[code.stabilizer_index[face]]
+            signs[self.code.stabilizer_index[face]] = 1 - signs[self.code.stabilizer_index[face]]

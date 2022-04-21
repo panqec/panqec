@@ -7,7 +7,7 @@ from panqec.codes import (
     Planar3DCode, RotatedToric3DCode, XCubeCode
 )
 from panqec.decoders import (
-    Toric2DPymatchingDecoder, RotatedSweepMatchDecoder,
+    Toric2DMatchingDecoder, RotatedSweepMatchDecoder,
     RotatedInfiniteZBiasDecoder, SweepMatchDecoder, DeformedSweepMatchDecoder,
     BeliefPropagationOSDDecoder, MemoryBeliefPropagationDecoder,
 
@@ -35,7 +35,7 @@ noise_directions = {'Pure X': (1, 0, 0),
                     'Depolarizing': (1/3, 1/3, 1/3)}
 
 decoders = {'BP-OSD': BeliefPropagationOSDDecoder, 'MBP': MemoryBeliefPropagationDecoder,
-            'SweepMatch': SweepMatchDecoder, 'Matching': Toric2DPymatchingDecoder,
+            'SweepMatch': SweepMatchDecoder, 'Matching': Toric2DMatchingDecoder,
             'Optimal ∞ bias': RotatedInfiniteZBiasDecoder}
 
 
@@ -161,9 +161,9 @@ class GUI():
             if decoder_name == 'MBP':
                 kwargs['alpha'] = alpha
 
-            decoder = self.decoders[decoder_name](error_model, p, **kwargs)
+            decoder = self.decoders[decoder_name](code, error_model, **kwargs)
 
-            correction = decoder.decode(code, syndrome)
+            correction = decoder.decode(syndrome, p)
 
             correction_x = correction[:code.n]
             correction_z = correction[code.n:]
