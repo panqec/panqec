@@ -15,10 +15,13 @@ class DeformedToric3DMatchingDecoder(Toric3DMatchingDecoder):
 
     error_model: BaseErrorModel
     code: StabilizerCode
+    error_rate: float
     _epsilon: float
 
-    def __init__(self, code: StabilizerCode, error_model: BaseErrorModel):
-        super().__init__(code, error_model)
+    def __init__(self, code: StabilizerCode,
+                 error_model: BaseErrorModel,
+                 error_rate: float):
+        super().__init__(code, error_model, error_rate)
         self._epsilon = 1e-15
 
     def new_matcher(self, code: StabilizerCode):
@@ -40,7 +43,7 @@ class DeformedToric3DMatchingDecoder(Toric3DMatchingDecoder):
         deformed_edge = code.X_AXIS
 
         regular_weight, deformed_weight = get_regular_and_deformed_weights(
-            self._error_model.direction, self._probability, self._epsilon
+            self.error_model.direction, self.error_rate, self._epsilon
         )
 
         # All weights are regular weights to start off with.
@@ -60,14 +63,13 @@ class DeformedToric3DMatchingDecoder(Toric3DMatchingDecoder):
 
 class DeformedSweepDecoder3D(SweepDecoder3D):
 
-    _error_model: BaseErrorModel
-    _probability: float
+    code: StabilizerCode
+    error_model: BaseErrorModel
+    error_rate: float
     _p_edges: int
 
-    def __init__(self, error_model, probability):
-        super(DeformedSweepDecoder3D, self).__init__()
-        self._error_model = error_model
-        self._probability = probability
+    def __init__(self, code, error_model, error_rate):
+        super().__init__(code, error_model, error_rate)
         self._p_edges = self.get_edge_probabilities()
 
     def get_edge_probabilities(self):
@@ -76,7 +78,7 @@ class DeformedSweepDecoder3D(SweepDecoder3D):
         p_edges: Tuple[float, float, float]
 
         p_X, p_Y, p_Z = (
-            np.array(self._error_model.direction)*self._probability
+            np.array(self.error_model.direction)*self.error_rate
         )
         p_regular = p_Y + p_Z
         p_deformed = p_Y + p_X
@@ -98,12 +100,14 @@ class DeformedSweepMatchDecoder(BaseDecoder):
     _sweeper: DeformedSweepDecoder3D
     _matcher: DeformedToric3DMatchingDecoder
 
-    def __init__(self, error_model: BaseErrorModel, probability: float):
+    def __init__(self, code: StabilizerCode,
+                 error_model: BaseErrorModel,
+                 error_rate: float):
         self._sweeper = DeformedSweepDecoder3D(
-            error_model, probability
+            error_model, error_rate
         )
         self._matcher = DeformedToric3DMatchingDecoder(
-            error_model, probability
+            error_model, error_rate
         )
 
     def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
@@ -119,19 +123,17 @@ class DeformedSweepMatchDecoder(BaseDecoder):
 
 class DeformedRotatedSweepMatchDecoder(DeformedSweepMatchDecoder):
 
-    def __init__(self, error_model: BaseErrorModel, probability: float):
+    def __init__(self, code, error_model: BaseErrorModel, error_rate: float):
         self._sweeper = RotatedSweepDecoder3D()
         self._matcher = DeformedRotatedPlanarMatchingDecoder(
-            error_model, probability
+            code, error_model, error_rate
         )
 
 
 class DeformedRotatedPlanarMatchingDecoder(RotatedPlanarMatchingDecoder):
 
-    def __init__(self, error_model: BaseErrorModel, probability: float):
-        super(DeformedRotatedPlanarMatchingDecoder, self).__init__()
-        self._error_model = error_model
-        self._probability = probability
+    def __init__(self, code, error_model: BaseErrorModel, error_rate: float):
+        super().__init__(code, error_model, error_rate)
         self._epsilon = 1e-15
 
     def new_matcher(self, code: StabilizerCode):
@@ -151,7 +153,7 @@ class DeformedRotatedPlanarMatchingDecoder(RotatedPlanarMatchingDecoder):
         """Get MWPM weights for deformed Pauli noise."""
 
         regular_weight, deformed_weight = get_regular_and_deformed_weights(
-            self._error_model.direction, self._probability, self._epsilon
+            self.error_model.direction, self.error_rate, self._epsilon
         )
 
         # Count qubits and faces.
@@ -170,13 +172,13 @@ class DeformedRotatedPlanarMatchingDecoder(RotatedPlanarMatchingDecoder):
 
 
 def get_regular_and_deformed_weights(
-    direction: Tuple[float, float, float], probability: float, epsilon: float
+    direction: Tuple[float, float, float], error_rate: float, epsilon: float
 ) -> Tuple[float, float]:
     """Get MWPM weights for given Pauli noise probabilities."""
 
     # Extract undeformed error probabilities.
     r_x, r_y, r_z = direction
-    p_X, p_Y, p_Z = np.array([r_x, r_y, r_z])*probability
+    p_X, p_Y, p_Z = np.array([r_x, r_y, r_z])*error_rate
 
     # For undeformed qubit sites, only X and Y errors can be detected,
     # so the probability of error is the sum of their probabilities.

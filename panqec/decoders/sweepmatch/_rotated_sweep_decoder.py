@@ -11,9 +11,9 @@ class RotatedSweepDecoder3D(BaseDecoder):
     _rng: np.random.Generator
     max_rounds: int
 
-    def __init__(self, code, error_model,
+    def __init__(self, code, error_model, error_rate,
                  seed: int = 0, max_rounds: int = 4):
-        super().__init__(code, error_model)
+        super().__init__(code, error_model, error_rate)
         self._rng = np.random.default_rng(seed)
         self.max_rounds = max_rounds
 
@@ -24,7 +24,7 @@ class RotatedSweepDecoder3D(BaseDecoder):
 
         return signs
 
-    def decode(self, syndrome: np.ndarray, error_rate: float) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray) -> np.ndarray:
         """Get Z corrections given measured syndrome."""
 
         # Maximum number of times to apply sweep rule before giving up round.

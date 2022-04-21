@@ -161,9 +161,9 @@ class GUI():
             if decoder_name == 'MBP':
                 kwargs['alpha'] = alpha
 
-            decoder = self.decoders[decoder_name](code, error_model, **kwargs)
+            decoder = self.decoders[decoder_name](code, error_model, p, **kwargs)
 
-            correction = decoder.decode(syndrome, p)
+            correction = decoder.decode(syndrome)
 
             correction_x = correction[:code.n]
             correction_z = correction[code.n:]

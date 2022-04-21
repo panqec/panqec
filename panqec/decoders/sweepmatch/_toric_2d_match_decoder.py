@@ -10,12 +10,15 @@ class Toric2DMatchingDecoder(BaseDecoder):
 
     label = 'Toric 2D Matching'
 
-    def __init__(self, code: Toric2DCode, error_model: BaseErrorModel):
-        super().__init__(code, error_model)
+    def __init__(self,
+                 code: Toric2DCode,
+                 error_model: BaseErrorModel,
+                 error_rate: float):
+        super().__init__(code, error_model, error_rate)
         self.matcher_z = Matching(self.code.Hz)
         self.matcher_x = Matching(self.code.Hx)
 
-    def decode(self, syndrome: np.ndarray, error_rate: float) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray) -> np.ndarray:
         """Get X corrections given code and measured syndrome."""
 
         # Initialize correction as full bsf.

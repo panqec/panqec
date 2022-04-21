@@ -14,11 +14,11 @@ class RotatedPlanarMatchingDecoder(Toric3DMatchingDecoder):
 
     label = 'Rotated Planar 3D Matching'
 
-    def __init__(self, code: Toric3DCode, error_model):
-        super().__init__(code, error_model)
+    def __init__(self, code: Toric3DCode, error_model, error_rate):
+        super().__init__(code, error_model, error_rate)
         self.matchers = Matching(code.Hz)
 
-    def decode(self, syndrome: np.ndarray, error_rate: float) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray) -> np.ndarray:
         """Get X corrections given code and measured syndrome."""
 
         # Initialize correction as full bsf.

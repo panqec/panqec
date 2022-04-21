@@ -1,5 +1,4 @@
 import numpy as np
-from typing import Tuple
 from ldpc import bposd_decoder
 from panqec.codes import StabilizerCode
 from panqec.error_models import BaseErrorModel
@@ -12,22 +11,20 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
     def __init__(self,
                  code: StabilizerCode,
                  error_model: BaseErrorModel,
+                 error_rate: float,
                  max_bp_iter: int = 1000,
                  channel_update: bool = False,
                  osd_order: int = 10):
-        super().__init__(code, error_model)
+        super().__init__(code, error_model, error_rate)
         self._max_bp_iter = max_bp_iter
         self._channel_update = channel_update
         self._osd_order = osd_order
 
         self.initialize_decoders()
 
-    def get_probabilities(
-        self, code: StabilizerCode, error_rate: float
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-
+    def get_probabilities(self):
         pi, px, py, pz = self.error_model.probability_distribution(
-            code, error_rate
+            self.code, self.error_rate
         )
 
         return pi, px, py, pz
@@ -71,7 +68,7 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
         if is_css:
             self.z_decoder = bposd_decoder(
                 self.code.Hx,
-                error_rate=0.05,  # ignore this due to the next parameter
+                error_rate=self.error_rate,
                 max_iter=self._max_bp_iter,
                 bp_method="msl",
                 ms_scaling_factor=0,
@@ -81,7 +78,7 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
 
             self.x_decoder = bposd_decoder(
                 self.code.Hz,
-                error_rate=0.05,  # ignore this due to the next parameter
+                error_rate=self.error_rate,
                 max_iter=self._max_bp_iter,
                 bp_method="msl",
                 ms_scaling_factor=0,
@@ -92,7 +89,7 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
         else:
             self.decoder = bposd_decoder(
                 self.code.stabilizer_matrix,
-                error_rate=0.05,  # ignore this due to the next parameter,
+                error_rate=self.error_rate,
                 max_iter=self._max_bp_iter,
                 bp_method="msl",
                 ms_scaling_factor=0,
@@ -100,7 +97,7 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
                 osd_order=self._osd_order
             )
 
-    def decode(self, syndrome: np.ndarray, error_rate: float = 0.1) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
         is_css = self.code.is_css
@@ -111,7 +108,7 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
             syndrome_z = self.code.extract_z_syndrome(syndrome)
             syndrome_x = self.code.extract_x_syndrome(syndrome)
 
-        pi, px, py, pz = self.get_probabilities(self.code, error_rate)
+        pi, px, py, pz = self.get_probabilities()
 
         probabilities_x = px + py
         probabilities_z = pz + py
@@ -165,7 +162,7 @@ def test_decoder():
     error_model = PauliErrorModel(r_x, r_y, r_z)
 
     decoder = BeliefPropagationOSDDecoder(
-        code, error_model, osd_order=10, max_bp_iter=1000
+        code, error_model, error_rate, osd_order=10, max_bp_iter=1000
     )
 
     print("Create stabilizer matrix")
@@ -187,7 +184,7 @@ def test_decoder():
         print("Calculate syndrome")
         syndrome = code.measure_syndrome(error)
         print("Decode")
-        correction = decoder.decode(syndrome, error_rate)
+        correction = decoder.decode(syndrome)
         print("Get total error")
         total_error = (correction + error) % 2
 

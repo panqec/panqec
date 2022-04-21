@@ -1,6 +1,7 @@
 from typing import Tuple, Dict
 import numpy as np
 from panqec.decoders import BaseDecoder
+from panqec.error_models import BaseErrorModel
 from panqec.codes import Toric3DCode
 
 Indexer = Dict[Tuple[int, int, int], int]
@@ -13,9 +14,13 @@ class SweepDecoder3D(BaseDecoder):
     _rng: np.random.Generator
     max_sweep_factor: int
 
-    def __init__(self, code: Toric3DCode, error_model,
-                 seed: int = 0, max_sweep_factor: int = 32):
-        super().__init__(code, error_model)
+    def __init__(self,
+                 code: Toric3DCode,
+                 error_model: BaseErrorModel,
+                 error_rate: float,
+                 seed: int = 0,
+                 max_sweep_factor: int = 32):
+        super().__init__(code, error_model, error_rate)
         self._rng = np.random.default_rng(seed)
         self.max_sweep_factor = max_sweep_factor
 
@@ -70,9 +75,7 @@ class SweepDecoder3D(BaseDecoder):
 
         return signs
 
-    def decode(
-        self, syndrome: np.ndarray, error_rate: float
-    ) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray) -> np.ndarray:
         """Get Z corrections given measured syndrome."""
 
         # Maximum number of times to sweep before giving up.

@@ -17,7 +17,7 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
         ]
         return xy
 
-    def decode(self, syndrome: np.ndarray, error_rate: float) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray) -> np.ndarray:
         correction = dict()
         signs = self.get_initial_state(syndrome)
 
@@ -132,7 +132,7 @@ class XLineDecoder(BaseDecoder):
     label = 'Rotated Infinite Z Bias Point Sector Decoder'
 
     def decode_line(
-        self, syndrome: np.ndarray, error_rate: float, xy: Tuple[int, int]
+        self, syndrome: np.ndarray, xy: Tuple[int, int]
     ) -> np.ndarray:
         x, y = xy
         L_z = self.code.size[2]
@@ -176,21 +176,19 @@ class XLineDecoder(BaseDecoder):
 
         return x_correction
 
-    def decode(
-        self, syndrome: np.ndarray, error_rate: float
-    ) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray) -> np.ndarray:
         """Get X corrections given code and measured syndrome."""
 
         # Initialize correction as full bsf.
-        n_qubits = code.n
+        n_qubits = self.code.n
         correction = np.zeros(2*n_qubits, dtype=np.uint)
         x_correction = np.zeros(n_qubits, dtype=np.uint)
 
         lines_xy = sorted([
-            (x, y) for x, y, z in code.qubit_index if z == 2
+            (x, y) for x, y, z in self.code.qubit_index if z == 2
         ])
         for xy in lines_xy:
-            x_correction += self.decode_line(code, syndrome, xy)
+            x_correction += self.decode_line(self.code, syndrome, xy)
 
         # Load it into the X block of the full bsf.
         correction[:n_qubits] = x_correction
@@ -205,17 +203,15 @@ class RotatedInfiniteZBiasDecoder(BaseDecoder):
     _matcher: XLineDecoder
     _sweeper: ZMatchingDecoder
 
-    def __init__(self, code, error_model):
-        super().__init__(code, error_model)
-        self._matcher = XLineDecoder(code, error_model)
-        self._sweeper = ZMatchingDecoder(code, error_model)
+    def __init__(self, code, error_model, error_rate):
+        super().__init__(code, error_model, error_rate)
+        self._matcher = XLineDecoder(code, error_model, error_rate)
+        self._sweeper = ZMatchingDecoder(code, error_model, error_rate)
 
-    def decode(
-        self, syndrome: np.ndarray, error_rate: float
-    ) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray) -> np.ndarray:
 
-        z_correction = self._sweeper.decode(syndrome, error_rate)
-        x_correction = self._matcher.decode(syndrome, error_rate)
+        z_correction = self._sweeper.decode(syndrome)
+        x_correction = self._matcher.decode(syndrome)
 
         correction = (z_correction + x_correction) % 2
         correction = correction.astype(np.uint)

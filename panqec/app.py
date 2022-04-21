@@ -36,7 +36,7 @@ def run_once(
 
     error = error_model.generate(code, probability=probability, rng=rng)
     syndrome = code.measure_syndrome(error)
-    correction = decoder.decode(syndrome, probability)
+    correction = decoder.decode(syndrome)
     total_error = (correction + error) % 2
     effective_error = get_effective_error(
         total_error, code.logicals_x, code.logicals_z
@@ -438,7 +438,8 @@ def _parse_error_model_dict(noise_dict: Dict[str, Any]) -> BaseErrorModel:
 def _parse_decoder_dict(
     decoder_dict: Dict[str, Any],
     code: StabilizerCode,
-    error_model: BaseErrorModel
+    error_model: BaseErrorModel,
+    error_rate: float
 ) -> BaseDecoder:
     decoder_name = decoder_dict['model']
     decoder_class = DECODERS[decoder_name]
@@ -448,13 +449,9 @@ def _parse_decoder_dict(
     else:
         decoder_params = {}
 
-    signature = inspect.signature(decoder_class)
-
-    if 'code' in signature.parameters.keys():
-        decoder_params['code'] = code
-
-    if 'error_model' in signature.parameters.keys():
-        decoder_params['error_model'] = error_model
+    decoder_params['code'] = code
+    decoder_params['error_model'] = error_model
+    decoder_params['error_rate'] = error_rate
 
     decoder = decoder_class(**decoder_params)
     return decoder
@@ -526,13 +523,14 @@ def get_simulations(
     codes = [_parse_code_dict(code_dict) for code_dict in code_range]
     error_models = [_parse_error_model_dict(noise_dict) for noise_dict in noise_range]
 
-    for (code, error_model, decoder_dict) in itertools.product(codes,
-                                                               error_models,
-                                                               decoder_range):
-        decoder = _parse_decoder_dict(decoder_dict, code, error_model)
-
-        for probability in probability_range:
-            simulations.append(Simulation(code, error_model, decoder, probability))
+    for (
+        code, error_model, decoder_dict, error_rate
+    ) in itertools.product(codes,
+                           error_models,
+                           decoder_range,
+                           probability_range):
+        decoder = _parse_decoder_dict(decoder_dict, code, error_model, error_rate)
+        simulations.append(Simulation(code, error_model, decoder, error_rate))
 
     if start is not None:
         simulations = simulations[start:]

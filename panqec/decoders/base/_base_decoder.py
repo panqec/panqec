@@ -7,9 +7,13 @@ import numpy as np
 class BaseDecoder(metaclass=ABCMeta):
     """Base class for decoders"""
 
-    def __init__(self, code: StabilizerCode, error_model: BaseErrorModel):
+    def __init__(self,
+                 code: StabilizerCode, 
+                 error_model: BaseErrorModel, 
+                 error_rate: float):
         self.code = code
         self.error_model = error_model
+        self.error_rate = error_rate
 
     @property
     @abstractmethod
@@ -19,7 +23,7 @@ class BaseDecoder(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def decode(self, syndrome: np.ndarray, error_rate: float = None) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray) -> np.ndarray:
         """Given a code and a syndrome, returns a correction to apply to the qubits
 
         Parameters

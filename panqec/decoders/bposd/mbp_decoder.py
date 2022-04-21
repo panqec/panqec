@@ -1,4 +1,3 @@
-from configparser import Error
 import numpy as np
 from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
@@ -161,7 +160,7 @@ def mbp_decoder(H,
 
         # ------------------ Break loop if syndrome reached ------------------
 
-        new_syndrome = bcommute(correction_symplectic, H)
+        new_syndrome = bcommute(H, correction_symplectic)
         if np.all(new_syndrome == syndrome):
             print("Syndrome reached\n")
             break
@@ -177,10 +176,11 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
     def __init__(self,
                  code: StabilizerCode,
                  error_model: BaseErrorModel,
+                 error_rate: float,
                  max_bp_iter: int = 10,
                  alpha: float = 0.4,
                  beta: float = 0.01):
-        super().__init__(code, error_model)
+        super().__init__(code, error_model, error_rate)
         self._max_bp_iter = max_bp_iter
         self._alpha = alpha
         self._beta = beta
@@ -189,28 +189,26 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
         self._z_decoder: Dict = dict()
         self._decoder: Dict = dict()
 
-    def get_probabilities(
-        self, code: StabilizerCode
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-
-        pi, px, py, pz = self._error_model.probability_distribution(
-            code, self._probability
+    def get_probabilities(self):
+        pi, px, py, pz = self.error_model.probability_distribution(
+            self.code,
+            self.error_rate
         )
 
         return pi, px, py, pz
 
-    def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
-        n_qubits = code.n
+        n_qubits = self.code.n
         syndrome = np.array(syndrome, dtype=int)
 
-        pi, px, py, pz = self.get_probabilities(code)
+        pi, px, py, pz = self.get_probabilities()
 
         probabilities = np.vstack([pi, px, py, pz])
 
         correction = mbp_decoder(
-            code.stabilizer_matrix, syndrome, probabilities, max_bp_iter=self._max_bp_iter,
+            self.code.stabilizer_matrix, syndrome, probabilities, max_bp_iter=self._max_bp_iter,
             alpha=self._alpha, beta=self._beta
         )
         correction = np.concatenate([correction[n_qubits:], correction[:n_qubits]])
@@ -240,7 +238,7 @@ def test_decoder():
     error_model = PauliErrorModel(r_x, r_y, r_z)
 
     decoder = MemoryBeliefPropagationDecoder(
-        code, error_model, max_bp_iter=max_bp_iter, alpha=alpha
+        code, error_model, error_rate, max_bp_iter=max_bp_iter, alpha=alpha
     )
 
     # Start timer
@@ -260,7 +258,7 @@ def test_decoder():
         syndrome = code.measure_syndrome(error)
 
         print("Decode")
-        correction = decoder.decode(syndrome, error_rate)
+        correction = decoder.decode(syndrome)
 
         print("Get total error")
         total_error = (correction + error) % 2
