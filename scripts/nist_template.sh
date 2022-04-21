@@ -18,7 +18,7 @@ source ~/.bashrc
 
 # Load python and activate the python virtual environment.
 conda deactivate
-conda activate panqec
+conda activate bn3d
 
 # Variables to change.
 trials=${TRIALS}
