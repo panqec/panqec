@@ -62,7 +62,6 @@ def tanh_prod(a, eps=1e-8):
     elif prod <= -1:
         prod = -1 + eps
 
-    # print("Tanh prod", 2 * np.arctanh(np.prod(np.tanh(a/2))))
     return 2 * np.arctanh(prod)
 
 
@@ -73,8 +72,6 @@ def log_exp_bias(pauli, gamma, eps=1e-12):
     denominator -= np.exp(-gamma[pauli])
     if denominator <= 0:
         denominator = eps
-    # print("Denominator", denominator)
-
     return np.log(eps + (1 + np.exp(-gamma[pauli])) / denominator)
 
 
@@ -104,14 +101,15 @@ def mbp_decoder(H,
     # ======================= Initialize BP variables =======================
 
     # Create channel log ratios
-    lambda_channel = np.log((p_channel[0] + eps) / p_channel[1:])
+    lambda_channel = np.log((1 - p_channel[1:]) / p_channel[1:])
 
     # Initialize [qubit to stabilizer] messages (gamma)
     gamma_q2s = np.zeros((3, n_qubits, n_stabs))
     for n in range(n_qubits):
         for m in neighboring_stabs[n]:
             for w in range(3):
-                gamma_q2s[w, n, m] = lambda_channel[w, n]
+                if 1 + w != H_pauli[m, n]:
+                    gamma_q2s[w, n, m] = lambda_channel[w, n]
 
     # Initialize [stabilizer to qubit] messages (delta)
     delta_s2q = np.zeros((n_stabs, n_qubits))
