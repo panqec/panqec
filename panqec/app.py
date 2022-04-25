@@ -56,6 +56,16 @@ def run_once(
     return results
 
 
+def estimate_file(
+    file_name: str, n_trials: int,
+    start: Optional[int] = None,
+    n_runs: Optional[int] = None,
+) -> Dict:
+    """Estimate resources needed to run file."""
+    estimation: Dict = dict()
+    return estimation
+
+
 def run_file(
     file_name: str, n_trials: int,
     start: Optional[int] = None,
