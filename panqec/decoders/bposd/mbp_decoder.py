@@ -2,7 +2,7 @@ import numpy as np
 from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
 from panqec.error_models import BaseErrorModel
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 import panqec.bsparse as bsparse
 from panqec.bpauli import bcommute
 from scipy.sparse import csr_matrix
@@ -75,9 +75,11 @@ def log_exp_bias(pauli, gamma, eps=1e-12):
     return np.log(eps + (1 + np.exp(-gamma[pauli])) / denominator)
 
 
+# @profile
 def mbp_decoder(H,
+                H_pauli,
                 syndrome: np.ndarray,
-                p_channel: Dict[str, np.ndarray],
+                p_channel: List[np.ndarray],
                 max_bp_iter=10,
                 alpha=0.75,
                 beta=0,
@@ -88,12 +90,10 @@ def mbp_decoder(H,
 
     # =================== Preprocess parity-check matrix ===================
 
-    # Convert it to a matrix over GF(4), where each element is in [0,4]
-    H_pauli = symplectic_to_pauli(H)
     n_stabs, n_qubits = H_pauli.shape
 
     # Easy access to the neighboring qubits of each stabilizer
-    neighboring_qubits = [H_pauli[m].nonzero()[1] for m in range(H_pauli.shape[0])]
+    neighboring_qubits = [H_pauli[m].nonzero()[0] for m in range(H_pauli.shape[0])]
 
     # Easy access to the neighboring stabilizers of each qubit
     neighboring_stabs = [H_pauli[:, n].nonzero()[0] for n in range(H_pauli.shape[1])]
@@ -117,7 +117,7 @@ def mbp_decoder(H,
     # ============================ BP iterations ============================
 
     for iter in range(max_bp_iter):
-        print(f"\nIter {iter+1} / {max_bp_iter}")
+        # print(f"\nIter {iter+1} / {max_bp_iter}")
 
         gamma_q = np.zeros((3, n_qubits))
         for n in range(n_qubits):
@@ -140,11 +140,11 @@ def mbp_decoder(H,
 
                 gamma_q[w, n] = lambda_channel[w, n] + 1 / alpha * sum_diff_pauli - beta * sum_same_pauli
 
+                # Update qubit to stab messages
+                gamma_q2s[w, n, :] = gamma_q[w, n]
+                
                 # Inhibition loop
-                for m in neighboring_stabs[n]:
-                    gamma_q2s[w, n, m] = gamma_q[w, n]
-                    if 1 + w != H_pauli[m, n]:
-                        gamma_q2s[w, n, m] -= delta_s2q[m, n]
+                gamma_q2s[w, n, (1 + w != H_pauli[:, n])] -= delta_s2q[(1 + w != H_pauli[:, n]), n]
 
         # -------------------------- Hard decision --------------------------
 
@@ -160,7 +160,7 @@ def mbp_decoder(H,
 
         new_syndrome = bcommute(H, correction_symplectic)
         if np.all(new_syndrome == syndrome):
-            print("Syndrome reached\n")
+            # print(f"Syndrome reached in {iter} iterations\n")
             break
 
     correction_symplectic = pauli_to_symplectic(correction, reverse=True)
@@ -175,11 +175,15 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
                  code: StabilizerCode,
                  error_model: BaseErrorModel,
                  error_rate: float,
-                 max_bp_iter: int = 10,
+                 max_bp_iter: int = None,
                  alpha: float = 0.4,
-                 beta: float = 0.01):
+                 beta: float = 0):
         super().__init__(code, error_model, error_rate)
-        self._max_bp_iter = max_bp_iter
+
+        if max_bp_iter is None:
+            self._max_bp_iter = code.n
+        else:
+            self._max_bp_iter = max_bp_iter
         self._alpha = alpha
         self._beta = beta
 
@@ -187,10 +191,17 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
         self._z_decoder: Dict = dict()
         self._decoder: Dict = dict()
 
+        # Convert it to a matrix over GF(4), where each element is in [0,4]
+        self.H = code.stabilizer_matrix.toarray()
+        self.H_pauli = symplectic_to_pauli(code.stabilizer_matrix).toarray()
+
     def get_probabilities(self):
+        # error_rate = self.error_rate
+        error_rate = 0.5
+
         pi, px, py, pz = self.error_model.probability_distribution(
             self.code,
-            self.error_rate
+            error_rate
         )
 
         return pi, px, py, pz
@@ -206,7 +217,8 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
         probabilities = np.vstack([pi, px, py, pz])
 
         correction = mbp_decoder(
-            self.code.stabilizer_matrix, syndrome, probabilities, max_bp_iter=self._max_bp_iter,
+            self.H, self.H_pauli, syndrome,
+            probabilities, max_bp_iter=self._max_bp_iter,
             alpha=self._alpha, beta=self._beta
         )
         correction = np.concatenate([correction[n_qubits:], correction[:n_qubits]])
@@ -225,8 +237,8 @@ def test_decoder():
     from panqec.error_models import PauliErrorModel
     import time
 
-    L = 20
-    max_bp_iter = 20
+    L = 6
+    max_bp_iter = None
     alpha = 0.4
 
     code = Toric2DCode(L, L)
