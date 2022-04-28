@@ -147,6 +147,7 @@ class GUI():
             noise_deformation = content['noise_deformation']
             max_bp_iter = content['max_bp_iter']
             alpha = content['alpha']
+            beta = content['beta']
             decoder_name = content['decoder']
             error_model_name = content['error_model']
 
@@ -158,8 +159,9 @@ class GUI():
             kwargs = {}
             if decoder_name in ['BP-OSD', 'MBP']:
                 kwargs['max_bp_iter'] = max_bp_iter
-            if decoder_name == 'MBP':
+            if decoder_name in ['MBP', 'MBP by Joschka']:
                 kwargs['alpha'] = alpha
+                kwargs['beta'] = beta
 
             decoder = self.decoders[decoder_name](code, error_model, p, **kwargs)
 
