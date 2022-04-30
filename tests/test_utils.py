@@ -1,8 +1,10 @@
 import json
 import pytest
 import numpy as np
+from panqec.bsparse import from_array
 from panqec.utils import (
     sizeof_fmt, identity, NumpyEncoder, list_where_str, list_where, set_where,
+    simple_print
 )
 
 
@@ -89,3 +91,24 @@ def test_list_where_str(array, where_str, where_list, where_set):
     assert list_where_str(array) == where_str
     assert list_where(array) == where_list
     assert set_where(array) == where_set
+
+
+class TestSimplePrint:
+
+    def test_unint_array(self, capsys):
+        a = np.eye(3, dtype=np.uint)
+        simple_print(a)
+        captured = capsys.readouterr()
+        assert captured.out == '100\n010\n001\n'
+
+    def test_sparse_array(self, capsys):
+        a = from_array(np.eye(3, dtype=np.uint))
+        simple_print(a)
+        captured = capsys.readouterr()
+        assert captured.out == '100\n010\n001\n'
+
+    def test_sparse_array_space_zeros(self, capsys):
+        a = from_array(np.eye(3, dtype=np.uint))
+        simple_print(a, zeros=False)
+        captured = capsys.readouterr()
+        assert captured.out == '1  \n 1 \n  1\n'

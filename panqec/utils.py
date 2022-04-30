@@ -9,6 +9,7 @@ Many of these are copied from the internet.
 import numpy as np
 import json
 import hashlib
+from panqec.bsparse import is_sparse, to_array
 from typing import Callable
 
 
@@ -170,3 +171,23 @@ def edge_coords(axis_xyz_list, size):
         new = np.mod(2*np.array([x, y, z], dtype=int) + diff[i], lim)
         edges.append(tuple(new))
     return edges
+
+
+def simple_print(a, zeros=True):
+    """Print binary array in an easy to read format."""
+    if is_sparse(a):
+        dense = to_array(a)
+    else:
+        dense = a
+
+    for row in dense:
+        row_str = ''
+        for entry in row:
+            if entry == 0:
+                if zeros:
+                    row_str += '0'
+                else:
+                    row_str += ' '
+            else:
+                row_str += '1'
+        print(row_str)
