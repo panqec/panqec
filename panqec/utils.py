@@ -142,3 +142,31 @@ def hash_json(dictionary):
     }
     json_string = json.dumps(dict_no_hash, sort_keys=True, indent=2)
     return hashlib.md5(json_string.encode('utf-8')).hexdigest()
+
+
+def dict_where(signs):
+    return set([k for k, v in signs.items() if v])
+
+
+def face_coords(axis_xyz_list, size):
+    """Convert list of (axis, x, y, z) into coordinates."""
+    faces = []
+    for axis_xyz in axis_xyz_list:
+        i, x, y, z = axis_xyz
+        lim = 2*np.array(size, dtype=int)
+        diff = np.array([[0, 1, 1], [1, 0, 1], [1, 1, 0]], dtype=int)
+        new = np.mod(2*np.array([x, y, z], dtype=int) + diff[i], lim)
+        faces.append(tuple(new))
+    return faces
+
+
+def edge_coords(axis_xyz_list, size):
+    """Convert list of (axis, x, y, z) into coordinates."""
+    edges = []
+    for axis_xyz in axis_xyz_list:
+        i, x, y, z = axis_xyz
+        lim = 2*np.array(size, dtype=int)
+        diff = np.eye(3, dtype=int)
+        new = np.mod(2*np.array([x, y, z], dtype=int) + diff[i], lim)
+        edges.append(tuple(new))
+    return edges

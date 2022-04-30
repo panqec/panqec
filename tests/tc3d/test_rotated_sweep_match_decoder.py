@@ -6,9 +6,10 @@ from panqec.codes import (
     RotatedPlanar3DCode
 )
 from panqec.decoders import RotatedSweepMatchDecoder, RotatedSweepDecoder3D
+from panqec.error_models import PauliErrorModel
 
 
-@pytest.mark.skip(reason='sparse')
+@pytest.mark.skip(reason='refactor')
 class TestRotatedSweepMatchDecoder:
 
     @pytest.fixture
@@ -17,14 +18,18 @@ class TestRotatedSweepMatchDecoder:
 
     @pytest.fixture
     def decoder(self):
-        return RotatedSweepMatchDecoder()
+        error_model = PauliErrorModel(1/3, 1/3, 1/3)
+        probability = 0.5
+        return RotatedSweepMatchDecoder(error_model, probability)
 
     def test_decoder_has_required_attributes(self, decoder):
         assert decoder.label is not None
         assert decoder.decode is not None
 
     def test_decode_trivial_syndrome(self, decoder, code):
-        syndrome = np.zeros(shape=len(code.stabilizer_matrix), dtype=np.uint)
+        syndrome = np.zeros(
+            shape=code.stabilizer_matrix.shape[0], dtype=np.uint
+        )
         correction = decoder.decode(code, syndrome)
         assert correction.shape[0] == 2*code.n
         assert np.all(bcommute(code.stabilizer_matrix, correction) == 0)
@@ -173,7 +178,7 @@ class TestRotatedSweepMatchDecoder:
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
 
-@pytest.mark.skip(reason='sparse')
+@pytest.mark.skip(reason='refactor')
 class TestSweepMatch1x1x1:
     """Test cases found to be failing on the GUI."""
 
@@ -183,7 +188,9 @@ class TestSweepMatch1x1x1:
 
     @pytest.fixture
     def decoder(self):
-        return RotatedSweepMatchDecoder()
+        error_model = PauliErrorModel(1/3, 1/3, 1/3)
+        probability = 0.5
+        return RotatedSweepMatchDecoder(error_model, probability)
 
     @pytest.mark.parametrize('locations', [
         [('Z', (1, 5, 1)), ('Z', (1, 5, 3))],
@@ -212,7 +219,7 @@ class TestSweepMatch1x1x1:
         )
 
 
-@pytest.mark.skip(reason='sparse')
+@pytest.mark.skip(reason='refactor')
 class TestSweepMatch2x2x2:
     """Test cases found to be failing on the GUI."""
 
@@ -222,7 +229,9 @@ class TestSweepMatch2x2x2:
 
     @pytest.fixture
     def decoder(self):
-        return RotatedSweepMatchDecoder()
+        error_model = PauliErrorModel(1/3, 1/3, 1/3)
+        probability = 0.5
+        return RotatedSweepMatchDecoder(error_model, probability)
 
     @pytest.mark.parametrize('locations', [
         [
@@ -312,7 +321,7 @@ class TestSweepMatch2x2x2:
         )
 
 
-@pytest.mark.skip(reason='sparse')
+@pytest.mark.skip(reason='refactor')
 class TestSweepCorners:
     """Test 1-qubit errors on corners fully correctable."""
 
@@ -322,7 +331,9 @@ class TestSweepCorners:
 
     @pytest.fixture
     def decoder(self):
-        return RotatedSweepMatchDecoder()
+        error_model = PauliErrorModel(1/3, 1/3, 1/3)
+        probability = 0.5
+        return RotatedSweepMatchDecoder(error_model, probability)
 
     @pytest.mark.parametrize('location', [
         (1, 3, 5),
@@ -414,7 +425,7 @@ class TestSweepCorners:
         )
 
 
-@pytest.mark.skip(reason='sparse')
+@pytest.mark.skip(reason='refactor')
 class TestRotatedSweepDecoder3D:
 
     @pytest.fixture
@@ -423,7 +434,9 @@ class TestRotatedSweepDecoder3D:
 
     @pytest.fixture
     def decoder(self):
-        return RotatedSweepDecoder3D()
+        error_model = PauliErrorModel(1/3, 1/3, 1/3)
+        probability = 0.5
+        return RotatedSweepDecoder3D(error_model, probability)
 
     @pytest.mark.parametrize(
         'vertex,sweep_direction,sweep_faces,sweep_edges',

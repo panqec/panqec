@@ -280,11 +280,13 @@ def bsf_wt(bsf):
     :rtype: int
     """
     if isinstance(bsf, np.ndarray):
-        assert np.array_equal(bsf % 2, bsf), 'BSF {} is not in binary form'.format(bsf)
+        assert np.array_equal(bsf % 2, bsf), \
+                'BSF {} is not in binary form'.format(bsf)
         return np.count_nonzero(sum(np.hsplit(bsf, 2)))
 
     elif isinstance(bsf, csr_matrix):
-        assert np.all(bsf.data == 1), 'BSF {} is not in binary form'.format(bsf)
+        assert np.all(bsf.data == 1), \
+                'BSF {} is not in binary form'.format(bsf)
 
         n = bsf.shape[1] // 2
         x_indices = bsf.indices[bsf.indices < n]
@@ -292,7 +294,10 @@ def bsf_wt(bsf):
 
         return len(np.union1d(x_indices, z_indices))
     else:
-        raise TypeError(f"bsf matrix should be a numpy array or csr_matrix, not {type(bsf)}")
+        raise TypeError(
+            f"bsf matrix should be a numpy array or "
+            f"csr_matrix, not {type(bsf)}"
+        )
 
 
 def bsf_to_pauli(bsf):
@@ -308,9 +313,10 @@ def bsf_to_pauli(bsf):
     """
 
     if isinstance(bsf, np.ndarray):
-        assert np.array_equal(bsf % 2, bsf), 'BSF {} is not in binary form'.format(bsf)
+        assert np.array_equal(bsf % 2, bsf), \
+                'BSF {} is not in binary form'.format(bsf)
 
-        def _to_pauli(b, t=str.maketrans('0123', 'IXZY')):  # noqa: B008 (deliberately reuse t)
+        def _to_pauli(b, t=str.maketrans('0123', 'IXZY')):  # noqa: B008,E501 (deliberately reuse t)
             xs, zs = np.hsplit(b, 2)
             ps = (xs + zs * 2).astype(str)  # 0=I, 1=X, 2=Z, 3=Y
             return ''.join(ps).translate(t)
@@ -320,7 +326,8 @@ def bsf_to_pauli(bsf):
         else:
             return [_to_pauli(b) for b in bsf]
     else:
-        assert np.all(bsf.data == 1), 'BSF {} is not in binary form'.format(bsf)
+        assert np.all(bsf.data == 1), \
+                'BSF {} is not in binary form'.format(bsf)
 
         def _to_pauli(b):
             n = bsf.shape[1] // 2

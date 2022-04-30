@@ -4,6 +4,7 @@ from typing import Tuple, List
 from abc import ABCMeta, abstractmethod
 import pytest
 import numpy as np
+from scipy.sparse import find
 from tqdm import tqdm
 from itertools import combinations
 from panqec.codes import StabilizerCode
@@ -43,11 +44,18 @@ def print_non_commuting(
     name_1: str, name_2: str,
     max_print: int = 5
 ):
-    non_commuting = set([
-        (i, j)
-        for i, j in np.array(np.where(commutators)).T
-        if i <= j
-    ])
+    if is_sparse(commutators):
+        non_commuting = set([
+            (i, j)
+            for i, j in np.array(find(commutators))[:2].T
+            if i <= j
+        ])
+    else:
+        non_commuting = set([
+            (i, j)
+            for i, j in np.array(np.where(commutators)).T
+            if i <= j
+        ])
 
     # Print the first few non-commuting stabilizers if any found.
     if non_commuting:
@@ -155,7 +163,7 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
         )
 
         # There should be no non-commuting pairs of stabilizers.
-        assert np.all(commutators == 0)
+        assert np.all(commutators.data == 0)
 
     def test_n_indepdent_stabilizers_equals_n_minus_k(self, code):
         n, k = code.n, code.k
@@ -192,10 +200,10 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
             code, z_commutators, code.logicals_z, code.stabilizer_matrix,
             'logicalZ', 'stabilizer'
         )
-        assert np.all(x_commutators == 0), (
+        assert np.all(to_array(x_commutators) == 0), (
             'logicalX not commuting with stabilizers'
         )
-        assert np.all(z_commutators == 0), (
+        assert np.all(to_array(z_commutators) == 0), (
             'logicalZ not commuting with stabilizers'
         )
 
@@ -244,7 +252,7 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
                 codespace = np.all(bcommute(matrix, logical) == 0)
                 if codespace:
                     matrix_with_logical = np.concatenate([
-                        matrix,
+                        to_array(matrix),
                         [logical]
                     ])
                     if brank(matrix_with_logical) == n - k + 1:
@@ -407,13 +415,19 @@ class TestRotatedToric3DDeformation:
         expected_sites.sort(key=lambda x: x[::-1])
         assert deformation_sites == expected_sites
 
-    @pytest.mark.skip(reason='sparse')
+    @pytest.mark.skip(reason='analytics')
     def test_stabilizer_matrix(self):
+        """Run this to generate stabilizer matrix for SageMath.
+
+        The data will be saved as json files in the temp directory.
+        The data can then be used as input for a SageMath notebook
+        to find the lowest-weight Z-only logical operators by brute force.
+        """
         project_dir = os.path.dirname(
             os.path.dirname(os.path.dirname(__file__))
         )
         entries = []
-        for size in [3]:
+        for size in [3, 4, 5, 6, 7, 8, 9, 10]:
             L_x, L_y, L_z = size, size + 1, size
             print(L_x, L_y, L_z)
             code = RotatedToric3DCode(L_x, L_y, L_z)

@@ -5,6 +5,7 @@ from panqec.codes import Toric3DCode
 import panqec.bsparse as bsparse
 
 
+@pytest.mark.skip(reason='refactor')
 class TestToric3DCode:
 
     @pytest.fixture()
@@ -14,12 +15,10 @@ class TestToric3DCode:
         new_code = Toric3DCode(L_x, L_y, L_z)
         return new_code
 
-    @pytest.mark.skip(reason='sparse')
     def test_cubic_code(self):
         code = Toric3DCode(5)
         assert np.all(code.size == [5, 5, 5])
 
-    @pytest.mark.skip(reason='refactor')
     def test_get_vertex_stabilizers(self, code):
         n = code.n
 

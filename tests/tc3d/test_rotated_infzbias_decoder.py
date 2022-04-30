@@ -5,6 +5,7 @@ from panqec.bpauli import bcommute, bsf_wt
 from panqec.decoders import split_posts_at_active_fences
 from panqec.codes import RotatedPlanar3DCode
 from panqec.decoders import RotatedInfiniteZBiasDecoder
+from panqec.error_models import PauliErrorModel
 
 
 @pytest.mark.parametrize('active_fences, segments, n_fences', [
@@ -35,7 +36,7 @@ def test_split_posts_at_active_fences_trivial(
     assert segments == split_posts_at_active_fences(active_fences, n_fences)
 
 
-@pytest.mark.skip(reason='sparse')
+@pytest.mark.skip(reason='refactor')
 class TestRotatedInfiniteZBiasDecoder:
     """Test 1-qubit errors on corners fully correctable."""
 
@@ -45,7 +46,9 @@ class TestRotatedInfiniteZBiasDecoder:
 
     @pytest.fixture
     def decoder(self):
-        return RotatedInfiniteZBiasDecoder()
+        error_model = PauliErrorModel(0, 0, 1)
+        probability = 0.5
+        return RotatedInfiniteZBiasDecoder(error_model, probability)
 
     @pytest.mark.parametrize('location', [
         (1, 3, 5),

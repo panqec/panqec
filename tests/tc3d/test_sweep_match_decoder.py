@@ -4,9 +4,10 @@ import numpy as np
 from panqec.bpauli import bcommute, bsf_wt
 from panqec.codes import Toric3DCode
 from panqec.decoders import SweepMatchDecoder
+from panqec.error_models import PauliErrorModel
 
 
-@pytest.mark.skip(reason='sparse')
+@pytest.mark.skip(reason='refactor')
 class TestSweepMatchDecoder:
 
     @pytest.fixture
@@ -15,7 +16,9 @@ class TestSweepMatchDecoder:
 
     @pytest.fixture
     def decoder(self):
-        return SweepMatchDecoder()
+        error_model = PauliErrorModel(1/3, 1/3, 1/3)
+        probability = 0.5
+        return SweepMatchDecoder(error_model, probability)
 
     def test_decoder_has_required_attributes(self, decoder):
         assert decoder.label is not None
@@ -31,9 +34,9 @@ class TestSweepMatchDecoder:
     @pytest.mark.parametrize(
         'pauli, location',
         [
-            ('X', (0, 2, 2, 2)),
-            ('Y', (1, 2, 0, 3)),
-            ('Z', (2, 1, 2, 3)),
+            ('X', (5, 4, 4)),
+            ('Y', (4, 1, 6)),
+            ('Z', (2, 4, 7)),
         ]
     )
     def test_decode_single_error(self, decoder, code, pauli, location):
@@ -53,14 +56,14 @@ class TestSweepMatchDecoder:
         'paulis_locations',
         [
             [
-                ('X', (0, 2, 2, 2)),
-                ('Y', (1, 2, 0, 3)),
-                ('Z', (2, 1, 2, 3)),
+                ('X', (5, 4, 4)),
+                ('Y', (4, 1, 6)),
+                ('Z', (2, 4, 7)),
             ],
             [
-                ('Y', (0, 2, 1, 1)),
-                ('Y', (1, 2, 0, 3)),
-                ('Y', (2, 1, 2, 3)),
+                ('Y', (5, 2, 2)),
+                ('Y', (4, 1, 6)),
+                ('Y', (2, 4, 7)),
             ],
         ]
     )
@@ -86,9 +89,9 @@ class TestSweepMatchDecoder:
         ]
 
         sites = [
-            (1, 2, 2, 2),
-            (0, 1, 0, 2),
-            (2, 1, 1, 1)
+            (4, 5, 4),
+            (3, 0, 4),
+            (2, 2, 1)
         ]
 
         for code, site in itertools.product(codes, sites):

@@ -5,8 +5,8 @@ mkdir -p "$sbatch_dir"
 mkdir -p temp/paper/share
 
 ratio=equal
-wall_time="0-00:59"
-queue=debugq
+wall_time="0-23:59"
+queue=defq
 
 # Final runs.
 name=det_unrot_bposd_xzzx_zbias
@@ -74,8 +74,8 @@ panqec generate-input -i "$paper_dir/$name/inputs" \
 panqec pi-sbatch --data_dir "$paper_dir/$name" --n_array 14 --queue $queue \
     --wall_time "$wall_time" --trials 10000 --split 2 $sbatch_dir/$name.sbatch
 
-# Regime where finite-size scaling starts to break down
 : '
+# Regime where finite-size scaling starts to break down
 name=rot_bposd_xzzx_zbias
 panqec generate-input -i "$paper_dir/$name/inputs" \
     --lattice rotated --boundary planar --deformation xzzx --ratio "$ratio" \
@@ -204,13 +204,14 @@ panqec generate-input -i "$paper_dir/$name/inputs" \
 panqec pi-sbatch --data_dir "$paper_dir/$name" --n_array 6 --queue $queue \
     --wall_time "$wall_time" --trials 10000 --split 10 $sbatch_dir/$name.sbatch
 
+
 name=sts_lay_coprime_xzzx_zbias_300_1
 rm -rf "$paper_dir/$name/inputs"
 rm -rf "$paper_dir/$name/logs"
 panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class RotatedToric3DCode --noise_class DeformedXZZXErrorModel \
     --ratio coprime \
-    --sizes "7,9,11,13,15" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --sizes "6,7,9,10,11,13,15" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "300" --prob "0.19:0.23:0.01"
 panqec pi-sbatch --data_dir "$paper_dir/$name" --n_array 5 --queue $queue \
     --wall_time "$wall_time" --trials 166667 --split 80 $sbatch_dir/$name.sbatch
@@ -221,7 +222,7 @@ rm -rf "$paper_dir/$name/logs"
 panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class RotatedToric3DCode --noise_class DeformedXZZXErrorModel \
     --ratio coprime \
-    --sizes "7,9,11,13,15" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --sizes "6,7,9,10,11,13,15" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "300" --prob "0.19:0.23:0.01"
 panqec pi-sbatch --data_dir "$paper_dir/$name" --n_array 5 --queue $queue \
     --wall_time "$wall_time" --trials 166667 --split 80 $sbatch_dir/$name.sbatch
@@ -232,10 +233,11 @@ rm -rf "$paper_dir/$name/logs"
 panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class RotatedToric3DCode --noise_class DeformedXZZXErrorModel \
     --ratio coprime \
-    --sizes "7,9,11,13,15" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --sizes "6,7,9,10,11,13,15" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "300" --prob "0.19:0.23:0.01"
 panqec pi-sbatch --data_dir "$paper_dir/$name" --n_array 5 --queue $queue \
     --wall_time "$wall_time" --trials 166667 --split 80 $sbatch_dir/$name.sbatch
+
 
 name=sts_lay_coprime_undef_zbias
 rm -rf "$paper_dir/$name/inputs"

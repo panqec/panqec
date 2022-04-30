@@ -11,5 +11,7 @@ class RotatedSweepMatchDecoder(SweepMatchDecoder):
 
     def __init__(self, error_model, probability):
         super().__init__(error_model, probability)
-        self._sweeper = RotatedSweepDecoder3D()
-        self._matcher = RotatedPlanarPymatchingDecoder()
+        self._sweeper = RotatedSweepDecoder3D(error_model, probability)
+        self._matcher = RotatedPlanarPymatchingDecoder(
+            error_model, probability
+        )
