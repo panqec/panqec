@@ -1,56 +1,78 @@
-# bn3d
+# PanQEC
 
-Biased noise for 3D quantum error-correcting codes
+PanQEC is a Python package that simplifies the simulation and visualization of quantum error correction codes.
+In particular, it provides the following features:
+
+* **Simple implementation of topological codes**, through lists of coordinates for qubits, stabilizers and logicals. Parity-check matrices and other properties of the code are automatically computed.
+* End-to-end **sparse implementation of all the vectors and matrices**, optimized for fast and memory-efficient simulations.
+* Library of high-level functions to evaluate the performance of a code with a given decoder and noise model. In particular, simulating the code and establishing its **threshold** and **subthreshold scaling** performance is made particularly easy.
+* **2D and 3D visualization of topological codes** on the web browser, with a simple process to add your own codes on the visualization. This visualizer can also be found [online](https://gui.quantumcodes.io)
+* Large collection of codes, error models and decoders.
+
+In its current version, PanQEC implements the following codes
+
+* **2D and 3D surface codes**, with periodic/open boundary, on both the rotated and traditional lattices.
+* **Rhombic code**
+* **Fractons codes**: X-Cube model and Haah's code
+
+We also include an option to Hadamard-deform all those codes, i.e. applying a Hadamard gate on all qubits of a given axis. It includes the **XZZX version of the 2D and 3D surface codes**.
+
+PanQEC also currently offers the following decoders:
+
+* **BP-OSD** (Belief Propagation with Ordered Statistic Decoding), using the library [ldpc](https://github.com/quantumgizmos/ldpc) developed by Joschka Roffe. Works for all codes.
+* **MBP** (Belief Propagation with Memory effect), as described in [this paper](https://arxiv.org/abs/2104.13659). Works for all codes.
+* **MWPM** (Minimum-Weight Perfect Matching decoder) for 2D surface codes, using the library [PyMatching](https://pymatching.readthedocs.io) developed by Oscar Higgott.
+* **SweepMatch** for 3D surface codes (using our implementation of the [sweep decoder](https://arxiv.org/abs/2004.07247) for loop-syndrome decoding and PyMatching for point-syndrome).
+
 
 # Setup for development
 
 Clone the repo and enter the repo
 ```
-git clone https://github.com/ehua7365/bn3d.git
-cd bn3d
+git clone https://github.com/ehua7365/panqec.git
+cd panqec
 ```
 
-Install Python3.8 if you haven't already.
-```
-sudo apt-get install python3.8
-```
-
-Install virtualenv if you haven't already
-```
-python3.8 -m pip install virtualenv
-```
-
-Create a virtual environment.
-```
-python3.8 -m virtualenv --python=/usr/bin/python3.8 venv
-```
-
-Activate the virtual environment
-```
-source venv/bin/activate
-```
-
-Install the dependencies for development mode.
+Within a Python 3.8 environment, install the library and its dependencies for development mode.
 ```
 pip install -r requirements/dev.txt
+pip install -e .
 ```
 
 Copy the `env_template.txt` file and rename it to `.env`.
 ```
 cp env_template.txt .env
 ```
-Your `.env` file contains environmental varaibles that can be read in for to
+Your `.env` file contains environmental variables that can be read in for to
 customize.
 
-Edit the .env file to change the `BN3D_DIR` path to a directory on
+Edit the .env file to change the `PANQEC_DIR` path to a directory on
 your storage device where you want the output files to be written.
 If you don't do this, as a fallback, the data files will be written to the
 `temp` directory in this repository.
 
 Optionally, if you use dark theme in Jupyter Lab, setting
-`BN3D_DARK_THEME=True` in the `.env` file will make the plots show up nicer.
+`PANQEC_DARK_THEME=True` in the `.env` file will make the plots show up nicer.
+
+# Start the GUI
+
+To start the GUI, run
+```
+panqec start-gui
+```
+Then open your browser and go to the link printed out in the command line.
+
+# Build the documentation
+
+Within the root directory of the repository, run
+```
+sphinx-build -b html docs/ docs/_build/html
+```
+You can then read it by opening the file `docs/_build/html/index.html` on
+your web browser.
 
 # Run the tests
+
 After you've activated your virtual environment and installed the dependences,
 you can run the tests to make sure everything has been correctly installed.
 
@@ -97,7 +119,7 @@ parameters in side it, for example,
     {
       "label": "myrun",
       "code": {
-        "model": "ToricCode3D",
+        "model": "Toric3DCode",
         "parameters": {"L_x": 3, "L_y": 3, "L_z": 3}
       },
       "noise": {
@@ -119,7 +141,7 @@ the code and its parameters, the noise model and its parameters and a decoder
 To run the file, just use
 
 ```
-bn3d run --file myinputs.json --trials 100
+panqec run --file myinputs.json --trials 100
 ```
 
 You may also have the option of running many different parameters.
@@ -129,7 +151,7 @@ You may also have the option of running many different parameters.
   "ranges": {
     "label": "myrun",
     "code": {
-      "model": "ToricCode3D",
+      "model": "Toric3DCode",
       "parameters": [
         {"L_x": 3, "L_y": 3, "L_z": 3},
         {"L_x": 4, "L_y": 4, "L_z": 4},
@@ -162,7 +184,7 @@ you can put in the `slurm/inputs/` directory.
 
 To generate `.sbatch` files, run
 ```
-bn3d slurm gen --n_trials 1000 --partition defq --cores 3 --time 10:00:00
+panqec slurm gen --n_trials 1000 --partition defq --cores 3 --time 10:00:00
 ```
 After running this command, `.sbatch` files will be created in the directory
 `slurm/sbatch/`.
@@ -176,7 +198,7 @@ works nicely with the file system there.
 To generate sbatch files for NIST cluster for job `deformed_rays` split over 19
 sbatch files.
 ```
-bn3d slurm gennist deformed_rays --n_trials 1000 --split 100
+panqec slurm gennist deformed_rays --n_trials 1000 --split 100
 ```
 This will split the job into 100 sbatch files, saved to the `slurm/sbatch`
 directory, each of which run 1000 repeated trials.
@@ -185,7 +207,7 @@ in the same directory as where the generated `sbatch` files are saved.
 
 For more options see the help
 ```
-bn3d slurm gennist --help
+panqec slurm gennist --help
 ```
 You can adjust the walltime, memory, etc.
 
@@ -205,51 +227,19 @@ Once you have a json input file, there is a unique list of parameters.
 All you need to do is have something like this line in your sbatch file.
 
 ```
-bn3d run --file /path/to/inputs.json --trials 1000 --start $START --n_runs $N_RUNS
+panqec run --file /path/to/inputs.json --trials 1000 --start $START --n_runs $N_RUNS
 ```
 
 The `--trials` flag is the number of Monte Carlo runs.
 `$START` is the index to start.
 `$N_RUNS` is hte number of indices to run.
 
-# Statistical Mechanics Markov Chain Monte Carlo
-This package now also includes classes for dealing with classical statistical
-mechanics models which have a correspondence with quantum error correcting
-codes on lattices.
-They are implemented in an object-oriented manner.
-
-The main annoyance with running things on clusters is that things get killed
-and we have to start over again.
-It takes a long time for MC chains to equilibrate.
-Hence, there should be a way to save chains when then equilibrate and run them
-later to get finer data.
-Analysis should be aggregated at the end.
-
-# Run the 3D GUI
-To run the 3D GUI, after you have activated the environment, run
-```
-python3 gui/gui.py
-```
-Then open your browser and go to the link printed out in the command line.
-Click on "3D Toric Code".
-
-If you find the browser non-responsive check back on what error messages are
-coming out of the command line.
-
-# Run the 2D GUI
-To run the 2D GUI, after you have activated the environment, run
-```
-python2 gui2d.py
-```
-This is not as well-developed as the 3D GUI.
-
-
 # Reproducing results of paper
 
 ## XZZX rotated surface code with BP-OSD, equal aspect, odd sizes
 To generate the input files in an inputs directory, run the following command
 ```
-bn3d generate-input -i /path/to/inputdir \
+panqec generate-input -i /path/to/inputdir \
         -l rotated -b planar -d xzzx -r equal \
         --decoder BeliefPropagationOSDDecoder --bias Z
 ```
@@ -257,7 +247,7 @@ The input `.json` files will be generated and saved to the given directory,
 which you can check by opening some of them and inspecting them.
 To understand what the above flags mean, you can always ask for help.
 ```
-bn3d generate-input --help
+panqec generate-input --help
 ```
 
 Suppose you want to run one of these generated input files for 50 trials of
@@ -265,7 +255,7 @@ sampling and say it's named `xzzx-rotated-planar-bias-1.00-p-0.250.json`.
 Then you can run.
 
 ```
-bn3d run -f /path/to/inputdir/xzzx-rotated-planar-bias-1.00-p-0.250.json \
+panqec run -f /path/to/inputdir/xzzx-rotated-planar-bias-1.00-p-0.250.json \
         -t 50 -o /path/to/outputdir
 ```
 The above will run simulations for 50 trials each and save the results to the
@@ -325,7 +315,7 @@ cores in a certain way.
 To create a merged results directory, just run,
 just run
 ```
-bn3d merge-dirs -o temp/paper/rot_bposd_xzzx_zbias/results
+panqec merge-dirs -o temp/paper/rot_bposd_xzzx_zbias/results
 ```
 Doing so would create a directory `temp/paper/rot_bposd_xzzx_zbias/results`
 that contains all the results.
@@ -333,123 +323,8 @@ that contains all the results.
 You can then use the notebook `notebooks/14-eh-paper_figures.ipynb`
 to analyse the results.
 
-# Example of how to run statmech
-In the `temp/statmech` directory,
-create an empty directory, say `test_7` for example.
-Then create a file called `targets.json` with the following contents
-```
-{
-  "comments": "Just a single data point.",
-  "ranges": [
-    {
-      "spin_model": "RandomBondIsingModel2D",
-      "spin_model_params": [
-        {"L_x": 6, "L_y": 6},
-        {"L_x": 8, "L_y": 8},
-        {"L_x": 10, "L_y": 10}
-      ],
-      "disorder_model": "Rbim2DIidDisorder",
-      "disorder_params": [
-        {"p": 0.02}
-      ],
-      "temperature": [
-        1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8
-      ],
-      "max_tau": 11,
-      "n_disorder": 10
-    }
-  ]
-}
-```
+# The team
 
-This file specifies the inputs for this run.
-Here, `max_tau=10` means each MCMC run will sample for `2^10` sweeps,
-and `n_disorder=10` means 10 disorders will be generated and saved
-into `temp/statmech/test_7`.
+PanQEC is currently developed and maintained by [Eric Huang](https://github.com/ehua7365) and [Arthur Pesah](http://arthurpesah.me/). The implementation of 3D toric and fracton codes was done under the supervision of Arpit Dua, Michael Vasmer and Christopher Chubb.
 
-To generate some inputs, run
-```
-bn3d statmech generate temp/statmech/test_7
-```
-
-You will notice that many `.json` files have geen generated in
-`temp/statmech/test_7/inputs`.
-Each of these contains a set of disorders,
-and is named with a hash of its contents.
-Note that `max_tau` and `n_disorder` are not in these input files.
-Instead, they are recorded in the `info.json` file.
-
-Suppose you want to sample one of these inputs and it's called
-`input_0123456890abcdef.json`.
-To do so, run
-```
-bn3d statmech sample temp/statmech/test_7/input_0123456890abcdef.json
-```
-
-You will notice that results will be saved to the `results` directory,
-one results `.json` file for each `tau`.
-You may also notice the `models` directory saving the exact states at each tau.
-
-To run all of them at once,
-just use some bash script to run the above bash command for every input json
-file.
-On PBS or slurm,
-you would write an sbatch script.
-Checkout `scripts/statmech.sbatch` for an example
-of how to parallelize to running across array jobs with many cores each.
-If running locally,
-you can use the command to run them all in parallel
-```
-bn3d statmech sample-parallel temp/statmech/test_7
-```
-You can adjust the options depending on how many cores you have.
-
-To perform the analysis, you can use the command
-```
-bn3d statmech analyse temp/statmech/test_7
-```
-To plot the results, go to Jupyter lab and open `notebooks/13-eh-statmech_test_7.ipynb`.
-Run the notebook and you should see the plots of the observables,
-from which you should hopefully see phase transitions!
-(Although something seems wrong because it's not crossing!)
- 
-Of course, that was rather noisy data with only 10 disorders.
-You may want to increase the `n_disorder` to 100 or 1000 to get meaningful
-plots.
-
-# Running 2D Repetition Code Stat Mech
-Use the following `temp/statmech/test_8/targets.json` file.
-```
-{
-  "comments": "2D Repetition Code Stat Mech.",
-  "ranges": [
-    {
-      "spin_model": "LoopModel2D",
-      "spin_model_params": [
-        {"L_x": 6, "L_y": 6},
-        {"L_x": 8, "L_y": 8},
-        {"L_x": 10, "L_y": 10}
-      ],
-      "disorder_model": "LoopModel2DIidDisorder",
-      "disorder_params": [
-        {"p": 0.10}
-      ],
-      "temperature": [
-        1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8
-      ],
-      "max_tau": 11,
-      "n_disorder": 10
-    }
-  ]
-}
-```
-
-Then run the following commands to generate,
-sample and analyse.
-
-```
-bn3d statmech generate temp/statmech/test_8
-bn3d statmech sample-parallel temp/statmech/test_8
-bn3d statmech analyse temp/statmech/test_8
-```
-The sampling takes about 10 minutes to run on a laptop with 8 cores.
+Note: PanQEC was greatly inspired by [qecsim](https://qecsim.github.io/) at its inception, and we would like to thank its author David Tuckett for providing us with the first seed of this project.

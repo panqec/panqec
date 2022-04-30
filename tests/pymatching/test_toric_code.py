@@ -30,8 +30,8 @@ def test_repetition_code():
     ])
 
 
-def toric_code_x_stabilisers(L):
-    """Sparse check matrix for the X stabilisers of a toric code with
+def toric_code_x_stabilizers(L):
+    """Sparse check matrix for the X stabilizers of a toric code with
     lattice size L, constructed as the hypergraph product of two repetition
     codes.
     """
@@ -45,10 +45,10 @@ def toric_code_x_stabilisers(L):
     return csr_matrix(H)
 
 
-def test_toric_code_x_stabilisers():
-    """Test X stabilisers are ok."""
+def test_toric_code_x_stabilizers():
+    """Test X stabilizers are ok."""
     L = 3
-    H = toric_code_x_stabilisers(L)
+    H = toric_code_x_stabilizers(L)
     assert np.all(H.todense() == [
         [1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
         [0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
@@ -91,7 +91,7 @@ def test_decode_toric_code():
     p = 0.1
     np.random.seed(0)
 
-    H = toric_code_x_stabilisers(L)
+    H = toric_code_x_stabilizers(L)
     logicals = toric_code_x_logicals(L)
     matching = Matching(H)
 

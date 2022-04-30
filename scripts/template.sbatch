@@ -16,6 +16,6 @@ date
 
 module load python/3.8
 source venv/bin/activate
-bn3d run --file ${input_file} --trials ${n_trials}${options}
+panqec run --file ${input_file} --trials ${n_trials}${options}
 
 date

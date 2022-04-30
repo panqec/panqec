@@ -4,7 +4,7 @@
     {
       "label": "test_single",
       "code": {
-        "model": "ToricCode3D",
+        "model": "Toric3DCode",
         "parameters": {"L_x": 3}
       },
       "noise": {

@@ -2,10 +2,8 @@ import os
 import json
 import pytest
 import numpy as np
-from qecsim.models.basic import FiveQubitCode
-from qecsim.models.generic import NaiveDecoder
-from bn3d.noise import PauliErrorModel
-from bn3d.app import (
+from panqec.error_models import PauliErrorModel
+from panqec.app import (
     read_input_json, run_once, Simulation, expand_input_ranges, run_file,
     merge_results_dicts
 )
@@ -46,6 +44,7 @@ def test_read_json_input(file_name, expected_runs):
                 assert parameters[i] != parameters[j]
 
 
+@pytest.mark.skip(reason='qecsim')
 def test_run_once(required_fields):
     code = FiveQubitCode()
     decoder = NaiveDecoder()
@@ -56,13 +55,14 @@ def test_run_once(required_fields):
         code, error_model, decoder, error_probability=probability
     )
     assert set(required_fields).issubset(results.keys())
-    assert results['error'].shape == (2*code.n_k_d[0],)
-    assert results['syndrome'].shape == (code.stabilizers.shape[0],)
+    assert results['error'].shape == (2*code.n,)
+    assert results['syndrome'].shape == (code.stabilizer_matrix.shape[0],)
     assert isinstance(results['success'], bool)
-    assert results['effective_error'].shape == (2*code.logical_xs.shape[0],)
+    assert results['effective_error'].shape == (2*code.logicals_x.shape[0],)
     assert isinstance(results['codespace'], bool)
 
 
+@pytest.mark.skip(reason='qecsim')
 def test_run_once_invalid_probability():
     code = FiveQubitCode()
     decoder = NaiveDecoder()
@@ -72,6 +72,7 @@ def test_run_once_invalid_probability():
         run_once(code, error_model, decoder, error_probability=probability)
 
 
+@pytest.mark.skip(reason='qecsim')
 class TestSimulationFiveQubitCode():
 
     @pytest.fixture
@@ -130,7 +131,9 @@ def test_merge_results():
             'inputs': {
                 'size': [2, 2, 2],
                 'code': 'Rotated Planar 2x2x2',
-                'n_k_d': [99, 1, -1],
+                'n': 99,
+                'k': 1,
+                'd': -1,
                 'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
                 'decoder': 'BP-OSD decoder',
                 'error_probability': 0.05
@@ -146,7 +149,9 @@ def test_merge_results():
             'inputs': {
                 'size': [2, 2, 2],
                 'code': 'Rotated Planar 2x2x2',
-                'n_k_d': [99, 1, -1],
+                'n': 99,
+                'k': 1,
+                'd': -1,
                 'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
                 'decoder': 'BP-OSD decoder',
                 'error_probability': 0.05
@@ -163,7 +168,9 @@ def test_merge_results():
         'inputs': {
             'size': [2, 2, 2],
             'code': 'Rotated Planar 2x2x2',
-            'n_k_d': [99, 1, -1],
+            'n': 99,
+            'k': 1,
+            'd': -1,
             'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
             'decoder': 'BP-OSD decoder',
             'error_probability': 0.05

@@ -68,11 +68,11 @@ def test_getting_started_sparse(five_qubit_Hz):
 
 
 def test_spacetime_matching_graph(five_qubit_Hz):
-    """Noisy stabiliser measurements."""
+    """Noisy stabilizer measurements."""
 
     Hz = five_qubit_Hz
 
-    # Repetitions of stabiliser measurement rounds.
+    # Repetitions of stabilizer measurement rounds.
     repetitions = 5
 
     # Actual error probability.
@@ -88,7 +88,7 @@ def test_spacetime_matching_graph(five_qubit_Hz):
         timelike_weights=np.log((1 - p)/p),
     )
 
-    num_stabilisers, num_qubits = Hz.shape
+    num_stabilizers, num_qubits = Hz.shape
     np.random.seed(1)
     noise_new = (np.random.rand(num_qubits, repetitions) < p).astype(np.uint8)
     assert noise_new.dtype == np.uint8
@@ -121,7 +121,7 @@ def test_spacetime_matching_graph(five_qubit_Hz):
     ])
 
     # Syndrome errors.
-    z_err = (np.random.rand(num_stabilisers, repetitions) < q).astype(np.uint8)
+    z_err = (np.random.rand(num_stabilizers, repetitions) < q).astype(np.uint8)
     z_err[:, -1] = 0
     assert np.all(z_err == [
         [0, 0, 1, 0, 0],

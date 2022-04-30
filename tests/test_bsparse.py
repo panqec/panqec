@@ -1,4 +1,4 @@
-import bn3d.bsparse as bsparse
+import panqec.bsparse as bsparse
 import numpy as np
 from scipy.sparse import csr_matrix
 

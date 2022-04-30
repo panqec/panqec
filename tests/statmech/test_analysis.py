@@ -4,7 +4,7 @@ import pytest
 import gzip
 import json
 from glob import glob
-from bn3d.statmech.analysis import SimpleAnalysis
+from panqec.statmech.analysis import SimpleAnalysis
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 SAMPLE_DIR = os.path.join(BASE_DIR, 'sample_results')

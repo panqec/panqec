@@ -2,7 +2,7 @@ from itertools import product
 import json
 import pytest
 import numpy as np
-from bn3d.statmech.rbim2d import RandomBondIsingModel2D, Rbim2DIidDisorder
+from panqec.statmech.rbim2d import RandomBondIsingModel2D, Rbim2DIidDisorder
 from tests.statmech.utils import assert_flip_energies_consistent
 
 

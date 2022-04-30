@@ -1,5 +1,5 @@
 import numpy as np
-from bn3d.statmech.loop2d import LoopModel2D, WilsonLoop2D
+from panqec.statmech.loop2d import LoopModel2D, WilsonLoop2D
 
 
 class TestObservables:
