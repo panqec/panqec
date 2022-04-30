@@ -163,7 +163,7 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
             correction = decoder.osdw_decoding
             correction = np.concatenate([correction[n_qubits:], correction[:n_qubits]])
 
-        return bsparse.from_array(correction)
+        return correction
 
 
 def test_decoder():
@@ -205,8 +205,7 @@ def test_decoder():
         print("Decode")
         correction = decoder.decode(code, syndrome)
         print("Get total error")
-        total_error = correction + error
-        total_error.data %= 2
+        total_error = (correction + error) % 2
         print("Get effective error")
         effective_error = get_effective_error(
             total_error, code.logicals_x, code.logicals_z

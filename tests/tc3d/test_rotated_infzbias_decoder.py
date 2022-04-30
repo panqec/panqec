@@ -1,8 +1,7 @@
 import pytest
 from itertools import combinations
 import numpy as np
-from qecsim.paulitools import bsf_wt
-from panqec.bpauli import bcommute
+from panqec.bpauli import bcommute, bsf_wt
 from panqec.decoders import split_posts_at_active_fences
 from panqec.codes import RotatedPlanar3DCode
 from panqec.decoders import RotatedInfiniteZBiasDecoder

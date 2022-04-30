@@ -8,8 +8,8 @@ import pytest
 import numpy as np
 from panqec.codes import Toric2DCode
 from panqec.bpauli import (
-    pauli_string_to_bvector, bvector_to_pauli_string, bvector_to_barray,
-    barray_to_bvector, bcommute, get_effective_error, bvector_to_int,
+    pauli_string_to_bvector, bvector_to_pauli_string,
+    bcommute, get_effective_error, bvector_to_int,
     bvectors_to_ints, ints_to_bvectors, apply_deformation
 )
 
@@ -85,6 +85,7 @@ class TestBcommute:
             bcommute([0, 0, 0, 1], [1, 0, 1, 1, 0, 1])
 
 
+@pytest.mark.skip(reason='refactor')
 def test_bvector_to_barray():
     L = 3
     np.random.seed(0)

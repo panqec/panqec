@@ -130,14 +130,14 @@ class GUI():
             stabilizers = [code.stabilizer_representation(location, rotated_picture)
                            for location in code.stabilizer_coordinates]
 
-            logical_z = code.logicals_z.toarray().tolist()
-            logical_x = code.logicals_x.toarray().tolist()
+            logical_z = code.logicals_z
+            logical_x = code.logicals_x
 
             return json.dumps({'H': code.stabilizer_matrix.toarray().tolist(),
                                'qubits': qubits,
                                'stabilizers': stabilizers,
-                               'logical_z': logical_z,
-                               'logical_x': logical_x})
+                               'logical_z': logical_z.tolist(),
+                               'logical_x': logical_x.tolist()})
 
         @self.app.route('/decode', methods=['POST'])
         def send_correction():
@@ -165,10 +165,10 @@ class GUI():
 
             correction = decoder.decode(code, syndrome)
 
-            correction_x = correction[0, :code.n]
-            correction_z = correction[0, code.n:]
+            correction_x = correction[:code.n]
+            correction_z = correction[code.n:]
 
-            return json.dumps({'x': correction_x.toarray()[0].tolist(), 'z': correction_z.toarray()[0].tolist()})
+            return json.dumps({'x': correction_x.tolist(), 'z': correction_z.tolist()})
 
         @self.app.route('/new-errors', methods=['POST'])
         def send_random_errors():
@@ -188,7 +188,7 @@ class GUI():
             error_spec = [
                 (
                     bsf_to_str_map[
-                        (errors[0, i_qubit], errors[0, i_qubit + code.n])
+                        (errors[i_qubit], errors[i_qubit + code.n])
                     ],
                     [
                         coords for index, coords in enumerate(code.qubit_coordinates)
@@ -198,7 +198,7 @@ class GUI():
                 for i_qubit in range(code.n)
             ]
             error_spec = [spec for spec in error_spec if spec[0] != 'I']
-            return json.dumps(errors.toarray()[0].tolist())
+            return json.dumps(errors.tolist())
 
         self.app.run(port=port)
 

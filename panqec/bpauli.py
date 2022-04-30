@@ -65,8 +65,8 @@ def bcommute(a, b) -> np.ndarray:
 
         commutes = (a_X.dot(b_Z.T) + a_Z.dot(b_X.T)) % 2
 
-        if output_shape is not None:
-            commutes = commutes.reshape(output_shape)
+    if output_shape is not None:
+        commutes = commutes.reshape(output_shape)
 
     return commutes
 
@@ -87,13 +87,10 @@ def _bcommute_sparse(a, b):
     b_X = b[:, :n]
     b_Z = b[:, n:]
 
-    commutes = (a_X.dot(b_Z.T) + a_Z.dot(b_X.T))
+    commutes = (b_Z.dot(a_X.T) + b_X.dot(a_Z.T))
     commutes.data %= 2
 
-    if commutes.shape[0] == 1 or commutes.shape[1] == 1:
-        commutes = bsparse.to_array(commutes).flatten()
-
-    return commutes
+    return commutes.toarray()[0]
 
 
 def pauli_to_bsf(error_pauli):
@@ -101,11 +98,9 @@ def pauli_to_bsf(error_pauli):
     xs = (ps == 'X') + (ps == 'Y')
     zs = (ps == 'Z') + (ps == 'Y')
 
-    error = np.hstack((xs, zs))
+    error = np.hstack((xs, zs)).astype('uint8')
 
-    error_sparse = bsparse.from_array(error)
-
-    return error_sparse
+    return error
 
 
 def pauli_string_to_bvector(pauli_string: str) -> np.ndarray:

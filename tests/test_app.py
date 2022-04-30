@@ -45,6 +45,7 @@ def test_read_json_input(file_name, expected_runs):
                 assert parameters[i] != parameters[j]
 
 
+@pytest.mark.skip(reason='qecsim')
 def test_run_once(required_fields):
     code = FiveQubitCode()
     decoder = NaiveDecoder()
@@ -62,6 +63,7 @@ def test_run_once(required_fields):
     assert isinstance(results['codespace'], bool)
 
 
+@pytest.mark.skip(reason='qecsim')
 def test_run_once_invalid_probability():
     code = FiveQubitCode()
     decoder = NaiveDecoder()
@@ -71,6 +73,7 @@ def test_run_once_invalid_probability():
         run_once(code, error_model, decoder, error_probability=probability)
 
 
+@pytest.mark.skip(reason='qecsim')
 class TestSimulationFiveQubitCode():
 
     @pytest.fixture

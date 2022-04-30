@@ -290,11 +290,14 @@ def get_p_th_sd_interp(
         df_filt_code = df_filt[df_filt['code'] == code].sort_values(
             by='probability'
         )
-        interpolator = interp1d(
-            df_filt_code['probability'], df_filt_code[p_est],
-            fill_value="extrapolate"
-        )
-        curves[code] = interpolator(p_interp)
+        if df_filt_code.shape[0] > 1:
+            interpolator = interp1d(
+                df_filt_code['probability'], df_filt_code[p_est],
+                fill_value="extrapolate"
+            )
+            curves[code] = interpolator(p_interp)
+        else:
+            curves[code] = np.array([df_filt_code[p_est].iloc[0]]*2)
     interp_df = pd.DataFrame(curves)
     interp_df.index = p_interp
 
@@ -419,12 +422,15 @@ def get_p_th_nearest(df_filt: pd.DataFrame, p_est: str = 'p_est') -> float:
 
     # p_th_nearest = p_est_df.index[(longest_B_seq[0] + longest_A_seq[1]) // 2]
 
-    i_order_change = np.diff(
-        np.diff(
-            np.argsort(p_est_df.values, axis=1)
-        ).sum(axis=1)
-    ).argmax()
-    p_th_nearest = p_est_df.index[i_order_change]
+    try:
+        i_order_change = np.diff(
+            np.diff(
+                np.argsort(p_est_df.values, axis=1)
+            ).sum(axis=1)
+        ).argmax()
+        p_th_nearest = p_est_df.index[i_order_change]
+    except ValueError:
+        p_th_nearest = p_est_df.index[0]
 
     return p_th_nearest
 
@@ -538,7 +544,7 @@ def fit_fss_params(
             p_list, d_list, f_list, params_0=params_0, ftol=ftol_est,
             maxfev=maxfev
         )
-    except RuntimeError as err:
+    except (RuntimeError, TypeError) as err:
         print('fitting failed')
         print(err)
         params_opt = np.array([np.nan]*5)
@@ -572,7 +578,7 @@ def fit_fss_params(
                     maxfev=maxfev
                 )
             )
-        except RuntimeError:
+        except (RuntimeError, TypeError):
             print('bootstrap fitting failed')
             params_bs_list.append(np.array([np.nan]*5))
     params_bs = np.array(params_bs_list)

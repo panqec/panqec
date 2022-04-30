@@ -117,13 +117,13 @@ class DeformedSweepMatchDecoder(BaseDecoder):
 
         correction = (z_correction + x_correction) % 2
         correction = correction.astype(np.uint)
-        return bsparse.from_array(correction)
+        return correction
 
 
 class DeformedRotatedSweepMatchDecoder(DeformedSweepMatchDecoder):
 
     def __init__(self, error_model: BaseErrorModel, probability: float):
-        self._sweeper = RotatedSweepDecoder3D()
+        self._sweeper = RotatedSweepDecoder3D(error_model, probability)
         self._matcher = DeformedRotatedPlanarPymatchingDecoder(
             error_model, probability
         )
@@ -132,7 +132,9 @@ class DeformedRotatedSweepMatchDecoder(DeformedSweepMatchDecoder):
 class DeformedRotatedPlanarPymatchingDecoder(RotatedPlanarPymatchingDecoder):
 
     def __init__(self, error_model: BaseErrorModel, probability: float):
-        super(DeformedRotatedPlanarPymatchingDecoder, self).__init__()
+        super(DeformedRotatedPlanarPymatchingDecoder, self).__init__(
+            error_model, probability
+        )
         self._error_model = error_model
         self._probability = probability
         self._epsilon = 1e-15

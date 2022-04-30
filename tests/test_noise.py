@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from qecsim.paulitools import bsf_to_pauli, bsf_wt
+from panqec.bpauli import bsf_to_pauli, bsf_wt
 from panqec.error_models import PauliErrorModel
 from panqec.codes import Toric3DCode
 import panqec.bsparse as bsparse
