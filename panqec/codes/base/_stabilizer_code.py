@@ -465,7 +465,7 @@ class StabilizerCode(metaclass=ABCMeta):
         Parameters
         ----------
         bsf_operator: np.ndarray
-            Array of dimension 2n in the binary symplectic format
+            Array of dimension (1, 2n) in the binary symplectic format
             (where n is the number of qubits)
         Returns
         -------
@@ -482,12 +482,14 @@ class StabilizerCode(metaclass=ABCMeta):
 
         for col in cols:
             if col < self.n:
-                operator[self.qubit_coordinates[col]] = 'X'
+                location = self.qubit_coordinates[col]
+                operator[location] = 'X'
             else:
-                if self.qubit_coordinates[col] in operator.keys():
-                    operator[self.qubit_coordinates[col]] = 'Y'
+                location = self.qubit_coordinates[col - self.n]
+                if location in operator.keys():
+                    operator[location] = 'Y'
                 else:
-                    operator[self.qubit_coordinates[col]] = 'Z'
+                    operator[location] = 'Z'
 
         return operator
 
@@ -506,6 +508,7 @@ class StabilizerCode(metaclass=ABCMeta):
             Syndrome, as an array of dimension m (where m is the number
             of stabilizers)
         """
+
 
         return bcommute(self.stabilizer_matrix, error)
 

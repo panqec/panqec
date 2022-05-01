@@ -5,7 +5,6 @@ from panqec.codes import Toric3DCode
 import panqec.bsparse as bsparse
 
 
-@pytest.mark.skip(reason='refactor')
 class TestToric3DCode:
 
     @pytest.fixture()
@@ -17,15 +16,21 @@ class TestToric3DCode:
 
     def test_cubic_code(self):
         code = Toric3DCode(5)
-        assert np.all(code.size == [5, 5, 5])
+        assert code.size == (5, 5, 5)
 
     def test_get_vertex_stabilizers(self, code):
         n = code.n
 
-        stabilizers = code.get_vertex_stabilizers()
+        vertex_index = tuple(
+            index
+            for index, location in enumerate(code.stabilizer_coordinates)
+            if code.stabilizer_type(location) == 'vertex'
+        )
+        stabilizers = code.stabilizer_matrix[vertex_index, :]
 
         # There should be least some vertex stabilizers.
         assert stabilizers.shape[0] > 0
+
         # For sparse matrices, shape[1] matters
         assert len(stabilizers.shape) == 1 or stabilizers.shape[1] > 0
 
@@ -65,10 +70,14 @@ class TestToric3DCode:
         assert k == 3
         assert d == min(code.size)
 
-    @pytest.mark.skip(reason='refactor')
     def test_get_face_stabilizers(self, code):
         n = code.n
-        stabilizers = code.get_face_stabilizers()
+        face_index = tuple(
+            index
+            for index, location in enumerate(code.stabilizer_coordinates)
+            if code.stabilizer_type(location) == 'face'
+        )
+        stabilizers = code.stabilizer_matrix[face_index, :]
 
         # Weight of every stabilizer should be 6.
         assert np.all(stabilizers.sum(axis=1) == 4)
@@ -92,19 +101,21 @@ class TestToric3DCode:
         else:
             assert np.all(np.array(stabilizers.sum(axis=0)[0, :n]) == 4)
 
-    @pytest.mark.skip(reason='refactor')
     def test_get_all_stabilizers(self, code):
         n = code.n
+        n_vertex = len(code.type_index('vertex'))
         stabilizers = code.stabilizer_matrix
 
         # Total number of stabilizers.
         assert stabilizers.shape[0] == 4*np.product(code.size)
 
         # Z block of X stabilizers should be all 0.
-        assert np.all(bsparse.to_array(stabilizers[:n, n:]) == 0)
+        assert np.all(bsparse.to_array(stabilizers[:n_vertex, :n]) == 0)
 
         # X block of Z stabilizers should be all 0.
-        assert np.all(bsparse.to_array((stabilizers[n:, :np.product(code.size)])) == 0)
+        assert np.all(
+            bsparse.to_array((stabilizers[n_vertex:, n:])) == 0
+        )
 
     def test_get_Z_logicals(self, code):
         n = code.n
@@ -129,7 +140,9 @@ class TestCommutationRelationsToric3DCode:
         return new_code
 
     def test_stabilizers_commute_with_each_other(self, code):
-        assert np.all(bcommute(code.stabilizer_matrix, code.stabilizer_matrix) == 0)
+        assert np.all(
+            bcommute(code.stabilizer_matrix, code.stabilizer_matrix) == 0
+        )
 
     def test_Z_logicals_commute_with_each_other(self, code):
         assert np.all(bcommute(code.logicals_z, code.logicals_z) == 0)
