@@ -82,11 +82,11 @@ class StabilizerCode(metaclass=ABCMeta):
         self._stabilizer_matrix = bsparse.empty_row(2*self.n)
         self._Hx = bsparse.empty_row(self.n)
         self._Hz = bsparse.empty_row(self.n)
-        self._logicals_x = None
-        self._logicals_z = None
-        self._is_css = None
-        self._x_indices = None
-        self._z_indices = None
+        self._logicals_x: Optional[np.ndarray] = None
+        self._logicals_z: Optional[np.ndarray] = None
+        self._is_css: Optional[bool] = None
+        self._x_indices: Optional[np.ndarray] = None
+        self._z_indices: Optional[np.ndarray] = None
         self._d: Optional[int] = None
         self._stabilizer_types: Optional[List[str]] = None
 
@@ -234,7 +234,9 @@ class StabilizerCode(metaclass=ABCMeta):
         and Z stabilizers
         """
         if self._is_css is None:
-            self._is_css = not np.any(np.logical_and(self.x_indices, self.z_indices))
+            self._is_css = not np.any(
+                np.logical_and(self.x_indices, self.z_indices)
+            )
 
         return self._is_css
 
@@ -246,11 +248,18 @@ class StabilizerCode(metaclass=ABCMeta):
         """
 
         if bsparse.is_empty(self._stabilizer_matrix):
-            sparse_dict = {}
-            self._stabilizer_matrix = dok_matrix((self.n_stabilizers, 2*self.n), dtype='uint8')
+            sparse_dict: Dict = dict()
+            self._stabilizer_matrix = dok_matrix(
+                (self.n_stabilizers, 2*self.n),
+                dtype='uint8'
+            )
 
-            for i_stab, stabilizer_location in enumerate(self.stabilizer_coordinates):
-                stabilizer_op = self.get_stabilizer(stabilizer_location, deformed_axis=self._deformed_axis)
+            for i_stab, stabilizer_location in enumerate(
+                self.stabilizer_coordinates
+            ):
+                stabilizer_op = self.get_stabilizer(
+                    stabilizer_location, deformed_axis=self._deformed_axis
+                )
 
                 for qubit_location in stabilizer_op.keys():
                     if stabilizer_op[qubit_location] in ['X', 'Y']:
@@ -509,15 +518,16 @@ class StabilizerCode(metaclass=ABCMeta):
             of stabilizers)
         """
 
-
         return bcommute(self.stabilizer_matrix, error)
 
     def is_stabilizer(self, location: Tuple, stab_type: str = None):
         """Returns whether a given location in the coordinate system
         corresponds to a stabilizer or not
         """
-        _is_stabilizer = (location in self.stabilizer_index) and\
-                         (stab_type is None or self.stabilizer_type(location) == stab_type)
+        _is_stabilizer = (
+            (location in self.stabilizer_index) and
+            (stab_type is None or self.stabilizer_type(location) == stab_type)
+        )
 
         return _is_stabilizer
 
@@ -555,8 +565,8 @@ class StabilizerCode(metaclass=ABCMeta):
     def get_stabilizer_coordinates(self) -> List[Tuple]:
         """Create list of stabilizer coordinates, in a coordinate system
         that should contain both the qubits and the stabilizers.
-        This function is used to set the attributes `self.stabilizer_coordinates`
-        and `self.stabilizer_index`.
+        This function is used to set the attributes
+        `self.stabilizer_coordinates` and `self.stabilizer_index`.
         """
 
     @abstractmethod
@@ -587,13 +597,17 @@ class StabilizerCode(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def get_stabilizer(self, location: Tuple, deformed_axis: str = None) -> Operator:
+    def get_stabilizer(
+        self, location: Tuple, deformed_axis: str = None
+    ) -> Operator:
         """ Returns a stabilizer, formatted as dictionary that assigns a Pauli
         operator ('X', 'Y' or 'Z') to each qubit location in the support of
         the stabilizer.
 
-        For example, for a vertex stabilizer in the 2D toric code, we could have
-        `get_stabilizer((1,1)) -> {(1,0): 'X', (0, 1): 'X', (2, 1): 'X', (1, 2): 'X'}`
+        For example, for a vertex stabilizer in the 2D toric code, we could
+        have
+        `get_stabilizer((1,1)) -> {(1,0): 'X', (0, 1): 'X', (2, 1): 'X',
+        (1, 2): 'X'}`
 
         Parameters
         ----------
@@ -671,7 +685,9 @@ class StabilizerCode(metaclass=ABCMeta):
             Dictionary to send to the GUI
         """
         if json_file is None:
-            json_file = os.path.join(os.environ['PANQEC_ROOT_DIR'], 'codes', 'gui-config.json')
+            json_file = os.path.join(
+                os.environ['PANQEC_ROOT_DIR'], 'codes', 'gui-config.json'
+            )
 
         stab_type = self.stabilizer_type(location)
 
@@ -717,7 +733,9 @@ class StabilizerCode(metaclass=ABCMeta):
             Dictionary to send to the GUI
         """
         if json_file is None:
-            json_file = os.path.join(os.environ['PANQEC_ROOT_DIR'], 'codes', 'gui-config.json')
+            json_file = os.path.join(
+                os.environ['PANQEC_ROOT_DIR'], 'codes', 'gui-config.json'
+            )
 
         with open(json_file, 'r') as f:
             data = json.load(f)
