@@ -16,22 +16,21 @@ class TestRotatedPlanar3DCode(StabilizerCodeTest):
         new_code = RotatedPlanar3DCode(self.L_x, self.L_y, self.L_z)
         return new_code
 
-    @pytest.mark.skip(reason='refactor')
     def test_vertex_index_corner_region(self, code):
 
+        vertex_index = code.type_index('vertex')
         # First layer corner near origin
-        assert (0, 0, 0) not in code.vertex_index
-        assert (2, 0, 1) in code.vertex_index
-        assert (2, 4, 1) in code.vertex_index
-        assert (0, 2, 1) not in code.vertex_index
-        assert (4, 2, 1) in code.vertex_index
-        assert (6, 0, 1) in code.vertex_index
-        assert (2, 8, 1) in code.vertex_index
-        assert (4, 6, 1) in code.vertex_index
+        assert (0, 0, 0) not in vertex_index
+        assert (2, 0, 1) in vertex_index
+        assert (2, 4, 1) in vertex_index
+        assert (0, 2, 1) not in vertex_index
+        assert (4, 2, 1) in vertex_index
+        assert (6, 0, 1) in vertex_index
+        assert (2, 8, 1) in vertex_index
+        assert (4, 6, 1) in vertex_index
 
-    @pytest.mark.skip(reason='refactor')
     def test_vertex_index_complies_with_rules(self, code):
-        for x, y, z in code.vertex_index.keys():
+        for x, y, z in code.type_index('vertex'):
             assert z % 2 == 1
             if x % 4 == 2:
                 assert y % 4 == 0
@@ -39,9 +38,8 @@ class TestRotatedPlanar3DCode(StabilizerCodeTest):
                 assert x % 4 == 0
                 assert y % 4 == 2
 
-    @pytest.mark.skip(reason='refactor')
     def test_vertex_index_boundary_conditions(self, code):
-        for x, y, z in code.vertex_index.keys():
+        for x, y, z in code.type_index('vertex'):
             assert x != 0
             if y == 0:
                 assert x % 4 == 2
@@ -49,9 +47,8 @@ class TestRotatedPlanar3DCode(StabilizerCodeTest):
                 if x == self.L_x*2 + 2:
                     assert y % 4 == 0
 
-    @pytest.mark.skip(reason='refactor')
     def test_face_index_complies_with_rules(self, code):
-        for x, y, z in code.face_index.keys():
+        for x, y, z in code.type_index('face'):
             if z % 2 == 1:
                 if x % 4 == 0:
                     assert y % 4 == 0
@@ -74,8 +71,7 @@ class TestRotatedPlanar3DCode(StabilizerCodeTest):
                     assert x % 4 == 2
                     assert y % 4 == 0
 
-    @pytest.mark.skip(reason='refactor')
     def test_each_qubit_contained_in_1_or_2_check_operators(self, code):
-        H = code.Hx
+        H = code.Hz
         assert np.all(H.sum(axis=0) > 0)
         assert np.all(H.sum(axis=0) <= 2)

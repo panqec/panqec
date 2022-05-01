@@ -724,3 +724,23 @@ class StabilizerCode(metaclass=ABCMeta):
             representation['color'][pauli] = self.colormap[color_name]
 
         return representation
+
+    def type_index(self, stabilizer_type: str) -> Dict[Tuple, int]:
+        """Dictionary of locations and indices for given stabilizer type.
+
+        Parameters
+        ----------
+        stabilizer_type: str
+            Stabilizer type ot index.
+
+        Returns
+        -------
+        index: Dict[Tuple, int]
+            Dictionary of qubit indices for each stabilizer location that
+            matches the given type.
+        """
+        return {
+            location: index
+            for index, location in enumerate(self.stabilizer_coordinates)
+            if self.stabilizer_type(location) == stabilizer_type
+        }
