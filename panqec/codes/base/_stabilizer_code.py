@@ -448,7 +448,7 @@ class StabilizerCode(metaclass=ABCMeta):
             Array of dimension 2n in the binary symplectic format
             (where n is the number of qubits)
         """
-        bsf_operator = np.zeros(2*self.n)
+        bsf_operator = np.zeros(2*self.n, dtype=np.uint)
 
         for qubit_location in operator.keys():
             if operator[qubit_location] in ['X', 'Y']:
