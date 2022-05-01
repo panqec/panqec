@@ -5,7 +5,7 @@ from panqec.codes import Toric3DCode
 from panqec.decoders import SweepDecoder3D
 from panqec.bpauli import bcommute, bsf_wt
 from panqec.error_models import PauliErrorModel
-from panqec.utils import dict_where, set_where, edge_coords, face_coords
+from panqec.utils import edge_coords, face_coords
 
 
 class TestSweepDecoder3D:
