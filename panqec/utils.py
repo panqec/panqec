@@ -174,7 +174,20 @@ def edge_coords(axis_xyz_list, size):
 
 
 def simple_print(a, zeros=True):
-    """Print binary array in an easy to read format."""
+    """Print binary array in space-saving manner.
+
+    Examples
+    --------
+    >>> simple_print(np.eye(3))
+    100
+    010
+    001
+
+    >>> simple_print(np.eye(3), zeros=False)
+    1
+     1
+      1
+    """
     if is_sparse(a):
         dense = to_array(a)
     else:
@@ -190,4 +203,4 @@ def simple_print(a, zeros=True):
                     row_str += ' '
             else:
                 row_str += '1'
-        print(row_str)
+        print(row_str.rstrip())

@@ -111,4 +111,4 @@ class TestSimplePrint:
         a = from_array(np.eye(3, dtype=np.uint))
         simple_print(a, zeros=False)
         captured = capsys.readouterr()
-        assert captured.out == '1  \n 1 \n  1\n'
+        assert captured.out == '1\n 1\n  1\n'
