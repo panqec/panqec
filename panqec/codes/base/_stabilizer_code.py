@@ -22,12 +22,13 @@ class StabilizerCode(metaclass=ABCMeta):
     that contain qubits
     - get_stabilizer_coordinates() to define all the coordinates in the lattice
     that contain stabilizers
-    - qubit_axis(location) to return the axis of a qubit at a given location (when qubit
-    have an orientation in space, for instance when they are edges)
+    - qubit_axis(location) to return the axis of a qubit at a given location
+      (when qubit have an orientation in space, for instance when they are
+      edges)
 
-    Using only those methods, a StabilizerCode will then automatically create the
-    corresponding parity-check matrix (in self.stabilizers) and can be used to make
-    a visualization in the GUI or calculate thresholds.
+    Using only those methods, a StabilizerCode will then automatically create
+    the corresponding parity-check matrix (in self.stabilizers) and can be used
+    to make a visualization in the GUI or calculate thresholds.
     """
 
     X_AXIS = 0
@@ -52,9 +53,11 @@ class StabilizerCode(metaclass=ABCMeta):
         L_z: int, optional
             Dimension of the lattice in the z direction
         deformed_axis: str, optional
-            If given, will determine whether to apply a Clifford deformation on this axis.
+            If given, will determine whether to apply a Clifford deformation on
+            this axis.
             The axis is a string in ['x', 'y', 'z'].
-            Can be used to easily create codes such as the XZZX surface code (arXiv: 2009.07851)
+            Can be used to easily create codes such as the XZZX surface code
+            (arXiv: 2009.07851)
         """
 
         if L_y is None:
@@ -64,16 +67,17 @@ class StabilizerCode(metaclass=ABCMeta):
 
         self._deformed_axis = deformed_axis
 
+        self._size: Tuple
         if self.dimension == 2:
             self._size = (L_x, L_y)
         else:
             self._size = (L_x, L_y, L_z)
 
-        self._qubit_coordinates = []
-        self._stabilizer_coordinates = []
+        self._qubit_coordinates: List = []
+        self._stabilizer_coordinates: List[Tuple] = []
 
-        self._qubit_index = {}
-        self._stabilizer_index = {}
+        self._qubit_index: Dict[Tuple, int] = {}
+        self._stabilizer_index: Dict[Tuple, int] = {}
 
         self._stabilizer_matrix = bsparse.empty_row(2*self.n)
         self._Hx = bsparse.empty_row(self.n)
@@ -83,7 +87,8 @@ class StabilizerCode(metaclass=ABCMeta):
         self._is_css = None
         self._x_indices = None
         self._z_indices = None
-        self._d = None
+        self._d: Optional[int] = None
+        self._stabilizer_types: Optional[List[str]] = None
 
         self.colormap = {'red': '0xFF4B3E',
                          'blue': '0x48BEFF',
@@ -128,10 +133,19 @@ class StabilizerCode(metaclass=ABCMeta):
     def d(self) -> int:
         """Distance of the code"""
         if self._d is None:
-            weights_z = np.sum(np.logical_or(self.logicals_z[:, :self.n],
-                                             self.logicals_z[:, self.n:]), axis=1)
-            weights_x = np.sum(np.logical_or(self.logicals_x[:, :self.n],
-                                             self.logicals_x[:, self.n:]), axis=1)
+            weights_z = np.sum(
+                np.logical_or(
+                    self.logicals_z[:, :self.n],
+                    self.logicals_z[:, self.n:]
+                ),
+                axis=1
+            )
+            weights_x = np.sum(
+                np.logical_or(
+                    self.logicals_x[:, :self.n],
+                    self.logicals_x[:, self.n:]
+                ), axis=1
+            )
 
             self._d = min(np.min(weights_x), np.min(weights_z))
 
@@ -160,7 +174,9 @@ class StabilizerCode(metaclass=ABCMeta):
         """Dictionary that assigns an index to a given qubit location"""
 
         if len(self._qubit_index) == 0:
-            self._qubit_index = {loc: i for i, loc in enumerate(self.qubit_coordinates)}
+            self._qubit_index = {
+                loc: i for i, loc in enumerate(self.qubit_coordinates)
+            }
 
         return self._qubit_index
 
@@ -169,7 +185,9 @@ class StabilizerCode(metaclass=ABCMeta):
         """Dictionary that assigns an index to a given stabilizer location"""
 
         if len(self._stabilizer_index) == 0:
-            self._stabilizer_index = {loc: i for i, loc in enumerate(self.stabilizer_coordinates)}
+            self._stabilizer_index = {
+                loc: i for i, loc in enumerate(self.stabilizer_coordinates)
+            }
 
         return self._stabilizer_index
 
@@ -725,12 +743,12 @@ class StabilizerCode(metaclass=ABCMeta):
 
         return representation
 
-    def type_index(self, stabilizer_type: str) -> Dict[Tuple, int]:
+    def type_index(self, stab_type: str) -> Dict[Tuple, int]:
         """Dictionary of locations and indices for given stabilizer type.
 
         Parameters
         ----------
-        stabilizer_type: str
+        stab_type: str
             Stabilizer type ot index.
 
         Returns
@@ -742,5 +760,14 @@ class StabilizerCode(metaclass=ABCMeta):
         return {
             location: index
             for index, location in enumerate(self.stabilizer_coordinates)
-            if self.stabilizer_type(location) == stabilizer_type
+            if self.stabilizer_type(location) == stab_type
         }
+
+    @property
+    def stabilizer_types(self):
+        if self._stabilizer_types is None:
+            self._stabilizer_types = list(set(
+                self.stabilizer_type(location)
+                for location in self.stabilizer_coordinates
+            ))
+        return self._stabilizer_types

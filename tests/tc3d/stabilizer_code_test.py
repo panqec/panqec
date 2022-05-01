@@ -13,43 +13,25 @@ class StabilizerCodeTest(metaclass=ABCMeta):
     def test_n_equals_len_qubit_index(self, code):
         assert code.n == len(code.qubit_coordinates)
 
-    @pytest.mark.skip(reason='refactor')
     def test_len_vertex_index_equals_number_of_vertex_stabilizers(self, code):
-        n_vertices = len(code.vertex_index)
-        assert n_vertices == code.get_vertex_stabilizers().shape[0]
-        assert n_vertices == code.Hx.shape[0]
+        if 'vertex' in code.stabilizer_types:
+            n_vertices = len(code.type_index('vertex'))
+            assert n_vertices == code.Hz.shape[0]
 
-    @pytest.mark.skip(reason='refactor')
     def test_len_face_index_equals_number_of_face_stabilizers(self, code):
-        n_faces = len(code.face_index)
-        assert n_faces == code.get_face_stabilizers().shape[0]
-        assert n_faces == code.Hz.shape[0]
+        if 'face' in code.stabilizer_types:
+            n_faces = len(code.type_index('face'))
+            assert n_faces == code.Hx.shape[0]
 
     def test_qubit_index(self, code):
-        assert all(len(index) == 3 for index in code.qubit_index)
-        assert sorted(code.qubit_index.values()) == sorted(
-            range(len(code.qubit_index))
+        assert all(len(index) == code.dimension for index in code.qubit_index)
+
+    def test_stabilizer_index(self, code):
+        assert all(
+            len(index) == code.dimension for index in code.stabilizer_index
         )
 
-    @pytest.mark.skip(reason='refactor')
-    def test_vertex_index(self, code):
-        assert all(len(index) == 3 for index in code.vertex_index)
-        assert sorted(code.vertex_index.values()) == sorted(
-            range(len(code.vertex_index))
-        )
-
-    @pytest.mark.skip(reason='refactor')
-    def test_face_index(self, code):
-        assert all(len(index) == 3 for index in code.face_index)
-        assert sorted(code.face_index.values()) == sorted(
-            range(len(code.face_index))
-        )
-
-    @pytest.mark.skip(reason='refactor')
-    def test_qubit_vertex_face_indices_no_overlap(self, code):
+    def test_qubit_stabilizer_indices_no_overlap(self, code):
         qubits = set(code.qubit_index.keys())
-        vertices = set(code.vertex_index.keys())
-        faces = set(code.face_index.keys())
-        assert qubits.isdisjoint(vertices)
-        assert qubits.isdisjoint(faces)
-        assert vertices.isdisjoint(faces)
+        stabilizers = set(code.stabilizer_index.keys())
+        assert qubits.isdisjoint(stabilizers)
