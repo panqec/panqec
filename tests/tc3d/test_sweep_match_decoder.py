@@ -7,7 +7,6 @@ from panqec.decoders import SweepMatchDecoder
 from panqec.error_models import PauliErrorModel
 
 
-@pytest.mark.skip(reason='refactor')
 class TestSweepMatchDecoder:
 
     @pytest.fixture
@@ -25,9 +24,11 @@ class TestSweepMatchDecoder:
         assert decoder.decode is not None
 
     def test_decode_trivial_syndrome(self, decoder, code):
-        syndrome = np.zeros(shape=len(code.stabilizer_matrix), dtype=np.uint)
+        syndrome = np.zeros(
+            shape=code.stabilizer_matrix.shape[0], dtype=np.uint
+        )
         correction = decoder.decode(code, syndrome)
-        assert correction.shape == 2*code.n
+        assert correction.shape == (2*code.n,)
         assert np.all(bcommute(code.stabilizer_matrix, correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 
@@ -40,16 +41,17 @@ class TestSweepMatchDecoder:
         ]
     )
     def test_decode_single_error(self, decoder, code, pauli, location):
-        error = dict()
-        error[location] = pauli
-        assert bsf_wt(code.to_bsf(error)) == 1
+        error = code.to_bsf({
+            location: pauli
+        })
+        assert bsf_wt(error) == 1
 
         # Measure the syndrome and ensure non-triviality.
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (code.to_bsf(error) + correction) % 2
+        total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     @pytest.mark.parametrize(
@@ -68,16 +70,17 @@ class TestSweepMatchDecoder:
         ]
     )
     def test_decode_many_errors(self, decoder, code, paulis_locations):
-        error = dict()
-        for pauli, location in paulis_locations:
-            error[location] = pauli
-        assert bsf_wt(code.to_bsf(error)) == len(paulis_locations)
+        error = code.to_bsf({
+            location: pauli
+            for pauli, location in paulis_locations
+        })
+        assert bsf_wt(error) == len(paulis_locations)
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (code.to_bsf(error) + correction) % 2
+        total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
@@ -95,9 +98,10 @@ class TestSweepMatchDecoder:
         ]
 
         for code, site in itertools.product(codes, sites):
-            error = dict()
-            error[site] = 'Z'
+            error = code.to_bsf({
+                site: 'Z'
+            })
             syndrome = code.measure_syndrome(error)
             correction = decoder.decode(code, syndrome)
-            total_error = (code.to_bsf(error) + correction) % 2
+            total_error = (error + correction) % 2
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
