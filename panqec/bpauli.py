@@ -87,10 +87,15 @@ def _bcommute_sparse(a, b):
     b_X = b[:, :n]
     b_Z = b[:, n:]
 
-    commutes = (b_Z.dot(a_X.T) + b_X.dot(a_Z.T))
+    commutes = (a_X.dot(b_Z.T) + a_Z.dot(b_X.T))
     commutes.data %= 2
 
-    return commutes.toarray()[0]
+    if commutes.shape[0] == 1:
+        return commutes.toarray()[0, :]
+    elif commutes.shape[1] == 1:
+        return commutes.toarray()[:, 0]
+    else:
+        return commutes.toarray()
 
 
 def pauli_to_bsf(error_pauli):
