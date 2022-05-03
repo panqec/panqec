@@ -9,7 +9,6 @@ from panqec.decoders import RotatedSweepMatchDecoder, RotatedSweepDecoder3D
 from panqec.error_models import PauliErrorModel
 
 
-@pytest.mark.skip(reason='refactor')
 class TestRotatedSweepMatchDecoder:
 
     @pytest.fixture
@@ -39,22 +38,23 @@ class TestRotatedSweepMatchDecoder:
         'pauli, location',
         [
             ('X', (3, 3, 1)),
-            ('Z', (6, 4, 8)),
-            ('Y', (7, 9, 5)),
+            ('Z', (6, 4, 6)),
+            ('Y', (7, 1, 5)),
         ]
     )
     def test_decode_single_error(self, decoder, code, pauli, location):
-        error = dict()
         assert location in code.qubit_coordinates
-        error[location] = pauli
-        assert bsf_wt(code.to_bsf(error)) == 1
+        error = code.to_bsf({
+            location: pauli
+        })
+        assert bsf_wt(error) == 1
 
         # Measure the syndrome and ensure non-triviality.
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (code.to_bsf(error) + correction) % 2
+        total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     @pytest.mark.parametrize('sweep_direction, diffs', [
@@ -103,12 +103,13 @@ class TestRotatedSweepMatchDecoder:
         assert y_edge == expected_y_edge
         assert z_edge == expected_z_edge
 
+    @pytest.mark.skip(reason='refactor')
     @pytest.mark.parametrize(
         'paulis_locations',
         [
-            [('X', (3, 3, 1)), ('X', (7, 9, 5)), ('X', (6, 4, 8))],
-            [('Z', (3, 3, 1)), ('Z', (7, 9, 5)), ('Z', (6, 4, 8))],
-            [('Y', (9, 5, 1)), ('Y', (2, 12, 4)), ('Y', (6, 8, 4))],
+            [('X', (3, 3, 1)), ('X', (7, 1, 5)), ('X', (6, 4, 6))],
+            [('Z', (3, 3, 1)), ('Z', (7, 1, 5)), ('Z', (6, 4, 6))],
+            [('Y', (1, 5, 1)), ('Y', (2, 4, 4)), ('Y', (6, 4, 4))],
             [('X', (1, 1, 1)), ('X', (1, 3, 1))],
             [('X', (1, 1, 1)), ('X', (3, 1, 1))],
             [('X', (2, 0, 2)), ('X', (2, 0, 4))],
@@ -129,19 +130,20 @@ class TestRotatedSweepMatchDecoder:
         ]
     )
     def test_decode_many_errors(self, decoder, code, paulis_locations):
-        error = dict()
-        for pauli, location in paulis_locations:
-            assert location in code.qubit_coordinates
-            error[location] = pauli
-        assert bsf_wt(code.to_bsf(error)) == len(paulis_locations)
+        error = code.to_bsf({
+            location: pauli
+            for pauli, location in paulis_locations
+        })
+        assert bsf_wt(error) == len(paulis_locations)
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (code.to_bsf(error) + correction) % 2
+        total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
+    @pytest.mark.skip(reason='refactor')
     def test_undecodable_error(self, decoder, code):
         locations = [
             (x, y, z) for x, y, z in code.qubit_coordinates
@@ -160,6 +162,7 @@ class TestRotatedSweepMatchDecoder:
         total_error = (code.to_bsf(error) + correction) % 2
         assert np.any(total_error)
 
+    @pytest.mark.skip(reason='refactor')
     def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
 
         codes_sites = [

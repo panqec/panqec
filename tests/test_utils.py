@@ -112,3 +112,9 @@ class TestSimplePrint:
         simple_print(a, zeros=False)
         captured = capsys.readouterr()
         assert captured.out == '1\n 1\n  1\n'
+
+    def test_1d_array(self, capsys):
+        a = np.array([1, 0, 1, 0])
+        simple_print(a)
+        captured = capsys.readouterr()
+        assert captured.out == '1010\n'

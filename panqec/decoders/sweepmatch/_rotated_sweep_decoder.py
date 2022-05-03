@@ -34,6 +34,15 @@ class RotatedSweepDecoder3D(BaseDecoder):
 
         return signs
 
+#     def get_initial_state(
+#         self, code, syndrome: np.ndarray
+#     ) -> Indexer:
+#         """Get initial cellular automaton state from syndrome."""
+#         signs = dict()
+#         for face, index in code.type_index('face').items():
+#             signs[face] = int(syndrome[index])
+#         return signs
+
     def decode(
         self, code, syndrome: np.ndarray
     ) -> np.ndarray:
@@ -141,9 +150,6 @@ class RotatedSweepDecoder3D(BaseDecoder):
                 x_edge, y_edge, z_edge = self.get_sweep_edges(
                     vertex, sweep_direction, code
                 )
-                x_face_index = code.stabilizer_index[x_face]
-                y_face_index = code.stabilizer_index[y_face]
-                z_face_index = code.stabilizer_index[z_face]
 
                 # Check faces and edges are in lattice before proceeding.
                 faces_valid = tuple(
@@ -156,9 +162,17 @@ class RotatedSweepDecoder3D(BaseDecoder):
                 )
                 if all(faces_valid) and all(edges_valid):
 
-                    if signs[x_face_index] and signs[y_face_index] and signs[z_face_index]:
+                    x_face_index = code.stabilizer_index[x_face]
+                    y_face_index = code.stabilizer_index[y_face]
+                    z_face_index = code.stabilizer_index[z_face]
+                    if (
+                        signs[x_face_index] and signs[y_face_index]
+                        and signs[z_face_index]
+                    ):
                         direction = self.get_default_direction()
-                        edge_flip = {0: x_edge, 1: y_edge, 2: z_edge}[direction]
+                        edge_flip = {
+                            0: x_edge, 1: y_edge, 2: z_edge
+                        }[direction]
                         flip_locations.append(edge_flip)
                     elif signs[y_face_index] and signs[z_face_index]:
                         flip_locations.append(x_edge)
