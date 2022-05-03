@@ -193,6 +193,9 @@ def simple_print(a, zeros=True):
     else:
         dense = a
 
+    if len(dense.shape) == 1:
+        dense = np.array([dense])
+
     for row in dense:
         row_str = ''
         for entry in row:
