@@ -14,12 +14,12 @@ class StabilizerCodeTest(metaclass=ABCMeta):
         assert code.n == len(code.qubit_coordinates)
 
     def test_len_vertex_index_equals_number_of_vertex_stabilizers(self, code):
-        if 'vertex' in code.stabilizer_types:
+        if 'vertex' in code.stabilizer_types and code.is_css:
             n_vertices = len(code.type_index('vertex'))
             assert n_vertices == code.Hz.shape[0]
 
     def test_len_face_index_equals_number_of_face_stabilizers(self, code):
-        if 'face' in code.stabilizer_types:
+        if 'face' in code.stabilizer_types and code.is_css:
             n_faces = len(code.type_index('face'))
             assert n_faces == code.Hx.shape[0]
 

@@ -39,8 +39,8 @@ class RotatedToric3DCode(StabilizerCode):
                     coordinates.append((x, y, z))
 
         # Vertical
-        for x in range(2, 2*Lx+1, 2):
-            for y in range(2, 2*Ly+1, 2):
+        for x in range(2, 2*Lx + 1, 2):
+            for y in range(2, 2*Ly + 1, 2):
                 for z in range(2, 2*Lz, 2):
                     if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
@@ -52,17 +52,17 @@ class RotatedToric3DCode(StabilizerCode):
         Lx, Ly, Lz = self.size
 
         # Vertices
-        for x in range(2, 2*Lx+1, 2):
-            for y in range(2, 2*Ly+1, 2):
+        for x in range(2, 2*Lx + 1, 2):
+            for y in range(2, 2*Ly + 1, 2):
                 for z in range(1, 2*Lz, 2):
-                    if (x + y) % 4 == 0:
+                    if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
 
         # Horizontal faces
-        for x in range(2, 2*Lx+1, 2):
-            for y in range(2, 2*Ly+1, 2):
+        for x in range(2, 2*Lx + 1, 2):
+            for y in range(2, 2*Ly + 1, 2):
                 for z in range(1, 2*Lz, 2):
-                    if (x + y) % 4 == 2:
+                    if (x + y) % 4 == 0:
                         coordinates.append((x, y, z))
 
         # Vertical faces
@@ -70,7 +70,8 @@ class RotatedToric3DCode(StabilizerCode):
             for y in range(1, 2*Ly, 2):
                 for z in range(2, 2*Lz, 2):
                     if not (
-                        (Lx % 2 == 0 and y == 1) or (Ly % 2 == 0 and x == 1)
+                        (Ly % 2 == 1 and y == 1)
+                        or (Lx % 2 == 1 and x == 1)
                     ):
                         coordinates.append((x, y, z))
 
@@ -122,8 +123,12 @@ class RotatedToric3DCode(StabilizerCode):
             qx, qy, qz = tuple(np.add(location, d))
             if qx > 2*Lx:
                 qx = 1
+            elif qx == 0:
+                qx = 2*Lx
             if qy > 2*Ly:
                 qy = 1
+            elif qy == 0:
+                qy = 2*Ly
             qubit_location = (qx, qy, qz)
 
             if self.is_qubit(qubit_location):
@@ -164,43 +169,50 @@ class RotatedToric3DCode(StabilizerCode):
         Lx, Ly, Lz = self.size
         logicals: List[Operator] = []
 
-        # Even times even.
+        # Even times even - two logicals.
         if Lx % 2 == 0 and Ly % 2 == 0:
             # X string operator along y.
-            operator: Operator = dict()
-            for x, y, z in self.qubit_coordinates:
-                if y == 0 and z == 1:
-                    operator[(x, y, z)] = 'X'
-            logicals.append(operator)
+            logicals.append({
+                (x, y, z): 'X'
+                for x, y, z in self.qubit_coordinates
+                if y == 1 and z == 1
+            })
 
             # X string operator along x.
-            for x, y, z in self.qubit_coordinates:
-                if x == 0 and z == 1:
-                    operator[(x, y, z)] = 'X'
-            logicals.append(operator)
+            logicals.append({
+                (x, y, z): 'X'
+                for x, y, z in self.qubit_coordinates
+                if x == 1 and z == 1
+            })
 
+        # TODO: Get odd times odd to work
         # Odd times odd
         elif Lx % 2 == 1 and Ly % 2 == 1:
-            operator = dict()
+            operator: Operator = dict()
             for x, y, z in self.qubit_coordinates:
                 # X string operator in undeformed code. (OK)
                 if z == 1 and x + y == 2*Lx-2:
                     operator[(x, y, z)] = 'X'
             logicals.append(operator)
 
-        # Odd times even
+        # Odd times even or even times odd - only one logical.
         else:
-            operator = dict()
-            for x, y, z in self.qubit_coordinates:
-                # X string operator in undeformed code. (OK)
-                if Lx % 2 == 1:
-                    if z == 1 and x == 0:
-                        operator[(x, y, z)] = 'X'
-                else:
-                    if z == 1 and y == 0:
-                        operator[(x, y, z)] = 'X'
 
-            logicals.append(operator)
+            # Odd times even.
+            if Lx % 2 == 1:
+                logicals.append({
+                    (x, y, z): 'X'
+                    for x, y, z in self.qubit_coordinates
+                    if x == 1 and z == 1
+                })
+
+            # Even times odd.
+            else:
+                logicals.append({
+                    (x, y, z): 'X'
+                    for x, y, z in self.qubit_coordinates
+                    if y == 1 and z == 1
+                })
 
         return logicals
 
@@ -214,17 +226,18 @@ class RotatedToric3DCode(StabilizerCode):
         if (Lx % 2 == 0) and (Ly % 2 == 0):
             operator: Operator = dict()
             for x, y, z in self.qubit_coordinates:
-                if x == 0:
+                if x == 1:
                     operator[(x, y, z)] = 'Z'
             logicals.append(operator)
 
             operator = dict()
             for x, y, z in self.qubit_coordinates:
-                if y == 0:
+                if y == 1:
                     operator[(x, y, z)] = 'Z'
 
             logicals.append(operator)
 
+        # TODO get this to work.
         # Odd times odd
         elif (Lx % 2 == 1) and (Ly % 2 == 1):
             operator = dict()
@@ -238,7 +251,7 @@ class RotatedToric3DCode(StabilizerCode):
         else:
             operator = dict()
             for x, y, z in self.qubit_coordinates:
-                if (Lx % 2 == 1 and y == 0) or (Ly % 2 == 1 and x == 0):
+                if (Lx % 2 == 1 and y == 1) or (Ly % 2 == 1 and x == 1):
                     operator[(x, y, z)] = 'Y'
 
             logicals.append(operator)

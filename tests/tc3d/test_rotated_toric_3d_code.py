@@ -12,6 +12,7 @@ from panqec.codes import RotatedToric3DCode
 from panqec.bpauli import (
     bcommute, bvector_to_pauli_string, brank, apply_deformation
 )
+from panqec.bsparse import is_sparse, to_array, vstack
 from panqec.error_models import DeformedXZZXErrorModel
 from panqec.decoders import BeliefPropagationOSDDecoder
 from scipy.special import comb
@@ -25,7 +26,11 @@ def operator_spec(code, bsf):
     Useful for debugging and reading BSF in human-readable format.
     """
     operator_spec = []
-    pauli_string = bvector_to_pauli_string(bsf)
+    if len(bsf.shape) != 1:
+        bsf_1d = to_array(bsf)[0]
+    else:
+        bsf_1d = to_array(bsf)
+    pauli_string = bvector_to_pauli_string(bsf_1d)
     for index, pauli in enumerate(pauli_string):
         if pauli != 'I':
             matches = [
@@ -64,7 +69,17 @@ def print_non_commuting(
             f'{name_1} and {name_2}:'
         )
         for i_print, (i, j) in enumerate(non_commuting):
-            print(f'{name_1} {i} and {name_2} {j} anticommuting')
+            try:
+                loc_1 = code.stabilizer_coordinates[i]
+            except IndexError:
+                loc_1 = ''
+            try:
+                loc_2 = code.stabilizer_coordinates[j]
+            except IndexError:
+                loc_2 = ''
+            print(
+                f'{name_1} {i} {loc_1} and {name_2} {j} {loc_2} anticommuting'
+            )
             operator_spec_1 = operator_spec(code, operators_1[i])
             operator_spec_2 = operator_spec(code, operators_2[j])
             overlap = [
@@ -83,7 +98,6 @@ def print_non_commuting(
                 break
 
 
-@pytest.mark.skip(reason='sparse')
 class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
 
     @property
@@ -99,6 +113,11 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
     @property
     @abstractmethod
     def expected_plane_faces_xy(self) -> List[Tuple[int, int]]:
+        """Expected xy coordinates of xy plane faces in unrotated lattice."""
+
+    @property
+    @abstractmethod
+    def expected_vertical_faces_xy(self) -> List[Tuple[int, int]]:
         """Expected xy coordinates of xy plane faces in unrotated lattice."""
 
     @property
@@ -134,7 +153,7 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
         assert locations == expected_locations
 
     def test_vertex_indices(self, code):
-        locations = set(code.vertex_index.keys())
+        locations = set(code.type_index('vertex').keys())
         expected_locations = set([
             (x, y, z)
             for x, y in self.expected_plane_vertices_xy
@@ -143,10 +162,10 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
         assert locations == expected_locations
 
     def test_face_indices(self, code):
-        locations = set(code.face_index.keys())
+        locations = set(code.type_index('face').keys())
         expected_locations = set([
             (x, y, z)
-            for x, y in self.expected_plane_edges_xy
+            for x, y in self.expected_vertical_faces_xy
             for z in self.expected_vertical_z
         ] + [
             (x, y, z)
@@ -163,7 +182,7 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
         )
 
         # There should be no non-commuting pairs of stabilizers.
-        assert np.all(commutators.data == 0)
+        assert np.all(commutators == 0)
 
     def test_n_indepdent_stabilizers_equals_n_minus_k(self, code):
         n, k = code.n, code.k
@@ -208,7 +227,7 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
         )
 
     def test_logical_operators_are_independent_by_rank(self, code):
-        n, k, _ = code.n, code.k
+        n, k = code.n, code.k
         matrix = code.stabilizer_matrix
 
         # Number of independent stabilizer generators.
@@ -216,7 +235,7 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
 
         assert rank == n - k
 
-        matrix_with_logicals = np.concatenate([
+        matrix_with_logicals = vstack([
             matrix,
             code.logicals_x,
             code.logicals_z,
@@ -262,12 +281,15 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
                         return
 
 
-@pytest.mark.skip(reason='sparse')
-class TestRotatedToric3DCode2x2x1(StabilizerCodeTestWithCoordinates):
-    size = (2, 2, 1)
+class TestRotatedToric3DCode2x2x2(StabilizerCodeTestWithCoordinates):
+    size = (2, 2, 2)
     expected_plane_edges_xy = [
         (1, 1), (3, 1),
         (1, 3), (3, 3),
+    ]
+    expected_vertical_faces_xy = [
+        (1, 1), (1, 3),
+        (3, 1), (3, 3),
     ]
     expected_plane_faces_xy = [
         (2, 2), (4, 4)
@@ -279,12 +301,15 @@ class TestRotatedToric3DCode2x2x1(StabilizerCodeTestWithCoordinates):
     expected_vertical_z = [2]
 
 
-@pytest.mark.skip(reason='sparse')
-class TestRotatedToric3DCode3x2x1(StabilizerCodeTestWithCoordinates):
-    size = (3, 2, 1)
+class TestRotatedToric3DCode3x2x2(StabilizerCodeTestWithCoordinates):
+    size = (3, 2, 2)
     expected_plane_edges_xy = [
         (1, 1), (3, 1), (5, 1),
         (1, 3), (3, 3), (5, 3),
+    ]
+    expected_vertical_faces_xy = [
+        (3, 1), (3, 3),
+        (5, 1), (5, 3)
     ]
     expected_plane_faces_xy = [
         (2, 2), (4, 4), (6, 2),
@@ -304,6 +329,10 @@ class TestRotatedToric3DCode3x3x3(StabilizerCodeTestWithCoordinates):
         (1, 3), (3, 3), (5, 3),
         (1, 5), (3, 5), (5, 5),
     ]
+    expected_vertical_faces_xy = [
+        (3, 3), (3, 5),
+        (5, 3), (5, 5),
+    ]
     expected_plane_faces_xy = [
         (2, 2), (6, 2),
         (4, 4),
@@ -318,13 +347,18 @@ class TestRotatedToric3DCode3x3x3(StabilizerCodeTestWithCoordinates):
     expected_vertical_z = [2, 4, 6]
 
 
-@pytest.mark.skip(reason='sparse')
 class TestRotatedToric3DCode4x3x3(StabilizerCodeTestWithCoordinates):
     size = (4, 3, 3)
     expected_plane_edges_xy = [
         (1, 1), (3, 1), (5, 1), (7, 1),
         (1, 3), (3, 3), (5, 3), (7, 3),
         (1, 5), (3, 5), (5, 5), (7, 5),
+    ]
+    expected_vertical_faces_xy = [
+        (1, 3), (1, 5),
+        (3, 3), (3, 5),
+        (5, 3), (5, 5),
+        (7, 3), (7, 5),
     ]
     expected_plane_faces_xy = [
         (2, 2), (6, 2),
@@ -336,15 +370,18 @@ class TestRotatedToric3DCode4x3x3(StabilizerCodeTestWithCoordinates):
         (2, 4), (6, 4),
         (4, 6), (8, 6),
     ]
-    expected_plane_z = [1, 3, 5, 7]
-    expected_vertical_z = [2, 4, 6]
+    expected_plane_z = [1, 3, 5]
+    expected_vertical_z = [2, 4]
 
 
-@pytest.mark.skip(reason='sparse')
 class TestRotatedToric3DCode3x4x3(StabilizerCodeTestWithCoordinates):
     size = (3, 4, 3)
     expected_plane_edges_xy = [
         (1, 1), (1, 3), (1, 5), (1, 7),
+        (3, 1), (3, 3), (3, 5), (3, 7),
+        (5, 1), (5, 3), (5, 5), (5, 7),
+    ]
+    expected_vertical_faces_xy = [
         (3, 1), (3, 3), (3, 5), (3, 7),
         (5, 1), (5, 3), (5, 5), (5, 7),
     ]
@@ -358,14 +395,19 @@ class TestRotatedToric3DCode3x4x3(StabilizerCodeTestWithCoordinates):
         (4, 2), (4, 6),
         (6, 4), (6, 8),
     ]
-    expected_plane_z = [1, 3, 5, 7]
-    expected_vertical_z = [2, 4, 6]
+    expected_plane_z = [1, 3, 5]
+    expected_vertical_z = [2, 4]
 
 
-@pytest.mark.skip(reason='sparse')
-class TestRotatedToric3DCode4x4x3(StabilizerCodeTestWithCoordinates):
-    size = (4, 4, 3)
+class TestRotatedToric3DCode4x4x4(StabilizerCodeTestWithCoordinates):
+    size = (4, 4, 4)
     expected_plane_edges_xy = [
+        (1, 1), (1, 3), (1, 5), (1, 7),
+        (3, 1), (3, 3), (3, 5), (3, 7),
+        (5, 1), (5, 3), (5, 5), (5, 7),
+        (7, 1), (7, 3), (7, 5), (7, 7),
+    ]
+    expected_vertical_faces_xy = [
         (1, 1), (1, 3), (1, 5), (1, 7),
         (3, 1), (3, 3), (3, 5), (3, 7),
         (5, 1), (5, 3), (5, 5), (5, 7),
@@ -386,11 +428,12 @@ class TestRotatedToric3DCode4x4x3(StabilizerCodeTestWithCoordinates):
     expected_plane_z = [1, 3, 5, 7]
     expected_vertical_z = [2, 4, 6]
 
+
 @pytest.mark.skip(reason='sparse')
 class TestRotatedToric3DDeformation:
 
     def test_deformation_index(self):
-        code = RotatedToric3DCode(3, 4, 3)
+        code = RotatedToric3DCode(3, 4, 4)
         error_model = DeformedXZZXErrorModel(0.2, 0.3, 0.5)
         deformation_index = error_model._get_deformation_indices(code)
         coords_map = {
@@ -431,7 +474,9 @@ class TestRotatedToric3DDeformation:
             L_x, L_y, L_z = size, size + 1, size
             print(L_x, L_y, L_z)
             code = RotatedToric3DCode(L_x, L_y, L_z)
-            out_json = os.path.join(project_dir, 'temp', 'rotated_toric_3d_test.json')
+            out_json = os.path.join(
+                project_dir, 'temp', 'rotated_toric_3d_test.json'
+                )
             error_model = DeformedXZZXErrorModel(0.2, 0.3, 0.5)
             deformation_index = error_model._get_deformation_indices(code)
 
@@ -471,7 +516,7 @@ class TestRotatedToric3DDeformation:
 class TestBPOSDOnRotatedToric3DCodeOddTimesEven:
 
     @pytest.mark.parametrize('pauli', ['X', 'Y', 'Z'])
-    def test_decode_single_qubit_error(self, pauli):
+    def test_decode_single_qubit_error_bposd(self, pauli):
         code = RotatedToric3DCode(3, 4, 3)
         error_model = DeformedXZZXErrorModel(1/3, 1/3, 1/3)
         probability = 0.1
