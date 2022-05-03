@@ -429,7 +429,6 @@ class TestRotatedToric3DCode4x4x4(StabilizerCodeTestWithCoordinates):
     expected_vertical_z = [2, 4, 6]
 
 
-@pytest.mark.skip(reason='sparse')
 class TestRotatedToric3DDeformation:
 
     def test_deformation_index(self):
@@ -512,7 +511,6 @@ class TestRotatedToric3DDeformation:
             }, f)
 
 
-@pytest.mark.skip(reason='sparse')
 class TestBPOSDOnRotatedToric3DCodeOddTimesEven:
 
     @pytest.mark.parametrize('pauli', ['X', 'Y', 'Z'])
