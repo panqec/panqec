@@ -2,7 +2,6 @@
 API for running simulations.
 """
 import os
-import inspect
 import json
 from json import JSONDecodeError
 import itertools
@@ -34,7 +33,7 @@ def run_once(
     if rng is None:
         rng = np.random.default_rng()
 
-    error = error_model.generate(code, probability=probability, rng=rng)
+    error = error_model.generate(code, error_rate=probability, rng=rng)
     syndrome = code.measure_syndrome(error)
     correction = decoder.decode(syndrome)
     total_error = (correction + error) % 2
@@ -400,10 +399,11 @@ def expand_input_ranges(data: dict) -> List[Dict]:
             run[key] = {
                 k: v for k, v in data[key].items() if k != 'parameters'
             }
-        run['code']['parameters'] = code_param
-        run['noise']['parameters'] = noise_param
-        run['decoder']['parameters'] = decoder_param
+        run['code']['parameters'] = code_param['parameters']
+        run['noise']['parameters'] = noise_param['parameters']
+        run['decoder']['parameters'] = decoder_param['parameters']
         run['probability'] = probability
+
         runs.append(run)
 
     return runs
@@ -483,6 +483,7 @@ def get_runs(
     data: dict, start: Optional[int] = None, n_runs: Optional[int] = None
 ) -> List[dict]:
     """Get expanded runs from input dictionary."""
+
     runs = []
     if 'runs' in data:
         runs = data['runs']

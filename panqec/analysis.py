@@ -17,7 +17,7 @@ from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
 from scipy.signal import argrelextrema
 from .config import SLURM_DIR
-from .app import read_input_json
+from .simulation import read_input_json
 from .plots._hashing_bound import project_triangle
 from .utils import fmt_uncertainty
 from .bpauli import int_to_bvector, bvector_to_pauli_string
