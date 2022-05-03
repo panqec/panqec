@@ -16,6 +16,7 @@ from .decoders import (
     RotatedSweepMatchDecoder, RotatedInfiniteZBiasDecoder
 )
 from .decoders.bposd.bposd_decoder import BeliefPropagationOSDDecoder
+from .decoders.bposd.mbp_decoder import MemoryBeliefPropagationDecoder
 from .decoders.sweepmatch._toric_2d_match_decoder import Toric2DMatchingDecoder
 from .error_models import (
     DeformedXZZXErrorModel, DeformedXYErrorModel,
@@ -77,6 +78,7 @@ DECODERS = {
     'FoliatedMatchingDecoder': FoliatedMatchingDecoder,
     'DeformedRotatedSweepMatchDecoder': DeformedRotatedSweepMatchDecoder,
     'BeliefPropagationOSDDecoder': BeliefPropagationOSDDecoder,
+    'MemoryBeliefPropagationDecoder': MemoryBeliefPropagationDecoder,
     'RotatedInfiniteZBiasDecoder': RotatedInfiniteZBiasDecoder
 }
 
