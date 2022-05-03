@@ -15,7 +15,7 @@ import numpy as np
 from .config import (
     SLURM_DIR, SBATCH_TEMPLATE, SLURM_USERNAME, NIST_TEMPLATE
 )
-from .app import read_input_json, count_runs
+from .simulation import read_input_json, count_runs
 
 
 def _delete_files_with_ext(folder_path, extension):
