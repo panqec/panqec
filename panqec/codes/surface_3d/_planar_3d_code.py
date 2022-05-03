@@ -56,7 +56,7 @@ class Planar3DCode(StabilizerCode):
         # Faces in yz plane
         for x in range(2, 2*Lx, 2):
             for y in range(1, 2*Ly-1, 2):
-                for z in range(1, 2*Lz, 2):
+                for z in range(1, 2*Lz-1, 2):
                     coordinates.append((x, y, z))
 
         # Faces in xz plane
