@@ -176,13 +176,12 @@ class TestRotatedSweepMatchDecoder:
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
 
-@pytest.mark.skip(reason='refactor')
-class TestSweepMatch1x1x1:
+class TestSweepMatch3x3x2:
     """Test cases found to be failing on the GUI."""
 
     @pytest.fixture
     def code(self):
-        return RotatedPlanar3DCode(1, 1, 1)
+        return RotatedPlanar3DCode(3, 3, 2)
 
     @pytest.fixture
     def decoder(self):
@@ -202,23 +201,24 @@ class TestSweepMatch1x1x1:
         'down_right_horizontal'
     ])
     def test_errors_spanning_boundaries(self, code, decoder, locations):
-        error = dict()
-        for pauli, location in locations:
-            error[location] = pauli
-        assert bsf_wt(code.to_bsf(error)) == len(locations)
+        error = code.to_bsf({
+            location: pauli
+            for pauli, location in locations
+        })
+        assert bsf_wt(error) == len(locations)
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (code.to_bsf(error) + correction) % 2
-        assert not np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
-            'Total error not in codespace'
-        )
+        total_error = (error + correction) % 2
+        assert not np.all(
+            bcommute(code.stabilizer_matrix, total_error) == 0
+        ), 'Total error not in codespace'
 
 
 @pytest.mark.skip(reason='refactor')
-class TestSweepMatch2x2x2:
+class TestSweepMatch3x3x3:
     """Test cases found to be failing on the GUI."""
 
     @pytest.fixture
