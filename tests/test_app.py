@@ -5,7 +5,7 @@ import numpy as np
 from panqec.error_models import PauliErrorModel
 from panqec.app import (
     read_input_json, run_once, Simulation, expand_input_ranges, run_file,
-    merge_results_dicts
+    merge_results_dicts, filter_legacy_params
 )
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
@@ -179,3 +179,11 @@ def test_merge_results():
 
     merged_results = merge_results_dicts(results_dicts)
     assert merged_results == expected_merged_results
+
+
+def test_filter_legacy_params():
+    old_params = {
+        'joschka': True
+    }
+    filtered_params = filter_legacy_params(old_params)
+    assert 'joschka' not in filtered_params
