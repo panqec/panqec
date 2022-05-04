@@ -1,10 +1,15 @@
 import pytest
 import numpy as np
 from panqec.codes import RotatedPlanar3DCode
-from .stabilizer_code_test import StabilizerCodeTest
+from .stabilizer_code_test import (
+    StabilizerCodeTest, StabilizerCodeTestWithCoordinates
+)
 
 
-@pytest.mark.skip(reason='refactor')
+class RotatedPlanar3DCodeTest(StabilizerCodeTestWithCoordinates):
+    code_class = RotatedPlanar3DCode
+
+
 class TestRotatedPlanar3DCode(StabilizerCodeTest):
 
     L_x = 4
@@ -76,3 +81,47 @@ class TestRotatedPlanar3DCode(StabilizerCodeTest):
         H = code.Hz
         assert np.all(H.sum(axis=0) > 0)
         assert np.all(H.sum(axis=0) <= 2)
+
+
+class TestRotatedPlanar3DCode3x3x3(RotatedPlanar3DCodeTest):
+    size = (3, 3, 3)
+    expected_plane_edges_xy = [
+        (1, 1), (1, 3), (1, 5),
+        (3, 1), (3, 3), (3, 5),
+        (5, 1), (5, 3), (5, 5),
+    ]
+    expected_vertical_faces_xy = expected_plane_edges_xy
+    expected_plane_faces_xy = [
+        (0, 4), (2, 2), (4, 4), (6, 2)
+    ]
+    expected_plane_vertices_xy = [
+        (2, 0), (2, 4),
+        (4, 2), (4, 6),
+    ]
+    expected_plane_z = [1, 3, 5]
+    expected_vertical_z = [2, 4]
+
+
+class TestRotatedPlanar3DCode4x4x4(RotatedPlanar3DCodeTest):
+    size = (4, 4, 4)
+    expected_plane_edges_xy = [
+        (1, 1), (1, 3), (1, 5), (1, 7),
+        (3, 1), (3, 3), (3, 5), (3, 7),
+        (5, 1), (5, 3), (5, 5), (5, 7),
+        (7, 1), (7, 3), (7, 5), (7, 7),
+    ]
+    expected_vertical_faces_xy = expected_plane_edges_xy
+    expected_plane_faces_xy = [
+        (0, 4),
+        (2, 2), (2, 6),
+        (4, 4),
+        (6, 2), (6, 6),
+        (8, 4),
+    ]
+    expected_plane_vertices_xy = [
+        (2, 0), (2, 4), (2, 8),
+        (4, 2), (4, 6),
+        (6, 0), (6, 4), (6, 8)
+    ]
+    expected_plane_z = [1, 3, 5, 7]
+    expected_vertical_z = [2, 4, 6]
