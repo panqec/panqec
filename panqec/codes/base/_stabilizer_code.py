@@ -483,11 +483,16 @@ class StabilizerCode(metaclass=ABCMeta):
             ('X', 'Y' or 'Z') to each qubit location in its support
 
         """
-        assert bsf_operator.shape[0] == 1
+        assert (
+            bsf_operator.shape[0] == 1 or len(bsf_operator.shape) == 1
+        ), "Can only take one operator at a time."
 
         operator = dict()
 
-        rows, cols = bsf_operator.nonzero()
+        if len(bsf_operator.shape) == 1:
+            cols = bsf_operator.nonzero()[0]
+        else:
+            rows, cols = bsf_operator.nonzero()
 
         for col in cols:
             if col < self.n:
