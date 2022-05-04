@@ -6,8 +6,6 @@ import numpy as np
 from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
 from pymatching import Matching
-from panqec.codes import Toric3DCode
-import panqec.bsparse as bsparse
 
 
 class Toric3DPymatchingDecoder(BaseDecoder):
@@ -43,7 +41,7 @@ class Toric3DPymatchingDecoder(BaseDecoder):
         return self._matchers[code.label]
 
     def get_vertex_syndromes(
-        self, code: Toric3DCode, full_syndrome: np.ndarray
+        self, code: StabilizerCode, full_syndrome: np.ndarray
     ) -> np.ndarray:
         """Get only the syndromes for the vertex Z stabilizers.
 
@@ -52,7 +50,9 @@ class Toric3DPymatchingDecoder(BaseDecoder):
         vertex_syndromes = full_syndrome[code.z_indices]
         return vertex_syndromes
 
-    def decode(self, code: Toric3DCode, syndrome: np.ndarray) -> np.ndarray:
+    def decode(
+        self, code: StabilizerCode, syndrome: np.ndarray, **kwargs
+    ) -> np.ndarray:
         """Get X corrections given code and measured syndrome."""
 
         # Initialize correction as full bsf.

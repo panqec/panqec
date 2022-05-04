@@ -217,13 +217,12 @@ class TestSweepMatch3x3x2:
         ), 'Total error not in codespace'
 
 
-@pytest.mark.skip(reason='refactor')
-class TestSweepMatch3x3x3:
+class TestSweepMatch4x4x3:
     """Test cases found to be failing on the GUI."""
 
     @pytest.fixture
     def code(self):
-        return RotatedPlanar3DCode(2, 2, 2)
+        return RotatedPlanar3DCode(5, 5, 5)
 
     @pytest.fixture
     def decoder(self):
@@ -260,17 +259,17 @@ class TestSweepMatch3x3x3:
         'weight_2_Z_error_5',
     ])
     def test_gui_examples(self, code, decoder, locations):
-        error = dict()
-        for pauli, location in locations:
-            assert location in code.qubit_coordinates
-            error[location] = pauli
-        assert bsf_wt(code.to_bsf(error)) == len(locations)
+        error = code.to_bsf({
+            location: pauli
+            for pauli, location in locations
+        })
+        assert bsf_wt(error) == len(locations)
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (code.to_bsf(error) + correction) % 2
+        total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
             'Total error not in codespace'
         )
@@ -303,20 +302,20 @@ class TestSweepMatch3x3x3:
         'down_right_horizontal',
     ])
     def test_errors_spanning_boundaries(self, code, decoder, locations):
-        error = dict()
-        for pauli, location in locations:
-            assert location in code.qubit_coordinates
-            error[location] = pauli
-        assert bsf_wt(code.to_bsf(error)) == len(locations)
+        error = code.to_bsf({
+            location: pauli
+            for pauli, location in locations
+        })
+        assert bsf_wt(error) == len(locations)
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (code.to_bsf(error) + correction) % 2
-        assert not np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
-            'Total error in codespace'
-        )
+        total_error = (error + correction) % 2
+        assert not np.all(
+            bcommute(code.stabilizer_matrix, total_error) == 0
+        ), 'Total error in codespace'
 
 
 @pytest.mark.skip(reason='refactor')

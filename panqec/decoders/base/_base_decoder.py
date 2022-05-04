@@ -18,22 +18,27 @@ class BaseDecoder(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def decode(self, code: StabilizerCode, syndrome: np.ndarray, **kwargs) -> np.ndarray:
-        """Given a code and a syndrome, returns a correction to apply to the qubits
+    def decode(
+        self, code: StabilizerCode, syndrome: np.ndarray, **kwargs
+    ) -> np.ndarray:
+        """Given code and syndrome, return correction to apply to the qubits
 
         Parameters
         ----------
         code : StabilizerCode
             Stabilizer code used by the decoder
         syndrome: scipy.sparse.np.ndarray
-            Syndrome as a 1 x m sparse matrix (where m is the number of stabilizers).
-            Each element contains 1 if the stabilizer is activated and 0 otherwise
+            Syndrome as a 1 x m sparse matrix (where m is the number of
+            stabilizers).
+            Each element contains 1 if the stabilizer is activated and 0
+            otherwise
         kwargs: dict
             Decoder-specific parameters (implemented by subclasses)
 
         Returns
         -------
         correction : scipy.sparse.np.ndarray
-            Correction as a sparse array of size 1 x 2n (with n the number of qubits)
+            Correction as a sparse array of size 1 x 2n (with n the number of
+            qubits)
             in the binary symplectic format.
         """
