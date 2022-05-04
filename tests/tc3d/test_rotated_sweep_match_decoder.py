@@ -103,12 +103,11 @@ class TestRotatedSweepMatchDecoder:
         assert y_edge == expected_y_edge
         assert z_edge == expected_z_edge
 
-    @pytest.mark.skip(reason='refactor')
     @pytest.mark.parametrize(
         'paulis_locations',
         [
-            [('X', (3, 3, 1)), ('X', (7, 1, 5)), ('X', (6, 4, 6))],
-            [('Z', (3, 3, 1)), ('Z', (7, 1, 5)), ('Z', (6, 4, 6))],
+            [('X', (3, 3, 1)), ('X', (5, 1, 5)), ('X', (6, 4, 6))],
+            [('Z', (3, 3, 1)), ('Z', (5, 1, 5)), ('Z', (6, 4, 6))],
             [('Y', (1, 5, 1)), ('Y', (2, 4, 4)), ('Y', (6, 4, 4))],
             [('X', (1, 1, 1)), ('X', (1, 3, 1))],
             [('X', (1, 1, 1)), ('X', (3, 1, 1))],
@@ -143,41 +142,37 @@ class TestRotatedSweepMatchDecoder:
         total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
-    @pytest.mark.skip(reason='refactor')
     def test_undecodable_error(self, decoder, code):
         locations = [
             (x, y, z) for x, y, z in code.qubit_coordinates
         ]
         assert len(locations) > 0
-        error = dict()
-        for location in locations:
-            assert location in code.qubit_coordinates
-            error[location] = 'Z'
-        assert bsf_wt(code.to_bsf(error)) == len(locations)
+        error = code.to_bsf({
+            location: 'Z'
+            for location in locations
+        })
+        assert bsf_wt(error) == len(locations)
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (code.to_bsf(error) + correction) % 2
+        total_error = (error + correction) % 2
         assert np.any(total_error)
 
-    @pytest.mark.skip(reason='refactor')
     def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
 
         codes_sites = [
-            (RotatedPlanar3DCode(3, 3, 3), (7, 9, 3)),
-            (RotatedPlanar3DCode(4, 4, 4), (3, 5, 7)),
-            (RotatedPlanar3DCode(5, 5, 5), (1, 3, 5)),
+            (RotatedPlanar3DCode(3, 3, 3), (3, 3, 3)),
+            (RotatedPlanar3DCode(4, 4, 4), (5, 5, 5)),
+            (RotatedPlanar3DCode(5, 5, 5), (3, 3, 3)),
         ]
 
         for code, site in codes_sites:
-            error = dict()
-            assert site in code.qubit_coordinates
-            error[site] = 'Z'
+            error = code.to_bsf({site: 'Z'})
             syndrome = code.measure_syndrome(error)
             correction = decoder.decode(code, syndrome)
-            total_error = (code.to_bsf(error) + correction) % 2
+            total_error = (error + correction) % 2
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
 
