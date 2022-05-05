@@ -129,18 +129,6 @@ class TestBcommuteSparse:
         )
 
 
-@pytest.mark.skip(reason='refactor')
-def test_bvector_to_barray():
-    L = 3
-    np.random.seed(0)
-    a = np.random.rand(3, L, L, L, 2)
-    assert a.shape == (3, L, L, L, 2)
-    s = barray_to_bvector(a, L)
-    assert s.shape[0] == 2*3*L**3
-    a_new = bvector_to_barray(s, L)
-    assert np.all(a == a_new)
-
-
 def test_effective_error_wrong_size_raises_exception():
     X_logicals = np.array([1, 0, 1], dtype=np.uint)
     Z_logicals = np.array([1, 0, 1, 0], dtype=np.uint)
