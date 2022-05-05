@@ -288,9 +288,9 @@ class StabilizerCode(metaclass=ABCMeta):
 
     @property
     def Hx(self) -> csr_matrix:
-        """Parity-check matrix corresponding to the Z stabilizers of the code.
+        """Parity-check matrix corresponding to the X stabilizers of the code.
         It is a sparse matrix of dimension k x n, where k is the number of
-        Z stabilizers and n the number of qubits.
+        X stabilizers and n the number of qubits.
         Works only for CSS codes.
         """
 

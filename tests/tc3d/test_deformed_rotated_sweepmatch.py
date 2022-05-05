@@ -10,7 +10,7 @@ from panqec.bpauli import bcommute, get_effective_error
 class TestDeformedRotatedPlanarPymatchingDecoder:
 
     direction: Tuple[float, float, float] = 0.05, 0.05, 0.9
-    size: Tuple[int, int, int] = 2, 2, 2
+    size: Tuple[int, int, int] = 4, 4, 3
     probability: float = 0.1
 
     @pytest.fixture
@@ -25,7 +25,6 @@ class TestDeformedRotatedPlanarPymatchingDecoder:
     def decoder(self, error_model):
         return DeformedRotatedSweepMatchDecoder(error_model, self.probability)
 
-    @pytest.mark.skip(reason='refactor')
     def test_decode(self, code, error_model, decoder):
         rng = np.random.default_rng(seed=0)
         error = error_model.generate(code, self.probability, rng=rng)
@@ -37,21 +36,22 @@ class TestDeformedRotatedPlanarPymatchingDecoder:
         effective_error = get_effective_error(
             total_error, code.logicals_x, code.logicals_z
         )
-        codespace = bool(np.all(bcommute(code.stabilizer_matrix, total_error) == 0))
+        codespace = bool(
+            np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+        )
         assert codespace, 'Not in code space'
         success = bool(np.all(effective_error == 0)) and codespace
         assert success, 'Decoding failed'
 
-    @pytest.mark.skip(reason='reactor')
     def test_decode_along_line_preferred(self, code, error_model, decoder):
 
         # Two close-together parallel lines of X errors along deformation axis.
-        pauli_error = dict()
-        pauli_error[(4, 2, 2)] = 'X'
-        pauli_error[(4, 2, 4)] = 'X'
-        pauli_error[(6, 4, 2)] = 'X'
-        pauli_error[(6, 4, 4)] = 'X'
-        error = code.to_bsf(pauli_error)
+        error = code.to_bsf({
+            (4, 2, 2): 'X',
+            (4, 2, 4): 'X',
+            (6, 4, 2): 'X',
+            (6, 4, 4): 'X',
+        })
 
         # The expected correction, given the high bias, should be matching
         # along the deformation axis, which is the original error itself.
@@ -76,7 +76,9 @@ class TestDeformedRotatedPlanarPymatchingDecoder:
         effective_error = get_effective_error(
             total_error, code.logicals_x, code.logicals_z
         )
-        codespace = bool(np.all(bcommute(code.stabilizer_matrix, total_error) == 0))
+        codespace = bool(
+            np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+        )
         assert codespace, 'Not in code space'
         success = bool(np.all(effective_error == 0)) and codespace
         assert success, 'Decoding failed'

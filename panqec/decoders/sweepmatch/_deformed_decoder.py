@@ -1,5 +1,4 @@
 from typing import Tuple
-import itertools
 import numpy as np
 from pymatching import Matching
 from panqec.codes import StabilizerCode
@@ -9,7 +8,6 @@ from .. import (
     SweepDecoder3D, Toric3DPymatchingDecoder, RotatedPlanarPymatchingDecoder,
     RotatedSweepDecoder3D
 )
-import panqec.bsparse as bsparse
 
 
 class DeformedToric3DPymatchingDecoder(Toric3DPymatchingDecoder):
@@ -117,7 +115,9 @@ class DeformedSweepMatchDecoder(BaseDecoder):
             error_model, probability
         )
 
-    def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
+    def decode(
+        self, code: StabilizerCode, syndrome: np.ndarray, **kwargs
+    ) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
         z_correction = self._sweeper.decode(code, syndrome)
@@ -150,13 +150,17 @@ class DeformedRotatedPlanarPymatchingDecoder(RotatedPlanarPymatchingDecoder):
     def new_matcher(self, code: StabilizerCode):
         """Return a new Matching object."""
         # Get the number of X stabilizers (faces).
-        n_faces = len(code.face_index)
+        n_faces = len([
+            location
+            for location in code.stabilizer_coordinates
+            if code.stabilizer_type(location) == 'face'
+        ])
         self._n_faces[code.label] = n_faces
         n_qubits = code.n
         self._n_qubits[code.label] = n_qubits
 
         # Only keep the Z vertex stabilizers.
-        H_z = code.stabilizer_matrix[n_faces:, n_qubits:]
+        H_z = code.Hz
         weights = self.get_deformed_weights(code)
         return Matching(H_z, spacelike_weights=weights)
 
@@ -174,7 +178,7 @@ class DeformedRotatedPlanarPymatchingDecoder(RotatedPlanarPymatchingDecoder):
         weights = np.ones(n_qubits, dtype=float)*regular_weight
 
         # The weights on the deformed edge are different.
-        for i_qubit, (x, y, z) in code.qubit_coordinates:
+        for i_qubit, (x, y, z) in enumerate(code.qubit_coordinates):
             if z % 2 == 0:
                 weights[i_qubit] = deformed_weight
 
