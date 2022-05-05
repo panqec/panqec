@@ -83,7 +83,7 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
         for i_edge in np.where(surface_corrections)[0]:
             location = edges[i_edge]
             self.flip_edge(location, new_signs, code)
-            correction[location] = 'Z'
+            code.site(correction, 'Z', location)
 
         return new_signs
 
@@ -129,7 +129,7 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
         new_signs = signs.copy()
         for location in flip_locations:
             self.flip_edge(location, new_signs, code)
-            correction[location] = 'Z'
+            code.site(correction, 'Z', location)
         return new_signs
 
 

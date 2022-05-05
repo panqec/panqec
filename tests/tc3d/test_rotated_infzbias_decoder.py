@@ -106,7 +106,9 @@ class TestRotatedInfiniteZBiasDecoder:
             correction = decoder.decode(code, syndrome)
             total_error = (error + correction) % 2
 
-            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+            assert np.all(
+                bcommute(code.stabilizer_matrix, total_error) == 0
+            ), 'Total error not in code space'
 
             correctable = True
             if np.any(bcommute(code.logicals_x, total_error) != 0):
