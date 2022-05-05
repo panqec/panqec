@@ -1,13 +1,13 @@
 import numpy as np
 import pytest
 from panqec.bpauli import bsf_to_pauli, bsf_wt
-from panqec.error_models import PauliErrorModel
+from panqec.error_models import PauliErrorModel, DeformedXZZXErrorModel
 from panqec.codes import Toric3DCode
+from panqec.decoders import DeformedToric3DPymatchingDecoder
 import panqec.bsparse as bsparse
 from panqec.utils import get_direction_from_bias_ratio
 
 
-@pytest.mark.skip(reason='refactor')
 class TestPauliNoise:
 
     @pytest.fixture(autouse=True)
@@ -75,8 +75,18 @@ class TestPauliNoise:
             PauliErrorModel(0, 0, 0)
 
 
-@pytest.mark.skip(reason='refactor')
 class TestGeneratePauliNoise:
+
+    def generate_pauli_noise(self, p_X, p_Y, p_Z, L):
+        code = Toric3DCode(L, L, L)
+        probability = p_X + p_Y + p_Z
+        if probability != 0:
+            r_x, r_y, r_z = p_X/probability, p_Y/probability, p_Z/probability
+        else:
+            r_x, r_y, r_z = 1/3, 1/3, 1/3
+        error_model = PauliErrorModel(r_x, r_y, r_z)
+        noise = error_model.generate(code, probability)
+        return noise
 
     @pytest.fixture(autouse=True)
     def seed_random(self):
@@ -87,47 +97,47 @@ class TestGeneratePauliNoise:
         p_Y = 0.2
         p_Z = 0.5
         L = 10
-        noise = generate_pauli_noise(p_X, p_Y, p_Z, L)
+        noise = self.generate_pauli_noise(p_X, p_Y, p_Z, L)
         assert list(noise.shape) == [2*3*L**3]
-        assert noise.dtype == np.uint
+        assert np.issubdtype(noise.dtype, np.unsignedinteger)
 
     def test_no_errors_if_p_zero(self):
         L = 10
-        noise = generate_pauli_noise(0, 0, 0, L)
+        noise = self.generate_pauli_noise(0, 0, 0, L)
         assert np.all(noise == 0)
 
     def test_all_X_if_p_X_one(self):
         L = 10
-        noise = generate_pauli_noise(1, 0, 0, L)
+        noise = self.generate_pauli_noise(1, 0, 0, L)
         assert np.all(noise[:3*L**3] == 1)
         assert np.all(noise[3*L**3:] == 0)
 
     def test_all_Y_if_p_Y_one(self):
         L = 10
-        noise = generate_pauli_noise(0, 1, 0, L)
+        noise = self.generate_pauli_noise(0, 1, 0, L)
         assert np.all(noise[:3*L**3] == 1)
         assert np.all(noise[3*L**3:] == 1)
 
     def test_all_Z_if_p_Z_one(self):
         L = 10
-        noise = generate_pauli_noise(0, 0, 1, L)
+        noise = self.generate_pauli_noise(0, 0, 1, L)
         assert np.all(noise[:3*L**3] == 0)
         assert np.all(noise[3*L**3:] == 1)
 
     def test_only_X_if_p_X_only(self):
         L = 10
-        noise = generate_pauli_noise(0.5, 0, 0, L)
+        noise = self.generate_pauli_noise(0.5, 0, 0, L)
         assert np.any(noise[:3*L**3] == 1)
         assert np.all(noise[3*L**3:] == 0)
 
     def test_only_Y_if_p_Y_only(self):
         L = 10
-        noise = generate_pauli_noise(0, 0.5, 0, L)
+        noise = self.generate_pauli_noise(0, 0.5, 0, L)
         assert np.all(noise[:3*L**3] == noise[3*L**3:])
 
     def test_only_Z_if_p_Z_only(self):
         L = 10
-        noise = generate_pauli_noise(0, 0, 0.5, L)
+        noise = self.generate_pauli_noise(0, 0, 0.5, L)
         assert np.all(noise[:3*L**3] == 0)
         assert np.any(noise[3*L**3:] == 1)
 
@@ -175,35 +185,49 @@ class TestDeformOperator:
             assert edge == 0
 
 
-@pytest.mark.skip(reason='refactor')
-class TestGetDeformedWeights:
+class TestDeformedMatchingWeights:
 
-    def test_equal_rates_then_equal_weights(self):
+    def get_deformed_weights(self, p_X, p_Y, p_Z, L):
+        code = Toric3DCode(L, L, L)
+        probability = p_X + p_Y + p_Z
+        if probability != 0:
+            r_x, r_y, r_z = p_X/probability, p_Y/probability, p_Z/probability
+        else:
+            r_x, r_y, r_z = 1/3, 1/3, 1/3
+        error_model = DeformedXZZXErrorModel(r_x, r_y, r_z)
+        decoder = DeformedToric3DPymatchingDecoder(error_model, probability)
+        weights = decoder.get_deformed_weights(code)
+        return weights
+
+    def test_if_equal_rates_then_equal_weights(self):
         L = 10
         p_X, p_Y, p_Z = 0.1, 0.1, 0.1
-        weights = get_deformed_weights(p_X, p_Y, p_Z, L)
+        weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
+        assert np.all(weights != 0)
         assert np.all(weights == weights[0])
 
     def test_zero_error_rate_no_nan(self):
         L = 10
         p_X, p_Y, p_Z = 0, 0, 0
-        weights = get_deformed_weights(p_X, p_Y, p_Z, L)
+        weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
         assert np.all(weights != 0)
         assert np.all(~np.isnan(weights))
 
     def test_one_error_rate_no_nan(self):
         L = 10
         p_X, p_Y, p_Z = 1, 0, 0
-        weights = get_deformed_weights(p_X, p_Y, p_Z, L)
+        weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
         assert np.all(weights != 0)
         assert np.all(~np.isnan(weights))
 
     def test_biased_Z_noise_different_weights(self):
         L = 10
-        p_X, p_Y, p_Z = 0.5, 0, 0
-        weights = get_deformed_weights(p_X, p_Y, p_Z, L)
+        p_X, p_Y, p_Z = 0, 0, 0.4
+        weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
+        assert np.any(weights != 0)
         assert np.any(weights != weights[0])
 
+    @pytest.mark.skip(reason='refactor')
     def test_only_x_edges_different_weights(self):
         L = 10
         p_X, p_Y, p_Z = 0.5, 0.1, 0
