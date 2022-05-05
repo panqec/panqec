@@ -36,13 +36,12 @@ def test_split_posts_at_active_fences_trivial(
     assert segments == split_posts_at_active_fences(active_fences, n_fences)
 
 
-@pytest.mark.skip(reason='refactor')
 class TestRotatedInfiniteZBiasDecoder:
     """Test 1-qubit errors on corners fully correctable."""
 
     @pytest.fixture
     def code(self):
-        return RotatedPlanar3DCode(2, 2, 2)
+        return RotatedPlanar3DCode(5, 5, 3)
 
     @pytest.fixture
     def decoder(self):
@@ -58,16 +57,16 @@ class TestRotatedInfiniteZBiasDecoder:
         (9, 9, 5)
     ])
     def test_sweep_errors_on_extreme_layer(self, code, decoder, location):
-        error = dict()
-        assert location in code.qubit_coordinates
-        error[location] = 'Z'
-        assert bsf_wt(code.to_bsf(error)) == 1
+        error = code.to_bsf({
+            location: 'Z'
+        })
+        assert bsf_wt(error) == 1
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (code.to_bsf(error) + correction) % 2
+        total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
             'Total error not in codespace'
         )
@@ -96,15 +95,16 @@ class TestRotatedInfiniteZBiasDecoder:
             ]
 
         for location in qubit_locations:
-            error = dict()
-            error[location] = pauli
-            assert bsf_wt(code.to_bsf(error)) == 1
+            error = code.to_bsf({
+                location: pauli
+            })
+            assert bsf_wt(error) == 1
 
             syndrome = code.measure_syndrome(error)
             assert np.any(syndrome != 0)
 
             correction = decoder.decode(code, syndrome)
-            total_error = (code.to_bsf(error) + correction) % 2
+            total_error = (error + correction) % 2
 
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
@@ -136,16 +136,17 @@ class TestRotatedInfiniteZBiasDecoder:
         uncorrectable_error_locations = []
         undecodable_error_locations = []
         for locations in error_locations:
-            error = dict()
-            for location in locations:
-                error[location] = pauli
-            assert bsf_wt(code.to_bsf(error)) == len(locations)
+            error = code.to_bsf({
+                location: pauli
+                for location in locations
+            })
+            assert bsf_wt(error) == len(locations)
 
             syndrome = code.measure_syndrome(error)
             assert np.any(syndrome != 0)
 
             correction = decoder.decode(code, syndrome)
-            total_error = (code.to_bsf(error) + correction) % 2
+            total_error = (error + correction) % 2
 
             decodable = True
             if np.any(bcommute(code.stabilizer_matrix, total_error) != 0):

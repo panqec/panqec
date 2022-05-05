@@ -2,15 +2,14 @@ from typing import Dict, Tuple, List
 import numpy as np
 from panqec.decoders import BaseDecoder
 from pymatching import Matching
-from ...codes import RotatedPlanar3DCode
+from ...codes import StabilizerCode
 from ..sweepmatch._rotated_sweep_decoder import RotatedSweepDecoder3D
-Indexer = Dict[Tuple[int, int, int], int]
 
 
 class ZMatchingDecoder(RotatedSweepDecoder3D):
     label = 'Rotated Infinite Z Bias Loop Sector Decoder'
 
-    def get_edges_xy(self, code: RotatedPlanar3DCode):
+    def get_edges_xy(self, code: StabilizerCode):
         xy = [
             (x, y) for x, y, z in code.stabilizer_coordinates
             if z == 2 and code.stabilizer_type((x, y, z)) == 'face'
@@ -18,9 +17,9 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
         return xy
 
     def decode(
-        self, code: RotatedPlanar3DCode, syndrome: np.ndarray
+        self, code: StabilizerCode, syndrome: np.ndarray, **kwargs
     ) -> np.ndarray:
-        correction = dict()
+        correction: Dict = dict()
         signs = self.get_initial_state(code, syndrome)
 
         # 1D pair matching along each vertical lines of horizontal edges.
@@ -31,19 +30,22 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
 
         # 2D matching on horizontal planes.
         L_z = code.size[2]
-        for z_plane in range(1, 2*L_z + 2, 2):
+        for z_plane in range(1, 2*L_z, 2):
             signs = self.match_horizontal_plane(
                 signs, correction, code, z_plane
             )
         return code.to_bsf(correction)
 
     def match_horizontal_plane(
-        self, signs: Indexer, correction: Dict,
-        code: RotatedPlanar3DCode, z_plane: int
+        self, signs: np.ndarray, correction: Dict,
+        code: StabilizerCode, z_plane: int
     ):
         """Do 2D matching on top and bottom boundary surfaces."""
-        face_coordinates = [location for location in code.stabilizer_coordinates
-                            if code.stabilizer_type(location) == 'face']
+        face_coordinates = [
+            location
+            for location in code.stabilizer_coordinates
+            if code.stabilizer_type(location) == 'face'
+        ]
         edges = sorted([
             (x, y, z) for x, y, z in code.qubit_coordinates if z == z_plane
         ])
@@ -86,8 +88,8 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
         return new_signs
 
     def decode_vertical_line(
-        self, signs: Indexer, correction: Dict,
-        code: RotatedPlanar3DCode, xy: Tuple[int, int]
+        self, signs: np.ndarray, correction: Dict,
+        code: StabilizerCode, xy: Tuple[int, int]
     ):
         """Do 1D matching along a vertical line."""
         L_z = code.size[2]
@@ -136,23 +138,19 @@ class XLineDecoder(BaseDecoder):
     label = 'Rotated Infinite Z Bias Point Sector Decoder'
 
     def decode_line(
-        self, code: RotatedPlanar3DCode, syndrome: np.ndarray,
+        self, code: StabilizerCode, syndrome: np.ndarray,
         xy: Tuple[int, int]
     ) -> np.ndarray:
         x, y = xy
         L_z = code.size[2]
-        face_coordinates = [location for location in code.stabilizer_coordinates
-                            if code.stabilizer_type(location) == 'face']
-
-        n_faces = len(face_coordinates)
 
         edges = [
             (x, y, 2*i + 2)
-            for i in range(L_z)
+            for i in range(L_z - 1)
         ]
         vertices = [
             (x, y, 2*i + 1)
-            for i in range(L_z + 1)
+            for i in range(L_z)
         ]
         edge_index = {
             location: index for index, location in enumerate(edges)
@@ -186,7 +184,7 @@ class XLineDecoder(BaseDecoder):
         return x_correction
 
     def decode(
-        self, code: RotatedPlanar3DCode, syndrome: np.ndarray
+        self, code: StabilizerCode, syndrome: np.ndarray, **kwargs
     ) -> np.ndarray:
         """Get X corrections given code and measured syndrome."""
 
@@ -220,7 +218,7 @@ class RotatedInfiniteZBiasDecoder(BaseDecoder):
         self._sweeper = ZMatchingDecoder(error_model, probability)
 
     def decode(
-        self, code: RotatedPlanar3DCode, syndrome: np.ndarray
+        self, code: StabilizerCode, syndrome: np.ndarray, **kwargs
     ) -> np.ndarray:
 
         z_correction = self._sweeper.decode(code, syndrome)
