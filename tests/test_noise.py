@@ -4,7 +4,7 @@ from panqec.bpauli import bsf_to_pauli, bsf_wt
 from panqec.error_models import PauliErrorModel, DeformedXZZXErrorModel
 from panqec.codes import Toric3DCode
 from panqec.decoders import DeformedToric3DPymatchingDecoder
-import panqec.bsparse as bsparse
+from panqec.bsparse import to_array
 from panqec.utils import get_direction_from_bias_ratio
 
 
@@ -27,13 +27,17 @@ class TestPauliNoise:
 
     def test_generate(self, code, error_model):
         probability = 0.1
-        error = bsparse.to_array(error_model.generate(code, probability, rng=np.random))
+        error = to_array(
+            error_model.generate(code, probability, rng=np.random)
+        )
         assert np.any(error != 0), 'Error should be non-trivial'
         assert error.shape == (2*code.n, ), 'Shape incorrect'
 
     def test_probability_zero(self, code, error_model):
         probability = 0
-        error = bsparse.to_array(error_model.generate(code, probability, rng=np.random))
+        error = to_array(
+            error_model.generate(code, probability, rng=np.random)
+        )
         assert np.all(error == 0), 'Should have no error'
 
     def test_probability_one(self, code, error_model):
@@ -142,49 +146,6 @@ class TestGeneratePauliNoise:
         assert np.any(noise[3*L**3:] == 1)
 
 
-@pytest.mark.skip(reason='superseded')
-class TestDeformOperator:
-
-    @pytest.fixture(autouse=True)
-    def noise_config(self):
-        self.L = 10
-        self.noise = generate_pauli_noise(0.1, 0.2, 0.3, self.L)
-        self.deformed = deform_operator(self.noise, self.L)
-
-    def test_deform_operator_shape(self):
-        assert self.deformed.dtype == np.uint
-        assert list(self.deformed.shape) == list(self.noise.shape)
-
-    def test_deformed_is_different(self):
-        assert np.any(self.noise != self.deformed)
-
-    def test_deformed_composed_original_has_Ys_only(self):
-        composed = (self.deformed + self.noise) % 2
-        assert np.all(composed[3*self.L**3:] == composed[:3*self.L**3])
-
-    def test_only_x_edges_are_different(self):
-        differing_locations = []
-        for edge in range(3):
-            for x in range(self.L):
-                for y in range(self.L):
-                    for z in range(self.L):
-                        i_X = get_bvector_index(edge, x, y, z, 0, self.L)
-                        i_Z = get_bvector_index(edge, x, y, z, 1, self.L)
-                        if (
-                            self.deformed[i_X] != self.noise[i_X]
-                            or
-                            self.deformed[i_Z] != self.noise[i_Z]
-                        ):
-                            differing_locations.append(
-                                (edge, x, y, z)
-                            )
-
-        assert len(differing_locations) > 0
-        for location in differing_locations:
-            edge = location[0]
-            assert edge == 0
-
-
 class TestDeformedMatchingWeights:
 
     def get_deformed_weights(self, p_X, p_Y, p_Z, L):
@@ -256,81 +217,6 @@ class TestDeformedMatchingWeights:
 
         # Weights for x-edges and z-edges should not be equal.
         assert np.any(weights[x_edge_indices] != weights[z_edge_indices])
-
-
-@pytest.mark.skip(reason='superseded')
-class TestXNoiseOnYZEdgesOnly:
-
-    @pytest.fixture(autouse=True)
-    def rng(self):
-        return np.random.default_rng(seed=0)
-
-    @pytest.fixture
-    def code(self):
-        return Toric3DCode(3, 4, 5)
-
-    @pytest.fixture
-    def error_model(self):
-        return XNoiseOnYZEdgesOnly()
-
-    def test_label(self, error_model):
-        assert error_model.label == 'X on yz edges'
-
-    def test_generate_zero_probability(self, code, error_model, rng):
-        error = error_model.generate(code, probability=0, rng=rng)
-
-        # Sparse array number of non-zero elements is zero.
-        assert error.nnz == 0
-
-    def test_generate_probability_half(self, code, error_model, rng):
-        probability = 0.5
-        error = error_model.generate(code, probability=probability, rng=rng)
-        pauli = Toric3DPauli(code, bsf=error)
-
-        number_of_yz_edges = 0
-
-        for edge in code.qubit_index:
-            axis = code.axis(edge)
-            if axis == code.X_AXIS:
-                assert pauli.operator(edge) == 'I', (
-                    'All x edges should have no error'
-                )
-            elif axis == code.Y_AXIS:
-                number_of_yz_edges += 1
-                assert pauli.operator(edge) in ['I', 'X'], (
-                    'Any error on y edge must be only X error'
-                )
-            elif axis == code.Z_AXIS:
-                number_of_yz_edges += 1
-                assert pauli.operator(edge) in ['I', 'X'], (
-                    'Any error on z edge must be only X error'
-                )
-
-        assert error.nnz != 0, 'Error should be non-trivial'
-
-        number_of_errors = bsf_wt(error)
-        proportion_of_errors = number_of_errors/number_of_yz_edges
-        assert abs(probability - proportion_of_errors) < 0.1, (
-            'Number of errors on xy edges should reflect probability'
-        )
-
-    def test_generate_probability_one(self, code, error_model, rng):
-        error = error_model.generate(code, probability=1, rng=rng)
-        pauli = Toric3DPauli(code, bsf=error)
-        for edge in code.qubit_index:
-            direction = tuple(np.mod(edge, 2).tolist())
-            if direction == (1, 0, 0):
-                assert pauli.operator(edge) == 'I', (
-                    'All x edges should have no error'
-                )
-            elif direction == (0, 1, 0):
-                assert pauli.operator(edge) == 'X', (
-                    'All y edges should have X'
-                )
-            elif direction == (0, 0, 1):
-                assert pauli.operator(edge) == 'X', (
-                    'All z edges should have X'
-                )
 
 
 @pytest.mark.parametrize('pauli,bias,expected', [

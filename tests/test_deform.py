@@ -80,61 +80,6 @@ class TestDeformedXZZXErrorModel:
         assert error_model.label == 'Deformed XZZX Pauli X1.0000Y0.0000Z0.0000'
 
 
-# TODO get this to work with Arthur's deform conventions
-@pytest.mark.skip(reason='superseded')
-class TestDeformOperator:
-
-    @pytest.fixture(autouse=True)
-    def undeformed_noise(self, code, rng):
-        self.deformed_model = DeformedXZZXErrorModel(0.2, 0.3, 0.5)
-        undeformed_model = PauliErrorModel(0.2, 0.3, 0.5)
-        probability = 1
-        self.noise = undeformed_model.generate(
-            code, probability, rng=rng
-        ).copy()
-        self.deformed = self.deformed_model._deform_operator(code, self.noise)
-
-    def test_deform_again_gives_original(self, code):
-        self.deformed_again = self.deformed_model._deform_operator(
-            code, self.deformed
-        )
-        assert np.all(self.deformed_again == self.noise)
-
-    def test_deform_operator_shape(self):
-        assert list(self.deformed.shape) == list(self.noise.shape)
-
-    def test_deformed_is_different(self):
-        assert np.any(self.noise != self.deformed)
-
-    def test_deformed_composed_original_has_Ys_only(self, code):
-        L_x, L_y, L_z = code.size
-        composed = (self.deformed + self.noise) % 2
-        set(list(bvector_to_pauli_string(composed))) == set(['I', 'Y'])
-
-    def test_only_x_edges_are_different(self, code):
-        L_x, L_y, L_z = code.size
-        original_pauli = code.from_bsf(self.noise)
-        deformed_pauli = code.from_bsf(self.deformed)
-
-        ranges = [range(length) for length in code.shape]
-
-        differing_locations = []
-        differing_operators = []
-        for edge, x, y, z in itertools.product(*ranges):
-            original_operator = original_pauli.operator((edge, x, y, z))
-            deformed_operator = deformed_pauli.operator((edge, x, y, z))
-            if original_operator != deformed_operator:
-                differing_locations.append((edge, x, y, z))
-                differing_operators.append(
-                    (original_operator, deformed_operator)
-                )
-
-        assert len(differing_locations) > 0
-
-        differing_edges = [location[0] for location in differing_locations]
-        assert all([edge == 0 for edge in differing_edges])
-
-
 class TestDeformedDecoder:
 
     def test_decode_trivial(self, code):
