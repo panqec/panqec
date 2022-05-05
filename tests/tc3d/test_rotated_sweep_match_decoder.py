@@ -419,12 +419,11 @@ class TestSweepCorners:
         )
 
 
-@pytest.mark.skip(reason='refactor')
 class TestRotatedSweepDecoder3D:
 
     @pytest.fixture
     def code(self):
-        return RotatedPlanar3DCode(2, 2, 2)
+        return RotatedPlanar3DCode(3, 3, 3)
 
     @pytest.fixture
     def decoder(self):
@@ -448,7 +447,7 @@ class TestRotatedSweepDecoder3D:
     ):
         vertex = (4, 6, 5)
         sweep_direction = (1, 0, -1)
-        assert vertex in code.vertex_index
+        assert code.stabilizer_type(vertex) == 'vertex'
         x_face, y_face, z_face = decoder.get_sweep_faces(
             vertex, sweep_direction, code
         )
@@ -458,7 +457,7 @@ class TestRotatedSweepDecoder3D:
         assert [x_face, y_face, z_face] == sweep_faces
         assert [x_edge, y_edge, z_edge] == sweep_edges
 
-    def test_adjacency_sweep_faces_edges(self, code, decoder):
+    def test_sweep_touches_all_faces_and_qubits(self, code, decoder):
         touched_edges = []
         touched_faces = []
         sweep_directions = [
@@ -467,8 +466,18 @@ class TestRotatedSweepDecoder3D:
             (-1, 0, 1), (-1, 0, -1),
             (0, -1, 1), (0, -1, -1),
         ]
+        vertices = [
+            location
+            for location in code.stabilizer_coordinates
+            if code.stabilizer_type(location) == 'vertex'
+        ]
+        face_index = {
+            location: index
+            for index, location in enumerate(code.stabilizer_coordinates)
+            if code.stabilizer_type(location) == 'face'
+        }
         for sweep_direction in sweep_directions:
-            for vertex in code.vertex_index:
+            for vertex in vertices:
                 x_face, y_face, z_face = decoder.get_sweep_faces(
                     vertex, sweep_direction, code
                 )
@@ -477,7 +486,7 @@ class TestRotatedSweepDecoder3D:
                 )
 
                 faces_valid = tuple(
-                    face in code.face_index
+                    face in face_index
                     for face in [x_face, y_face, z_face]
                 )
                 edges_valid = tuple(
@@ -485,9 +494,9 @@ class TestRotatedSweepDecoder3D:
                     for edge in [x_edge, y_edge, z_edge]
                 )
                 if all(faces_valid) and all(edges_valid):
-                    x_face_bsf = code.stabilizer_matrix[code.face_index[x_face]]
-                    y_face_bsf = code.stabilizer_matrix[code.face_index[y_face]]
-                    z_face_bsf = code.stabilizer_matrix[code.face_index[z_face]]
+                    x_face_bsf = code.stabilizer_matrix[face_index[x_face]]
+                    y_face_bsf = code.stabilizer_matrix[face_index[y_face]]
+                    z_face_bsf = code.stabilizer_matrix[face_index[z_face]]
 
                     error = dict()
                     error[x_edge] = 'Z'
@@ -519,21 +528,28 @@ class TestRotatedSweepDecoder3D:
                     touched_faces.append(z_face)
 
         assert set(code.qubit_coordinates) == set(touched_edges)
-        assert set(code.face_index.keys()) == set(touched_faces)
+        assert set(face_index.keys()) == set(touched_faces)
 
     def test_flip_edge(self, code, decoder):
-        n_faces = len(code.face_index)
         for edge in code.qubit_coordinates:
-            signs = {face: 0 for face in code.face_index}
+            signs = {
+                location: 0
+                for location in code.stabilizer_coordinates
+                if code.stabilizer_type(location) == 'face'
+            }
+            signs = decoder.get_initial_state(
+                code,
+                np.zeros(code.stabilizer_matrix.shape[0], dtype=np.uint)
+            )
             decoder.flip_edge(edge, signs, code)
-            sign_flip_syndrome = np.zeros(n_faces, dtype=int)
-            for face, sign in signs.items():
-                if sign:
-                    sign_flip_syndrome[code.face_index[face]] = 1
+            sign_flip_syndrome = signs
 
-            error = dict()
-            error[edge] = 'Z'
-            error_bsf = code.to_bsf(error)
-            pauli_syndrome = bcommute(code.stabilizer_matrix[:n_faces], error_bsf)
+            error = code.to_bsf({
+                edge: 'Z'
+            })
+            pauli_syndrome = bcommute(
+                code.stabilizer_matrix,
+                error
+            )
 
             assert np.all(pauli_syndrome == sign_flip_syndrome)
