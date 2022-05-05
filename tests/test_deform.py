@@ -2,7 +2,7 @@ import itertools
 import pytest
 import numpy as np
 from panqec.bpauli import bcommute
-from panqec.codes import Toric3DCode
+from panqec.codes import Toric3DCode, StabilizerCode
 from panqec.error_models import PauliErrorModel
 from panqec.error_models import (
     DeformedXZZXErrorModel
@@ -266,7 +266,6 @@ class TestDeformedDecoder:
         assert origin_distances[1, 0, 0] == origin_distances[0, 0, 1]
 
 
-@pytest.mark.skip(reason='refactor')
 class TestDeformedSweepDecoder3D:
 
     @pytest.mark.parametrize(
@@ -320,7 +319,6 @@ class TestDeformedSweepDecoder3D:
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
 
-@pytest.mark.skip(reason='refactor')
 class TestDeformedToric3DPymatchingDecoder:
 
     def test_decode_trivial(self, code):
@@ -336,7 +334,24 @@ class TestDeformedToric3DPymatchingDecoder:
         assert issubclass(correction.dtype.type, np.integer)
 
 
-@pytest.mark.skip(reason='refactor')
+class XNoiseOnYZEdgesOnly(PauliErrorModel):
+    """X noise applied on y and z edges only."""
+
+    def __init__(self):
+        super(XNoiseOnYZEdgesOnly, self).__init__(1, 0, 0)
+
+    def generate(
+        self, code: StabilizerCode, probability: float, rng=None
+    ) -> np.ndarray:
+        error = super(XNoiseOnYZEdgesOnly, self).generate(
+            code, probability, rng=rng
+        )
+        for index, location in enumerate(code.qubit_coordinates):
+            if code.qubit_axis(location) == 'x':
+                error[index] = 0
+        return error
+
+
 class TestMatchingXNoiseOnYZEdgesOnly:
 
     def test_decode(self, code):
@@ -347,17 +362,17 @@ class TestMatchingXNoiseOnYZEdgesOnly:
             decoder = DeformedToric3DPymatchingDecoder(
                 error_model, probability
             )
-            error = to_array(error_model.generate(
+            error = error_model.generate(
                 code, probability=probability, rng=rng
-            ))
+            )
             assert any(error), 'Error should be non-trivial'
             syndrome = bcommute(code.stabilizer_matrix, error)
             correction = decoder.decode(code, syndrome)
             assert any(correction), 'Correction should be non-trivial'
             total_error = (correction + error) % 2
-            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
-                'Total error should be in code space'
-            )
+            assert np.all(
+                bcommute(code.stabilizer_matrix, total_error) == 0
+            ), 'Total error should be in code space'
 
             # Error and correction as objects.
             error_pauli = code.from_bsf(error)
@@ -365,30 +380,33 @@ class TestMatchingXNoiseOnYZEdgesOnly:
 
             x_edges = [
                 edge for edge in code.qubit_index
-                if code.axis(edge) == code.X_AXIS
+                if code.qubit_axis(edge) == 'x'
             ]
             y_edges = [
                 edge for edge in code.qubit_index
-                if code.axis(edge) == code.Y_AXIS
+                if code.qubit_axis(edge) == 'y'
             ]
             z_edges = [
                 edge for edge in code.qubit_index
-                if code.axis(edge) == code.Z_AXIS
+                if code.qubit_axis(edge) == 'z'
             ]
 
             assert np.all(
-                error_pauli.operator(edge) == 'I'
+                edge not in error_pauli
+                or error_pauli[edge] == 'I'
                 for edge in x_edges
             ), 'No errors should be on x edges'
 
             assert np.all(
-                correction_pauli.operator(edge) == 'I'
-                for edge in y_edges
+                edge not in correction_pauli
+                or correction_pauli[edge] == 'I'
+                for edge in x_edges
             ), 'No corrections should be on x edges'
 
             assert np.any([
-                correction_pauli.operator(edge) != 'I'
+                correction_pauli[edge] != 'I'
                 for edge in y_edges + z_edges
+                if edge in correction_pauli
             ]), 'Non-trivial corrections should be on the y and z edges'
 
 
