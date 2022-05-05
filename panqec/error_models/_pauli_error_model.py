@@ -11,8 +11,9 @@ class PauliErrorModel(BaseErrorModel):
 
     def __init__(self, r_x: float, r_y: float, r_z: float):
         """Initialize Pauli error model at a given rate of X, Y and Z errors,
-        i.e. $P(u) = p * r_u$ for $u \in \{X, Y, Z\}$, $p$ the total error rate, and
-        $P(u)$ the probability of getting the error $u$ on each qubit.
+        i.e. $P(u) = p * r_u$ for $u \in \{X, Y, Z\}$, $p$ the total error
+        rate, and $P(u)$ the probability of getting the error $u$ on each
+        qubit.
 
         Parameters
         ----------
@@ -61,7 +62,7 @@ class PauliErrorModel(BaseErrorModel):
     @functools.lru_cache()
     def probability_distribution(
         self, code: StabilizerCode, probability: float
-    ) -> Tuple:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         n = code.n
         r_x, r_y, r_z = self.direction
 
@@ -71,3 +72,6 @@ class PauliErrorModel(BaseErrorModel):
         p_z = (r_z * probability) * np.ones(n)
 
         return p_i, p_x, p_y, p_z
+
+    def get_deformation_indices(self, code: StabilizerCode) -> np.ndarray:
+        return np.zeros(code.n, dtype=bool)

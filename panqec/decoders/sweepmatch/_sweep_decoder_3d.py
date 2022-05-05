@@ -1,10 +1,9 @@
 from typing import Tuple, Dict
 import numpy as np
 from panqec.decoders import BaseDecoder
-from panqec.codes import Toric3DCode
+from panqec.codes import StabilizerCode
 
-Indexer = Dict[Tuple[int, int, int], int]
-Operator = Dict[Tuple[int, int, int], str]
+Operator = Dict[Tuple, str]
 
 
 class SweepDecoder3D(BaseDecoder):
@@ -20,7 +19,7 @@ class SweepDecoder3D(BaseDecoder):
         self.max_sweep_factor = max_sweep_factor
 
     def get_face_syndromes(
-        self, code: Toric3DCode, full_syndrome: np.ndarray
+        self, code: StabilizerCode, full_syndrome: np.ndarray
     ) -> np.ndarray:
         """Get only the syndromes for the vertex Z stabilizers.
         Z vertex stabilizers syndromes are discarded for this decoder.
@@ -29,7 +28,7 @@ class SweepDecoder3D(BaseDecoder):
         return face_syndromes
 
     def flip_edge(
-        self, location: Tuple, signs: np.ndarray, code: Toric3DCode
+        self, location: Tuple, signs: np.ndarray, code: StabilizerCode
     ):
         """Flip signs at index and update correction."""
         x, y, z = location
@@ -61,13 +60,13 @@ class SweepDecoder3D(BaseDecoder):
 
         # Flip the signs (well actually 0s and 1s).
         if code.is_stabilizer(location_1):
-            signs[code.stabilizer_index[location_1]] = 1 - signs[code.stabilizer_index[location_1]]  # type: ignore
+            signs[code.stabilizer_index[location_1]] = 1 - signs[code.stabilizer_index[location_1]]  # type: ignore # noqa
         if code.is_stabilizer(location_2):
-            signs[code.stabilizer_index[location_2]] = 1 - signs[code.stabilizer_index[location_2]]  # type: ignore
+            signs[code.stabilizer_index[location_2]] = 1 - signs[code.stabilizer_index[location_2]]  # type: ignore # noqa
         if code.is_stabilizer(location_3):
-            signs[code.stabilizer_index[location_3]] = 1 - signs[code.stabilizer_index[location_3]]  # type: ignore
+            signs[code.stabilizer_index[location_3]] = 1 - signs[code.stabilizer_index[location_3]]  # type: ignore # noqa
         if code.is_stabilizer(location_4):
-            signs[code.stabilizer_index[location_4]] = 1 - signs[code.stabilizer_index[location_4]]  # type: ignore
+            signs[code.stabilizer_index[location_4]] = 1 - signs[code.stabilizer_index[location_4]]  # type: ignore # noqa
 
     def get_default_direction(self):
         """The default direction when all faces are excited."""
@@ -76,8 +75,8 @@ class SweepDecoder3D(BaseDecoder):
 
     # TODO: make this more space-efficient, don't store zeros.
     def get_initial_state(
-        self, code: Toric3DCode, syndrome: np.ndarray
-    ) -> Indexer:
+        self, code: StabilizerCode, syndrome: np.ndarray
+    ) -> np.ndarray:
         """Get initial cellular automaton state from syndrome."""
         signs = syndrome.copy()
         signs[code.z_indices] = 0
@@ -85,7 +84,7 @@ class SweepDecoder3D(BaseDecoder):
         return signs
 
     def decode(
-        self, code: Toric3DCode, syndrome: np.ndarray
+        self, code: StabilizerCode, syndrome: np.ndarray, **kwargs
     ) -> np.ndarray:
         """Get Z corrections given measured syndrome."""
 
@@ -96,7 +95,7 @@ class SweepDecoder3D(BaseDecoder):
         signs = self.get_initial_state(code, syndrome)
 
         # Keep track of the correction needed.
-        correction = dict()
+        correction: Dict = dict()
 
         # Initialize the number of sweeps.
         i_sweep = 0
@@ -110,7 +109,7 @@ class SweepDecoder3D(BaseDecoder):
 
     def sweep_move(
         self, signs: np.ndarray, correction: Operator,
-        code: Toric3DCode
+        code: StabilizerCode
     ) -> np.ndarray:
         """Apply the sweep move once."""
 

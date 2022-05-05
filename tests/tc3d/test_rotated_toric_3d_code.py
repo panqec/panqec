@@ -168,7 +168,7 @@ class TestRotatedToric3DDeformation:
     def test_deformation_index(self):
         code = RotatedToric3DCode(3, 4, 4)
         error_model = DeformedXZZXErrorModel(0.2, 0.3, 0.5)
-        deformation_index = error_model._get_deformation_indices(code)
+        deformation_index = error_model.get_deformation_indices(code)
         coords_map = {
             index: coord for index, coord in enumerate(code.qubit_coordinates)
         }
