@@ -19,7 +19,7 @@ class TestRotatedSweepMatchDecoder:
     def decoder(self):
         error_model = PauliErrorModel(1/3, 1/3, 1/3)
         probability = 0.5
-        return RotatedSweepMatchDecoder(error_model, probability)
+        return RotatedSweepMatchDecoder(error_model, probability, max_rounds=4)
 
     def test_decoder_has_required_attributes(self, decoder):
         assert decoder.label is not None
@@ -176,12 +176,12 @@ class TestRotatedSweepMatchDecoder:
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
 
-class TestSweepMatch3x3x2:
+class TestSweepMatch3x3x3:
     """Test cases found to be failing on the GUI."""
 
     @pytest.fixture
     def code(self):
-        return RotatedPlanar3DCode(3, 3, 2)
+        return RotatedPlanar3DCode(3, 3, 3)
 
     @pytest.fixture
     def decoder(self):
@@ -190,17 +190,15 @@ class TestSweepMatch3x3x2:
         return RotatedSweepMatchDecoder(error_model, probability)
 
     @pytest.mark.parametrize('locations', [
-        [('Z', (1, 5, 1)), ('Z', (1, 5, 3))],
         [('Z', (1, 1, 1)), ('Z', (3, 3, 1)), ('Z', (5, 5, 1))],
         [('Z', (1, 1, 3)), ('Z', (3, 3, 3)), ('Z', (5, 5, 3))],
         [('Z', (3, 5, 3)), ('Z', (5, 3, 3)), ('Z', (5, 1, 3))],
     ], ids=[
-        'z_vertical',
         'up_left_horizontal_bottom',
         'up_left_horizontal_top',
         'down_right_horizontal'
     ])
-    def test_errors_spanning_boundaries(self, code, decoder, locations):
+    def test_errors_spanning_boundaries_fail(self, code, decoder, locations):
         error = code.to_bsf({
             location: pauli
             for pauli, location in locations
@@ -214,7 +212,7 @@ class TestSweepMatch3x3x2:
         total_error = (error + correction) % 2
         assert not np.all(
             bcommute(code.stabilizer_matrix, total_error) == 0
-        ), 'Total error not in codespace'
+        ), 'Total error in codespace when it should not be'
 
 
 class TestSweepMatch4x4x3:
@@ -228,7 +226,7 @@ class TestSweepMatch4x4x3:
     def decoder(self):
         error_model = PauliErrorModel(1/3, 1/3, 1/3)
         probability = 0.5
-        return RotatedSweepMatchDecoder(error_model, probability)
+        return RotatedSweepMatchDecoder(error_model, probability, max_rounds=4)
 
     @pytest.mark.parametrize('locations', [
         [
@@ -282,7 +280,6 @@ class TestSweepMatch4x4x3:
         )
 
     @pytest.mark.parametrize('locations', [
-        [('Z', (1, 9, 1)), ('Z', (1, 9, 3)), ('Z', (1, 9, 5))],
         [
             ('Z', (1, 1, 1)), ('Z', (3, 3, 1)), ('Z', (5, 5, 1)),
             ('Z', (7, 7, 1)), ('Z', (9, 9, 1))
@@ -296,7 +293,6 @@ class TestSweepMatch4x4x3:
             ('Z', (9, 3, 5)), ('Z', (9, 1, 5))
         ],
     ], ids=[
-        'z_vertical',
         'up_left_horizontal_bottom',
         'up_left_horizontal_top',
         'down_right_horizontal',
@@ -315,16 +311,15 @@ class TestSweepMatch4x4x3:
         total_error = (error + correction) % 2
         assert not np.all(
             bcommute(code.stabilizer_matrix, total_error) == 0
-        ), 'Total error in codespace'
+        ), 'Total error in codespace when it should not be'
 
 
-@pytest.mark.skip(reason='refactor')
 class TestSweepCorners:
     """Test 1-qubit errors on corners fully correctable."""
 
     @pytest.fixture
     def code(self):
-        return RotatedPlanar3DCode(2, 2, 2)
+        return RotatedPlanar3DCode(5, 5, 3)
 
     @pytest.fixture
     def decoder(self):
@@ -340,16 +335,16 @@ class TestSweepCorners:
         (9, 9, 5)
     ])
     def test_sweep_errors_on_extreme_layer(self, code, decoder, location):
-        error = dict()
-        assert location in code.qubit_coordinates
-        error[location] = 'Z'
-        assert bsf_wt(code.to_bsf(error)) == 1
+        error = code.to_bsf({
+            location: 'Z'
+        })
+        assert bsf_wt(error) == 1
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
         correction = decoder.decode(code, syndrome)
-        total_error = (code.to_bsf(error) + correction) % 2
+        total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
             'Total error not in codespace'
         )
@@ -365,15 +360,16 @@ class TestSweepCorners:
     def test_all_1_qubit_errors_correctable(self, code, decoder, pauli):
         uncorrectable_locations = []
         for location in code.qubit_coordinates:
-            error = dict()
-            error[location] = pauli
-            assert bsf_wt(code.to_bsf(error)) == 1
+            error = code.to_bsf({
+                location: pauli
+            })
+            assert bsf_wt(error) == 1
 
             syndrome = code.measure_syndrome(error)
             assert np.any(syndrome != 0)
 
             correction = decoder.decode(code, syndrome)
-            total_error = (code.to_bsf(error) + correction) % 2
+            total_error = (error + correction) % 2
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
             correctable = True
@@ -396,16 +392,17 @@ class TestSweepCorners:
         error_locations = combinations(list(code.qubit_index), weight)
         uncorrectable_error_locations = []
         for locations in error_locations:
-            error = dict()
-            for location in locations:
-                error[location] = pauli
-            assert bsf_wt(code.to_bsf(error)) == len(locations)
+            error = code.to_bsf({
+                location: pauli
+                for location in locations
+            })
+            assert bsf_wt(error) == len(locations)
 
             syndrome = code.measure_syndrome(error)
             assert np.any(syndrome != 0)
 
             correction = decoder.decode(code, syndrome)
-            total_error = (code.to_bsf(error) + correction) % 2
+            total_error = (error + correction) % 2
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
             correctable = True

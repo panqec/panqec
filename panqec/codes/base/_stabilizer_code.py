@@ -797,3 +797,33 @@ class StabilizerCode(metaclass=ABCMeta):
                 for location in self.stabilizer_coordinates
             ))
         return self._stabilizer_types
+
+    def site(self, operator: Operator, pauli: str, location: Tuple) -> None:
+        """Apply a Pauli on operator at site location.
+
+        Note that the operator is a (mutable) dict.
+
+        Parameters
+        ----------
+        operator: Operator
+            Operator in dictionary representation.
+        pauli: str
+            Pauli to apply.
+        """
+
+        product_map = {
+            ('X', 'Y'): 'Z',
+            ('X', 'Z'): 'Y',
+            ('Y', 'X'): 'Z',
+            ('Y', 'Z'): 'X',
+            ('Z', 'X'): 'Y',
+            ('Z', 'Y'): 'X',
+        }
+
+        if location in operator:
+            if operator[location] == pauli:
+                operator.pop(location)
+            else:
+                operator[location] = product_map[(operator[location], pauli)]
+        else:
+            operator[location] = pauli

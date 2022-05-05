@@ -2,7 +2,7 @@ from typing import Tuple, Dict
 import numpy as np
 from panqec.decoders import BaseDecoder
 
-Indexer = Dict[Tuple[int, int, int], int]
+Operator = Dict[Tuple, str]
 
 
 class RotatedSweepDecoder3D(BaseDecoder):
@@ -11,13 +11,16 @@ class RotatedSweepDecoder3D(BaseDecoder):
     _rng: np.random.Generator
     max_rounds: int
 
-    def __init__(self, error_model, probability,
-                 seed: int = 0, max_rounds: int = 4):
+    def __init__(
+        self, error_model, probability, seed: int = 0, max_rounds: int = 32
+    ):
         super().__init__(error_model, probability)
         self._rng = np.random.default_rng(seed)
         self.max_rounds = max_rounds
 
-    def get_face_syndromes(self, code, full_syndrome: np.ndarray) -> np.ndarray:
+    def get_face_syndromes(
+        self, code, full_syndrome: np.ndarray
+    ) -> np.ndarray:
         """Get only the syndromes for the vertex Z stabilizers.
         Z vertex stabilizers syndromes are discarded for this decoder.
         """
@@ -27,7 +30,7 @@ class RotatedSweepDecoder3D(BaseDecoder):
     # TODO: make this more space-efficient, don't store zeros.
     def get_initial_state(
         self, code, syndrome: np.ndarray
-    ) -> Indexer:
+    ) -> np.ndarray:
         """Get initial cellular automaton state from syndrome."""
         signs = syndrome.copy()
         signs[code.z_indices] = 0
@@ -44,7 +47,7 @@ class RotatedSweepDecoder3D(BaseDecoder):
 #         return signs
 
     def decode(
-        self, code, syndrome: np.ndarray
+        self, code, syndrome: np.ndarray, **kwargs
     ) -> np.ndarray:
         """Get Z corrections given measured syndrome."""
 
@@ -56,7 +59,7 @@ class RotatedSweepDecoder3D(BaseDecoder):
         signs = self.get_initial_state(code, syndrome)
 
         # Keep track of the correction needed.
-        correction = dict()
+        correction: Dict = dict()
 
         # Sweep directions to take
         sweep_directions = [
@@ -133,9 +136,9 @@ class RotatedSweepDecoder3D(BaseDecoder):
         return direction
 
     def sweep_move(
-        self, signs: np.ndarray, correction: np.ndarray,
+        self, signs: np.ndarray, correction: Operator,
         sweep_direction: Tuple[int, int, int], code,
-    ) -> Indexer:
+    ) -> np.ndarray:
         """Apply the sweep move once along a particular direciton."""
 
         flip_locations = []
@@ -199,12 +202,12 @@ class RotatedSweepDecoder3D(BaseDecoder):
         new_signs = signs.copy()
         for location in flip_locations:
             self.flip_edge(location, new_signs, code)
-            correction[location] = 'Z'
+            code.site(correction, 'Z', location)
 
         return new_signs
 
     def flip_edge(
-        self, edge: Tuple, signs: Indexer, code
+        self, edge: Tuple, signs: np.ndarray, code
     ):
         """Flip signs at index and update correction."""
 
@@ -252,4 +255,6 @@ class RotatedSweepDecoder3D(BaseDecoder):
 
         # Flip the state of the faces.
         for face in faces:
-            signs[code.stabilizer_index[face]] = 1 - signs[code.stabilizer_index[face]]
+            signs[code.stabilizer_index[face]] = 1 - signs[
+                code.stabilizer_index[face]
+            ]
