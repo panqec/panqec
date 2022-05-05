@@ -227,23 +227,23 @@ class TestDeformedMatchingWeights:
         assert np.any(weights != 0)
         assert np.any(weights != weights[0])
 
-    @pytest.mark.skip(reason='refactor')
     def test_only_x_edges_different_weights(self):
         L = 10
         p_X, p_Y, p_Z = 0.5, 0.1, 0
-        weights = get_deformed_weights(p_X, p_Y, p_Z, L)
+        weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
         assert np.any(weights != weights[0])
+        code = Toric3DCode(L, L, L)
         x_edge_indices = [
-            get_bvector_index(0, x, y, z, 0, L)
-            for x, y, z in itertools.product(range(L), repeat=3)
+            index for index, edge in enumerate(code.qubit_index)
+            if code.qubit_axis(edge) == 'x'
         ]
         y_edge_indices = [
-            get_bvector_index(1, x, y, z, 0, L)
-            for x, y, z in itertools.product(range(L), repeat=3)
+            index for index, edge in enumerate(code.qubit_index)
+            if code.qubit_axis(edge) == 'y'
         ]
         z_edge_indices = [
-            get_bvector_index(2, x, y, z, 0, L)
-            for x, y, z in itertools.product(range(L), repeat=3)
+            index for index, edge in enumerate(code.qubit_index)
+            if code.qubit_axis(edge) == 'z'
         ]
 
         # Weights for the same wedge type should be equal.
@@ -252,7 +252,7 @@ class TestDeformedMatchingWeights:
         assert np.all(weights[z_edge_indices] == weights[z_edge_indices[0]])
 
         # Weights for y-edges and z-edges should be equal.
-        assert np.all(weights[y_edge_indices] == weights[z_edge_indices])
+        assert np.all(weights[x_edge_indices] == weights[y_edge_indices])
 
         # Weights for x-edges and z-edges should not be equal.
         assert np.any(weights[x_edge_indices] != weights[z_edge_indices])
