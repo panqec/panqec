@@ -2,12 +2,12 @@ import os
 import json
 import pytest
 import numpy as np
-from qecsim.models.basic import FiveQubitCode
-from qecsim.models.generic import NaiveDecoder
-from bn3d.noise import PauliErrorModel
-from bn3d.app import (
+from panqec.error_models import PauliErrorModel
+from panqec.codes import Toric2DCode
+from panqec.decoders import BeliefPropagationOSDDecoder
+from panqec.app import (
     read_input_json, run_once, Simulation, expand_input_ranges, run_file,
-    merge_results_dicts
+    merge_results_dicts, filter_legacy_params
 )
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
@@ -46,41 +46,48 @@ def test_read_json_input(file_name, expected_runs):
                 assert parameters[i] != parameters[j]
 
 
-def test_run_once(required_fields):
-    code = FiveQubitCode()
-    decoder = NaiveDecoder()
-    direction = np.ones(3)/3
-    error_model = PauliErrorModel(*direction)
+class TestRunOnce:
+    @pytest.fixture
+    def code(self):
+        return Toric2DCode(3, 3)
+
+    @pytest.fixture
+    def error_model(self):
+        return PauliErrorModel(1/3, 1/3, 1/3)
+
+    def test_run_once(self, required_fields, code, error_model):
+        probability = 0.5
+        decoder = BeliefPropagationOSDDecoder(error_model, probability)
+        results = run_once(
+            code, error_model, decoder, error_probability=probability
+        )
+        assert set(required_fields).issubset(results.keys())
+        assert results['error'].shape == (2*code.n,)
+        assert results['syndrome'].shape == (code.stabilizer_matrix.shape[0],)
+        assert isinstance(results['success'], bool)
+        assert results['effective_error'].shape == (
+            2*code.logicals_x.shape[0],
+        )
+        assert isinstance(results['codespace'], bool)
+
+    def test_run_once_invalid_probability(self, code, error_model):
+        probability = -1
+        decoder = BeliefPropagationOSDDecoder(error_model, probability)
+        with pytest.raises(ValueError):
+            run_once(code, error_model, decoder, error_probability=probability)
+
+
+class TestSimulationToric2DCode():
+
     probability = 0.5
-    results = run_once(
-        code, error_model, decoder, error_probability=probability
-    )
-    assert set(required_fields).issubset(results.keys())
-    assert results['error'].shape == (2*code.n_k_d[0],)
-    assert results['syndrome'].shape == (code.stabilizers.shape[0],)
-    assert isinstance(results['success'], bool)
-    assert results['effective_error'].shape == (2*code.logical_xs.shape[0],)
-    assert isinstance(results['codespace'], bool)
-
-
-def test_run_once_invalid_probability():
-    code = FiveQubitCode()
-    decoder = NaiveDecoder()
-    error_model = PauliErrorModel(1, 0, 0)
-    probability = -1
-    with pytest.raises(ValueError):
-        run_once(code, error_model, decoder, error_probability=probability)
-
-
-class TestSimulationFiveQubitCode():
 
     @pytest.fixture
     def code(self):
-        return FiveQubitCode()
+        return Toric2DCode(3, 3)
 
     @pytest.fixture
-    def decoder(self):
-        return NaiveDecoder()
+    def decoder(self, error_model):
+        return BeliefPropagationOSDDecoder(error_model, self.probability)
 
     @pytest.fixture
     def error_model(self):
@@ -130,7 +137,9 @@ def test_merge_results():
             'inputs': {
                 'size': [2, 2, 2],
                 'code': 'Rotated Planar 2x2x2',
-                'n_k_d': [99, 1, -1],
+                'n': 99,
+                'k': 1,
+                'd': -1,
                 'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
                 'decoder': 'BP-OSD decoder',
                 'error_probability': 0.05
@@ -146,7 +155,9 @@ def test_merge_results():
             'inputs': {
                 'size': [2, 2, 2],
                 'code': 'Rotated Planar 2x2x2',
-                'n_k_d': [99, 1, -1],
+                'n': 99,
+                'k': 1,
+                'd': -1,
                 'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
                 'decoder': 'BP-OSD decoder',
                 'error_probability': 0.05
@@ -163,7 +174,9 @@ def test_merge_results():
         'inputs': {
             'size': [2, 2, 2],
             'code': 'Rotated Planar 2x2x2',
-            'n_k_d': [99, 1, -1],
+            'n': 99,
+            'k': 1,
+            'd': -1,
             'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
             'decoder': 'BP-OSD decoder',
             'error_probability': 0.05
@@ -172,3 +185,11 @@ def test_merge_results():
 
     merged_results = merge_results_dicts(results_dicts)
     assert merged_results == expected_merged_results
+
+
+def test_filter_legacy_params():
+    old_params = {
+        'joschka': True
+    }
+    filtered_params = filter_legacy_params(old_params)
+    assert 'joschka' not in filtered_params

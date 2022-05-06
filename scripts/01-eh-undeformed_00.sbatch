@@ -13,6 +13,6 @@ date
 
 module load python/3.8
 source venv/bin/activate
-bn3d run --file scripts/undeformed_01.json --trials 1000
+panqec run --file scripts/undeformed_01.json --trials 1000
 
 date

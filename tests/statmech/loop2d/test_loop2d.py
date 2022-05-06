@@ -1,7 +1,7 @@
 import json
 import pytest
 import numpy as np
-from bn3d.statmech.loop2d import LoopModel2D, LoopModel2DIidDisorder
+from panqec.statmech.loop2d import LoopModel2D, LoopModel2DIidDisorder
 from tests.statmech.utils import assert_flip_energies_consistent
 
 

@@ -1,4 +1,4 @@
-# bn3d todo list
+# panqec todo list
 
 ### Integration with qecsim
 - [x] Add biased-weight decoder to CLI

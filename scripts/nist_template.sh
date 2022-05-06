@@ -18,7 +18,7 @@ source ~/.bashrc
 
 # Load python and activate the python virtual environment.
 conda deactivate
-conda activate bn3d
+conda activate panqec
 
 # Variables to change.
 trials=${TRIALS}
@@ -29,7 +29,7 @@ n_split=${SPLIT}
 input_dir="$data_dir/inputs"
 
 # The bash command to parallelize.
-bash_command="bn3d run -f $input_dir/{1}.json -o $data_dir/{2} -t {3}"
+bash_command="panqec run -f $input_dir/{1}.json -o $data_dir/{2} -t {3}"
 
 # Print out the current working directory so we know where we are.
 pwd

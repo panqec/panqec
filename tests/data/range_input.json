@@ -3,7 +3,7 @@
   "ranges": {
     "label": "test_range",
     "code": {
-      "model": "ToricCode3D",
+      "model": "Toric3DCode",
       "parameters": [
         {"L_x": 3},
         {"L_x": 4},

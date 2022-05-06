@@ -6,7 +6,7 @@
 #SBATCH --job-name=${NAME}
 #SBATCH --array=1-${NARRAY}
 #SBATCH -p ${QUEUE}
-#SBATCH --output=/home/ehuang1/bn3d/slurm/out/${NAME}_%j.out
+#SBATCH --output=/home/ehuang1/panqec/slurm/out/${NAME}_%j.out
 set -euxo pipefail
 
 # Variables to change.
@@ -18,7 +18,7 @@ n_split=${SPLIT}
 input_dir="$data_dir/inputs"
 
 # The bash command to parallelize.
-bash_command="bn3d run -f $input_dir/{1}.json -o $data_dir/{2} -t {3}"
+bash_command="panqec run -f $input_dir/{1}.json -o $data_dir/{2} -t {3}"
 
 # Print out the current working directory so we know where we are.
 pwd

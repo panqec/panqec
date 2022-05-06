@@ -6,12 +6,13 @@ Tests for custom implementation of pauli bit strings.
 """
 import pytest
 import numpy as np
-from qecsim.models.toric import ToricCode
-from bn3d.bpauli import (
-    pauli_string_to_bvector, bvector_to_pauli_string, bvector_to_barray,
-    barray_to_bvector, bcommute, get_effective_error, bvector_to_int,
+from panqec.codes import Toric2DCode
+from panqec.bpauli import (
+    pauli_string_to_bvector, bvector_to_pauli_string,
+    bcommute, get_effective_error, bvector_to_int,
     bvectors_to_ints, ints_to_bvectors, apply_deformation
 )
+from panqec.bsparse import from_array, is_sparse, vstack
 
 
 def test_pauli_string_to_bvector():
@@ -85,15 +86,47 @@ class TestBcommute:
             bcommute([0, 0, 0, 1], [1, 0, 1, 1, 0, 1])
 
 
-def test_bvector_to_barray():
-    L = 3
-    np.random.seed(0)
-    a = np.random.rand(3, L, L, L, 2)
-    assert a.shape == (3, L, L, L, 2)
-    s = barray_to_bvector(a, L)
-    assert s.shape[0] == 2*3*L**3
-    a_new = bvector_to_barray(s, L)
-    assert np.all(a == a_new)
+class TestBcommuteSparse:
+
+    def test_bcommute_singles(self):
+        III = from_array(np.array([0, 0, 0, 0, 0, 0]))
+        XXX = from_array(np.array([1, 1, 1, 0, 0, 0]))
+        ZZZ = from_array(np.array([0, 0, 0, 1, 1, 1]))
+        assert is_sparse(III)
+        assert bcommute(XXX, ZZZ) == 1, 'XXX should anticommute with ZZZ'
+        assert bcommute(III, XXX) == 0, 'III should commute with XXX'
+        assert bcommute(III, XXX) == 0, 'III should commute with XXX'
+
+    def test_bcommute_many_to_one(self):
+        stabilizers = from_array(np.array([
+            pauli_string_to_bvector('XXI'),
+            pauli_string_to_bvector('IXX'),
+        ]))
+        assert stabilizers.shape == (2, 6)
+        error = from_array(pauli_string_to_bvector('IZI'))
+        syndrome = bcommute(stabilizers, error)
+        assert syndrome.shape == (2,), 'syndrome should have shape 2'
+        assert np.all(syndrome == [1, 1]), 'IZI should anticommute with both'
+
+        # Changing the order shouldn't matter.
+        syndrome = bcommute(error, stabilizers)
+        assert syndrome.shape == (2,)
+        assert np.all(syndrome == [1, 1])
+
+    def test_bcommute_one_to_many(self):
+        XYZ = from_array(pauli_string_to_bvector('XYZ'))
+        IXY = from_array(pauli_string_to_bvector('IXY'))
+        ZZI = from_array(pauli_string_to_bvector('ZZI'))
+        assert bcommute(XYZ, IXY) == 0
+        assert bcommute(IXY, ZZI) == 1
+        assert np.all(bcommute(XYZ, vstack([IXY, ZZI])) == [[0, 0]])
+        assert np.all(
+            bcommute(vstack([XYZ, IXY]), vstack([ZZI, IXY]))
+            == [
+                [0, 0],
+                [1, 0]
+            ]
+        )
 
 
 def test_effective_error_wrong_size_raises_exception():
@@ -158,12 +191,12 @@ def test_ints_to_bvectors():
 
 
 def test_get_effective_error_toric_code_logicals():
-    code = ToricCode(3, 5)
+    code = Toric2DCode(3, 5)
     logical_operators = {
-        'X1': code.logical_xs[0],
-        'X2': code.logical_xs[1],
-        'Z1': code.logical_zs[0],
-        'Z2': code.logical_zs[1],
+        'X1': code.logicals_x[0],
+        'X2': code.logicals_x[1],
+        'Z1': code.logicals_z[0],
+        'Z2': code.logicals_z[1],
     }
     expected_effective_errors = {
         'X1': [1, 0, 0, 0],
@@ -173,7 +206,7 @@ def test_get_effective_error_toric_code_logicals():
     }
     for logical in ['X1', 'X2', 'Z1', 'Z2']:
         effective_error = get_effective_error(
-            logical_operators[logical], code.logical_xs, code.logical_zs
+            logical_operators[logical], code.logicals_x, code.logicals_z
         )
         assert np.all(effective_error == expected_effective_errors[logical]), (
             f'Logical operator {logical} should have effective error '
@@ -183,12 +216,12 @@ def test_get_effective_error_toric_code_logicals():
 
 
 def test_get_effective_error_toric_code_logicals_many():
-    code = ToricCode(3, 5)
+    code = Toric2DCode(3, 5)
     logical_operators = np.array([
-        code.logical_xs[0],
-        code.logical_xs[1],
-        code.logical_zs[0],
-        code.logical_zs[1],
+        code.logicals_x[0],
+        code.logicals_x[1],
+        code.logicals_z[0],
+        code.logicals_z[1],
     ])
     expected_effective_errors = np.array([
         [1, 0, 0, 0],
@@ -197,7 +230,7 @@ def test_get_effective_error_toric_code_logicals_many():
         [0, 0, 0, 1],
     ])
     effective_errors = get_effective_error(
-        logical_operators, code.logical_xs, code.logical_zs
+        logical_operators, code.logicals_x, code.logicals_z
     )
     assert np.all(effective_errors == expected_effective_errors), (
         f'Logical operators {logical_operators} should have effective errors '

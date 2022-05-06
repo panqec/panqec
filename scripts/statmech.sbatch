@@ -6,7 +6,7 @@
 #SBATCH --job-name=${NAME}
 #SBATCH --array=1-${NARRAY}
 #SBATCH -p ${QUEUE}
-#SBATCH --output=/home/ehuang1/bn3d/slurm/out/${NAME}_%j.out
+#SBATCH --output=/home/ehuang1/panqec/slurm/out/${NAME}_%j.out
 set -euxo pipefail
 
 # Variables to change.
@@ -17,7 +17,7 @@ n_split=${SPLIT}
 input_dir="$data_dir/inputs"
 
 # The bash command to parallelize.
-bash_command="bn3d statmech sample $data_dir/inputs/input_{1}.gz"
+bash_command="panqec statmech sample $data_dir/inputs/input_{1}.gz"
 
 # Print out the current working directory so we know where we are.
 pwd
@@ -43,7 +43,7 @@ python scripts/monitor.py "$log_dir/usage_${SLURM_JOB_ID}_${i_task}.txt" &
 hashes_txt="$log_dir/filter_${SLURM_JOB_ID}_${i_task}.txt"
 
 # Print out filtered hashes to run on each line.
-bn3d statmech assign-inputs $data_dir $i_task $n_tasks >> $hashes_txt
+panqec statmech assign-inputs $data_dir $i_task $n_tasks >> $hashes_txt
 
 # Run in parallel.
 cat $hashes_txt | parallel --colsep '\t' --results $log_dir "$bash_command"
