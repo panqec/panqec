@@ -61,7 +61,7 @@ memory="64GB"
 
 
 # Extra rhombic
-common_name=det_rhombic_bposd_xzzx_xbias_extra
+common_name=det_rhombic_bposd_xzzx_xbias_inf
 name=${common_name}_temp
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
@@ -70,12 +70,7 @@ panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
     --ratio equal \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "1000" --prob "0.50"
-panqec generate-input -i "$paper_dir/$name/inputs" \
-    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-    --ratio equal \
-    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "inf" --prob "0.30:0.50:0.02"
+    --eta "inf" --prob "0.20:0.30:0.02"
 
 for repeat in $(seq 1 40); do
     name=${common_name}_${repeat}
