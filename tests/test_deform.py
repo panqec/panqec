@@ -11,7 +11,6 @@ from panqec.decoders import (
     DeformedSweepMatchDecoder, DeformedSweepDecoder3D,
     DeformedToric3DPymatchingDecoder, FoliatedMatchingDecoder
 )
-from panqec.bpauli import bvector_to_pauli_string
 
 
 @pytest.fixture
@@ -355,8 +354,6 @@ class TestMatchingXNoiseOnYZEdgesOnly:
             ]), 'Non-trivial corrections should be on the y and z edges'
 
 
-# TODO fix this another day, not high priority.
-@pytest.mark.skip(reason='sparse')
 class TestFoliatedDecoderXNoiseOnYZEdgesOnly:
 
     def test_decode(self, code):
@@ -365,9 +362,9 @@ class TestFoliatedDecoderXNoiseOnYZEdgesOnly:
             probability = 0.5
             error_model = XNoiseOnYZEdgesOnly()
             decoder = FoliatedMatchingDecoder()
-            error = to_array(error_model.generate(
+            error = error_model.generate(
                 code, probability=probability, rng=rng
-            ))
+            )
             assert any(error), 'Error should be non-trivial'
             syndrome = bcommute(code.stabilizer_matrix, error)
             correction = decoder.decode(code, syndrome)
@@ -381,30 +378,28 @@ class TestFoliatedDecoderXNoiseOnYZEdgesOnly:
             error_pauli = code.from_bsf(error)
             correction_pauli = code.from_bsf(correction)
 
-            x_edges = [
-                edge for edge in code.qubit_index
-                if code.axis(edge) == code.X_AXIS
-            ]
-            y_edges = [
-                edge for edge in code.qubit_index
-                if code.axis(edge) == code.Y_AXIS
-            ]
-            z_edges = [
-                edge for edge in code.qubit_index
-                if code.axis(edge) == code.Z_AXIS
+            x_edges, y_edges, z_edges = [
+                [
+                    edge for edge in code.qubit_coordinates
+                    if code.qubit_axis(edge) == axis
+                ]
+                for axis in ['x', 'y', 'z']
             ]
 
             assert np.all(
-                error_pauli.operator(edge) == 'I'
+                edge not in error_pauli or
+                error_pauli[edge] == 'I'
                 for edge in x_edges
             ), 'No errors should be on x edges'
 
             assert np.all(
-                correction_pauli.operator(edge) == 'I'
+                edge not in correction_pauli or
+                correction_pauli[edge] == 'I'
                 for edge in y_edges
             ), 'No corrections should be on x edges'
 
             assert np.any([
-                correction_pauli.operator(edge) != 'I'
+                correction_pauli[edge] != 'I'
                 for edge in y_edges + z_edges
+                if edge in correction_pauli
             ]), 'Non-trivial corrections should be on the y and z edges'
