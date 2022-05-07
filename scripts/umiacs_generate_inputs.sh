@@ -12,7 +12,7 @@ rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
 # sizes="9,13,17,21"
 sizes="7,9,11,13"
-wall_time="47:59:00"
+wall_time="4:59:00"
 memory="20G"
 
 # estimated p_th = 0.051
@@ -57,9 +57,9 @@ panqec generate-input -i "$paper_dir/$name/inputs" \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "inf" --prob "0.08:0.12:0.005"
 
-panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 59 \
+panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 8 \
     --memory "$memory" --qos "$qos" \
-    --wall_time "$wall_time" --trials 10000 --split 16 $sbatch_dir/$name.sbatch
+    --wall_time "$wall_time" --trials 10000 --split 1 $sbatch_dir/$name.sbatch
 
 
 # ============== Deformed ==============
@@ -69,8 +69,7 @@ rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
 # sizes="9,13,17,21"
 sizes="7,9,11,13"
-wall_time="47:59:00"
-memory="20G"
+wall_time="4:59:00" memory="20G"
 
 # estimated p_th unknown
 panqec generate-input -i "$paper_dir/$name/inputs" \
@@ -116,4 +115,4 @@ panqec generate-input -i "$paper_dir/$name/inputs" \
 
 panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 8 \
     --memory "$memory" --qos "$qos" \
-    --wall_time "$wall_time" --trials 1000 --split 1 $sbatch_dir/$name.sbatch
+    --wall_time "$wall_time" --trials 10000 --split 1 $sbatch_dir/$name.sbatch
