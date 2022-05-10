@@ -154,8 +154,12 @@ class TestDeformedDecoder:
         decoder = DeformedSweepMatchDecoder(error_model, probability)
         assert decoder._matcher._error_model.direction == (0.1, 0.2, 0.7)
         matching = decoder._matcher.get_matcher(code)
-        assert matching.stabiliser_graph.distance(0, 0) == 0
-        distance_matrix = np.array(matching.stabiliser_graph.all_distances)
+        assert matching.matching_graph.distance(0, 0) == 0
+        n_nodes = matching.matching_graph.get_num_nodes()
+        distance_matrix = np.zeros((n_nodes, n_nodes))
+        for i, j, edge in matching.matching_graph.get_edges():
+            distance_matrix[i, j] = edge.weight
+            distance_matrix[j, i] = edge.weight
         n_vertices = int(np.product(code.size))
         assert distance_matrix.shape == (n_vertices, n_vertices)
 
@@ -194,8 +198,12 @@ class TestDeformedDecoder:
         decoder = DeformedSweepMatchDecoder(error_model, probability)
         assert decoder._matcher._error_model.direction == (0.4, 0.2, 0.4)
         matching = decoder._matcher.get_matcher(code)
-        assert matching.stabiliser_graph.distance(0, 0) == 0
-        distance_matrix = np.array(matching.stabiliser_graph.all_distances)
+        assert matching.matching_graph.distance(0, 0) == 0
+        n_nodes = matching.matching_graph.get_num_nodes()
+        distance_matrix = np.zeros((n_nodes, n_nodes))
+        for i, j, edge in matching.matching_graph.get_edges():
+            distance_matrix[i, j] = edge.weight
+            distance_matrix[j, i] = edge.weight
         n_vertices = int(np.product(code.size))
         assert distance_matrix.shape == (n_vertices, n_vertices)
 
