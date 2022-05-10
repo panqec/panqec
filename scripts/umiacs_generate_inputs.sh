@@ -12,7 +12,7 @@ rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
 sizes="9,13,17,21"
 # sizes="7,9,11,13"
-wall_time="1:00:00"
+wall_time="0:10:00"
 memory="20G"
 
 # estimated p_th = 0.051
@@ -59,7 +59,7 @@ panqec generate-input -i "$paper_dir/$name/inputs" \
 
 panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 55 \
     --memory "$memory" --qos "$qos" \
-    --wall_time "$wall_time" --trials 10000 --split 1 $sbatch_dir/$name.sbatch
+    --wall_time "$wall_time" --trials 10000 --split 16 $sbatch_dir/$name.sbatch
 
 
 # ============== Deformed ==============
@@ -69,7 +69,7 @@ rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
 sizes="9,13,17,21"
 # sizes="7,9,11,13"
-wall_time="1:00:00" memory="20G"
+wall_time="0:10:00" memory="20G"
 
 # estimated p_th = 0.0477
 panqec generate-input -i "$paper_dir/$name/inputs" \
