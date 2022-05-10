@@ -10,9 +10,9 @@ qos=dpart
 name=rough_xcube_bposd_undef_zbias
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
-# sizes="9,13,17,21"
-sizes="7,9,11,13"
-wall_time="4:59:00"
+sizes="9,13,17,21"
+# sizes="7,9,11,13"
+wall_time="1:00:00"
 memory="20G"
 
 # estimated p_th = 0.051
@@ -57,7 +57,7 @@ panqec generate-input -i "$paper_dir/$name/inputs" \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "inf" --prob "0.08:0.12:0.005"
 
-panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 8 \
+panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 55 \
     --memory "$memory" --qos "$qos" \
     --wall_time "$wall_time" --trials 10000 --split 1 $sbatch_dir/$name.sbatch
 
@@ -67,9 +67,9 @@ panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 8 \
 name=rough_xcube_bposd_xzzx_zbias
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
-# sizes="9,13,17,21"
-sizes="7,9,11,13"
-wall_time="4:59:00" memory="20G"
+sizes="9,13,17,21"
+# sizes="7,9,11,13"
+wall_time="1:00:00" memory="20G"
 
 # estimated p_th = 0.0477
 panqec generate-input -i "$paper_dir/$name/inputs" \
@@ -113,6 +113,6 @@ panqec generate-input -i "$paper_dir/$name/inputs" \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "inf" --prob "0.12:0.16:0.03"
 
-panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 8 \
+panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 51 \
     --memory "$memory" --qos "$qos" \
-    --wall_time "$wall_time" --trials 10000 --split 1 $sbatch_dir/$name.sbatch
+    --wall_time "$wall_time" --trials 10000 --split 16 $sbatch_dir/$name.sbatch
