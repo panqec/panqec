@@ -7,6 +7,8 @@ import panqec.bsparse as bsparse
 from panqec.bpauli import bcommute
 from scipy.sparse import csr_matrix
 
+from mbp import mbp_decoder
+
 
 PAULI_I = 0
 PAULI_X = 1
@@ -38,17 +40,8 @@ def pauli_to_symplectic(a, reverse=False):
     n = a.shape[0]
     new_a = np.zeros(2*n, dtype='uint8')
 
-    for i in range(n):
-        if not reverse:
-            if a[i] == 1 or a[i] == 2:
-                new_a[i] = 1
-            if a[i] == 3 or a[i] == 2:
-                new_a[i + n] = 1
-        else:
-            if a[i] == 3 or a[i] == 2:
-                new_a[i] = 1
-            if a[i] == 1 or a[i] == 2:
-                new_a[i + n] = 1
+    new_a[:n] = np.logical_or((a == 1), (a == 2)).astype('uint8')
+    new_a[n:] = np.logical_or((a == 2), (a == 3)).astype('uint8')
 
     return new_a
 
@@ -85,15 +78,20 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
                  error_rate: float,
                  max_bp_iter: int = None,
                  alpha: float = 0.4,
-                 beta: float = 0):
+                 beta: float = 0,
+                 bp_method: str = 'min_sum',
+                 gamma: float = 1):
         super().__init__(code, error_model, error_rate)
 
         if max_bp_iter is None:
             self.max_bp_iter = code.n
         else:
             self.max_bp_iter = max_bp_iter
+
         self.alpha = alpha
         self.beta = beta
+        self.bp_method = bp_method
+        self.gamma = gamma
 
         self._x_decoder: Dict = dict()
         self._z_decoder: Dict = dict()
@@ -106,30 +104,38 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
         pi, px, py, pz = self.get_probabilities()
         self.p_channel = np.vstack([pi, px, py, pz])
 
+        self.decoder = mbp_decoder(self.H_pauli,
+                                   error_channel=self.p_channel[1:],
+                                   alpha_parameter=self.alpha,
+                                   max_iter=self.max_bp_iter,
+                                   beta_parameter=0.0,
+                                   bp_method=self.bp_method,
+                                   gamma_parameter=self.gamma)
+
         # Easy access to the neighboring qubits of each stabilizer
-        self.neighboring_qubits = [self.H_pauli[m].nonzero()[0]
-                                   for m in range(self.H_pauli.shape[0])]
+        # self.neighboring_qubits = [self.H_pauli[m].nonzero()[0]
+        #                            for m in range(self.H_pauli.shape[0])]
 
-        # Easy access to the neighboring stabilizers of each qubit
-        self.neighboring_stabs = [self.H_pauli[:, n].nonzero()[0]
-                                  for n in range(self.H_pauli.shape[1])]
+        # # Easy access to the neighboring stabilizers of each qubit
+        # self.neighboring_stabs = [self.H_pauli[:, n].nonzero()[0]
+        #                           for n in range(self.H_pauli.shape[1])]
 
-        # ======================= Initialize BP variables =======================
+        # # ======================= Initialize BP variables =======================
 
-        # Create channel log ratios
-        self.lambda_channel = np.log((1 - self.p_channel[1:]) / self.p_channel[1:])
+        # # Create channel log ratios
+        # self.lambda_channel = np.log((1 - self.p_channel[1:]) / self.p_channel[1:])
 
-        # Initialize [qubit to stabilizer] messages (gamma)
-        n_stabs, n_qubits = self.H_pauli.shape
-        self.gamma_q2s = np.zeros((3, n_qubits, n_stabs))
-        for n in range(n_qubits):
-            for m in self.neighboring_stabs[n]:
-                for w in range(3):
-                    if 1 + w != self.H_pauli[m, n]:
-                        self.gamma_q2s[w, n, m] = self.lambda_channel[w, n]
+        # # Initialize [qubit to stabilizer] messages (gamma)
+        # n_stabs, n_qubits = self.H_pauli.shape
+        # self.gamma_q2s = np.zeros((3, n_qubits, n_stabs))
+        # for n in range(n_qubits):
+        #     for m in self.neighboring_stabs[n]:
+        #         for w in range(3):
+        #             if 1 + w != self.H_pauli[m, n]:
+        #                 self.gamma_q2s[w, n, m] = self.lambda_channel[w, n]
 
-        # Initialize [stabilizer to qubit] messages (delta)
-        self.delta_s2q = np.zeros((n_stabs, n_qubits))
+        # # Initialize [stabilizer to qubit] messages (delta)
+        # self.delta_s2q = np.zeros((n_stabs, n_qubits))
 
     def get_probabilities(self):
         # error_rate = self.error_rate
@@ -144,78 +150,88 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
 
     # @profile
     def decode(self, syndrome: np.ndarray) -> np.ndarray:
-        """Get X and Z corrections given code and measured syndrome."""
+        # print("Decode")
+        correction = self.decoder.decode(syndrome)
+        correction_bsf = pauli_to_symplectic(correction)
+        # print("Done")
 
-        H = self.H
-        H_pauli = self.H_pauli
+        return correction_bsf
 
-        n_stabs, n_qubits = H_pauli.shape
 
-        # ======================= Initialize BP variables =======================
+    # @profile
+    # def decode(self, syndrome: np.ndarray) -> np.ndarray:
+    #     """Get X and Z corrections given code and measured syndrome."""
 
-        gamma_q2s = self.gamma_q2s.copy()
-        delta_s2q = self.delta_s2q.copy()
+    #     H = self.H
+    #     H_pauli = self.H_pauli
 
-        # ============================ BP iterations ============================
+    #     n_stabs, n_qubits = H_pauli.shape
 
-        for iter in range(self.max_bp_iter):
-            # print(f"\nIter {iter+1} / {max_bp_iter}")
+    #     # ======================= Initialize BP variables =======================
 
-            gamma_q = np.zeros((3, n_qubits))
-            for n in range(n_qubits):
-                # ------------ Stabilizer to qubit update (prod-sum) ------------
+    #     gamma_q2s = self.gamma_q2s.copy()
+    #     delta_s2q = self.delta_s2q.copy()
 
-                for m in self.neighboring_stabs[n]:
-                    n_prime = self.neighboring_qubits[m][self.neighboring_qubits[m] != n]
-                    lambda_neighbor = log_exp_bias(H_pauli[m, n_prime]-1, gamma_q2s[:, n_prime, m])
+    #     # ============================ BP iterations ============================
 
-                    # lambda_neighbor = np.array([log_exp_bias(H_pauli[m, n_prime]-1, gamma_q2s[:, n_prime, m])
-                    #                    for n_prime in self.neighboring_qubits[m] if n_prime != n])
+    #     for iter in range(self.max_bp_iter):
+    #         # print(f"\nIter {iter+1} / {max_bp_iter}")
 
-                    delta_s2q[m, n] = (-1)**syndrome[m] * tanh_prod(lambda_neighbor)
+    #         gamma_q = np.zeros((3, n_qubits))
+    #         for n in range(n_qubits):
+    #             # ------------ Stabilizer to qubit update (prod-sum) ------------
 
-                # ------------------ Qubit to stabilizer update ------------------
+    #             for m in self.neighboring_stabs[n]:
+    #                 n_prime = self.neighboring_qubits[m][self.neighboring_qubits[m] != n]
+    #                 lambda_neighbor = log_exp_bias(H_pauli[m, n_prime]-1, gamma_q2s[:, n_prime, m])
 
-                for w in range(3):
-                    # sum_same_pauli = np.sum(delta_s2q[neighboring_stabs[n], n][H_pauli[neighboring_stabs[n], n] == w + 1])
-                    # sum_same_pauli = np.sum([delta_s2q[m, n]
-                    #                          for m in neighboring_stabs[n] if H_pauli[m, n] == w + 1])
+    #                 # lambda_neighbor = np.array([log_exp_bias(H_pauli[m, n_prime]-1, gamma_q2s[:, n_prime, m])
+    #                 #                    for n_prime in self.neighboring_qubits[m] if n_prime != n])
 
-                    sum_diff_pauli = np.sum(delta_s2q[self.neighboring_stabs[n], n][H_pauli[self.neighboring_stabs[n], n] != w + 1])
+    #                 delta_s2q[m, n] = (-1)**syndrome[m] * tanh_prod(lambda_neighbor)
 
-                    # sum_diff_pauli = np.sum([delta_s2q[m, n]
-                    #                          for m in neighboring_stabs[n] if H_pauli[m, n] != w + 1])
+    #             # ------------------ Qubit to stabilizer update ------------------
 
-                    gamma_q[w, n] = self.lambda_channel[w, n] + 1 / self.alpha * sum_diff_pauli  # - beta * sum_same_pauli
+    #             for w in range(3):
+    #                 # sum_same_pauli = np.sum(delta_s2q[neighboring_stabs[n], n][H_pauli[neighboring_stabs[n], n] == w + 1])
+    #                 # sum_same_pauli = np.sum([delta_s2q[m, n]
+    #                 #                          for m in neighboring_stabs[n] if H_pauli[m, n] == w + 1])
 
-                    # Update qubit to stab messages
-                    gamma_q2s[w, n, :] = gamma_q[w, n]
+    #                 sum_diff_pauli = np.sum(delta_s2q[self.neighboring_stabs[n], n][H_pauli[self.neighboring_stabs[n], n] != w + 1])
 
-                    # Inhibition loop
-                    gamma_q2s[w, n, (1 + w != H_pauli[:, n])] -= delta_s2q[(1 + w != H_pauli[:, n]), n]
+    #                 # sum_diff_pauli = np.sum([delta_s2q[m, n]
+    #                 #                          for m in neighboring_stabs[n] if H_pauli[m, n] != w + 1])
 
-            # -------------------------- Hard decision --------------------------
+    #                 gamma_q[w, n] = self.lambda_channel[w, n] + 1 / self.alpha * sum_diff_pauli  # - beta * sum_same_pauli
 
-            correction = np.zeros(n_qubits, dtype='uint8')
+    #                 # Update qubit to stab messages
+    #                 gamma_q2s[w, n, :] = gamma_q[w, n]
 
-            for n in range(n_qubits):
-                if not np.all(gamma_q[:, n] > 0):
-                    correction[n] = np.argmin(gamma_q[:, n]) + 1
+    #                 # Inhibition loop
+    #                 gamma_q2s[w, n, (1 + w != H_pauli[:, n])] -= delta_s2q[(1 + w != H_pauli[:, n]), n]
 
-            correction_symplectic = pauli_to_symplectic(correction)
+    #         # -------------------------- Hard decision --------------------------
 
-            # ------------------ Break loop if syndrome reached ------------------
+    #         correction = np.zeros(n_qubits, dtype='uint8')
 
-            new_syndrome = bcommute(H, correction_symplectic)
-            if np.all(new_syndrome == syndrome):
-                # print(f"Syndrome reached in {iter} iterations\n")
-                break
+    #         for n in range(n_qubits):
+    #             if not np.all(gamma_q[:, n] > 0):
+    #                 correction[n] = np.argmin(gamma_q[:, n]) + 1
 
-        correction_symplectic = pauli_to_symplectic(correction, reverse=True)
+    #         correction_symplectic = pauli_to_symplectic(correction)
 
-        correction = np.concatenate([correction_symplectic[n_qubits:], correction_symplectic[:n_qubits]])
+    #         # ------------------ Break loop if syndrome reached ------------------
 
-        return correction
+    #         new_syndrome = bcommute(H, correction_symplectic)
+    #         if np.all(new_syndrome == syndrome):
+    #             # print(f"Syndrome reached in {iter} iterations\n")
+    #             break
+
+    #     correction_symplectic = pauli_to_symplectic(correction, reverse=True)
+
+    #     correction = np.concatenate([correction_symplectic[n_qubits:], correction_symplectic[:n_qubits]])
+
+    #     return correction
 
 
 def test_symplectic_to_pauli():
@@ -229,8 +245,8 @@ def test_decoder():
     from panqec.error_models import PauliErrorModel
     import time
 
-    L = 6
-    max_bp_iter = None
+    L = 15
+    max_bp_iter = 10
     alpha = 0.4
 
     code = Toric3DCode(L)
@@ -239,9 +255,12 @@ def test_decoder():
     r_x, r_y, r_z = [0.333, 0.333, 0.334]
     error_model = PauliErrorModel(r_x, r_y, r_z)
 
+    print("Instantiating Decoder")
     decoder = MemoryBeliefPropagationDecoder(
         code, error_model, error_rate, max_bp_iter=max_bp_iter, alpha=alpha
     )
+
+    rng = np.random.default_rng(42)
 
     # Start timer
     start = time.time()
@@ -250,11 +269,11 @@ def test_decoder():
     for i in range(n_iter):
         print(f"\n\nRun {code.label} {i}...")
         print("Generate errors")
-        # error = error_model.generate(code, probability=error_rate, rng=rng)
-        error = np.zeros(2*code.n)
-        error[10] = 1
-        error[52] = 1
-        error[58] = 1
+        error = error_model.generate(code, error_rate=error_rate, rng=rng)
+        # error = np.zeros(2*code.n)
+        # error[10] = 1
+        # error[52] = 1
+        # error[58] = 1
 
         print("Calculate syndrome")
         syndrome = code.measure_syndrome(error)
@@ -271,7 +290,7 @@ def test_decoder():
         )
 
         print("Check codespace")
-        codespace = bool(np.all(bcommute(code.stabilizer_matrix, total_error) == 0))
+        codespace = code.in_codespace(total_error)
         success = bool(np.all(effective_error == 0)) and codespace
 
         print("Success:", success)
