@@ -443,7 +443,8 @@ def _parse_decoder_dict(
         decoder_params['error_model'] = error_model
     if 'probability' in signature.parameters.keys():
         decoder_params['probability'] = probability
-    decoder = decoder_class(**decoder_params)
+    filtered_decoder_params = filter_legacy_params(decoder_params)
+    decoder = decoder_class(**filtered_decoder_params)
     return decoder
 
 
@@ -546,3 +547,11 @@ def merge_results_dicts(results_dicts: List[Dict]) -> Dict:
         'inputs': inputs,
     }
     return merged_dict
+
+
+def filter_legacy_params(decoder_params: Dict[str, Any]) -> Dict[str, Any]:
+    """Filter legacy parameters for decoders from old data."""
+    new_params = decoder_params.copy()
+    if 'joschka' in decoder_params:
+        new_params.pop('joschka')
+    return new_params

@@ -2,7 +2,7 @@ import itertools
 import pytest
 import numpy as np
 from panqec.bpauli import bcommute
-from panqec.codes import Toric3DCode
+from panqec.codes import Toric3DCode, StabilizerCode
 from panqec.error_models import PauliErrorModel
 from panqec.error_models import (
     DeformedXZZXErrorModel
@@ -11,7 +11,6 @@ from panqec.decoders import (
     DeformedSweepMatchDecoder, DeformedSweepDecoder3D,
     DeformedToric3DPymatchingDecoder, FoliatedMatchingDecoder
 )
-from panqec.bpauli import bvector_to_pauli_string
 
 
 @pytest.fixture
@@ -25,7 +24,6 @@ def rng():
     return np.random
 
 
-@pytest.mark.skip(reason='sparse')
 class TestDeformedXZZXErrorModel:
 
     @pytest.mark.parametrize(
@@ -40,107 +38,47 @@ class TestDeformedXZZXErrorModel:
         error_model = DeformedXZZXErrorModel(*noise)
         error = error_model.generate(code, probability=1, rng=rng)
         pauli = code.from_bsf(error)
-        ranges = [range(length) for length in code.shape]
-        for edge, x, y, z in itertools.product(*ranges):
-            if edge == code.X_AXIS:
-                assert pauli.operator((edge, x, y, z)) == deformed
+        for edge in code.qubit_coordinates:
+            if code.qubit_axis(edge) == 'z':
+                assert pauli[edge] == deformed
             else:
-                assert pauli.operator((edge, x, y, z)) == original
+                assert pauli[edge] == original
 
     def test_original_all_X_becomes_Z_on_deformed_axis(self, code):
         error_model = DeformedXZZXErrorModel(1, 0, 0)
         error = error_model.generate(code, probability=1)
         pauli = code.from_bsf(error)
 
-        ranges = [range(length) for length in code.shape]
-        for axis, x, y, z in itertools.product(*ranges):
-            if axis == 0:
-                assert pauli.operator((axis, x, y, z)) == 'Z'
+        for edge in code.qubit_index:
+            if code.qubit_axis(edge) == 'z':
+                assert pauli[edge] == 'Z'
             else:
-                assert pauli.operator((axis, x, y, z)) == 'X'
+                assert pauli[edge] == 'X'
 
     def test_original_all_Z_becomes_X_on_deformed_axis(self, code):
         error_model = DeformedXZZXErrorModel(0, 0, 1)
         error = error_model.generate(code, probability=1)
         pauli = code.from_bsf(error)
 
-        ranges = [range(length) for length in code.shape]
-        for axis, x, y, z in itertools.product(*ranges):
-            if axis == 0:
-                assert pauli.operator((axis, x, y, z)) == 'X'
+        for edge in code.qubit_index:
+            if code.qubit_axis(edge) == 'z':
+                assert pauli[edge] == 'X'
             else:
-                assert pauli.operator((axis, x, y, z)) == 'Z'
+                assert pauli[edge] == 'Z'
 
     def test_all_Y_deformed_is_still_all_Y(self, code):
         error_model = DeformedXZZXErrorModel(0, 1, 0)
         error = error_model.generate(code, probability=1)
         pauli = code.from_bsf(error)
 
-        ranges = [range(length) for length in code.shape]
-        for axis, x, y, z in itertools.product(*ranges):
-            assert pauli.operator((axis, x, y, z)) == 'Y'
+        for edge in code.qubit_index:
+            assert pauli[edge] == 'Y'
 
     def test_label(self, code):
         error_model = DeformedXZZXErrorModel(1, 0, 0)
         assert error_model.label == 'Deformed XZZX Pauli X1.0000Y0.0000Z0.0000'
 
 
-# TODO get this to work with Arthur's deform conventions
-@pytest.mark.skip(reason='superseded')
-class TestDeformOperator:
-
-    @pytest.fixture(autouse=True)
-    def undeformed_noise(self, code, rng):
-        self.deformed_model = DeformedXZZXErrorModel(0.2, 0.3, 0.5)
-        undeformed_model = PauliErrorModel(0.2, 0.3, 0.5)
-        probability = 1
-        self.noise = undeformed_model.generate(
-            code, probability, rng=rng
-        ).copy()
-        self.deformed = self.deformed_model._deform_operator(code, self.noise)
-
-    def test_deform_again_gives_original(self, code):
-        self.deformed_again = self.deformed_model._deform_operator(
-            code, self.deformed
-        )
-        assert np.all(self.deformed_again == self.noise)
-
-    def test_deform_operator_shape(self):
-        assert list(self.deformed.shape) == list(self.noise.shape)
-
-    def test_deformed_is_different(self):
-        assert np.any(self.noise != self.deformed)
-
-    def test_deformed_composed_original_has_Ys_only(self, code):
-        L_x, L_y, L_z = code.size
-        composed = (self.deformed + self.noise) % 2
-        set(list(bvector_to_pauli_string(composed))) == set(['I', 'Y'])
-
-    def test_only_x_edges_are_different(self, code):
-        L_x, L_y, L_z = code.size
-        original_pauli = code.from_bsf(self.noise)
-        deformed_pauli = code.from_bsf(self.deformed)
-
-        ranges = [range(length) for length in code.shape]
-
-        differing_locations = []
-        differing_operators = []
-        for edge, x, y, z in itertools.product(*ranges):
-            original_operator = original_pauli.operator((edge, x, y, z))
-            deformed_operator = deformed_pauli.operator((edge, x, y, z))
-            if original_operator != deformed_operator:
-                differing_locations.append((edge, x, y, z))
-                differing_operators.append(
-                    (original_operator, deformed_operator)
-                )
-
-        assert len(differing_locations) > 0
-
-        differing_edges = [location[0] for location in differing_locations]
-        assert all([edge == 0 for edge in differing_edges])
-
-
-@pytest.mark.skip(reason='sparse')
 class TestDeformedDecoder:
 
     def test_decode_trivial(self, code):
@@ -148,7 +86,7 @@ class TestDeformedDecoder:
         probability = 0.1
         decoder = DeformedSweepMatchDecoder(error_model, probability)
 
-        syndrome = np.zeros(len(code.stabilizer_matrix), dtype=np.uint)
+        syndrome = np.zeros(code.stabilizer_matrix.shape[0], dtype=np.uint)
         correction = decoder.decode(code, syndrome)
         assert np.all(correction == 0)
         assert issubclass(correction.dtype.type, np.integer)
@@ -159,9 +97,9 @@ class TestDeformedDecoder:
         decoder = DeformedSweepMatchDecoder(error_model, probability)
 
         # Single-qubit X error on undeformed edge.
-        error_pauli = dict()
-        error_pauli[(code.Y_AXIS, 0, 0, 0)] = 'X'
-        error = code.to_bsf(error_pauli)
+        error = code.to_bsf({
+            (0, 1, 0): 'X'
+        })
         assert np.any(error != 0)
 
         # Calculate the syndrome and make sure it's nontrivial.
@@ -196,9 +134,9 @@ class TestDeformedDecoder:
         decoder = DeformedSweepMatchDecoder(error_model, probability)
 
         # Single-qubit X error on undeformed edge.
-        error_pauli = dict()
-        error_pauli[(code.Y_AXIS, 0, 0, 0)] = 'X'
-        error = code.to_bsf(error_pauli)
+        error = code.to_bsf({
+            (0, 1, 0): 'X'
+        })
         assert np.any(error != 0)
 
         # Calculate the syndrome and make sure it's nontrivial.
@@ -216,20 +154,38 @@ class TestDeformedDecoder:
         decoder = DeformedSweepMatchDecoder(error_model, probability)
         assert decoder._matcher._error_model.direction == (0.1, 0.2, 0.7)
         matching = decoder._matcher.get_matcher(code)
-        assert matching.stabilizer_graph.distance(0, 0) == 0
-        distance_matrix = np.array(matching.stabilizer_graph.all_distances)
+        assert matching.stabiliser_graph.distance(0, 0) == 0
+        distance_matrix = np.array(matching.stabiliser_graph.all_distances)
         n_vertices = int(np.product(code.size))
         assert distance_matrix.shape == (n_vertices, n_vertices)
 
+        # The index of the origin vertex.
+        origin_index = [
+            index
+            for index, location in enumerate(code.stabilizer_coordinates)
+            if location == (0, 0, 0)
+            and code.stabilizer_type(location) == 'vertex'
+        ][0]
+
         # Distances from the origin vertex.
-        origin_distances = distance_matrix[0].reshape(code.size)
+        origin_distances = np.zeros(code.size)
+
+        for index, coordinate in enumerate(code.stabilizer_index):
+            if code.stabilizer_type(coordinate) == 'vertex':
+                location = tuple(
+                    (np.array(coordinate)/2).astype(int).tolist()
+                )
+                origin_distances[location] = distance_matrix[
+                    origin_index, index
+                ]
+
         assert origin_distances[0, 0, 0] == 0
 
         # Distances in the undeformed direction should be equal.
-        assert origin_distances[0, 1, 0] == origin_distances[0, 0, 1]
+        assert origin_distances[1, 0, 0] == origin_distances[0, 1, 0]
 
         # Distances in the deformed direction should be different.
-        assert origin_distances[1, 0, 0] != origin_distances[0, 0, 1]
+        assert origin_distances[0, 1, 0] != origin_distances[0, 0, 1]
 
     def test_equal_XZ_bias_deformed_pymatching_weights_uniform(self, code):
         error_model = DeformedXZZXErrorModel(0.4, 0.2, 0.4)
@@ -238,8 +194,8 @@ class TestDeformedDecoder:
         decoder = DeformedSweepMatchDecoder(error_model, probability)
         assert decoder._matcher._error_model.direction == (0.4, 0.2, 0.4)
         matching = decoder._matcher.get_matcher(code)
-        assert matching.stabilizer_graph.distance(0, 0) == 0
-        distance_matrix = np.array(matching.stabilizer_graph.all_distances)
+        assert matching.stabiliser_graph.distance(0, 0) == 0
+        distance_matrix = np.array(matching.stabiliser_graph.all_distances)
         n_vertices = int(np.product(code.size))
         assert distance_matrix.shape == (n_vertices, n_vertices)
 
@@ -254,7 +210,6 @@ class TestDeformedDecoder:
         assert origin_distances[1, 0, 0] == origin_distances[0, 0, 1]
 
 
-@pytest.mark.skip(reason='sparse')
 class TestDeformedSweepDecoder3D:
 
     @pytest.mark.parametrize(
@@ -294,7 +249,7 @@ class TestDeformedSweepDecoder3D:
     def test_all_3_faces_active(self, code):
         error_pauli = dict()
         sites = [
-            (0, 1, 1, 1), (2, 1, 2, 1)
+            (3, 2, 2), (2, 4, 3)
         ]
         for site in sites:
             error_pauli[site] = 'Z'
@@ -308,7 +263,6 @@ class TestDeformedSweepDecoder3D:
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
 
-@pytest.mark.skip(reason='sparse')
 class TestDeformedToric3DPymatchingDecoder:
 
     def test_decode_trivial(self, code):
@@ -324,7 +278,24 @@ class TestDeformedToric3DPymatchingDecoder:
         assert issubclass(correction.dtype.type, np.integer)
 
 
-@pytest.mark.skip(reason='sparse')
+class XNoiseOnYZEdgesOnly(PauliErrorModel):
+    """X noise applied on y and z edges only."""
+
+    def __init__(self):
+        super(XNoiseOnYZEdgesOnly, self).__init__(1, 0, 0)
+
+    def generate(
+        self, code: StabilizerCode, probability: float, rng=None
+    ) -> np.ndarray:
+        error = super(XNoiseOnYZEdgesOnly, self).generate(
+            code, probability, rng=rng
+        )
+        for index, location in enumerate(code.qubit_coordinates):
+            if code.qubit_axis(location) == 'x':
+                error[index] = 0
+        return error
+
+
 class TestMatchingXNoiseOnYZEdgesOnly:
 
     def test_decode(self, code):
@@ -343,37 +314,46 @@ class TestMatchingXNoiseOnYZEdgesOnly:
             correction = decoder.decode(code, syndrome)
             assert any(correction), 'Correction should be non-trivial'
             total_error = (correction + error) % 2
-            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
-                'Total error should be in code space'
-            )
+            assert np.all(
+                bcommute(code.stabilizer_matrix, total_error) == 0
+            ), 'Total error should be in code space'
 
             # Error and correction as objects.
             error_pauli = code.from_bsf(error)
             correction_pauli = code.from_bsf(correction)
 
-            # Lattice vertex locations.
-            locations = list(itertools.product(*[
-                range(length) for length in code.size
-            ]))
+            x_edges = [
+                edge for edge in code.qubit_index
+                if code.qubit_axis(edge) == 'x'
+            ]
+            y_edges = [
+                edge for edge in code.qubit_index
+                if code.qubit_axis(edge) == 'y'
+            ]
+            z_edges = [
+                edge for edge in code.qubit_index
+                if code.qubit_axis(edge) == 'z'
+            ]
 
-            assert all(
-                error_pauli.operator((0, x, y, z)) == 'I'
-                for x, y, z in locations
+            assert np.all(
+                edge not in error_pauli
+                or error_pauli[edge] == 'I'
+                for edge in x_edges
             ), 'No errors should be on x edges'
 
-            assert all(
-                correction_pauli.operator((0, x, y, z)) == 'I'
-                for x, y, z in locations
+            assert np.all(
+                edge not in correction_pauli
+                or correction_pauli[edge] == 'I'
+                for edge in x_edges
             ), 'No corrections should be on x edges'
 
-            assert any([
-                correction_pauli.operator((1, x, y, z)) != 'I'
-                or correction_pauli.operator((2, x, y, z)) != 'I'
-                for x, y, z in locations
+            assert np.any([
+                correction_pauli[edge] != 'I'
+                for edge in y_edges + z_edges
+                if edge in correction_pauli
             ]), 'Non-trivial corrections should be on the y and z edges'
 
 
-@pytest.mark.skip(reason='sparse')
 class TestFoliatedDecoderXNoiseOnYZEdgesOnly:
 
     def test_decode(self, code):
@@ -390,31 +370,36 @@ class TestFoliatedDecoderXNoiseOnYZEdgesOnly:
             correction = decoder.decode(code, syndrome)
             assert any(correction), 'Correction should be non-trivial'
             total_error = (correction + error) % 2
-            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
-                'Total error should be in code space'
-            )
+            assert np.all(
+                bcommute(code.stabilizer_matrix, total_error) == 0
+            ), 'Total error should be in code space'
 
             # Error and correction as objects.
             error_pauli = code.from_bsf(error)
             correction_pauli = code.from_bsf(correction)
 
-            # Lattice vertex locations.
-            locations = list(itertools.product(*[
-                range(length) for length in code.size
-            ]))
+            x_edges, y_edges, z_edges = [
+                [
+                    edge for edge in code.qubit_coordinates
+                    if code.qubit_axis(edge) == axis
+                ]
+                for axis in ['x', 'y', 'z']
+            ]
 
-            assert all(
-                error_pauli.operator((0, x, y, z)) == 'I'
-                for x, y, z in locations
+            assert np.all(
+                edge not in error_pauli or
+                error_pauli[edge] == 'I'
+                for edge in x_edges
             ), 'No errors should be on x edges'
 
-            assert all(
-                correction_pauli.operator((0, x, y, z)) == 'I'
-                for x, y, z in locations
+            assert np.all(
+                edge not in correction_pauli or
+                correction_pauli[edge] == 'I'
+                for edge in y_edges
             ), 'No corrections should be on x edges'
 
-            assert any([
-                correction_pauli.operator((1, x, y, z)) != 'I'
-                or correction_pauli.operator((2, x, y, z)) != 'I'
-                for x, y, z in locations
+            assert np.any([
+                correction_pauli[edge] != 'I'
+                for edge in y_edges + z_edges
+                if edge in correction_pauli
             ]), 'Non-trivial corrections should be on the y and z edges'

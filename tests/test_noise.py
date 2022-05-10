@@ -1,9 +1,10 @@
 import numpy as np
 import pytest
-from qecsim.paulitools import bsf_to_pauli, bsf_wt
-from panqec.error_models import PauliErrorModel
+from panqec.bpauli import bsf_to_pauli, bsf_wt
+from panqec.error_models import PauliErrorModel, DeformedXZZXErrorModel
 from panqec.codes import Toric3DCode
-import panqec.bsparse as bsparse
+from panqec.decoders import DeformedToric3DPymatchingDecoder
+from panqec.bsparse import to_array
 from panqec.utils import get_direction_from_bias_ratio
 
 
@@ -26,13 +27,17 @@ class TestPauliNoise:
 
     def test_generate(self, code, error_model):
         probability = 0.1
-        error = bsparse.to_array(error_model.generate(code, probability, rng=np.random))
+        error = to_array(
+            error_model.generate(code, probability, rng=np.random)
+        )
         assert np.any(error != 0), 'Error should be non-trivial'
         assert error.shape == (2*code.n, ), 'Shape incorrect'
 
     def test_probability_zero(self, code, error_model):
         probability = 0
-        error = bsparse.to_array(error_model.generate(code, probability, rng=np.random))
+        error = to_array(
+            error_model.generate(code, probability, rng=np.random)
+        )
         assert np.all(error == 0), 'Should have no error'
 
     def test_probability_one(self, code, error_model):
@@ -74,6 +79,144 @@ class TestPauliNoise:
             PauliErrorModel(0, 0, 0)
 
 
+class TestGeneratePauliNoise:
+
+    def generate_pauli_noise(self, p_X, p_Y, p_Z, L):
+        code = Toric3DCode(L, L, L)
+        probability = p_X + p_Y + p_Z
+        if probability != 0:
+            r_x, r_y, r_z = p_X/probability, p_Y/probability, p_Z/probability
+        else:
+            r_x, r_y, r_z = 1/3, 1/3, 1/3
+        error_model = PauliErrorModel(r_x, r_y, r_z)
+        noise = error_model.generate(code, probability)
+        return noise
+
+    @pytest.fixture(autouse=True)
+    def seed_random(self):
+        np.random.seed(0)
+
+    def test_generate_pauli_noise(self):
+        p_X = 0.1
+        p_Y = 0.2
+        p_Z = 0.5
+        L = 10
+        noise = self.generate_pauli_noise(p_X, p_Y, p_Z, L)
+        assert list(noise.shape) == [2*3*L**3]
+        assert np.issubdtype(noise.dtype, np.unsignedinteger)
+
+    def test_no_errors_if_p_zero(self):
+        L = 10
+        noise = self.generate_pauli_noise(0, 0, 0, L)
+        assert np.all(noise == 0)
+
+    def test_all_X_if_p_X_one(self):
+        L = 10
+        noise = self.generate_pauli_noise(1, 0, 0, L)
+        assert np.all(noise[:3*L**3] == 1)
+        assert np.all(noise[3*L**3:] == 0)
+
+    def test_all_Y_if_p_Y_one(self):
+        L = 10
+        noise = self.generate_pauli_noise(0, 1, 0, L)
+        assert np.all(noise[:3*L**3] == 1)
+        assert np.all(noise[3*L**3:] == 1)
+
+    def test_all_Z_if_p_Z_one(self):
+        L = 10
+        noise = self.generate_pauli_noise(0, 0, 1, L)
+        assert np.all(noise[:3*L**3] == 0)
+        assert np.all(noise[3*L**3:] == 1)
+
+    def test_only_X_if_p_X_only(self):
+        L = 10
+        noise = self.generate_pauli_noise(0.5, 0, 0, L)
+        assert np.any(noise[:3*L**3] == 1)
+        assert np.all(noise[3*L**3:] == 0)
+
+    def test_only_Y_if_p_Y_only(self):
+        L = 10
+        noise = self.generate_pauli_noise(0, 0.5, 0, L)
+        assert np.all(noise[:3*L**3] == noise[3*L**3:])
+
+    def test_only_Z_if_p_Z_only(self):
+        L = 10
+        noise = self.generate_pauli_noise(0, 0, 0.5, L)
+        assert np.all(noise[:3*L**3] == 0)
+        assert np.any(noise[3*L**3:] == 1)
+
+
+class TestDeformedMatchingWeights:
+
+    def get_deformed_weights(self, p_X, p_Y, p_Z, L):
+        code = Toric3DCode(L, L, L)
+        probability = p_X + p_Y + p_Z
+        if probability != 0:
+            r_x, r_y, r_z = p_X/probability, p_Y/probability, p_Z/probability
+        else:
+            r_x, r_y, r_z = 1/3, 1/3, 1/3
+        error_model = DeformedXZZXErrorModel(r_x, r_y, r_z)
+        decoder = DeformedToric3DPymatchingDecoder(error_model, probability)
+        weights = decoder.get_deformed_weights(code)
+        return weights
+
+    def test_if_equal_rates_then_equal_weights(self):
+        L = 10
+        p_X, p_Y, p_Z = 0.1, 0.1, 0.1
+        weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
+        assert np.all(weights != 0)
+        assert np.all(weights == weights[0])
+
+    def test_zero_error_rate_no_nan(self):
+        L = 10
+        p_X, p_Y, p_Z = 0, 0, 0
+        weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
+        assert np.all(weights != 0)
+        assert np.all(~np.isnan(weights))
+
+    def test_one_error_rate_no_nan(self):
+        L = 10
+        p_X, p_Y, p_Z = 1, 0, 0
+        weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
+        assert np.all(weights != 0)
+        assert np.all(~np.isnan(weights))
+
+    def test_biased_Z_noise_different_weights(self):
+        L = 10
+        p_X, p_Y, p_Z = 0, 0, 0.4
+        weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
+        assert np.any(weights != 0)
+        assert np.any(weights != weights[0])
+
+    def test_only_x_edges_different_weights(self):
+        L = 10
+        p_X, p_Y, p_Z = 0.5, 0.1, 0
+        weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
+        assert np.any(weights != weights[0])
+        code = Toric3DCode(L, L, L)
+        x_edge_indices = [
+            index for index, edge in enumerate(code.qubit_index)
+            if code.qubit_axis(edge) == 'x'
+        ]
+        y_edge_indices = [
+            index for index, edge in enumerate(code.qubit_index)
+            if code.qubit_axis(edge) == 'y'
+        ]
+        z_edge_indices = [
+            index for index, edge in enumerate(code.qubit_index)
+            if code.qubit_axis(edge) == 'z'
+        ]
+
+        # Weights for the same wedge type should be equal.
+        assert np.all(weights[x_edge_indices] == weights[x_edge_indices[0]])
+        assert np.all(weights[y_edge_indices] == weights[y_edge_indices[0]])
+        assert np.all(weights[z_edge_indices] == weights[z_edge_indices[0]])
+
+        # Weights for y-edges and z-edges should be equal.
+        assert np.all(weights[x_edge_indices] == weights[y_edge_indices])
+
+        # Weights for x-edges and z-edges should not be equal.
+        assert np.any(weights[x_edge_indices] != weights[z_edge_indices])
 
 
 @pytest.mark.parametrize('pauli,bias,expected', [

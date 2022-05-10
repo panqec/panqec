@@ -2,8 +2,8 @@ from typing import Tuple, Dict, List
 import numpy as np
 from panqec.codes import StabilizerCode
 
-Operator = Dict[Tuple[int, int, int], str]  # Location to pauli ('X', 'Y' or 'Z')
-Coordinates = List[Tuple[int, int, int]]  # List of locations
+Operator = Dict[Tuple, str]  # Location to pauli ('X', 'Y' or 'Z')
+Coordinates = List[Tuple]  # List of locations
 
 
 class RotatedPlanar3DCode(StabilizerCode):
@@ -13,10 +13,10 @@ class RotatedPlanar3DCode(StabilizerCode):
     def label(self) -> str:
         return 'Rotated Planar {}x{}x{}'.format(*self.size)
 
-    def get_qubit_coordinates(self) -> Operator:
+    def get_qubit_coordinates(self) -> Coordinates:
         Lx, Ly, Lz = self.size
 
-        coordinates = []
+        coordinates: Coordinates = []
 
         # Horizontal
         for x in range(1, 2*Lx, 2):
@@ -26,15 +26,14 @@ class RotatedPlanar3DCode(StabilizerCode):
 
         # Vertical
         for x in range(2, 2*Lx, 2):
-            for y in range(0, 2*Ly, 2):
+            for y in range(0, 2*Ly + 1, 2):
                 for z in range(2, 2*Lz, 2):
                     if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
-
         return coordinates
 
     def get_stabilizer_coordinates(self) -> Coordinates:
-        coordinates = []
+        coordinates: Coordinates = []
         Lx, Ly, Lz = self.size
 
         # Vertices
@@ -56,10 +55,9 @@ class RotatedPlanar3DCode(StabilizerCode):
             for y in range(1, 2*Ly, 2):
                 for z in range(2, 2*Lz, 2):
                     coordinates.append((x, y, z))
-
         return coordinates
 
-    def stabilizer_type(self, location: Tuple[int, int, int]) -> str:
+    def stabilizer_type(self, location: Tuple) -> str:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location} for a stabilizer")
 
@@ -83,7 +81,10 @@ class RotatedPlanar3DCode(StabilizerCode):
         x, y, z = location
 
         if self.stabilizer_type(location) == 'vertex':
-            delta = [(-1, -1, 0), (-1, 1, 0), (1, -1, 0), (1, 1, 0), (0, 0, -1), (0, 0, 1)]
+            delta = [
+                (-1, -1, 0), (-1, 1, 0), (1, -1, 0), (1, 1, 0), (0, 0, -1),
+                (0, 0, 1)
+            ]
         else:
             # z-normal so face is xy-plane.
             if z % 2 == 1:
@@ -100,8 +101,12 @@ class RotatedPlanar3DCode(StabilizerCode):
             qubit_location = tuple(np.add(location, d))
 
             if self.is_qubit(qubit_location):
-                is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
-                operator[qubit_location] = deformed_pauli if is_deformed else pauli
+                is_deformed = (
+                    self.qubit_axis(qubit_location) == deformed_axis
+                )
+                operator[qubit_location] = (
+                    deformed_pauli if is_deformed else pauli
+                )
 
         return operator
 
@@ -109,7 +114,9 @@ class RotatedPlanar3DCode(StabilizerCode):
         x, y, z = location
 
         if location not in self.qubit_coordinates:
-            raise ValueError(f'Location {location} does not correspond to a qubit')
+            raise ValueError(
+                f'Location {location} does not correspond to a qubit'
+            )
 
         if (z % 2 == 0):
             axis = 'z'
@@ -120,44 +127,64 @@ class RotatedPlanar3DCode(StabilizerCode):
 
         return axis
 
-    def get_logicals_x(self) -> Operator:
+    def get_logicals_x(self) -> List[Operator]:
         """Get the unique logical X operator."""
         Lx, Ly, Lz = self.size
         logicals = []
 
         # X operators along x edges in x direction.
-        operator = dict()
+        operator: Operator = dict()
+        """
         for x in range(1, min(2*Lx, 2*Ly), 2):
-            operator[(x, 2*Ly - x, 1)] = 'X'
+            if min(Lx, Ly) % 2 == 1:
+                operator[(x, 2*Ly - x, 1)] = 'X'
+            else:
+                operator[(x, 2*Ly - 1 - x, 1)] = 'X'
+        """
+        for x in range(1, 2*Lx, 2):
+            operator[(x, 1, 1)] = 'X'
         logicals.append(operator)
 
         return logicals
 
-    def get_logicals_z(self) -> Operator:
+    def get_logicals_z(self) -> List[Operator]:
         """Get the unique logical Z operator."""
 
         Lx, Ly, Lz = self.size
         logicals = []
 
-        # X operators along x edges in x direction.
-        operator = dict()
+        # Z operators along x edges in x direction.
+        operator: Operator = dict()
+        """
         for z in range(1, 2*Lz, 2):
             for x in range(1, min(2*Lx, 2*Ly), 2):
                 operator[(x, x, z)] = 'Z'
+        """
+        for z in range(1, 2*Lz, 2):
+            for y in range(1, 2*Ly, 2):
+                operator[(1, y, z)] = 'Z'
         logicals.append(operator)
 
         return logicals
 
-    def qubit_representation(self, location, rotated_picture=False) -> Dict:
-        representation = super().qubit_representation(location, rotated_picture)
+    def qubit_representation(
+        self, location, rotated_picture=False, json_file=None
+    ) -> Dict:
+        representation = super().qubit_representation(
+            location, rotated_picture, json_file
+        )
 
         if self.qubit_axis(location) == 'z':
             representation['params']['length'] = 2
 
         return representation
 
-    def stabilizer_representation(self, location, rotated_picture=False) -> Dict:
-        representation = super().stabilizer_representation(location, rotated_picture)
+    def stabilizer_representation(
+        self, location, rotated_picture=False, json_file=None
+    ) -> Dict:
+        representation = super().stabilizer_representation(
+            location, rotated_picture, json_file
+        )
 
         x, y, z = location
         if not rotated_picture and self.stabilizer_type(location) == 'face':

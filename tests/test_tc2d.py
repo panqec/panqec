@@ -1,9 +1,10 @@
 import pytest
 import numpy as np
 from panqec.codes import Toric2DCode
-from qecsim.paulitools import bsf_wt
+from panqec.bpauli import bsf_wt
 from panqec.decoders import Toric2DPymatchingDecoder
 from panqec.bpauli import bcommute
+from panqec.error_models import PauliErrorModel
 
 
 @pytest.fixture
@@ -19,16 +20,18 @@ class TestToric2DPymatchingDecoder:
             ('X', (0, 1)),
             ('Y', (0, 1)),
             ('Z', (0, 1)),
-            ('X', (1, 1)),
-            ('Y', (1, 1)),
-            ('Z', (1, 1)),
+            ('X', (1, 0)),
+            ('Y', (1, 0)),
+            ('Z', (1, 0)),
         ]
     )
     def test_decode_single_error(self, code, operator, location):
-        decoder = Toric2DPymatchingDecoder()
-        pauli = dict()
-        pauli[location] = operator
-        error = code.to_bsf(pauli)
+        error_model = PauliErrorModel(1/3, 1/3, 1/3)
+        probability = 0.5
+        decoder = Toric2DPymatchingDecoder(error_model, probability)
+        error = code.to_bsf({
+            location: operator
+        })
         assert bsf_wt(error) == 1, 'Error should be weight 1'
         syndromes = bcommute(code.stabilizer_matrix, error)
         if operator in ['Z', 'X']:
