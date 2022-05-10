@@ -14,11 +14,13 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
                  error_rate: float,
                  max_bp_iter: int = 1000,
                  channel_update: bool = False,
-                 osd_order: int = 10):
+                 osd_order: int = 10,
+                 bp_method: str = 'msl'):
         super().__init__(code, error_model, error_rate)
         self._max_bp_iter = max_bp_iter
         self._channel_update = channel_update
         self._osd_order = osd_order
+        self._bp_method = bp_method
 
         self.initialize_decoders()
 
@@ -70,7 +72,7 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
                 self.code.Hx,
                 error_rate=self.error_rate,
                 max_iter=self._max_bp_iter,
-                bp_method="msl",
+                bp_method=self._bp_method,
                 ms_scaling_factor=0,
                 osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
                 osd_order=self._osd_order
@@ -80,7 +82,7 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
                 self.code.Hz,
                 error_rate=self.error_rate,
                 max_iter=self._max_bp_iter,
-                bp_method="msl",
+                bp_method=self._bp_method,
                 ms_scaling_factor=0,
                 osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
                 osd_order=self._osd_order
@@ -91,7 +93,7 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
                 self.code.stabilizer_matrix,
                 error_rate=self.error_rate,
                 max_iter=self._max_bp_iter,
-                bp_method="msl",
+                bp_method=self._bp_method,
                 ms_scaling_factor=0,
                 osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
                 osd_order=self._osd_order
@@ -147,23 +149,19 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
 
         return correction
 
-
+# @profile
 def test_decoder():
     from panqec.codes import XCubeCode
     from panqec.error_models import PauliErrorModel
     import time
     rng = np.random.default_rng()
 
-    L = 10
+    L = 20
     code = XCubeCode(L, L, L)
 
-    error_rate = 0.1
+    error_rate = 0.5
     r_x, r_y, r_z = [0.15, 0.15, 0.7]
     error_model = PauliErrorModel(r_x, r_y, r_z)
-
-    decoder = BeliefPropagationOSDDecoder(
-        code, error_model, error_rate, osd_order=10, max_bp_iter=1000
-    )
 
     print("Create stabilizer matrix")
     code.stabilizer_matrix
@@ -172,30 +170,39 @@ def test_decoder():
     code.Hx
     code.Hz
 
+    print("Create logicals")
+    code.logicals_x
+    code.logicals_z
+
+    print("Instantiate BP-OSD")
+    decoder = BeliefPropagationOSDDecoder(
+        code, error_model, error_rate, osd_order=0, max_bp_iter=1000
+    )
+
     # Start timer
-    start = time.time()
+    # start = time.time()
 
-    n_iter = 200
-    accuracy = 0
-    for i in range(n_iter):
-        print(f"\nRun {code.label} {i}...")
-        print("Generate errors")
-        error = error_model.generate(code, error_rate, rng=rng)
-        print("Calculate syndrome")
-        syndrome = code.measure_syndrome(error)
-        print("Decode")
-        correction = decoder.decode(syndrome)
-        print("Get total error")
-        total_error = (correction + error) % 2
+    # n_iter = 1
+    # accuracy = 0
+    # for i in range(n_iter):
+    #     print(f"\nRun {code.label} {i}...")
+    #     print("Generate errors")
+    #     error = error_model.generate(code, error_rate, rng=rng)
+    #     print("Calculate syndrome")
+    #     syndrome = code.measure_syndrome(error)
+    #     print("Decode")
+    #     correction = decoder.decode(syndrome)
+    #     print("Get total error")
+    #     total_error = (correction + error) % 2
 
-        codespace = code.in_codespace(total_error)
-        success = not code.is_logical_error(total_error) and codespace
-        print(success)
-        accuracy += success
+    #     codespace = code.in_codespace(total_error)
+    #     success = not code.is_logical_error(total_error) and codespace
+    #     print(success)
+    #     accuracy += success
 
-    accuracy /= n_iter
-    print("Average time per iteration", (time.time() - start) / n_iter)
-    print("Logical error rate", 1 - accuracy)
+    # accuracy /= n_iter
+    # print("Average time per iteration", (time.time() - start) / n_iter)
+    # print("Logical error rate", 1 - accuracy)
 
 
 if __name__ == '__main__':
