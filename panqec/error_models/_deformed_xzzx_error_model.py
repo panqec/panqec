@@ -24,7 +24,7 @@ class DeformedXZZXErrorModel(PauliErrorModel):
         self, code: StabilizerCode, error_rate: float
     ) -> Tuple:
         r_x, r_y, r_z = self.direction
-        is_deformed = self._get_deformation_indices(code)
+        is_deformed = self.get_deformation_indices(code)
 
         p_i = np.array([1 - error_rate for _ in range(code.n)])
         p_x = error_rate * np.array([
@@ -37,22 +37,25 @@ class DeformedXZZXErrorModel(PauliErrorModel):
 
         return p_i, p_x, p_y, p_z
 
-    def _get_deformation_indices(self, code: StabilizerCode):
+    def get_deformation_indices(self, code: StabilizerCode):
         is_deformed = [False for _ in range(code.n)]
 
-        deformed_axis = {'Toric3DCode': 'z',
-                         'Planar3DCode': 'z',
-                         'XCubeCode': 'z',
-                         'RotatedToric3DCode': 'x',
-                         'RotatedPlanar3DCode': 'z',
-                         'RhombicCode': 'z',
-
-                         'Toric2DCode': 'x',
-                         'Planar2DCode': 'x',
-                         'RotatedPlanar2DCode': 'x'}
+        deformed_axis = {
+            'Toric3DCode': 'z',
+            'Planar3DCode': 'z',
+            'XCubeCode': 'z',
+            'RotatedToric3DCode': 'x',
+            'RotatedPlanar3DCode': 'z',
+            'RhombicCode': 'z',
+            'Toric2DCode': 'x',
+            'Planar2DCode': 'x',
+            'RotatedPlanar2DCode': 'x'
+        }
 
         if code.id not in deformed_axis.keys():
-            raise NotImplementedError(f"Code {code.id} has no XZZX deformation implemented")
+            raise NotImplementedError(
+                f"Code {code.id} has no XZZX deformation implemented"
+            )
 
         for index, location in enumerate(code.qubit_coordinates):
             if code.qubit_axis(location) == deformed_axis[code.id]:

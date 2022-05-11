@@ -6,7 +6,7 @@ In particular, it provides the following features:
 * **Simple implementation of topological codes**, through lists of coordinates for qubits, stabilizers and logicals. Parity-check matrices and other properties of the code are automatically computed.
 * End-to-end **sparse implementation of all the vectors and matrices**, optimized for fast and memory-efficient simulations.
 * Library of high-level functions to evaluate the performance of a code with a given decoder and noise model. In particular, simulating the code and establishing its **threshold** and **subthreshold scaling** performance is made particularly easy.
-* **2D and 3D visualization of topological codes** on the web browser, with a simple process to add your own codes on the visualization.
+* **2D and 3D visualization of topological codes** on the web browser, with a simple process to add your own codes on the visualization. This visualizer can also be found [online](https://gui.quantumcodes.io)
 * Large collection of codes, error models and decoders.
 
 In its current version, PanQEC implements the following codes

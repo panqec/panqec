@@ -5,14 +5,14 @@ import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat
 
 import { TopologicalCode } from './topologicalCode.js';
 
-var defaultCode = codeDimension == 2 ? 'Toric 2D' : 'Toric 3D';
+var defaultCode = codeDimension == 2 ? 'Toric 2D' : 'Rotated Planar 3D';
 var defaultSize = codeDimension == 2 ? 6 : 4;
 
 const params = {
     errorProbability: 0.3,
     L: defaultSize,
     noise_deformation: 'None',
-    decoder: 'BP-OSD',
+    decoder: 'RotatedSweepMatch',
     max_bp_iter: 10,
     alpha: 0.4,
     beta: 0,

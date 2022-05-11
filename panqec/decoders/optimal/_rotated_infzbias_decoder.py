@@ -2,9 +2,8 @@ from typing import Dict, Tuple, List
 import numpy as np
 from panqec.decoders import BaseDecoder
 from pymatching import Matching
-from ...codes import RotatedPlanar3DCode
+from ...codes import StabilizerCode
 from ..sweepmatch._rotated_sweep_decoder import RotatedSweepDecoder3D
-Indexer = Dict[Tuple[int, int, int], int]
 
 
 class ZMatchingDecoder(RotatedSweepDecoder3D):
@@ -17,8 +16,10 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
         ]
         return xy
 
-    def decode(self, syndrome: np.ndarray) -> np.ndarray:
-        correction = dict()
+    def decode(
+        self, syndrome: np.ndarray, **kwargs
+    ) -> np.ndarray:
+        correction: Dict = dict()
         signs = self.get_initial_state(syndrome)
 
         # 1D pair matching along each vertical lines of horizontal edges.
@@ -29,18 +30,22 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
 
         # 2D matching on horizontal planes.
         L_z = self.code.size[2]
-        for z_plane in range(1, 2*L_z + 2, 2):
+        for z_plane in range(1, 2*L_z, 2):
             signs = self.match_horizontal_plane(
                 signs, correction, z_plane
             )
         return self.code.to_bsf(correction)
 
     def match_horizontal_plane(
-        self, signs: Indexer, correction: Dict, z_plane: int
+        self, signs: np.ndarray, correction: Dict,
+        z_plane: int
     ):
         """Do 2D matching on top and bottom boundary surfaces."""
-        face_coordinates = [location for location in self.code.stabilizer_coordinates
-                            if self.code.stabilizer_type(location) == 'face']
+        face_coordinates = [
+            location
+            for location in self.code.stabilizer_coordinates
+            if self.code.stabilizer_type(location) == 'face'
+        ]
         edges = sorted([
             (x, y, z) for x, y, z in self.code.qubit_coordinates if z == z_plane
         ])
@@ -78,12 +83,13 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
         for i_edge in np.where(surface_corrections)[0]:
             location = edges[i_edge]
             self.flip_edge(location, new_signs)
-            correction[location] = 'Z'
+            self.code.site(correction, 'Z', location)
 
         return new_signs
 
     def decode_vertical_line(
-        self, signs: Indexer, correction: Dict, xy: Tuple[int, int]
+        self, signs: np.ndarray, correction: Dict,
+        xy: Tuple[int, int]
     ):
         """Do 1D matching along a vertical line."""
         L_z = self.code.size[2]
@@ -123,7 +129,7 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
         new_signs = signs.copy()
         for location in flip_locations:
             self.flip_edge(location, new_signs)
-            correction[location] = 'Z'
+            self.code.site(correction, 'Z', location)
         return new_signs
 
 
@@ -139,11 +145,11 @@ class XLineDecoder(BaseDecoder):
 
         edges = [
             (x, y, 2*i + 2)
-            for i in range(L_z)
+            for i in range(L_z - 1)
         ]
         vertices = [
             (x, y, 2*i + 1)
-            for i in range(L_z + 1)
+            for i in range(L_z)
         ]
         edge_index = {
             location: index for index, location in enumerate(edges)
@@ -176,7 +182,9 @@ class XLineDecoder(BaseDecoder):
 
         return x_correction
 
-    def decode(self, syndrome: np.ndarray) -> np.ndarray:
+    def decode(
+        self, syndrome: np.ndarray, **kwargs
+    ) -> np.ndarray:
         """Get X corrections given code and measured syndrome."""
 
         # Initialize correction as full bsf.
@@ -188,7 +196,7 @@ class XLineDecoder(BaseDecoder):
             (x, y) for x, y, z in self.code.qubit_index if z == 2
         ])
         for xy in lines_xy:
-            x_correction += self.decode_line(self.code, syndrome, xy)
+            x_correction += self.decode_line(syndrome, xy)
 
         # Load it into the X block of the full bsf.
         correction[:n_qubits] = x_correction
@@ -200,18 +208,20 @@ class RotatedInfiniteZBiasDecoder(BaseDecoder):
     """An optimal decoder for infinite Z bias on deformed noise."""
 
     label = 'Rotated Infinite Z Bias Decoder'
-    _matcher: XLineDecoder
-    _sweeper: ZMatchingDecoder
+    matcher: XLineDecoder
+    sweeper: ZMatchingDecoder
 
     def __init__(self, code, error_model, error_rate):
         super().__init__(code, error_model, error_rate)
-        self._matcher = XLineDecoder(code, error_model, error_rate)
-        self._sweeper = ZMatchingDecoder(code, error_model, error_rate)
+        self.matcher = XLineDecoder(code, error_model, error_rate)
+        self.sweeper = ZMatchingDecoder(code, error_model, error_rate)
 
-    def decode(self, syndrome: np.ndarray) -> np.ndarray:
+    def decode(
+        self, syndrome: np.ndarray, **kwargs
+    ) -> np.ndarray:
 
-        z_correction = self._sweeper.decode(syndrome)
-        x_correction = self._matcher.decode(syndrome)
+        z_correction = self.sweeper.decode(syndrome)
+        x_correction = self.matcher.decode(syndrome)
 
         correction = (z_correction + x_correction) % 2
         correction = correction.astype(np.uint)

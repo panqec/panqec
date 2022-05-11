@@ -157,7 +157,7 @@ def test_mwpm_decoder(code, decoder):
         '│   │   │   │   │  '
     )
 
-    correction = decoder.decode(code, syndrome)
+    correction = decoder.decode(syndrome)
     assert code.ascii_art(pauli=code.new_pauli(bsf=correction)) == (
         '┼─·─┼─·─┼─·─┼─·─┼─·\n'
         '·   ·   ·   ·   ·  \n'

@@ -8,10 +8,11 @@ import pytest
 import numpy as np
 from panqec.codes import Toric2DCode
 from panqec.bpauli import (
-    pauli_string_to_bvector, bvector_to_pauli_string, bvector_to_barray,
-    barray_to_bvector, bcommute, get_effective_error, bvector_to_int,
+    pauli_string_to_bvector, bvector_to_pauli_string,
+    bcommute, get_effective_error, bvector_to_int,
     bvectors_to_ints, ints_to_bvectors, apply_deformation
 )
+from panqec.bsparse import from_array, is_sparse, vstack
 
 
 def test_pauli_string_to_bvector():
@@ -85,15 +86,47 @@ class TestBcommute:
             bcommute([0, 0, 0, 1], [1, 0, 1, 1, 0, 1])
 
 
-def test_bvector_to_barray():
-    L = 3
-    np.random.seed(0)
-    a = np.random.rand(3, L, L, L, 2)
-    assert a.shape == (3, L, L, L, 2)
-    s = barray_to_bvector(a, L)
-    assert s.shape[0] == 2*3*L**3
-    a_new = bvector_to_barray(s, L)
-    assert np.all(a == a_new)
+class TestBcommuteSparse:
+
+    def test_bcommute_singles(self):
+        III = from_array(np.array([0, 0, 0, 0, 0, 0]))
+        XXX = from_array(np.array([1, 1, 1, 0, 0, 0]))
+        ZZZ = from_array(np.array([0, 0, 0, 1, 1, 1]))
+        assert is_sparse(III)
+        assert bcommute(XXX, ZZZ) == 1, 'XXX should anticommute with ZZZ'
+        assert bcommute(III, XXX) == 0, 'III should commute with XXX'
+        assert bcommute(III, XXX) == 0, 'III should commute with XXX'
+
+    def test_bcommute_many_to_one(self):
+        stabilizers = from_array(np.array([
+            pauli_string_to_bvector('XXI'),
+            pauli_string_to_bvector('IXX'),
+        ]))
+        assert stabilizers.shape == (2, 6)
+        error = from_array(pauli_string_to_bvector('IZI'))
+        syndrome = bcommute(stabilizers, error)
+        assert syndrome.shape == (2,), 'syndrome should have shape 2'
+        assert np.all(syndrome == [1, 1]), 'IZI should anticommute with both'
+
+        # Changing the order shouldn't matter.
+        syndrome = bcommute(error, stabilizers)
+        assert syndrome.shape == (2,)
+        assert np.all(syndrome == [1, 1])
+
+    def test_bcommute_one_to_many(self):
+        XYZ = from_array(pauli_string_to_bvector('XYZ'))
+        IXY = from_array(pauli_string_to_bvector('IXY'))
+        ZZI = from_array(pauli_string_to_bvector('ZZI'))
+        assert bcommute(XYZ, IXY) == 0
+        assert bcommute(IXY, ZZI) == 1
+        assert np.all(bcommute(XYZ, vstack([IXY, ZZI])) == [[0, 0]])
+        assert np.all(
+            bcommute(vstack([XYZ, IXY]), vstack([ZZI, IXY]))
+            == [
+                [0, 0],
+                [1, 0]
+            ]
+        )
 
 
 def test_effective_error_wrong_size_raises_exception():

@@ -2,7 +2,7 @@ from typing import Tuple, Dict
 import numpy as np
 from panqec.decoders import BaseDecoder
 
-Indexer = Dict[Tuple[int, int, int], int]
+Operator = Dict[Tuple, str]
 
 
 class RotatedSweepDecoder3D(BaseDecoder):
@@ -11,20 +11,36 @@ class RotatedSweepDecoder3D(BaseDecoder):
     _rng: np.random.Generator
     max_rounds: int
 
-    def __init__(self, code, error_model, error_rate,
-                 seed: int = 0, max_rounds: int = 4):
+    def __init__(
+        self, code, error_model, error_rate, seed: int = 0, max_rounds: int = 32
+    ):
         super().__init__(code, error_model, error_rate)
         self._rng = np.random.default_rng(seed)
         self.max_rounds = max_rounds
 
-    def get_initial_state(self, syndrome: np.ndarray) -> Indexer:
+    def get_face_syndromes(
+        self, full_syndrome: np.ndarray
+    ) -> np.ndarray:
+        """Get only the syndromes for the vertex Z stabilizers.
+        Z vertex stabilizers syndromes are discarded for this decoder.
+        """
+        face_syndromes = self.code.extract_x_syndrome(full_syndrome)
+        print("Face syndromes", face_syndromes)
+        return face_syndromes
+
+    # TODO: make this more space-efficient, don't store zeros.
+    def get_initial_state(
+        self, syndrome: np.ndarray
+    ) -> np.ndarray:
         """Get initial cellular automaton state from syndrome."""
         signs = syndrome.copy()
         signs[self.code.z_indices] = 0
 
         return signs
 
-    def decode(self, syndrome: np.ndarray) -> np.ndarray:
+    def decode(
+        self, syndrome: np.ndarray, **kwargs
+    ) -> np.ndarray:
         """Get Z corrections given measured syndrome."""
 
         # Maximum number of times to apply sweep rule before giving up round.
@@ -35,7 +51,7 @@ class RotatedSweepDecoder3D(BaseDecoder):
         signs = self.get_initial_state(syndrome)
 
         # Keep track of the correction needed.
-        correction = dict()
+        correction: Dict = dict()
 
         # Sweep directions to take
         sweep_directions = [
@@ -112,9 +128,9 @@ class RotatedSweepDecoder3D(BaseDecoder):
         return direction
 
     def sweep_move(
-        self, signs: np.ndarray, correction: np.ndarray,
+        self, signs: np.ndarray, correction: Operator,
         sweep_direction: Tuple[int, int, int]
-    ) -> Indexer:
+    ) -> np.ndarray:
         """Apply the sweep move once along a particular direciton."""
 
         flip_locations = []
@@ -129,9 +145,6 @@ class RotatedSweepDecoder3D(BaseDecoder):
                 x_edge, y_edge, z_edge = self.get_sweep_edges(
                     vertex, sweep_direction
                 )
-                x_face_index = self.code.stabilizer_index[x_face]
-                y_face_index = self.code.stabilizer_index[y_face]
-                z_face_index = self.code.stabilizer_index[z_face]
 
                 # Check faces and edges are in lattice before proceeding.
                 faces_valid = tuple(
@@ -144,9 +157,17 @@ class RotatedSweepDecoder3D(BaseDecoder):
                 )
                 if all(faces_valid) and all(edges_valid):
 
-                    if signs[x_face_index] and signs[y_face_index] and signs[z_face_index]:
+                    x_face_index = self.code.stabilizer_index[x_face]
+                    y_face_index = self.code.stabilizer_index[y_face]
+                    z_face_index = self.code.stabilizer_index[z_face]
+                    if (
+                        signs[x_face_index] and signs[y_face_index]
+                        and signs[z_face_index]
+                    ):
                         direction = self.get_default_direction()
-                        edge_flip = {0: x_edge, 1: y_edge, 2: z_edge}[direction]
+                        edge_flip = {
+                            0: x_edge, 1: y_edge, 2: z_edge
+                        }[direction]
                         flip_locations.append(edge_flip)
                     elif signs[y_face_index] and signs[z_face_index]:
                         flip_locations.append(x_edge)
@@ -173,13 +194,11 @@ class RotatedSweepDecoder3D(BaseDecoder):
         new_signs = signs.copy()
         for location in flip_locations:
             self.flip_edge(location, new_signs)
-            correction[location] = 'Z'
+            self.code.site(correction, 'Z', location)
 
         return new_signs
 
-    def flip_edge(
-        self, edge: Tuple, signs: Indexer
-    ):
+    def flip_edge(self, edge: Tuple, signs: np.ndarray):
         """Flip signs at index and update correction."""
 
         x, y, z = edge
@@ -226,4 +245,6 @@ class RotatedSweepDecoder3D(BaseDecoder):
 
         # Flip the state of the faces.
         for face in faces:
-            signs[self.code.stabilizer_index[face]] = 1 - signs[self.code.stabilizer_index[face]]
+            signs[self.code.stabilizer_index[face]] = 1 - signs[
+                self.code.stabilizer_index[face]
+            ]

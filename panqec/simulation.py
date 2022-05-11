@@ -22,18 +22,18 @@ def run_once(
     code: StabilizerCode,
     error_model: BaseErrorModel,
     decoder: BaseDecoder,
-    probability: float,
+    error_rate: float,
     rng=None
 ) -> dict:
     """Run a simulation once and return the results as a dictionary."""
 
-    if not (0 <= probability <= 1):
+    if not (0 <= error_rate <= 1):
         raise ValueError('Error rate must be in [0, 1].')
 
     if rng is None:
         rng = np.random.default_rng()
 
-    error = error_model.generate(code, error_rate=probability, rng=rng)
+    error = error_model.generate(code, error_rate=error_rate, rng=rng)
     syndrome = code.measure_syndrome(error)
     correction = decoder.decode(syndrome)
     total_error = (correction + error) % 2
@@ -74,8 +74,8 @@ def run_file(
             code = simulation.code.label
             noise = simulation.error_model.label
             decoder = simulation.decoder.label
-            probability = simulation.probability
-            print(f'    {code}, {noise}, {decoder}, {probability}')
+            error_rate = simulation.error_rate
+            print(f'    {code}, {noise}, {decoder}, {error_rate}')
     batch_sim.run(n_trials, progress=progress)
 
 
@@ -86,22 +86,25 @@ class Simulation:
     code: StabilizerCode
     error_model: BaseErrorModel
     decoder: BaseDecoder
-    probability: float
+    error_rate: float
     label: str
     _results: dict = {}
     rng = None
 
     def __init__(
-        self, code: StabilizerCode, error_model: BaseErrorModel, decoder: BaseDecoder,
-        probability: float, rng=None
+        self,
+        code: StabilizerCode,
+        error_model: BaseErrorModel,
+        decoder: BaseDecoder,
+        error_rate: float, rng=None
     ):
         self.code = code
         self.error_model = error_model
         self.decoder = decoder
-        self.probability = probability
+        self.error_rate = error_rate
         self.rng = rng
         self.label = '_'.join([
-            code.label, error_model.label, decoder.label, f'{probability}'
+            code.label, error_model.label, decoder.label, f'{error_rate}'
         ])
         self._results = {
             'effective_error': [],
@@ -120,7 +123,7 @@ class Simulation:
         for i_trial in range(repeats):
             shot = run_once(
                 self.code, self.error_model, self.decoder,
-                probability=self.probability,
+                error_rate=self.error_rate,
                 rng=self.rng
             )
             for key, value in shot.items():
@@ -185,7 +188,7 @@ class Simulation:
                     'd': self.code.d,
                     'error_model': self.error_model.label,
                     'decoder': self.decoder.label,
-                    'probability': self.probability,
+                    'probability': self.error_rate,
                 }
             }, f, cls=NumpyEncoder)
 
@@ -204,7 +207,7 @@ class Simulation:
             'k': self.code.k,
             'd': self.code.d,
             'error_model': self.error_model.label,
-            'probability': self.probability,
+            'probability': self.error_rate,
             'n_success': np.sum(success),
             'n_fail': n_fail,
             'n_trials': len(success),
@@ -295,7 +298,7 @@ class BatchSimulation():
         self.load_results()
 
         # Use the maximum remaining trials to overestimate how much is
-        # remaniing for purposes of reporting progress to give a conservative
+        # remaining for purposes of reporting progress to give a conservative
         # estimate of what is left without disappointing the user.
         max_remaining_trials = max([
             max(0, n_trials - simulation.n_results)
@@ -453,7 +456,8 @@ def _parse_decoder_dict(
     decoder_params['error_model'] = error_model
     decoder_params['error_rate'] = error_rate
 
-    decoder = decoder_class(**decoder_params)
+    filtered_decoder_params = filter_legacy_params(decoder_params)
+    decoder = decoder_class(**filtered_decoder_params)
     return decoder
 
 
@@ -461,10 +465,10 @@ def parse_run(run: Dict[str, Any]) -> Simulation:
     """Parse a single dict describing the run."""
     code = _parse_code_dict(run['code'])
     error_model = _parse_error_model_dict(run['noise'])
-    probability = run['probability']
-    decoder = _parse_decoder_dict(run['decoder'], error_model, probability)
+    error_rate = run['probability']
+    decoder = _parse_decoder_dict(run['decoder'], code, error_model, error_rate)
 
-    simulation = Simulation(code, error_model, decoder, probability)
+    simulation = Simulation(code, error_model, decoder, error_rate)
     return simulation
 
 
@@ -522,7 +526,8 @@ def get_simulations(
     ) = _parse_all_ranges(data['ranges'])
 
     codes = [_parse_code_dict(code_dict) for code_dict in code_range]
-    error_models = [_parse_error_model_dict(noise_dict) for noise_dict in noise_range]
+    error_models = [_parse_error_model_dict(noise_dict)
+                    for noise_dict in noise_range]
 
     for (
         code, error_model, decoder_dict, error_rate
@@ -530,7 +535,8 @@ def get_simulations(
                            error_models,
                            decoder_range,
                            probability_range):
-        decoder = _parse_decoder_dict(decoder_dict, code, error_model, error_rate)
+        decoder = _parse_decoder_dict(decoder_dict, code, error_model,
+                                      error_rate)
         simulations.append(Simulation(code, error_model, decoder, error_rate))
 
     if start is not None:
@@ -586,3 +592,11 @@ def merge_results_dicts(results_dicts: List[Dict]) -> Dict:
         'inputs': inputs,
     }
     return merged_dict
+
+
+def filter_legacy_params(decoder_params: Dict[str, Any]) -> Dict[str, Any]:
+    """Filter legacy parameters for decoders from old data."""
+    new_params = decoder_params.copy()
+    if 'joschka' in decoder_params:
+        new_params.pop('joschka')
+    return new_params

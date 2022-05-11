@@ -8,7 +8,7 @@ from panqec.codes import (
 )
 from panqec.decoders import (
     Toric2DMatchingDecoder, RotatedSweepMatchDecoder,
-    RotatedInfiniteZBiasDecoder, SweepMatchDecoder, DeformedSweepMatchDecoder,
+    ZMatchingDecoder, SweepMatchDecoder, DeformedSweepMatchDecoder,
     BeliefPropagationOSDDecoder, MemoryBeliefPropagationDecoder,
 
 )
@@ -20,9 +20,15 @@ from panqec.error_models import (
 import webbrowser
 import argparse
 
-codes = {'Toric 2D': Toric2DCode, 'Planar 2D': Planar2DCode, 'Rotated Planar 2D': RotatedPlanar2DCode,
-         'Toric 3D': Toric3DCode, 'Rotated Toric 3D': RotatedToric3DCode, 'Rotated Planar 3D': RotatedPlanar3DCode,
-         'Rhombic': RhombicCode, 'Planar 3D': Planar3DCode, 'XCube': XCubeCode}
+codes = {'Toric 2D': Toric2DCode,
+         'Planar 2D': Planar2DCode,
+         'Rotated Planar 2D': RotatedPlanar2DCode,
+         'Toric 3D': Toric3DCode,
+         'Rotated Toric 3D': RotatedToric3DCode,
+         'Rotated Planar 3D': RotatedPlanar3DCode,
+         'Rhombic': RhombicCode,
+         'Planar 3D': Planar3DCode,
+         'XCube': XCubeCode}
 
 error_models = {'None': PauliErrorModel,
                 'XZZX': DeformedXZZXErrorModel,
@@ -34,9 +40,12 @@ noise_directions = {'Pure X': (1, 0, 0),
                     'Pure Z': (0, 0, 1),
                     'Depolarizing': (1/3, 1/3, 1/3)}
 
-decoders = {'BP-OSD': BeliefPropagationOSDDecoder, 'MBP': MemoryBeliefPropagationDecoder,
-            'SweepMatch': SweepMatchDecoder, 'Matching': Toric2DMatchingDecoder,
-            'Optimal ∞ bias': RotatedInfiniteZBiasDecoder}
+decoders = {'BP-OSD': BeliefPropagationOSDDecoder,
+            'MBP': MemoryBeliefPropagationDecoder,
+            'SweepMatch': SweepMatchDecoder,
+            'RotatedSweepMatch': RotatedSweepMatchDecoder,
+            'Matching': Toric2DMatchingDecoder,
+            'Optimal ∞ bias': ZMatchingDecoder}
 
 
 class GUI():
@@ -218,6 +227,7 @@ def run_gui():
 
     gui = GUI()
     gui.run(port=port)
+
 
 if __name__ == '__main__':
     run_gui()

@@ -9,6 +9,7 @@ Many of these are copied from the internet.
 import numpy as np
 import json
 import hashlib
+from panqec.bsparse import is_sparse, to_array
 from typing import Callable
 
 
@@ -142,3 +143,67 @@ def hash_json(dictionary):
     }
     json_string = json.dumps(dict_no_hash, sort_keys=True, indent=2)
     return hashlib.md5(json_string.encode('utf-8')).hexdigest()
+
+
+def dict_where(signs):
+    return set([k for k, v in signs.items() if v])
+
+
+def face_coords(axis_xyz_list, size):
+    """Convert list of (axis, x, y, z) into coordinates."""
+    faces = []
+    for axis_xyz in axis_xyz_list:
+        i, x, y, z = axis_xyz
+        lim = 2*np.array(size, dtype=int)
+        diff = np.array([[0, 1, 1], [1, 0, 1], [1, 1, 0]], dtype=int)
+        new = np.mod(2*np.array([x, y, z], dtype=int) + diff[i], lim)
+        faces.append(tuple(new))
+    return faces
+
+
+def edge_coords(axis_xyz_list, size):
+    """Convert list of (axis, x, y, z) into coordinates."""
+    edges = []
+    for axis_xyz in axis_xyz_list:
+        i, x, y, z = axis_xyz
+        lim = 2*np.array(size, dtype=int)
+        diff = np.eye(3, dtype=int)
+        new = np.mod(2*np.array([x, y, z], dtype=int) + diff[i], lim)
+        edges.append(tuple(new))
+    return edges
+
+
+def simple_print(a, zeros=True):
+    """Print binary array in space-saving manner.
+
+    Examples
+    --------
+    >>> simple_print(np.eye(3))
+    100
+    010
+    001
+
+    >>> simple_print(np.eye(3), zeros=False)
+    1
+     1
+      1
+    """
+    if is_sparse(a):
+        dense = to_array(a)
+    else:
+        dense = a
+
+    if len(dense.shape) == 1:
+        dense = np.array([dense])
+
+    for row in dense:
+        row_str = ''
+        for entry in row:
+            if entry == 0:
+                if zeros:
+                    row_str += '0'
+                else:
+                    row_str += ' '
+            else:
+                row_str += '1'
+        print(row_str.rstrip())

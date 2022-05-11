@@ -1,9 +1,7 @@
 """
 Decoder for 3D Toric Code using Matching.
 """
-from typing import Dict
 import numpy as np
-from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
 from pymatching import Matching
 from panqec.codes import Toric3DCode
@@ -11,7 +9,8 @@ from panqec.error_models import BaseErrorModel
 
 
 class Toric3DMatchingDecoder(BaseDecoder):
-    """Matching decoder for decoding point sector of 3D Toric Codes, based on PyMatching.
+    """Matching decoder for decoding point sector of 3D Toric Codes,
+    based on PyMatching.
     """
 
     label = 'Toric 3D Matching'
@@ -21,7 +20,12 @@ class Toric3DMatchingDecoder(BaseDecoder):
                  error_model: BaseErrorModel,
                  error_rate: float):
         super().__init__(code, error_model, error_rate)
-        self.matcher = Matching(code.Hz)
+        print("llllll")
+        self.matcher = self.new_matcher()
+        print("ooo")
+
+    def new_matcher(self):
+        return Matching(self.code.Hz)
 
     def decode(self, syndrome: np.ndarray) -> np.ndarray:
         """Get X corrections given code and measured syndrome."""

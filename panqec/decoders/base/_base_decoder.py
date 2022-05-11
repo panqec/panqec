@@ -8,8 +8,8 @@ class BaseDecoder(metaclass=ABCMeta):
     """Base class for decoders"""
 
     def __init__(self,
-                 code: StabilizerCode, 
-                 error_model: BaseErrorModel, 
+                 code: StabilizerCode,
+                 error_model: BaseErrorModel,
                  error_rate: float):
         self.code = code
         self.error_model = error_model
@@ -23,16 +23,17 @@ class BaseDecoder(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def decode(self, syndrome: np.ndarray) -> np.ndarray:
-        """Given a code and a syndrome, returns a correction to apply to the qubits
+    def decode(self, syndrome: np.ndarray, **kwargs) -> np.ndarray:
+        """Given a code and a syndrome, returns a correction to apply
+        to the qubits
 
         Parameters
         ----------
-        code : StabilizerCode
-            Stabilizer code used by the decoder
         syndrome: np.ndarray
-            Syndrome as an array of size m, where m is the number of stabilizers.
-            Each element contains 1 if the stabilizer is activated and 0 otherwise
+            Syndrome as an array of size m, where m is the number of
+            stabilizers. Each element contains 1 if the stabilizer is
+            activated and 0 otherwise
+
         kwargs: dict
             Decoder-specific parameters (implemented by subclasses)
 

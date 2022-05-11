@@ -2,8 +2,9 @@ from typing import Tuple, Dict, List
 import numpy as np
 from panqec.codes import StabilizerCode
 
-Operator = Dict[Tuple[int, int, int], str]  # Location to pauli ('X', 'Y' or 'Z')
-Coordinates = List[Tuple[int, int, int]]  # List of locations
+Location = Tuple
+Operator = Dict[Location, str]  # Location to pauli ('X', 'Y' or 'Z')
+Coordinates = List[Tuple]  # List of locations
 
 
 def on_defect_boundary(Lx, Ly, x, y):
@@ -29,7 +30,7 @@ class RotatedToric3DCode(StabilizerCode):
     def get_qubit_coordinates(self) -> Coordinates:
         Lx, Ly, Lz = self.size
 
-        coordinates = []
+        coordinates: Coordinates = []
 
         # Horizontal
         for x in range(1, 2*Lx, 2):
@@ -38,8 +39,8 @@ class RotatedToric3DCode(StabilizerCode):
                     coordinates.append((x, y, z))
 
         # Vertical
-        for x in range(2, 2*Lx+1, 2):
-            for y in range(2, 2*Ly+1, 2):
+        for x in range(2, 2*Lx + 1, 2):
+            for y in range(2, 2*Ly + 1, 2):
                 for z in range(2, 2*Lz, 2):
                     if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
@@ -47,33 +48,36 @@ class RotatedToric3DCode(StabilizerCode):
         return coordinates
 
     def get_stabilizer_coordinates(self) -> Coordinates:
-        coordinates = []
+        coordinates: Coordinates = []
         Lx, Ly, Lz = self.size
 
         # Vertices
-        for x in range(2, 2*Lx+1, 2):
-            for y in range(2, 2*Ly+1, 2):
+        for x in range(2, 2*Lx + 1, 2):
+            for y in range(2, 2*Ly + 1, 2):
                 for z in range(1, 2*Lz, 2):
-                    if (x + y) % 4 == 0:
+                    if (x + y) % 4 == 2:
                         coordinates.append((x, y, z))
 
         # Horizontal faces
-        for x in range(2, 2*Lx+1, 2):
-            for y in range(2, 2*Ly+1, 2):
+        for x in range(2, 2*Lx + 1, 2):
+            for y in range(2, 2*Ly + 1, 2):
                 for z in range(1, 2*Lz, 2):
-                    if (x + y) % 4 == 2:
+                    if (x + y) % 4 == 0:
                         coordinates.append((x, y, z))
 
         # Vertical faces
         for x in range(1, 2*Lx, 2):
             for y in range(1, 2*Ly, 2):
                 for z in range(2, 2*Lz, 2):
-                    if not ((Lx % 2 == 0 and y == 1) or (Ly % 2 == 0 and x == 1)):
+                    if not (
+                        (Ly % 2 == 1 and y == 1)
+                        or (Lx % 2 == 1 and x == 1)
+                    ):
                         coordinates.append((x, y, z))
 
         return coordinates
 
-    def stabilizer_type(self, location: Tuple[int, int, int]) -> str:
+    def stabilizer_type(self, location: Location) -> str:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location} for a stabilizer")
 
@@ -99,7 +103,10 @@ class RotatedToric3DCode(StabilizerCode):
         defect_x_boundary, defect_y_boundary = on_defect_boundary(Lx, Ly, x, y)
 
         if self.stabilizer_type(location) == 'vertex':
-            delta = [(1, -1, 0), (-1, 1, 0), (1, 1, 0), (-1, -1, 0), (0, 0, 1), (0, 0, -1)]
+            delta = [
+                (1, -1, 0), (-1, 1, 0), (1, 1, 0), (-1, -1, 0), (0, 0, 1),
+                (0, 0, -1)
+            ]
         else:
             # z-normal so face is xy-plane.
             if z % 2 == 1:
@@ -111,13 +118,17 @@ class RotatedToric3DCode(StabilizerCode):
             elif (x + y) % 4 == 2:
                 delta = [(-1, 1, 0), (1, -1, 0), (0, 0, -1), (0, 0, 1)]
 
-        operator = dict()
+        operator: Operator = dict()
         for d in delta:
             qx, qy, qz = tuple(np.add(location, d))
             if qx > 2*Lx:
                 qx = 1
+            elif qx == 0:
+                qx = 2*Lx
             if qy > 2*Ly:
                 qy = 1
+            elif qy == 0:
+                qy = 2*Ly
             qubit_location = (qx, qy, qz)
 
             if self.is_qubit(qubit_location):
@@ -125,17 +136,23 @@ class RotatedToric3DCode(StabilizerCode):
                 defect_y_on_edge = defect_y_boundary and qubit_location[1] == 1
                 has_defect = (defect_x_on_edge != defect_y_on_edge)
 
-                is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
+                is_deformed = (
+                    self.qubit_axis(qubit_location) == deformed_axis
+                )
 
-                operator[qubit_location] = deformed_pauli if is_deformed != has_defect else pauli
+                operator[qubit_location] = (
+                    deformed_pauli if is_deformed != has_defect else pauli
+                )
 
         return operator
 
-    def qubit_axis(self, location: Tuple[int, int, int]) -> int:
+    def qubit_axis(self, location: Location) -> str:
         x, y, z = location
 
         if location not in self.qubit_coordinates:
-            raise ValueError(f'Location {location} does not correspond to a qubit')
+            raise ValueError(
+                f'Location {location} does not correspond to a qubit'
+            )
 
         if z % 2 == 0:
             axis = 'z'
@@ -146,53 +163,60 @@ class RotatedToric3DCode(StabilizerCode):
 
         return axis
 
-    def get_logicals_x(self) -> Operator:
+    def get_logicals_x(self) -> List[Operator]:
         """Get the logical X operators."""
 
         Lx, Ly, Lz = self.size
-        logicals = []
+        logicals: List[Operator] = []
 
-        # Even times even.
+        # Even times even - two logicals.
         if Lx % 2 == 0 and Ly % 2 == 0:
             # X string operator along y.
-            operator = dict()
-            for x, y, z in self.qubit_coordinates:
-                if y == 0 and z == 1:
-                    operator[(x, y, z)] = 'X'
-            logicals.append(operator)
+            logicals.append({
+                (x, y, z): 'X'
+                for x, y, z in self.qubit_coordinates
+                if y == 1 and z == 1
+            })
 
             # X string operator along x.
-            for x, y, z in self.qubit_coordinates:
-                if x == 0 and z == 1:
-                    operator[(x, y, z)] = 'X'
-            logicals.append(operator)
+            logicals.append({
+                (x, y, z): 'X'
+                for x, y, z in self.qubit_coordinates
+                if x == 1 and z == 1
+            })
 
+        # TODO: Get odd times odd to work
         # Odd times odd
         elif Lx % 2 == 1 and Ly % 2 == 1:
-            operator = dict()
+            operator: Operator = dict()
             for x, y, z in self.qubit_coordinates:
                 # X string operator in undeformed code. (OK)
                 if z == 1 and x + y == 2*Lx-2:
                     operator[(x, y, z)] = 'X'
             logicals.append(operator)
 
-        # Odd times even
+        # Odd times even or even times odd - only one logical.
         else:
-            operator = dict()
-            for x, y, z in self.qubit_coordinates:
-                # X string operator in undeformed code. (OK)
-                if Lx % 2 == 1:
-                    if z == 1 and x == 0:
-                        operator[(x, y, z)] = 'X'
-                else:
-                    if z == 1 and y == 0:
-                        operator[(x, y, z)] = 'X'
 
-            logicals.append(operator)
+            # Odd times even.
+            if Lx % 2 == 1:
+                logicals.append({
+                    (x, y, z): 'X'
+                    for x, y, z in self.qubit_coordinates
+                    if x == 1 and z == 1
+                })
+
+            # Even times odd.
+            else:
+                logicals.append({
+                    (x, y, z): 'X'
+                    for x, y, z in self.qubit_coordinates
+                    if y == 1 and z == 1
+                })
 
         return logicals
 
-    def get_logicals_z(self) -> Operator:
+    def get_logicals_z(self) -> List[Operator]:
         """Get the logical Z operators."""
 
         Lx, Ly, Lz = self.size
@@ -200,19 +224,20 @@ class RotatedToric3DCode(StabilizerCode):
 
         # Even times even.
         if (Lx % 2 == 0) and (Ly % 2 == 0):
-            operator = dict()
+            operator: Operator = dict()
             for x, y, z in self.qubit_coordinates:
-                if x == 0:
+                if x == 1:
                     operator[(x, y, z)] = 'Z'
             logicals.append(operator)
 
             operator = dict()
             for x, y, z in self.qubit_coordinates:
-                if y == 0:
+                if y == 1:
                     operator[(x, y, z)] = 'Z'
 
             logicals.append(operator)
 
+        # TODO get this to work.
         # Odd times odd
         elif (Lx % 2 == 1) and (Ly % 2 == 1):
             operator = dict()
@@ -226,23 +251,31 @@ class RotatedToric3DCode(StabilizerCode):
         else:
             operator = dict()
             for x, y, z in self.qubit_coordinates:
-                if (Lx % 2 == 1 and y == 0) or (Ly % 2 == 1 and x == 0):
+                if (Lx % 2 == 1 and y == 1) or (Ly % 2 == 1 and x == 1):
                     operator[(x, y, z)] = 'Y'
 
             logicals.append(operator)
 
         return logicals
 
-    def qubit_representation(self, location, rotated_picture=False) -> Dict:
-        representation = super().qubit_representation(location, rotated_picture)
+    def qubit_representation(
+        self, location, rotated_picture=False, json_file=None
+    ) -> Dict:
+        representation = super().qubit_representation(
+            location, rotated_picture, json_file
+        )
 
         if self.qubit_axis(location) == 'z':
             representation['params']['length'] = 2
 
         return representation
 
-    def stabilizer_representation(self, location, rotated_picture=False) -> Dict:
-        representation = super().stabilizer_representation(location, rotated_picture)
+    def stabilizer_representation(
+        self, location, rotated_picture=False, json_file=None
+    ) -> Dict:
+        representation = super().stabilizer_representation(
+            location, rotated_picture, json_file
+        )
 
         x, y, z = location
         if not rotated_picture and self.stabilizer_type(location) == 'face':

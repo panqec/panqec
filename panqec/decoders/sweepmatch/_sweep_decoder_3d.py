@@ -4,8 +4,7 @@ from panqec.decoders import BaseDecoder
 from panqec.error_models import BaseErrorModel
 from panqec.codes import Toric3DCode
 
-Indexer = Dict[Tuple[int, int, int], int]
-Operator = Dict[Tuple[int, int, int], str]
+Operator = Dict[Tuple, str]
 
 
 class SweepDecoder3D(BaseDecoder):
@@ -23,6 +22,15 @@ class SweepDecoder3D(BaseDecoder):
         super().__init__(code, error_model, error_rate)
         self._rng = np.random.default_rng(seed)
         self.max_sweep_factor = max_sweep_factor
+
+    def get_face_syndromes(
+        self, full_syndrome: np.ndarray
+    ) -> np.ndarray:
+        """Get only the syndromes for the vertex Z stabilizers.
+        Z vertex stabilizers syndromes are discarded for this decoder.
+        """
+        face_syndromes = self.code.extract_x_syndrome(full_syndrome)
+        return face_syndromes
 
     def flip_edge(
         self, location: Tuple, signs: np.ndarray
@@ -56,26 +64,30 @@ class SweepDecoder3D(BaseDecoder):
         location_4 = tuple(np.mod(face_4, limits))
 
         # Flip the signs (well actually 0s and 1s).
-        for location in [location_1, location_2, location_3, location_4]:
-            if self.code.is_stabilizer(location):
-                signs[self.code.stabilizer_index[location]] *= -1
-                signs[self.code.stabilizer_index[location]] += 1
+        if self.code.is_stabilizer(location_1):
+            signs[self.code.stabilizer_index[location_1]] = 1 - signs[self.code.stabilizer_index[location_1]]  # type: ignore # noqa
+        if self.code.is_stabilizer(location_2):
+            signs[self.code.stabilizer_index[location_2]] = 1 - signs[self.code.stabilizer_index[location_2]]  # type: ignore # noqa
+        if self.code.is_stabilizer(location_3):
+            signs[self.code.stabilizer_index[location_3]] = 1 - signs[self.code.stabilizer_index[location_3]]  # type: ignore # noqa
+        if self.code.is_stabilizer(location_4):
+            signs[self.code.stabilizer_index[location_4]] = 1 - signs[self.code.stabilizer_index[location_4]]  # type: ignore # noqa
 
     def get_default_direction(self):
         """The default direction when all faces are excited."""
         direction = int(self._rng.choice([0, 1, 2], size=1))
         return direction
 
-    def get_initial_state(
-        self, syndrome: np.ndarray
-    ) -> Indexer:
+    def get_initial_state(self, syndrome: np.ndarray) -> np.ndarray:
         """Get initial cellular automaton state from syndrome."""
         signs = syndrome.copy()
+        print("Syndrome", syndrome.shape)
+        print("Indices", len(self.code.z_indices))
         signs[self.code.z_indices] = 0
 
         return signs
 
-    def decode(self, syndrome: np.ndarray) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray, **kwargs) -> np.ndarray:
         """Get Z corrections given measured syndrome."""
 
         # Maximum number of times to sweep before giving up.
@@ -85,7 +97,7 @@ class SweepDecoder3D(BaseDecoder):
         signs = self.get_initial_state(syndrome)
 
         # Keep track of the correction needed.
-        correction = dict()
+        correction: Dict = dict()
 
         # Initialize the number of sweeps.
         i_sweep = 0
@@ -98,7 +110,7 @@ class SweepDecoder3D(BaseDecoder):
         return self.code.to_bsf(correction)
 
     def sweep_move(
-        self, signs: np.ndarray, correction: Operator,
+        self, signs: np.ndarray, correction: Operator
     ) -> np.ndarray:
         """Apply the sweep move once."""
 
@@ -110,7 +122,7 @@ class SweepDecoder3D(BaseDecoder):
         limits = (2*L_x, 2*L_y, 2*L_z)
 
         # Sweep through every edge.
-        for x, y, z in np.array(self.code.stabilizer_coordinates)[self.code.z_indices]:
+        for x, y, z in np.array(self.code.stabilizer_coordinates)[self.code.z_indices]:  # type: ignore  # noqa: E501
             # Get the syndromes on each face in sweep direction.
             x_face_loc = tuple(np.mod((x, y + 1, z + 1), limits))
             y_face_loc = tuple(np.mod((x + 1, y, z + 1), limits))

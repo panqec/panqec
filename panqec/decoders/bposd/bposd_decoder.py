@@ -149,7 +149,7 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
 
         return correction
 
-# @profile
+
 def test_decoder():
     from panqec.codes import XCubeCode
     from panqec.error_models import PauliErrorModel
@@ -180,29 +180,29 @@ def test_decoder():
     )
 
     # Start timer
-    # start = time.time()
+    start = time.time()
 
-    # n_iter = 1
-    # accuracy = 0
-    # for i in range(n_iter):
-    #     print(f"\nRun {code.label} {i}...")
-    #     print("Generate errors")
-    #     error = error_model.generate(code, error_rate, rng=rng)
-    #     print("Calculate syndrome")
-    #     syndrome = code.measure_syndrome(error)
-    #     print("Decode")
-    #     correction = decoder.decode(syndrome)
-    #     print("Get total error")
-    #     total_error = (correction + error) % 2
+    n_iter = 1
+    accuracy = 0
+    for i in range(n_iter):
+        print(f"\nRun {code.label} {i}...")
+        print("Generate errors")
+        error = error_model.generate(code, error_rate, rng=rng)
+        print("Calculate syndrome")
+        syndrome = code.measure_syndrome(error)
+        print("Decode")
+        correction = decoder.decode(syndrome)
+        print("Get total error")
+        total_error = (correction + error) % 2
 
-    #     codespace = code.in_codespace(total_error)
-    #     success = not code.is_logical_error(total_error) and codespace
-    #     print(success)
-    #     accuracy += success
+        codespace = code.in_codespace(total_error)
+        success = not code.is_logical_error(total_error) and codespace
+        print(success)
+        accuracy += success
 
-    # accuracy /= n_iter
-    # print("Average time per iteration", (time.time() - start) / n_iter)
-    # print("Logical error rate", 1 - accuracy)
+    accuracy /= n_iter
+    print("Average time per iteration", (time.time() - start) / n_iter)
+    print("Logical error rate", 1 - accuracy)
 
 
 if __name__ == '__main__':
