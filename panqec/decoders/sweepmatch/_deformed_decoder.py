@@ -20,11 +20,11 @@ class DeformedToric3DMatchingDecoder(Toric3DMatchingDecoder):
     def __init__(self, code: StabilizerCode,
                  error_model: BaseErrorModel,
                  error_rate: float):
-        super().__init__(code, error_model, error_rate)
         self._epsilon = 1e-15
         self._n_faces = dict()
+        super().__init__(code, error_model, error_rate)
 
-    def new_matcher(self):
+    def get_matcher(self):
         """Return a new Matching object."""
         # Get the number of X stabilizers (faces).
         n_faces: int = int(3*np.product(self.code.size))
@@ -32,7 +32,8 @@ class DeformedToric3DMatchingDecoder(Toric3DMatchingDecoder):
 
         # Only keep the Z vertex stabilizers.
         H_z = self.code.Hz
-        weights = self.get_deformed_weights(self.code)
+        weights = self.get_deformed_weights()
+        print("weights", weights)
         return Matching(H_z, spacelike_weights=weights)
 
     def get_deformed_weights(self) -> np.ndarray:
@@ -88,7 +89,7 @@ class DeformedSweepMatchDecoder(BaseDecoder):
         self.sweeper = DeformedSweepDecoder3D(
             code, error_model, error_rate
         )
-        self._matcher = DeformedToric3DMatchingDecoder(
+        self.matcher = DeformedToric3DMatchingDecoder(
             code, error_model, error_rate
         )
 
@@ -122,7 +123,7 @@ class DeformedRotatedPlanarMatchingDecoder(RotatedPlanarMatchingDecoder):
         self._epsilon = 1e-15
         super().__init__(code, error_model, error_rate)
 
-    def new_matcher(self):
+    def get_matcher(self):
         """Return a new Matching object."""
         # Get the number of X stabilizers (faces).
         n_faces = len([

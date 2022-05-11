@@ -3,6 +3,7 @@ from panqec.codes import StabilizerCode
 from panqec.decoders import (
     BaseDecoder, SweepDecoder3D, Toric3DMatchingDecoder
 )
+from panqec.error_models import BaseErrorModel
 
 
 class SweepMatchDecoder(BaseDecoder):
@@ -11,7 +12,9 @@ class SweepMatchDecoder(BaseDecoder):
     sweeper: SweepDecoder3D
     matcher: Toric3DMatchingDecoder
 
-    def __init__(self, code, error_model, error_rate):
+    def __init__(self, code: StabilizerCode,
+                 error_model: BaseErrorModel,
+                 error_rate: float):
         super().__init__(code, error_model, error_rate)
         self.sweeper = SweepDecoder3D(code, error_model, error_rate)
         self.matcher = Toric3DMatchingDecoder(code, error_model, error_rate)

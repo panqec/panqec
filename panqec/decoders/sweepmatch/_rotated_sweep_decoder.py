@@ -1,6 +1,8 @@
 from typing import Tuple, Dict
 import numpy as np
 from panqec.decoders import BaseDecoder
+from panqec.codes import StabilizerCode
+from panqec.error_models import BaseErrorModel
 
 Operator = Dict[Tuple, str]
 
@@ -11,9 +13,11 @@ class RotatedSweepDecoder3D(BaseDecoder):
     _rng: np.random.Generator
     max_rounds: int
 
-    def __init__(
-        self, code, error_model, error_rate, seed: int = 0, max_rounds: int = 32
-    ):
+    def __init__(self, code: StabilizerCode,
+                 error_model: BaseErrorModel,
+                 error_rate: float,
+                 seed: int = 0,
+                 max_rounds: int = 32):
         super().__init__(code, error_model, error_rate)
         self._rng = np.random.default_rng(seed)
         self.max_rounds = max_rounds
@@ -25,7 +29,6 @@ class RotatedSweepDecoder3D(BaseDecoder):
         Z vertex stabilizers syndromes are discarded for this decoder.
         """
         face_syndromes = self.code.extract_x_syndrome(full_syndrome)
-        print("Face syndromes", face_syndromes)
         return face_syndromes
 
     # TODO: make this more space-efficient, don't store zeros.

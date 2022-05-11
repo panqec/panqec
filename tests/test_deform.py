@@ -151,10 +151,10 @@ class TestDeformedDecoder:
         error_model = DeformedXZZXErrorModel(0.1, 0.2, 0.7)
         error_rate = 0.1
         decoder = DeformedSweepMatchDecoder(code, error_model, error_rate)
-        assert decoder._matcher._error_model.direction == (0.1, 0.2, 0.7)
-        matching = decoder._matcher.get_matcher(code)
-        assert matching.stabilizer_graph.distance(0, 0) == 0
-        distance_matrix = np.array(matching.stabilizer_graph.all_distances)
+        assert decoder.matcher.error_model.direction == (0.1, 0.2, 0.7)
+        matching = decoder.matcher.get_matcher()
+        assert matching.stabiliser_graph.distance(0, 0) == 0
+        distance_matrix = np.array(matching.stabiliser_graph.all_distances)
         n_vertices = int(np.product(code.size))
         assert distance_matrix.shape == (n_vertices, n_vertices)
 
@@ -191,10 +191,10 @@ class TestDeformedDecoder:
         print(f'{error_model.direction=}')
         error_rate = 0.1
         decoder = DeformedSweepMatchDecoder(code, error_model, error_rate)
-        assert decoder._matcher._error_model.direction == (0.4, 0.2, 0.4)
-        matching = decoder._matcher.get_matcher(code)
-        assert matching.stabilizer_graph.distance(0, 0) == 0
-        distance_matrix = np.array(matching.stabilizer_graph.all_distances)
+        assert decoder.matcher.error_model.direction == (0.4, 0.2, 0.4)
+        matching = decoder.matcher.get_matcher()
+        assert matching.stabiliser_graph.distance(0, 0) == 0
+        distance_matrix = np.array(matching.stabiliser_graph.all_distances)
         n_vertices = int(np.product(code.size))
         assert distance_matrix.shape == (n_vertices, n_vertices)
 
@@ -360,7 +360,7 @@ class TestFoliatedDecoderXNoiseOnYZEdgesOnly:
             rng = np.random.default_rng(seed=seed)
             error_rate = 0.5
             error_model = XNoiseOnYZEdgesOnly()
-            decoder = FoliatedMatchingDecoder()
+            decoder = FoliatedMatchingDecoder(code, error_model, error_rate)
             error = error_model.generate(
                 code, error_rate=error_rate, rng=rng
             )

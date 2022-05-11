@@ -72,7 +72,7 @@ class TestRunOnce:
 
     def test_run_once_invalid_probability(self, code, error_model):
         error_rate = -1
-        decoder = BeliefPropagationOSDDecoder(code, error_model, error_rate)
+        decoder = BeliefPropagationOSDDecoder(code, error_model, error_rate=0.5)
         with pytest.raises(ValueError):
             run_once(code, error_model, decoder, error_rate=error_rate)
 
@@ -179,11 +179,12 @@ def test_merge_results():
             'd': -1,
             'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
             'decoder': 'BP-OSD decoder',
-            'error_rate': 0.05
+            'probability': 0.05
         }
     }
 
     merged_results = merge_results_dicts(results_dicts)
+
     assert merged_results == expected_merged_results
 
 

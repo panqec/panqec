@@ -370,12 +370,15 @@ def _parse_all_ranges(data: dict) -> Tuple[list, list, list, list]:
             noise_range[-1]['parameters'] = params
 
     decoder_range: List[Dict] = [{}]
+    parameters = []
     if 'parameters' in data['decoder']:
-        params_range = _parse_parameters_range(data['decoder']['parameters'])
-        decoder_range = []
-        for params in params_range:
-            decoder_range.append(data['decoder'].copy())
-            decoder_range[-1]['parameters'] = params
+        parameters = data['decoder']['parameters']
+
+    params_range = _parse_parameters_range(parameters)
+    decoder_range = []
+    for params in params_range:
+        decoder_range.append(data['decoder'].copy())
+        decoder_range[-1]['parameters'] = params
 
     probability_range = _parse_parameters_range(data['probability'])
 
@@ -521,13 +524,25 @@ def get_simulations(
 ) -> List[dict]:
     simulations = []
 
-    (
-        code_range, noise_range, decoder_range, probability_range
-    ) = _parse_all_ranges(data['ranges'])
+    if 'ranges' in data:
+        (
+            code_range, noise_range, decoder_range, probability_range
+        ) = _parse_all_ranges(data['ranges'])
 
-    codes = [_parse_code_dict(code_dict) for code_dict in code_range]
-    error_models = [_parse_error_model_dict(noise_dict)
-                    for noise_dict in noise_range]
+        codes = [_parse_code_dict(code_dict) for code_dict in code_range]
+        error_models = [_parse_error_model_dict(noise_dict)
+                        for noise_dict in noise_range]
+
+    elif 'runs' in data:
+        codes = [_parse_code_dict(run['code']) for run in data['runs']]
+        decoder_range = [run['decoder'] for run in data['runs']]
+        error_models = [_parse_error_model_dict(run['noise'])
+                        for run in data['runs']]
+        probability_range = [run['probability'] for run in data['runs']]
+
+    else:
+        raise ValueError("Invalid data format: does not have 'runs'\
+                         or 'ranges' key")
 
     for (
         code, error_model, decoder_dict, error_rate
@@ -563,6 +578,7 @@ def read_input_dict(
     batch_sim = BatchSimulation(*args, **kwargs)
     assert len(batch_sim._simulations) == 0
 
+    print("data", data)
     simulations = get_simulations(data, start=start, n_runs=n_runs)
 
     for sim in simulations:

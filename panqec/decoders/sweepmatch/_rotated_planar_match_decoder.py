@@ -6,6 +6,7 @@ from typing import Dict
 from pymatching import Matching
 from panqec.codes import Toric3DCode
 from panqec.decoders import Toric3DMatchingDecoder
+from panqec.error_models import BaseErrorModel
 
 
 class RotatedPlanarMatchingDecoder(Toric3DMatchingDecoder):
@@ -18,10 +19,12 @@ class RotatedPlanarMatchingDecoder(Toric3DMatchingDecoder):
     _n_faces: Dict[str, int] = {}
     _n_qubits: Dict[str, int] = {}
 
-    def __init__(self, code: Toric3DCode, error_model, error_rate):
+    def __init__(self, code: Toric3DCode,
+                 error_model: BaseErrorModel,
+                 error_rate: float):
         super().__init__(code, error_model, error_rate)
 
-    def new_matcher(self):
+    def get_matcher(self):
         """Return a new Matching object."""
 
         return Matching(self.code.Hz)

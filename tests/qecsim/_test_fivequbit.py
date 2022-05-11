@@ -117,7 +117,7 @@ def test_run(five_qubit_code, pauli_noise_model, naive_decoder):
         'custom_totals',
         'decoder',
         'error_model',
-        'error_rate',
+        'probability',
         'error_weight_pvar',
         'error_weight_total',
         'logical_failure_rate',

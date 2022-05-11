@@ -15,6 +15,7 @@ class Toric2DMatchingDecoder(BaseDecoder):
                  error_model: BaseErrorModel,
                  error_rate: float):
         super().__init__(code, error_model, error_rate)
+
         self.matcher_z = Matching(self.code.Hz)
         self.matcher_x = Matching(self.code.Hx)
 

@@ -20,11 +20,10 @@ class Toric3DMatchingDecoder(BaseDecoder):
                  error_model: BaseErrorModel,
                  error_rate: float):
         super().__init__(code, error_model, error_rate)
-        print("llllll")
-        self.matcher = self.new_matcher()
-        print("ooo")
 
-    def new_matcher(self):
+        self.matcher = self.get_matcher()
+
+    def get_matcher(self):
         return Matching(self.code.Hz)
 
     def decode(self, syndrome: np.ndarray) -> np.ndarray:
