@@ -578,7 +578,6 @@ def read_input_dict(
     batch_sim = BatchSimulation(*args, **kwargs)
     assert len(batch_sim._simulations) == 0
 
-    print("data", data)
     simulations = get_simulations(data, start=start, n_runs=n_runs)
 
     for sim in simulations:
