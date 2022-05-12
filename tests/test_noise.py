@@ -178,7 +178,7 @@ class TestDeformedMatchingWeights:
 
     def test_one_error_rate_no_nan(self):
         L = 10
-        p_X, p_Y, p_Z = 1, 0, 0
+        p_X, p_Y, p_Z = 0.45, 0, 0
         weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
         assert np.all(weights != 0)
         assert np.all(~np.isnan(weights))
@@ -192,7 +192,7 @@ class TestDeformedMatchingWeights:
 
     def test_only_x_edges_different_weights(self):
         L = 10
-        p_X, p_Y, p_Z = 0.5, 0.1, 0
+        p_X, p_Y, p_Z = 0.3, 0.1, 0
         weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
         assert np.any(weights != weights[0])
         code = Toric3DCode(L, L, L)
