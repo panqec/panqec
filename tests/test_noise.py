@@ -151,13 +151,11 @@ class TestDeformedMatchingWeights:
     def get_deformed_weights(self, p_X, p_Y, p_Z, L):
         code = Toric3DCode(L, L, L)
         error_rate = p_X + p_Y + p_Z
-        print("Error rate now", error_rate)
         if error_rate != 0:
             r_x, r_y, r_z = p_X/error_rate, p_Y/error_rate, p_Z/error_rate
         else:
             r_x, r_y, r_z = 1/3, 1/3, 1/3
         error_model = DeformedXZZXErrorModel(r_x, r_y, r_z)
-        print("rx, ry, rz, p", r_x, r_y, r_z, error_rate)
         decoder = DeformedToric3DMatchingDecoder(code, error_model, error_rate)
         weights = decoder.get_deformed_weights()
         return weights
