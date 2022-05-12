@@ -20,18 +20,22 @@ def symplectic_to_pauli(H):
     n = H.shape[1] // 2
     m = H.shape[0]
 
-    new_H = bsparse.zero_matrix((m, n))
+    # new_H = bsparse.zero_matrix((m, n))
 
-    rows, cols = H.nonzero()
+    new_H = H[:, :n] + 4*H[:, n:]
+    new_H.data[new_H.data == 4] = 3
+    new_H.data[new_H.data == 5] = 2
 
-    for i in range(len(rows)):
-        if cols[i] < n:
-            new_H[rows[i], cols[i]] = PAULI_X
-        else:
-            if new_H[rows[i], cols[i] - n] == PAULI_X:
-                new_H[rows[i], cols[i] - n] = PAULI_Y
-            else:
-                new_H[rows[i], cols[i] - n] = PAULI_Z
+    # rows, cols = H.nonzero()
+
+    # for i in range(len(rows)):
+    #     if cols[i] < n:
+    #         new_H[rows[i], cols[i]] = PAULI_X
+    #     else:
+    #         if new_H[rows[i], cols[i] - n] == PAULI_X:
+    #             new_H[rows[i], cols[i] - n] = PAULI_Y
+    #         else:
+    #             new_H[rows[i], cols[i] - n] = PAULI_Z
 
     return new_H
 
@@ -98,8 +102,7 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
         self._decoder: Dict = dict()
 
         # Convert it to a matrix over GF(4), where each element is in [0,4]
-        self.H = code.stabilizer_matrix.toarray()
-        self.H_pauli = symplectic_to_pauli(code.stabilizer_matrix).toarray()
+        self.H_pauli = symplectic_to_pauli(code.stabilizer_matrix)
 
         pi, px, py, pz = self.get_probabilities()
         self.p_channel = np.vstack([pi, px, py, pz])
