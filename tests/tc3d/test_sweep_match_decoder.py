@@ -14,10 +14,10 @@ class TestSweepMatchDecoder:
         return Toric3DCode(3, 4, 5)
 
     @pytest.fixture
-    def decoder(self):
+    def decoder(self, code):
         error_model = PauliErrorModel(1/3, 1/3, 1/3)
-        probability = 0.5
-        return SweepMatchDecoder(error_model, probability)
+        error_rate = 0.5
+        return SweepMatchDecoder(code, error_model, error_rate)
 
     def test_decoder_has_required_attributes(self, decoder):
         assert decoder.label is not None
@@ -27,7 +27,7 @@ class TestSweepMatchDecoder:
         syndrome = np.zeros(
             shape=code.stabilizer_matrix.shape[0], dtype=np.uint
         )
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         assert correction.shape == (2*code.n,)
         assert np.all(bcommute(code.stabilizer_matrix, correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
@@ -50,7 +50,7 @@ class TestSweepMatchDecoder:
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
@@ -79,11 +79,11 @@ class TestSweepMatchDecoder:
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
-    def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
+    def test_decode_many_codes_and_errors_with_same_decoder(self):
 
         codes = [
             Toric3DCode(3, 4, 5),
@@ -97,11 +97,15 @@ class TestSweepMatchDecoder:
             (2, 2, 1)
         ]
 
+        error_model = PauliErrorModel(1/3, 1/3, 1/3)
+        error_rate = 0.5
+
         for code, site in itertools.product(codes, sites):
+            decoder = SweepMatchDecoder(code, error_model, error_rate)
             error = code.to_bsf({
                 site: 'Z'
             })
             syndrome = code.measure_syndrome(error)
-            correction = decoder.decode(code, syndrome)
+            correction = decoder.decode(syndrome)
             total_error = (error + correction) % 2
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)

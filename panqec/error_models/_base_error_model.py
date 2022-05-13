@@ -15,14 +15,14 @@ class BaseErrorModel(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def generate(self, code: StabilizerCode, probability: float, rng=None) -> np.ndarray:
+    def generate(self, code: StabilizerCode, error_rate: float, rng=None) -> np.ndarray:
         """Generate errors for a given code and probability of failure
 
         Parameters
         ----------
         code : StabilizerCode
             Errors will be generated on the qubits of the provided code
-        probability: float
+        error_rate: float
             Physical error rate
         rng: numpy.random.Generator
             Random number generator (default=None resolves to numpy.random.default_rng())
@@ -36,7 +36,7 @@ class BaseErrorModel(metaclass=ABCMeta):
 
     @abstractmethod
     def probability_distribution(
-        self, code: StabilizerCode, probability: float
+        self, code: StabilizerCode, error_rate: float
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Probability distribution of X, Y and Z errors on all the qubits of a code
         Can be used to generate errors and configure decoders
@@ -45,7 +45,7 @@ class BaseErrorModel(metaclass=ABCMeta):
         ----------
         code : StabilizerCode
             Code used for the error model
-        probability: float
+        error_rate: float
             Physical error rate
 
         Returns

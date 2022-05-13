@@ -2,7 +2,6 @@
 API for running simulations.
 """
 import os
-import inspect
 import json
 from json import JSONDecodeError
 import itertools
@@ -12,7 +11,7 @@ import numpy as np
 from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
 from panqec.error_models import BaseErrorModel
-from .bpauli import bcommute, get_effective_error
+from .bpauli import get_effective_error
 from .config import (
     CODES, ERROR_MODELS, DECODERS, PANQEC_DIR
 )
@@ -23,25 +22,25 @@ def run_once(
     code: StabilizerCode,
     error_model: BaseErrorModel,
     decoder: BaseDecoder,
-    error_probability: float,
+    error_rate: float,
     rng=None
 ) -> dict:
     """Run a simulation once and return the results as a dictionary."""
 
-    if not (0 <= error_probability <= 1):
-        raise ValueError('Error probability must be in [0, 1].')
+    if not (0 <= error_rate <= 1):
+        raise ValueError('Error rate must be in [0, 1].')
 
     if rng is None:
         rng = np.random.default_rng()
 
-    error = error_model.generate(code, probability=error_probability, rng=rng)
-    syndrome = bcommute(code.stabilizer_matrix, error)
-    correction = decoder.decode(code, syndrome)
+    error = error_model.generate(code, error_rate=error_rate, rng=rng)
+    syndrome = code.measure_syndrome(error)
+    correction = decoder.decode(syndrome)
     total_error = (correction + error) % 2
     effective_error = get_effective_error(
         total_error, code.logicals_x, code.logicals_z
     )
-    codespace = bool(np.all(bcommute(code.stabilizer_matrix, total_error) == 0))
+    codespace = code.in_codespace(total_error)
     success = bool(np.all(effective_error == 0)) and codespace
 
     results = {
@@ -75,8 +74,8 @@ def run_file(
             code = simulation.code.label
             noise = simulation.error_model.label
             decoder = simulation.decoder.label
-            probability = simulation.error_probability
-            print(f'    {code}, {noise}, {decoder}, {probability}')
+            error_rate = simulation.error_rate
+            print(f'    {code}, {noise}, {decoder}, {error_rate}')
     batch_sim.run(n_trials, progress=progress)
 
 
@@ -87,22 +86,25 @@ class Simulation:
     code: StabilizerCode
     error_model: BaseErrorModel
     decoder: BaseDecoder
-    error_probability: float
+    error_rate: float
     label: str
     _results: dict = {}
     rng = None
 
     def __init__(
-        self, code: StabilizerCode, error_model: BaseErrorModel, decoder: BaseDecoder,
-        probability: float, rng=None
+        self,
+        code: StabilizerCode,
+        error_model: BaseErrorModel,
+        decoder: BaseDecoder,
+        error_rate: float, rng=None
     ):
         self.code = code
         self.error_model = error_model
         self.decoder = decoder
-        self.error_probability = probability
+        self.error_rate = error_rate
         self.rng = rng
         self.label = '_'.join([
-            code.label, error_model.label, decoder.label, f'{probability}'
+            code.label, error_model.label, decoder.label, f'{error_rate}'
         ])
         self._results = {
             'effective_error': [],
@@ -121,7 +123,7 @@ class Simulation:
         for i_trial in range(repeats):
             shot = run_once(
                 self.code, self.error_model, self.decoder,
-                error_probability=self.error_probability,
+                error_rate=self.error_rate,
                 rng=self.rng
             )
             for key, value in shot.items():
@@ -186,7 +188,7 @@ class Simulation:
                     'd': self.code.d,
                     'error_model': self.error_model.label,
                     'decoder': self.decoder.label,
-                    'error_probability': self.error_probability,
+                    'probability': self.error_rate,
                 }
             }, f, cls=NumpyEncoder)
 
@@ -205,7 +207,7 @@ class Simulation:
             'k': self.code.k,
             'd': self.code.d,
             'error_model': self.error_model.label,
-            'probability': self.error_probability,
+            'probability': self.error_rate,
             'n_success': np.sum(success),
             'n_fail': n_fail,
             'n_trials': len(success),
@@ -244,6 +246,8 @@ class BatchSimulation():
         output_dir: Optional[str] = None,
     ):
         self._simulations = []
+        self.code = {}
+        self.decoder = {}
         self.update_frequency = update_frequency
         self.save_frequency = save_frequency
         self.label = label
@@ -294,7 +298,7 @@ class BatchSimulation():
         self.load_results()
 
         # Use the maximum remaining trials to overestimate how much is
-        # remaniing for purposes of reporting progress to give a conservative
+        # remaining for purposes of reporting progress to give a conservative
         # estimate of what is left without disappointing the user.
         max_remaining_trials = max([
             max(0, n_trials - simulation.n_results)
@@ -350,22 +354,34 @@ def _parse_parameters_range(parameters):
 
 
 def _parse_all_ranges(data: dict) -> Tuple[list, list, list, list]:
-
-    code_range: List[Dict] = [{}]
     if 'parameters' in data['code']:
-        code_range = _parse_parameters_range(data['code']['parameters'])
+        params_range = _parse_parameters_range(data['code']['parameters'])
+        code_range = []
+        for params in params_range:
+            code_range.append(data['code'].copy())
+            code_range[-1]['parameters'] = params
 
     noise_range: List[Dict] = [{}]
     if 'parameters' in data['noise']:
-        noise_range = _parse_parameters_range(data['noise']['parameters'])
+        params_range = _parse_parameters_range(data['noise']['parameters'])
+        noise_range = []
+        for params in params_range:
+            noise_range.append(data['noise'].copy())
+            noise_range[-1]['parameters'] = params
 
     decoder_range: List[Dict] = [{}]
+    parameters = []
     if 'parameters' in data['decoder']:
-        decoder_range = _parse_parameters_range(
-            data['decoder']['parameters']
-        )
+        parameters = data['decoder']['parameters']
+
+    params_range = _parse_parameters_range(parameters)
+    decoder_range = []
+    for params in params_range:
+        decoder_range.append(data['decoder'].copy())
+        decoder_range[-1]['parameters'] = params
 
     probability_range = _parse_parameters_range(data['probability'])
+
     return code_range, noise_range, decoder_range, probability_range
 
 
@@ -389,10 +405,11 @@ def expand_input_ranges(data: dict) -> List[Dict]:
             run[key] = {
                 k: v for k, v in data[key].items() if k != 'parameters'
             }
-        run['code']['parameters'] = code_param
-        run['noise']['parameters'] = noise_param
-        run['decoder']['parameters'] = decoder_param
+        run['code']['parameters'] = code_param['parameters']
+        run['noise']['parameters'] = noise_param['parameters']
+        run['decoder']['parameters'] = decoder_param['parameters']
         run['probability'] = probability
+
         runs.append(run)
 
     return runs
@@ -426,8 +443,9 @@ def _parse_error_model_dict(noise_dict: Dict[str, Any]) -> BaseErrorModel:
 
 def _parse_decoder_dict(
     decoder_dict: Dict[str, Any],
+    code: StabilizerCode,
     error_model: BaseErrorModel,
-    probability: float
+    error_rate: float
 ) -> BaseDecoder:
     decoder_name = decoder_dict['model']
     decoder_class = DECODERS[decoder_name]
@@ -437,12 +455,10 @@ def _parse_decoder_dict(
     else:
         decoder_params = {}
 
-    signature = inspect.signature(decoder_class)
+    decoder_params['code'] = code
+    decoder_params['error_model'] = error_model
+    decoder_params['error_rate'] = error_rate
 
-    if 'error_model' in signature.parameters.keys():
-        decoder_params['error_model'] = error_model
-    if 'probability' in signature.parameters.keys():
-        decoder_params['probability'] = probability
     filtered_decoder_params = filter_legacy_params(decoder_params)
     decoder = decoder_class(**filtered_decoder_params)
     return decoder
@@ -452,10 +468,10 @@ def parse_run(run: Dict[str, Any]) -> Simulation:
     """Parse a single dict describing the run."""
     code = _parse_code_dict(run['code'])
     error_model = _parse_error_model_dict(run['noise'])
-    probability = run['probability']
-    decoder = _parse_decoder_dict(run['decoder'], error_model, probability)
+    error_rate = run['probability']
+    decoder = _parse_decoder_dict(run['decoder'], code, error_model, error_rate)
 
-    simulation = Simulation(code, error_model, decoder, probability)
+    simulation = Simulation(code, error_model, decoder, error_rate)
     return simulation
 
 
@@ -474,6 +490,7 @@ def get_runs(
     data: dict, start: Optional[int] = None, n_runs: Optional[int] = None
 ) -> List[dict]:
     """Get expanded runs from input dictionary."""
+
     runs = []
     if 'runs' in data:
         runs = data['runs']
@@ -502,6 +519,49 @@ def count_runs(file_path: str) -> Optional[int]:
     return n_runs
 
 
+def get_simulations(
+    data: dict, start: Optional[int] = None, n_runs: Optional[int] = None
+) -> List[dict]:
+    simulations = []
+
+    if 'ranges' in data:
+        (
+            code_range, noise_range, decoder_range, probability_range
+        ) = _parse_all_ranges(data['ranges'])
+
+        codes = [_parse_code_dict(code_dict) for code_dict in code_range]
+        error_models = [_parse_error_model_dict(noise_dict)
+                        for noise_dict in noise_range]
+
+    elif 'runs' in data:
+        codes = [_parse_code_dict(run['code']) for run in data['runs']]
+        decoder_range = [run['decoder'] for run in data['runs']]
+        error_models = [_parse_error_model_dict(run['noise'])
+                        for run in data['runs']]
+        probability_range = [run['probability'] for run in data['runs']]
+
+    else:
+        raise ValueError("Invalid data format: does not have 'runs'\
+                         or 'ranges' key")
+
+    for (
+        code, error_model, decoder_dict, error_rate
+    ) in itertools.product(codes,
+                           error_models,
+                           decoder_range,
+                           probability_range):
+        decoder = _parse_decoder_dict(decoder_dict, code, error_model,
+                                      error_rate)
+        simulations.append(Simulation(code, error_model, decoder, error_rate))
+
+    if start is not None:
+        simulations = simulations[start:]
+    if n_runs is not None:
+        simulations = simulations[:n_runs]
+
+    return simulations
+
+
 def read_input_dict(
     data: dict,
     start: Optional[int] = None,
@@ -518,10 +578,10 @@ def read_input_dict(
     batch_sim = BatchSimulation(*args, **kwargs)
     assert len(batch_sim._simulations) == 0
 
-    runs = get_runs(data, start=start, n_runs=n_runs)
+    simulations = get_simulations(data, start=start, n_runs=n_runs)
 
-    for single_run in runs:
-        batch_sim.append(parse_run(single_run))
+    for sim in simulations:
+        batch_sim.append(sim)
 
     return batch_sim
 

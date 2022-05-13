@@ -3,21 +3,21 @@ import pytest
 import numpy as np
 from panqec.bpauli import bcommute, bsf_wt
 from panqec.codes import Toric3DCode
-from panqec.decoders import Toric3DPymatchingDecoder
+from panqec.decoders import Toric3DMatchingDecoder
 from panqec.error_models import PauliErrorModel
 
 
-class TestToric3DPymatchingDecoder:
+class TestToric3DMatchingDecoder:
 
     @pytest.fixture
     def code(self):
         return Toric3DCode(3, 4, 5)
 
     @pytest.fixture
-    def decoder(self):
+    def decoder(self, code):
         error_model = PauliErrorModel(1/3, 1/3, 1/3)
-        probability = 0.1
-        return Toric3DPymatchingDecoder(error_model, probability)
+        error_rate = 0.1
+        return Toric3DMatchingDecoder(code, error_model, error_rate)
 
     def test_decoder_has_required_attributes(self, decoder):
         assert decoder.label is not None
@@ -27,7 +27,7 @@ class TestToric3DPymatchingDecoder:
         syndrome = np.zeros(
             shape=code.stabilizer_matrix.shape[0], dtype=np.uint
         )
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         assert correction.shape[0] == 2*code.n
         assert np.all(bcommute(code.stabilizer_matrix, correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
@@ -42,7 +42,7 @@ class TestToric3DPymatchingDecoder:
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
 
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
@@ -58,7 +58,7 @@ class TestToric3DPymatchingDecoder:
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
@@ -72,7 +72,7 @@ class TestToric3DPymatchingDecoder:
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         assert np.all(correction == 0)
 
         total_error = (error + correction) % 2
@@ -80,7 +80,7 @@ class TestToric3DPymatchingDecoder:
 
         assert np.any(bcommute(code.stabilizer_matrix, total_error) != 0)
 
-    def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
+    def test_decode_many_codes_and_errors_with_same_decoder(self):
 
         codes = [
             Toric3DCode(3, 4, 5),
@@ -93,12 +93,16 @@ class TestToric3DPymatchingDecoder:
             (1, 0, 0),
             (0, 1, 0)
         ]
+        
+        error_model = PauliErrorModel(1/3, 1/3, 1/3)
+        error_rate = 0.1
 
         for code, site in itertools.product(codes, sites):
+            decoder = Toric3DMatchingDecoder(code, error_model, error_rate)
             error = code.to_bsf({
                 site: 'X',
             })
             syndrome = code.measure_syndrome(error)
-            correction = decoder.decode(code, syndrome)
+            correction = decoder.decode(syndrome)
             total_error = (error + correction) % 2
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)

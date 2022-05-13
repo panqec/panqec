@@ -3,7 +3,7 @@ import pytest
 from panqec.bpauli import bsf_to_pauli, bsf_wt
 from panqec.error_models import PauliErrorModel, DeformedXZZXErrorModel
 from panqec.codes import Toric3DCode
-from panqec.decoders import DeformedToric3DPymatchingDecoder
+from panqec.decoders import DeformedToric3DMatchingDecoder
 from panqec.bsparse import to_array
 from panqec.utils import get_direction_from_bias_ratio
 
@@ -26,50 +26,50 @@ class TestPauliNoise:
         assert error_model.label == 'Pauli X0.2000Y0.3000Z0.5000'
 
     def test_generate(self, code, error_model):
-        probability = 0.1
+        error_rate = 0.1
         error = to_array(
-            error_model.generate(code, probability, rng=np.random)
+            error_model.generate(code, error_rate, rng=np.random)
         )
         assert np.any(error != 0), 'Error should be non-trivial'
         assert error.shape == (2*code.n, ), 'Shape incorrect'
 
     def test_probability_zero(self, code, error_model):
-        probability = 0
+        error_rate = 0
         error = to_array(
-            error_model.generate(code, probability, rng=np.random)
+            error_model.generate(code, error_rate, rng=np.random)
         )
         assert np.all(error == 0), 'Should have no error'
 
     def test_probability_one(self, code, error_model):
-        probability = 1
-        error = error_model.generate(code, probability, rng=np.random)
+        error_rate = 1
+        error = error_model.generate(code, error_rate, rng=np.random)
 
         # Error everywhere so weight is number of qubits.
         assert bsf_wt(error) == code.n, 'Should be error everywhere'
 
     def test_generate_all_X_errors(self, code):
-        probability = 1
+        error_rate = 1
         direction = (1, 0, 0)
         error_model = PauliErrorModel(*direction)
-        error = error_model.generate(code, probability, rng=np.random)
+        error = error_model.generate(code, error_rate, rng=np.random)
         assert bsf_to_pauli(error) == 'X'*code.n, (
             'Should be X error everywhere'
         )
 
     def test_generate_all_Y_errors(self, code):
-        probability = 1
+        error_rate = 1
         direction = (0, 1, 0)
         error_model = PauliErrorModel(*direction)
-        error = error_model.generate(code, probability, rng=np.random)
+        error = error_model.generate(code, error_rate, rng=np.random)
         assert bsf_to_pauli(error) == 'Y'*code.n, (
             'Should be Y error everywhere'
         )
 
     def test_generate_all_Z_errors(self, code):
-        probability = 1
+        error_rate = 1
         direction = (0, 0, 1)
         error_model = PauliErrorModel(*direction)
-        error = error_model.generate(code, probability, rng=np.random)
+        error = error_model.generate(code, error_rate, rng=np.random)
         assert bsf_to_pauli(error) == 'Z'*code.n, (
             'Should be Z error everywhere'
         )
@@ -83,13 +83,13 @@ class TestGeneratePauliNoise:
 
     def generate_pauli_noise(self, p_X, p_Y, p_Z, L):
         code = Toric3DCode(L, L, L)
-        probability = p_X + p_Y + p_Z
-        if probability != 0:
-            r_x, r_y, r_z = p_X/probability, p_Y/probability, p_Z/probability
+        error_rate = p_X + p_Y + p_Z
+        if error_rate != 0:
+            r_x, r_y, r_z = p_X/error_rate, p_Y/error_rate, p_Z/error_rate
         else:
             r_x, r_y, r_z = 1/3, 1/3, 1/3
         error_model = PauliErrorModel(r_x, r_y, r_z)
-        noise = error_model.generate(code, probability)
+        noise = error_model.generate(code, error_rate)
         return noise
 
     @pytest.fixture(autouse=True)
@@ -150,14 +150,14 @@ class TestDeformedMatchingWeights:
 
     def get_deformed_weights(self, p_X, p_Y, p_Z, L):
         code = Toric3DCode(L, L, L)
-        probability = p_X + p_Y + p_Z
-        if probability != 0:
-            r_x, r_y, r_z = p_X/probability, p_Y/probability, p_Z/probability
+        error_rate = p_X + p_Y + p_Z
+        if error_rate != 0:
+            r_x, r_y, r_z = p_X/error_rate, p_Y/error_rate, p_Z/error_rate
         else:
             r_x, r_y, r_z = 1/3, 1/3, 1/3
         error_model = DeformedXZZXErrorModel(r_x, r_y, r_z)
-        decoder = DeformedToric3DPymatchingDecoder(error_model, probability)
-        weights = decoder.get_deformed_weights(code)
+        decoder = DeformedToric3DMatchingDecoder(code, error_model, error_rate)
+        weights = decoder.get_deformed_weights()
         return weights
 
     def test_if_equal_rates_then_equal_weights(self):
@@ -176,7 +176,7 @@ class TestDeformedMatchingWeights:
 
     def test_one_error_rate_no_nan(self):
         L = 10
-        p_X, p_Y, p_Z = 1, 0, 0
+        p_X, p_Y, p_Z = 0.45, 0, 0
         weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
         assert np.all(weights != 0)
         assert np.all(~np.isnan(weights))
@@ -190,7 +190,7 @@ class TestDeformedMatchingWeights:
 
     def test_only_x_edges_different_weights(self):
         L = 10
-        p_X, p_Y, p_Z = 0.5, 0.1, 0
+        p_X, p_Y, p_Z = 0.3, 0.1, 0
         weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
         assert np.any(weights != weights[0])
         code = Toric3DCode(L, L, L)

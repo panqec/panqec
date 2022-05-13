@@ -25,15 +25,15 @@ class DeformedRandomErrorModel(PauliErrorModel):
         )
 
     def probability_distribution(
-        self, code: StabilizerCode, probability: float
+        self, code: StabilizerCode, error_rate: float
     ) -> Tuple:
         r_x, r_y, r_z = self.direction
         deformations = self._get_deformations(code)
 
-        p_i = np.array([1 - probability for _ in range(code.n)])
-        p_x = probability * r_x * np.ones(code.n)
-        p_y = probability * r_y * np.ones(code.n)
-        p_z = probability * r_z * np.ones(code.n)
+        p_i = np.array([1 - error_rate for _ in range(code.n)])
+        p_x = error_rate * r_x * np.ones(code.n)
+        p_y = error_rate * r_y * np.ones(code.n)
+        p_z = error_rate * r_z * np.ones(code.n)
 
         xz_idx = (deformations == self.XZ)
         yz_idx = (deformations == self.YZ)

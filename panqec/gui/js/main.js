@@ -15,6 +15,7 @@ const params = {
     decoder: 'BP-OSD',
     max_bp_iter: 10,
     alpha: 0.4,
+    beta: 0,
     channel_update: false,
     errorModel: 'Depolarizing',
     codeName: defaultCode,
@@ -256,6 +257,7 @@ async function buildGUI() {
     decoderFolder.add(params, 'max_bp_iter', 1, 100, 1).name('Max iterations (BP)');
     decoderFolder.add(params, 'channel_update').name('Channel update (BP)');
     decoderFolder.add(params, 'alpha', 0.01, 2, 0.01).name('Alpha (MBP)');
+    decoderFolder.add(params, 'beta', 0, 2, 0.01).name('Beta (MBP)');
     decoderFolder.add(buttons, 'decode').name("▶ Decode (d)");
     decoderFolder.open();
 }
@@ -372,6 +374,7 @@ async function getCorrection(syndrome) {
             'p': params.errorProbability,
             'max_bp_iter': params.max_bp_iter,
             'alpha': params.alpha,
+            'beta': params.beta,
             'channel_update': params.channel_update,
             'syndrome': syndrome,
             'noise_deformation': params.noise_deformation,

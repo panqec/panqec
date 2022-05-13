@@ -91,7 +91,7 @@ def test_decoder(five_qubit_code, pauli_noise_model, naive_decoder):
     assert np.any(syndrome == 1)
     assert syndrome.shape == (code.stabilizer_matrix.shape[0], )
 
-    correction = decoder.decode(code, syndrome)
+    correction = decoder.decode(syndrome)
     assert bsf_to_pauli(correction) == 'IXIII'
 
     assert correction.shape == (10, )
@@ -106,9 +106,9 @@ def test_run(five_qubit_code, pauli_noise_model, naive_decoder):
     code = five_qubit_code
     error_model = pauli_noise_model
     decoder = naive_decoder
-    error_probability = 0.4
+    error_rate = 0.4
     results = run(
-        code, error_model, decoder, error_probability, max_runs=None,
+        code, error_model, decoder, error_rate, max_runs=None,
         max_failures=None, random_seed=0
     )
     assert type(results) is dict
@@ -117,11 +117,11 @@ def test_run(five_qubit_code, pauli_noise_model, naive_decoder):
         'custom_totals',
         'decoder',
         'error_model',
-        'error_probability',
+        'probability',
         'error_weight_pvar',
         'error_weight_total',
         'logical_failure_rate',
-        'measurement_error_probability',
+        'measurement_error_rate',
         'n_fail',
         'n',
         'k',

@@ -16,10 +16,11 @@ class TestRotatedSweepMatchDecoder:
         return RotatedPlanar3DCode(4, 4, 4)
 
     @pytest.fixture
-    def decoder(self):
+    def decoder(self, code):
         error_model = PauliErrorModel(1/3, 1/3, 1/3)
-        probability = 0.5
-        return RotatedSweepMatchDecoder(error_model, probability, max_rounds=4)
+        error_rate = 0.5
+        return RotatedSweepMatchDecoder(code, error_model, error_rate,
+                                        max_rounds=4)
 
     def test_decoder_has_required_attributes(self, decoder):
         assert decoder.label is not None
@@ -29,7 +30,7 @@ class TestRotatedSweepMatchDecoder:
         syndrome = np.zeros(
             shape=code.stabilizer_matrix.shape[0], dtype=np.uint
         )
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         assert correction.shape[0] == 2*code.n
         assert np.all(bcommute(code.stabilizer_matrix, correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
@@ -53,7 +54,7 @@ class TestRotatedSweepMatchDecoder:
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
@@ -67,14 +68,14 @@ class TestRotatedSweepMatchDecoder:
         [(0, -1, +1), [(-1, -1, +1), (+1, -1, +1), (0, -2, 0)]],
         [(0, -1, -1), [(-1, -1, -1), (+1, -1, -1), (0, -2, 0)]],
     ])
-    def test_get_sweep_faces(self, sweep_direction, diffs, decoder, code):
+    def test_get_sweep_faces(self, sweep_direction, diffs, decoder):
         vertex = (0, 0, 0)
         expected_x_face, expected_y_face, expected_z_face = [
             tuple(np.array(vertex) + np.array(diff))
             for diff in diffs
         ]
-        x_face, y_face, z_face = decoder._sweeper.get_sweep_faces(
-            vertex, sweep_direction, code
+        x_face, y_face, z_face = decoder.sweeper.get_sweep_faces(
+            vertex, sweep_direction
         )
         assert x_face == expected_x_face
         assert y_face == expected_y_face
@@ -90,14 +91,14 @@ class TestRotatedSweepMatchDecoder:
         [(0, -1, +1), [(+1, -1, 0), (-1, -1, 0), (0, 0, +1)]],
         [(0, -1, -1), [(+1, -1, 0), (-1, -1, 0), (0, 0, -1)]],
     ])
-    def test_get_sweep_edges(self, sweep_direction, diffs, decoder, code):
+    def test_get_sweep_edges(self, sweep_direction, diffs, decoder):
         vertex = (0, 0, 0)
         expected_x_edge, expected_y_edge, expected_z_edge = [
             tuple(np.array(vertex) + np.array(diff))
             for diff in diffs
         ]
-        x_edge, y_edge, z_edge = decoder._sweeper.get_sweep_edges(
-            vertex, sweep_direction, code
+        x_edge, y_edge, z_edge = decoder.sweeper.get_sweep_edges(
+            vertex, sweep_direction
         )
         assert x_edge == expected_x_edge
         assert y_edge == expected_y_edge
@@ -138,7 +139,7 @@ class TestRotatedSweepMatchDecoder:
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
@@ -156,22 +157,27 @@ class TestRotatedSweepMatchDecoder:
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
         assert np.any(total_error)
 
-    def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
+    def test_decode_many_codes_and_errors_with_same_decoder(self):
 
         codes_sites = [
             (RotatedPlanar3DCode(3, 3, 3), (3, 3, 3)),
             (RotatedPlanar3DCode(4, 4, 4), (5, 5, 5)),
             (RotatedPlanar3DCode(5, 5, 5), (3, 3, 3)),
         ]
+        
+        error_model = PauliErrorModel(1/3, 1/3, 1/3)
+        error_rate = 0.5
 
         for code, site in codes_sites:
+            decoder = RotatedSweepMatchDecoder(code, error_model, error_rate,
+                                               max_rounds=4)
             error = code.to_bsf({site: 'Z'})
             syndrome = code.measure_syndrome(error)
-            correction = decoder.decode(code, syndrome)
+            correction = decoder.decode(syndrome)
             total_error = (error + correction) % 2
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
@@ -184,10 +190,10 @@ class TestSweepMatch3x3x3:
         return RotatedPlanar3DCode(3, 3, 3)
 
     @pytest.fixture
-    def decoder(self):
+    def decoder(self, code):
         error_model = PauliErrorModel(1/3, 1/3, 1/3)
-        probability = 0.5
-        return RotatedSweepMatchDecoder(error_model, probability)
+        error_rate = 0.5
+        return RotatedSweepMatchDecoder(code, error_model, error_rate)
 
     @pytest.mark.parametrize('locations', [
         [('Z', (1, 1, 1)), ('Z', (3, 3, 1)), ('Z', (5, 5, 1))],
@@ -208,7 +214,7 @@ class TestSweepMatch3x3x3:
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
         assert not np.all(
             bcommute(code.stabilizer_matrix, total_error) == 0
@@ -223,10 +229,11 @@ class TestSweepMatch4x4x3:
         return RotatedPlanar3DCode(5, 5, 5)
 
     @pytest.fixture
-    def decoder(self):
+    def decoder(self, code):
         error_model = PauliErrorModel(1/3, 1/3, 1/3)
-        probability = 0.5
-        return RotatedSweepMatchDecoder(error_model, probability, max_rounds=4)
+        error_rate = 0.5
+        return RotatedSweepMatchDecoder(code, error_model, error_rate,
+                                        max_rounds=4)
 
     @pytest.mark.parametrize('locations', [
         [
@@ -266,7 +273,7 @@ class TestSweepMatch4x4x3:
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
             'Total error not in codespace'
@@ -307,7 +314,7 @@ class TestSweepMatch4x4x3:
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
         assert not np.all(
             bcommute(code.stabilizer_matrix, total_error) == 0
@@ -322,10 +329,10 @@ class TestSweepCorners:
         return RotatedPlanar3DCode(5, 5, 3)
 
     @pytest.fixture
-    def decoder(self):
+    def decoder(self, code):
         error_model = PauliErrorModel(1/3, 1/3, 1/3)
-        probability = 0.5
-        return RotatedSweepMatchDecoder(error_model, probability)
+        error_rate = 0.5
+        return RotatedSweepMatchDecoder(code, error_model, error_rate)
 
     @pytest.mark.parametrize('location', [
         (1, 3, 5),
@@ -343,7 +350,7 @@ class TestSweepCorners:
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
             'Total error not in codespace'
@@ -368,7 +375,7 @@ class TestSweepCorners:
             syndrome = code.measure_syndrome(error)
             assert np.any(syndrome != 0)
 
-            correction = decoder.decode(code, syndrome)
+            correction = decoder.decode(syndrome)
             total_error = (error + correction) % 2
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
@@ -401,7 +408,7 @@ class TestSweepCorners:
             syndrome = code.measure_syndrome(error)
             assert np.any(syndrome != 0)
 
-            correction = decoder.decode(code, syndrome)
+            correction = decoder.decode(syndrome)
             total_error = (error + correction) % 2
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
@@ -426,10 +433,10 @@ class TestRotatedSweepDecoder3D:
         return RotatedPlanar3DCode(3, 3, 3)
 
     @pytest.fixture
-    def decoder(self):
+    def decoder(self, code):
         error_model = PauliErrorModel(1/3, 1/3, 1/3)
-        probability = 0.5
-        return RotatedSweepDecoder3D(error_model, probability)
+        error_rate = 0.5
+        return RotatedSweepDecoder3D(code, error_model, error_rate)
 
     @pytest.mark.parametrize(
         'vertex,sweep_direction,sweep_faces,sweep_edges',
@@ -449,10 +456,10 @@ class TestRotatedSweepDecoder3D:
         sweep_direction = (1, 0, -1)
         assert code.stabilizer_type(vertex) == 'vertex'
         x_face, y_face, z_face = decoder.get_sweep_faces(
-            vertex, sweep_direction, code
+            vertex, sweep_direction
         )
         x_edge, y_edge, z_edge = decoder.get_sweep_edges(
-            vertex, sweep_direction, code
+            vertex, sweep_direction
         )
         assert [x_face, y_face, z_face] == sweep_faces
         assert [x_edge, y_edge, z_edge] == sweep_edges
@@ -479,10 +486,10 @@ class TestRotatedSweepDecoder3D:
         for sweep_direction in sweep_directions:
             for vertex in vertices:
                 x_face, y_face, z_face = decoder.get_sweep_faces(
-                    vertex, sweep_direction, code
+                    vertex, sweep_direction
                 )
                 x_edge, y_edge, z_edge = decoder.get_sweep_edges(
-                    vertex, sweep_direction, code
+                    vertex, sweep_direction
                 )
 
                 faces_valid = tuple(
@@ -538,10 +545,9 @@ class TestRotatedSweepDecoder3D:
                 if code.stabilizer_type(location) == 'face'
             }
             signs = decoder.get_initial_state(
-                code,
                 np.zeros(code.stabilizer_matrix.shape[0], dtype=np.uint)
             )
-            decoder.flip_edge(edge, signs, code)
+            decoder.flip_edge(edge, signs)
             sign_flip_syndrome = signs
 
             error = code.to_bsf({

@@ -251,8 +251,8 @@ class TestBPOSDOnRotatedToric3DCodeOddTimesEven:
     def test_decode_single_qubit_error_bposd(self, pauli):
         code = RotatedToric3DCode(3, 4, 3)
         error_model = DeformedXZZXErrorModel(1/3, 1/3, 1/3)
-        probability = 0.1
-        decoder = BeliefPropagationOSDDecoder(error_model, probability)
+        error_rate = 0.1
+        decoder = BeliefPropagationOSDDecoder(code, error_model, error_rate)
 
         failing_cases: List[Tuple[int, int, int]] = []
         for site in code.qubit_coordinates:
@@ -260,7 +260,7 @@ class TestBPOSDOnRotatedToric3DCodeOddTimesEven:
             error_pauli[site] = pauli
             error = code.to_bsf(error_pauli)
             syndrome = bcommute(code.stabilizer_matrix, error)
-            correction = decoder.decode(code, syndrome)
+            correction = decoder.decode(syndrome)
             total_error = (error + correction) % 2
             if not np.all(bcommute(code.stabilizer_matrix, total_error) == 0):
                 failing_cases.append(site)

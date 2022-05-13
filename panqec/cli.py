@@ -6,7 +6,7 @@ from tqdm import tqdm
 import numpy as np
 import json
 from json.decoder import JSONDecodeError
-from .app import run_file, merge_results_dicts
+from .simulation import run_file, merge_results_dicts
 from .config import CODES, ERROR_MODELS, DECODERS, PANQEC_DIR, BASE_DIR
 from .slurm import (
     generate_sbatch, get_status, generate_sbatch_nist, count_input_runs,

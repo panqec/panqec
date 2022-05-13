@@ -5,7 +5,7 @@ import numpy as np
 from panqec.error_models import PauliErrorModel
 from panqec.codes import Toric2DCode
 from panqec.decoders import BeliefPropagationOSDDecoder
-from panqec.app import (
+from panqec.simulation import (
     read_input_json, run_once, Simulation, expand_input_ranges, run_file,
     merge_results_dicts, filter_legacy_params
 )
@@ -36,7 +36,7 @@ def test_read_json_input(file_name, expected_runs):
         {
             'code': list(s.code.size),
             'noise': s.error_model.direction,
-            'probability': s.error_probability
+            'probability': s.error_rate
         }
         for s in batch_simulation._simulations
     ]
@@ -56,10 +56,10 @@ class TestRunOnce:
         return PauliErrorModel(1/3, 1/3, 1/3)
 
     def test_run_once(self, required_fields, code, error_model):
-        probability = 0.5
-        decoder = BeliefPropagationOSDDecoder(error_model, probability)
+        error_rate = 0.5
+        decoder = BeliefPropagationOSDDecoder(code, error_model, error_rate)
         results = run_once(
-            code, error_model, decoder, error_probability=probability
+            code, error_model, decoder, error_rate=error_rate
         )
         assert set(required_fields).issubset(results.keys())
         assert results['error'].shape == (2*code.n,)
@@ -71,23 +71,23 @@ class TestRunOnce:
         assert isinstance(results['codespace'], bool)
 
     def test_run_once_invalid_probability(self, code, error_model):
-        probability = -1
-        decoder = BeliefPropagationOSDDecoder(error_model, probability)
+        error_rate = -1
+        decoder = BeliefPropagationOSDDecoder(code, error_model, error_rate=0.5)
         with pytest.raises(ValueError):
-            run_once(code, error_model, decoder, error_probability=probability)
+            run_once(code, error_model, decoder, error_rate=error_rate)
 
 
 class TestSimulationToric2DCode():
 
-    probability = 0.5
+    error_rate = 0.5
 
     @pytest.fixture
     def code(self):
         return Toric2DCode(3, 3)
 
     @pytest.fixture
-    def decoder(self, error_model):
-        return BeliefPropagationOSDDecoder(error_model, self.probability)
+    def decoder(self, code, error_model):
+        return BeliefPropagationOSDDecoder(code, error_model, self.error_rate)
 
     @pytest.fixture
     def error_model(self):
@@ -95,8 +95,8 @@ class TestSimulationToric2DCode():
         return PauliErrorModel(*direction)
 
     def test_run(self, code, error_model, decoder, required_fields):
-        probability = 0.5
-        simulation = Simulation(code, error_model, decoder, probability)
+        error_rate = 0.5
+        simulation = Simulation(code, error_model, decoder, error_rate)
         simulation.run(10)
         assert len(simulation._results['success']) == 10
         assert set(required_fields).issubset(simulation._results.keys())
@@ -142,7 +142,7 @@ def test_merge_results():
                 'd': -1,
                 'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
                 'decoder': 'BP-OSD decoder',
-                'error_probability': 0.05
+                'probability': 0.05
             }
         },
         {
@@ -160,7 +160,7 @@ def test_merge_results():
                 'd': -1,
                 'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
                 'decoder': 'BP-OSD decoder',
-                'error_probability': 0.05
+                'probability': 0.05
             }
         }
     ]
@@ -179,11 +179,12 @@ def test_merge_results():
             'd': -1,
             'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
             'decoder': 'BP-OSD decoder',
-            'error_probability': 0.05
+            'probability': 0.05
         }
     }
 
     merged_results = merge_results_dicts(results_dicts)
+
     assert merged_results == expected_merged_results
 
 
