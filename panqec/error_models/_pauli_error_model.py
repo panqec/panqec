@@ -45,10 +45,10 @@ class PauliErrorModel(BaseErrorModel):
     def label(self):
         return 'Pauli X{:.4f}Y{:.4f}Z{:.4f}'.format(*self.direction)
 
-    def generate(self, code: StabilizerCode, probability: float, rng=None):
+    def generate(self, code: StabilizerCode, error_rate: float, rng=None):
         rng = np.random.default_rng() if rng is None else rng
 
-        p_i, p_x, p_y, p_z = self.probability_distribution(code, probability)
+        p_i, p_x, p_y, p_z = self.probability_distribution(code, error_rate)
 
         error_pauli = ''.join([rng.choice(
             ('I', 'X', 'Y', 'Z'),
@@ -61,15 +61,15 @@ class PauliErrorModel(BaseErrorModel):
 
     @functools.lru_cache()
     def probability_distribution(
-        self, code: StabilizerCode, probability: float
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        self, code: StabilizerCode, error_rate: float
+    ) -> Tuple:
         n = code.n
         r_x, r_y, r_z = self.direction
 
-        p_i = (1 - probability) * np.ones(n)
-        p_x = (r_x * probability) * np.ones(n)
-        p_y = (r_y * probability) * np.ones(n)
-        p_z = (r_z * probability) * np.ones(n)
+        p_i = (1 - error_rate) * np.ones(n)
+        p_x = (r_x * error_rate) * np.ones(n)
+        p_y = (r_y * error_rate) * np.ones(n)
+        p_z = (r_z * error_rate) * np.ones(n)
 
         return p_i, p_x, p_y, p_z
 

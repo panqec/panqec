@@ -44,10 +44,10 @@ class TestRotatedInfiniteZBiasDecoder:
         return RotatedPlanar3DCode(5, 5, 3)
 
     @pytest.fixture
-    def decoder(self):
+    def decoder(self, code):
         error_model = PauliErrorModel(0, 0, 1)
-        probability = 0.5
-        return RotatedInfiniteZBiasDecoder(error_model, probability)
+        error_rate = 0.5
+        return RotatedInfiniteZBiasDecoder(code, error_model, error_rate)
 
     @pytest.mark.parametrize('location', [
         (1, 3, 5),
@@ -65,7 +65,7 @@ class TestRotatedInfiniteZBiasDecoder:
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
             'Total error not in codespace'
@@ -103,7 +103,7 @@ class TestRotatedInfiniteZBiasDecoder:
             syndrome = code.measure_syndrome(error)
             assert np.any(syndrome != 0)
 
-            correction = decoder.decode(code, syndrome)
+            correction = decoder.decode(syndrome)
             total_error = (error + correction) % 2
 
             assert np.all(
@@ -147,7 +147,7 @@ class TestRotatedInfiniteZBiasDecoder:
             syndrome = code.measure_syndrome(error)
             assert np.any(syndrome != 0)
 
-            correction = decoder.decode(code, syndrome)
+            correction = decoder.decode(syndrome)
             total_error = (error + correction) % 2
 
             decodable = True

@@ -21,17 +21,17 @@ class DeformedXYErrorModel(PauliErrorModel):
 
     @functools.lru_cache()
     def probability_distribution(
-        self, code: StabilizerCode, probability: float
+        self, code: StabilizerCode, error_rate: float
     ) -> Tuple:
         r_x, r_y, r_z = self.direction
         is_deformed = self.get_deformation_indices(code)
 
-        p_i = np.array([1 - probability for i in range(code.n)])
-        p_x = probability * np.array([r_x for i in range(code.n)])
-        p_y = probability * np.array([
+        p_i = np.array([1 - error_rate for i in range(code.n)])
+        p_x = error_rate * np.array([r_x for i in range(code.n)])
+        p_y = error_rate * np.array([
             r_z if is_deformed[i] else r_y for i in range(code.n)
         ])
-        p_z = probability * np.array([
+        p_z = error_rate * np.array([
             r_y if is_deformed[i] else r_z for i in range(code.n)
         ])
 

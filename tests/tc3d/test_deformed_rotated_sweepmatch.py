@@ -7,11 +7,11 @@ from panqec.error_models import DeformedXZZXErrorModel
 from panqec.bpauli import bcommute, get_effective_error
 
 
-class TestDeformedRotatedPlanarPymatchingDecoder:
+class TestDeformedRotatedPlanarMatchingDecoder:
 
     direction: Tuple[float, float, float] = 0.05, 0.05, 0.9
     size: Tuple[int, int, int] = 4, 4, 3
-    probability: float = 0.1
+    error_rate: float = 0.1
 
     @pytest.fixture
     def code(self):
@@ -22,16 +22,17 @@ class TestDeformedRotatedPlanarPymatchingDecoder:
         return DeformedXZZXErrorModel(*self.direction)
 
     @pytest.fixture
-    def decoder(self, error_model):
-        return DeformedRotatedSweepMatchDecoder(error_model, self.probability)
+    def decoder(self, code, error_model):
+        return DeformedRotatedSweepMatchDecoder(code, error_model, 
+                                                self.error_rate)
 
     def test_decode(self, code, error_model, decoder):
         rng = np.random.default_rng(seed=0)
-        error = error_model.generate(code, self.probability, rng=rng)
+        error = error_model.generate(code, self.error_rate, rng=rng)
         assert np.any(error != 0)
 
         syndrome = bcommute(code.stabilizer_matrix, error)
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         total_error = (correction + error) % 2
         effective_error = get_effective_error(
             total_error, code.logicals_x, code.logicals_z
@@ -65,7 +66,7 @@ class TestDeformedRotatedPlanarPymatchingDecoder:
         naive_correction = code.to_bsf(pauli_naive_correction)
 
         syndrome = bcommute(code.stabilizer_matrix, error)
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
 
         assert np.any(correction != naive_correction), 'Correction is naive'
         assert np.all(correction == expected_correction), (

@@ -12,11 +12,12 @@ from .codes import (
     RotatedToric3DCode, RhombicCode
 )
 from .decoders import (
-    Toric3DPymatchingDecoder, SweepMatchDecoder,
+    Toric3DMatchingDecoder, SweepMatchDecoder,
     RotatedSweepMatchDecoder, RotatedInfiniteZBiasDecoder
 )
 from .decoders.bposd.bposd_decoder import BeliefPropagationOSDDecoder
-from .decoders.sweepmatch._toric_2d_match_decoder import Toric2DPymatchingDecoder
+from .decoders.bposd.mbp_decoder import MemoryBeliefPropagationDecoder
+from .decoders.sweepmatch._toric_2d_match_decoder import Toric2DMatchingDecoder
 from .error_models import (
     DeformedXZZXErrorModel, DeformedXYErrorModel,
     DeformedRhombicErrorModel, DeformedRandomErrorModel
@@ -69,14 +70,15 @@ ERROR_MODELS = {
     'DeformedRhombicErrorModel': DeformedRhombicErrorModel,
 }
 DECODERS = {
-    'Toric2DPymatchingDecoder': Toric2DPymatchingDecoder,
-    'Toric3DPymatchingDecoder': Toric3DPymatchingDecoder,
+    'Toric2DMatchingDecoder': Toric2DMatchingDecoder,
+    'Toric3DMatchingDecoder': Toric3DMatchingDecoder,
     'SweepMatchDecoder': SweepMatchDecoder,
     'RotatedSweepMatchDecoder': RotatedSweepMatchDecoder,
     'DeformedSweepMatchDecoder': DeformedSweepMatchDecoder,
     'FoliatedMatchingDecoder': FoliatedMatchingDecoder,
     'DeformedRotatedSweepMatchDecoder': DeformedRotatedSweepMatchDecoder,
     'BeliefPropagationOSDDecoder': BeliefPropagationOSDDecoder,
+    'MemoryBeliefPropagationDecoder': MemoryBeliefPropagationDecoder,
     'RotatedInfiniteZBiasDecoder': RotatedInfiniteZBiasDecoder
 }
 
@@ -98,3 +100,18 @@ if os.getenv('USER') is not None:
     SLURM_USERNAME = os.getenv('USER')
 elif os.getenv('USERNAME') is not None:
     SLURM_USERNAME = os.getenv('USERNAME')
+
+
+def register_code(code_class):
+    label = code_class.__class__.__name__
+    CODES[label] = code_class
+
+
+def register_error_model(error_model_class):
+    label = error_model_class.__class__.__name__
+    ERROR_MODELS[label] = error_model_class
+
+
+def register_decoder(decoder_class):
+    label = decoder_class.__class__.__name__
+    DECODERS[label] = decoder_class

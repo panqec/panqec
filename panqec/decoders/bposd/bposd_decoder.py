@@ -1,36 +1,32 @@
-from typing import Dict
 import numpy as np
-from typing import Tuple
 from ldpc import bposd_decoder
 from panqec.codes import StabilizerCode
 from panqec.error_models import BaseErrorModel
 from panqec.decoders import BaseDecoder
-import panqec.bsparse as bsparse
 
 
 class BeliefPropagationOSDDecoder(BaseDecoder):
     label = 'BP-OSD decoder'
 
-    def __init__(self, error_model: BaseErrorModel,
-                 probability: float,
+    def __init__(self,
+                 code: StabilizerCode,
+                 error_model: BaseErrorModel,
+                 error_rate: float,
                  max_bp_iter: int = 1000,
                  channel_update: bool = False,
-                 osd_order: int = 0):
-        super().__init__(error_model, probability)
+                 osd_order: int = 10,
+                 bp_method: str = 'msl'):
+        super().__init__(code, error_model, error_rate)
         self._max_bp_iter = max_bp_iter
         self._channel_update = channel_update
         self._osd_order = osd_order
+        self._bp_method = bp_method
 
-        self._x_decoder: Dict = dict()
-        self._z_decoder: Dict = dict()
-        self._decoder: Dict = dict()
+        self.initialize_decoders()
 
-    def get_probabilities(
-        self, code: StabilizerCode
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-
-        pi, px, py, pz = self._error_model.probability_distribution(
-            code, self._probability
+    def get_probabilities(self):
+        pi, px, py, pz = self.error_model.probability_distribution(
+            self.code, self.error_rate
         )
 
         return pi, px, py, pz
@@ -68,99 +64,87 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
 
         return new_probs
 
-    def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
+    def initialize_decoders(self):
+        is_css = self.code.is_css
+
+        if is_css:
+            self.z_decoder = bposd_decoder(
+                self.code.Hx,
+                error_rate=self.error_rate,
+                max_iter=self._max_bp_iter,
+                bp_method=self._bp_method,
+                ms_scaling_factor=0,
+                osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
+                osd_order=self._osd_order
+            )
+
+            self.x_decoder = bposd_decoder(
+                self.code.Hz,
+                error_rate=self.error_rate,
+                max_iter=self._max_bp_iter,
+                bp_method=self._bp_method,
+                ms_scaling_factor=0,
+                osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
+                osd_order=self._osd_order
+            )
+
+        else:
+            self.decoder = bposd_decoder(
+                self.code.stabilizer_matrix,
+                error_rate=self.error_rate,
+                max_iter=self._max_bp_iter,
+                bp_method=self._bp_method,
+                ms_scaling_factor=0,
+                osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
+                osd_order=self._osd_order
+            )
+
+    def decode(self, syndrome: np.ndarray) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
-        is_css = code.is_css
-
-        n_qubits = code.n
+        is_css = self.code.is_css
+        n_qubits = self.code.n
         syndrome = np.array(syndrome, dtype=int)
 
         if is_css:
-            syndrome_z = code.extract_z_syndrome(syndrome)
-            syndrome_x = code.extract_x_syndrome(syndrome)
+            syndrome_z = self.code.extract_z_syndrome(syndrome)
+            syndrome_x = self.code.extract_x_syndrome(syndrome)
 
-        pi, px, py, pz = self.get_probabilities(code)
+        pi, px, py, pz = self.get_probabilities()
 
         probabilities_x = px + py
         probabilities_z = pz + py
 
         probabilities = np.hstack([probabilities_z, probabilities_x])
 
-        # Load saved decoders
-        if code.label in self._x_decoder.keys():
-            x_decoder = self._x_decoder[code.label]
-            z_decoder = self._z_decoder[code.label]
-        elif code.label in self._decoder.keys():
-            decoder = self._decoder[code.label]
-
-        # Initialize new decoders otherwise
-        else:
-            if is_css:
-                z_decoder = bposd_decoder(
-                    code.Hx,
-                    error_rate=0.05,  # ignore this due to the next parameter
-                    channel_probs=probabilities_z,
-                    max_iter=self._max_bp_iter,
-                    bp_method="msl",
-                    ms_scaling_factor=0,
-                    osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
-                    osd_order=self._osd_order
-                )
-
-                x_decoder = bposd_decoder(
-                    code.Hz,
-                    error_rate=0.05,  # ignore this due to the next parameter
-                    channel_probs=probabilities_x,
-                    max_iter=self._max_bp_iter,
-                    bp_method="msl",
-                    ms_scaling_factor=0,
-                    osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
-                    osd_order=self._osd_order
-                )
-                self._x_decoder[code.label] = x_decoder
-                self._z_decoder[code.label] = z_decoder
-            else:
-                decoder = bposd_decoder(
-                    code.stabilizer_matrix,
-                    error_rate=0.05,  # ignore this due to the next parameter,
-                    channel_probs=probabilities,
-                    max_iter=self._max_bp_iter,
-                    bp_method="msl",
-                    ms_scaling_factor=0,
-                    osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
-                    osd_order=self._osd_order
-                )
-                self._decoder[code.label] = decoder
-
         if is_css:
             # Update probabilities (in case the distribution is new at each iteration)
-            x_decoder.update_channel_probs(probabilities_x)
-            z_decoder.update_channel_probs(probabilities_z)
+            self.x_decoder.update_channel_probs(probabilities_x)
+            self.z_decoder.update_channel_probs(probabilities_z)
 
             # Decode Z errors
-            z_decoder.decode(syndrome_x)
-            z_correction = z_decoder.osdw_decoding
+            self.z_decoder.decode(syndrome_x)
+            z_correction = self.z_decoder.osdw_decoding
 
             # Bayes update of the probability
             if self._channel_update:
                 new_x_probs = self.update_probabilities(
                     z_correction, px, py, pz, direction="z->x"
                 )
-                x_decoder.update_channel_probs(new_x_probs)
+                self.x_decoder.update_channel_probs(new_x_probs)
 
             # Decode X errors
-            x_decoder.decode(syndrome_z)
-            x_correction = x_decoder.osdw_decoding
+            self.x_decoder.decode(syndrome_z)
+            x_correction = self.x_decoder.osdw_decoding
 
             correction = np.concatenate([x_correction, z_correction])
         else:
             # Update probabilities (in case the distribution is new at each iteration)
-            decoder.update_channel_probs(probabilities)
+            self.decoder.update_channel_probs(probabilities)
 
             # Decode all errors
-            decoder.decode(syndrome)
-            correction = decoder.osdw_decoding
+            self.decoder.decode(syndrome)
+            correction = self.decoder.osdw_decoding
             correction = np.concatenate([correction[n_qubits:], correction[:n_qubits]])
 
         return correction
@@ -168,21 +152,16 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
 
 def test_decoder():
     from panqec.codes import XCubeCode
-    from panqec.bpauli import bcommute, get_effective_error
     from panqec.error_models import PauliErrorModel
     import time
     rng = np.random.default_rng()
 
-    L = 10
+    L = 20
     code = XCubeCode(L, L, L)
 
-    probability = 0.1
+    error_rate = 0.5
     r_x, r_y, r_z = [0.15, 0.15, 0.7]
     error_model = PauliErrorModel(r_x, r_y, r_z)
-
-    decoder = BeliefPropagationOSDDecoder(
-        error_model, probability, osd_order=10, max_bp_iter=1000
-    )
 
     print("Create stabilizer matrix")
     code.stabilizer_matrix
@@ -191,28 +170,33 @@ def test_decoder():
     code.Hx
     code.Hz
 
+    print("Create logicals")
+    code.logicals_x
+    code.logicals_z
+
+    print("Instantiate BP-OSD")
+    decoder = BeliefPropagationOSDDecoder(
+        code, error_model, error_rate, osd_order=0, max_bp_iter=1000
+    )
+
     # Start timer
     start = time.time()
 
-    n_iter = 200
+    n_iter = 1
     accuracy = 0
     for i in range(n_iter):
         print(f"\nRun {code.label} {i}...")
         print("Generate errors")
-        error = error_model.generate(code, probability=probability, rng=rng)
+        error = error_model.generate(code, error_rate, rng=rng)
         print("Calculate syndrome")
         syndrome = code.measure_syndrome(error)
         print("Decode")
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         print("Get total error")
         total_error = (correction + error) % 2
-        print("Get effective error")
-        effective_error = get_effective_error(
-            total_error, code.logicals_x, code.logicals_z
-        )
-        print("Check codespace")
-        codespace = bool(np.all(bcommute(code.stabilizer_matrix, total_error) == 0))
-        success = bool(np.all(effective_error == 0)) and codespace
+
+        codespace = code.in_codespace(total_error)
+        success = not code.is_logical_error(total_error) and codespace
         print(success)
         accuracy += success
 

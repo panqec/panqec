@@ -17,7 +17,7 @@ from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
 from scipy.signal import argrelextrema
 from .config import SLURM_DIR
-from .app import read_input_json
+from .simulation import read_input_json
 from .plots._hashing_bound import project_triangle
 from .utils import fmt_uncertainty
 from .bpauli import int_to_bvector, bvector_to_pauli_string
@@ -396,32 +396,6 @@ def get_p_th_nearest(df_filt: pd.DataFrame, p_est: str = 'p_est') -> float:
     })
     p_est_df = p_est_df.sort_index()
 
-    # Where the ordering changes the most.
-    # orders = np.argsort(p_est_df.values, axis=1)
-    # orders = np.apply_along_axis(
-    #     lambda x: 'A' if np.all(np.diff(x) < 0)
-    # else ('B' if np.all(np.diff(x) > 0) else '0'), 1, orders
-    # )
-
-    # cond = np.all(
-    #     np.isclose(p_est_df.values, np.zeros(p_est_df.shape[1])), axis=1
-    # )
-    # orders[cond] = 'A'
-
-    # longest_A_seq = longest_sequence(orders, 'A')
-    # longest_B_seq = longest_sequence(orders, 'B')
-    # if longest_A_seq[1] > longest_B_seq[0]:
-    #     print(p_est_df)
-    #     print(p_est_df.values)
-    #     print(np.argsort(p_est_df.values, axis=1))
-    #     print(orders)
-    #     raise RuntimeError(
-    #         "Problem with finding p_th_nearest: "
-    #         f"{longest_A_seq} > {longest_B_seq}"
-    #     )
-
-    # p_th_nearest = p_est_df.index[(longest_B_seq[0] + longest_A_seq[1]) // 2]
-
     try:
         i_order_change = np.diff(
             np.diff(
@@ -434,12 +408,6 @@ def get_p_th_nearest(df_filt: pd.DataFrame, p_est: str = 'p_est') -> float:
 
     return p_th_nearest
 
-
-# def fit_function(x_data, *params):
-#     p, d = x_data
-#     p_th, nu, A, B, C = params
-#     x = (p - p_th)*d**nu
-#     return A + B*x + C*x**2
 
 def fit_function(x_data, *params):
     p, d = x_data

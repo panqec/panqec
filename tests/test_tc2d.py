@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from panqec.codes import Toric2DCode
 from panqec.bpauli import bsf_wt
-from panqec.decoders import Toric2DPymatchingDecoder
+from panqec.decoders import Toric2DMatchingDecoder
 from panqec.bpauli import bcommute
 from panqec.error_models import PauliErrorModel
 
@@ -12,7 +12,7 @@ def code():
     return Toric2DCode(4, 5)
 
 
-class TestToric2DPymatchingDecoder:
+class TestToric2DMatchingDecoder:
 
     @pytest.mark.parametrize(
         'operator, location',
@@ -27,8 +27,8 @@ class TestToric2DPymatchingDecoder:
     )
     def test_decode_single_error(self, code, operator, location):
         error_model = PauliErrorModel(1/3, 1/3, 1/3)
-        probability = 0.5
-        decoder = Toric2DPymatchingDecoder(error_model, probability)
+        error_rate = 0.5
+        decoder = Toric2DMatchingDecoder(code, error_model, error_rate)
         error = code.to_bsf({
             location: operator
         })
@@ -38,7 +38,7 @@ class TestToric2DPymatchingDecoder:
             assert sum(syndromes) == 2, 'Should be 2 syndromes if X or Z error'
         elif operator == 'Y':
             assert sum(syndromes) == 4, 'Should be 4 syndromes if Y error'
-        correction = decoder.decode(code, syndromes)
+        correction = decoder.decode(syndromes)
         assert bsf_wt(correction) == 1, 'Correction should be weight 1'
         total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
