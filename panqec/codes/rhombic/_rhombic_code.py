@@ -189,7 +189,7 @@ class RhombicCode(StabilizerCode):
 
             delta = delta_1 if ((x + y + z) % 4 == 0) else delta_2
 
-            a = 0.5
+            a = 1.
             if rotated_picture:
                 a = 1.
 
