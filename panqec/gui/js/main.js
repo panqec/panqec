@@ -5,7 +5,7 @@ import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat
 
 import { TopologicalCode } from './topologicalCode.js';
 
-var defaultCode = codeDimension == 2 ? 'Toric 2D' : 'Toric 3D';
+var defaultCode = codeDimension == 2 ? 'Toric 2D' : 'Rhombic';
 var defaultSize = codeDimension == 2 ? 6 : 4;
 
 const params = {
@@ -19,7 +19,7 @@ const params = {
     channel_update: false,
     errorModel: 'Depolarizing',
     codeName: defaultCode,
-    rotated: false,
+    rotated: true,
     coprime: false,
     deformed_axis: 'None'
 };
