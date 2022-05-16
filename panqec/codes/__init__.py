@@ -9,6 +9,7 @@ from .surface_2d._rotated_planar_2d_code import RotatedPlanar2DCode  # noqa
 from .surface_3d._toric_3d_code import Toric3DCode  # noqa
 from .surface_3d._planar_3d_code import Planar3DCode  # noqa
 from .surface_3d._rotated_planar_3d_code import RotatedPlanar3DCode  # noqa
+from .surface_3d._quasi_2d_code import Quasi2DCode  # noqa
 from .rhombic._rhombic_code import RhombicCode  # noqa
 from .surface_3d._rotated_toric_3d_code import RotatedToric3DCode  # noqa
 from .fractons._xcube_code import XCubeCode  # noqa
@@ -23,5 +24,6 @@ __all__ = [
     "RotatedPlanar3DCode",
     "RhombicCode",
     "RotatedToric3DCode",
-    "XCubeCode"
+    "XCubeCode",
+    "Quasi2DCode"
 ]
