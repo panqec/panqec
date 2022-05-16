@@ -6,7 +6,7 @@ mkdir -p temp/paper/share
 
 # ============== Undeformed ==============
 
-name=det_xcube_bposd_undef_zbias
+name=quasi_2d_depolarizing
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
 sizes="9,13,17,21"
@@ -56,7 +56,7 @@ panqec generate-input -i "$paper_dir/$name/inputs" \
 #     --eta "inf" --prob "0.07:0.17:0.005"
 
 panqec generate-qsub --data_dir "$paper_dir/$name" --n_array 126 --memory "$memory" \
-    --wall_time "$wall_time" --trials 10000 --split 36 "$qsub_dir/$name.qsub"
+    --wall_time "$wall_time" --trials 100000 --split 36 "$qsub_dir/$name.qsub"
 
 
 # # ============== Deformed ==============
