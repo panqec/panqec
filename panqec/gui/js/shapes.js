@@ -7,7 +7,8 @@ var create_shape = {'sphere': sphere,
                     'cylinder': cylinder,
                     'octahedron': octahedron,
                     'cube': cube,
-                    'triangle': triangle}
+                    'triangle': triangle,
+                    'cuboctahedron': cuboctahedron}
 
 function sphere(location, params) {
     var x = location[0];
@@ -100,6 +101,56 @@ function octahedron(location, params) {
     octahedron.rotateZ(params['angle'])
 
     return octahedron;
+}
+
+function cuboctahedron(location, params) {
+    var x = location[0];
+    var y = location[1];
+    var z = location[2];
+
+    const vertices = [
+        -1,0,-1,    0,-1,-1,   1,0,-1,     0,1,-1,
+        -1,-1,0,   1,-1,0,   1,1,0,    -1,1,0,
+        -1,0,1,    0,-1,1,   1,0,1,     0,1,1,
+    ];
+
+    const faceIndices = [
+        0,1,2,    2,3,0,
+        8,9,10,   10,11,8,
+        0,7,8,    8,4,0,
+        4,1,5,    5,9,4,
+        5,2,6,    6,10,5,
+        7,3,6,    6,11,7,
+        0,3,7,    0,1,4,
+        1,5,2,    2,3,6,
+        7,8,11,   4,8,9,
+        5,9,10,   6,10,11
+    ];
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setIndex(faceIndices);
+    geometry.computeVertexNormals();
+
+    const material = new THREE.MeshToonMaterial({transparent: true,
+                                                 side: THREE.DoubleSide});
+    const cuboctahedron = new THREE.Mesh(geometry, material);
+
+    var geo = new THREE.EdgesGeometry( cuboctahedron.geometry );
+    var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 2,
+                                           opacity: 0, transparent: true });
+    var wireframe = new THREE.LineSegments(geo, mat);
+    // wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
+
+    cuboctahedron.add(wireframe);
+
+    cuboctahedron.position.x = x;
+    cuboctahedron.position.y = y;
+    cuboctahedron.position.z = z;
+
+    // cuboctahedron.rotateZ(params['angle'])
+
+    return cuboctahedron;
 }
 
 function cube(location, params) {
