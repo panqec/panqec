@@ -9,7 +9,7 @@ name=rough_rhombic_xzzx_xbias
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
 # sizes="9,13,17,21"
-sizes="7,9,11,13"
+sizes="8,10,12,14"
 wall_time="0:45:00"
 memory="20G"
 
