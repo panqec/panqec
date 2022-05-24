@@ -5,7 +5,7 @@ mkdir -p "$sbatch_dir"
 mkdir -p temp/paper/share
 qos=dpart
 
-name=rough_rhombic_xzzx_xbias
+name=med_rhombic_xzzx_xbias
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
 # sizes="10,14,18,22"
