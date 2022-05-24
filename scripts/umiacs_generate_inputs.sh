@@ -8,56 +8,56 @@ qos=dpart
 name=rough_rhombic_xzzx_xbias
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
-# sizes="9,13,17,21"
+# sizes="10,14,18,22"
 sizes="8,10,12,14"
 wall_time="0:45:00"
 memory="20G"
 
-# estimated p_th unknown
+# estimated p_th < 0.03
 panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
     --ratio equal \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "0.5" --prob "0.03:0.50:0.03"
+    --eta "0.5" --prob "0.0:0.05:0.005"
 
-# estimated p_th unknown
+# estimated p_th < 0.06
 panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
     --ratio equal \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "3" --prob "0.03:0.50:0.03"
+    --eta "3" --prob "0.0:0.05:0.005"
 
-# estimated p_th unknown
+# estimated p_th < 0.06
 panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
     --ratio equal \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "10" --prob "0.03:0.50:0.03"
+    --eta "10" --prob "0.0:0.10:0.01"
 
-# estimated p_th unknown
+# estimated p_th = 0.1155
 panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
     --ratio equal \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "30" --prob "0.03:0.50:0.03"
+    --eta "30" --prob "0.06:0.16:0.01"
 
-# estimated p_th unknown
+# estimated p_th = 0.18
 panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
     --ratio equal \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "100" --prob "0.03:0.50:0.03"
+    --eta "100" --prob "0.13:0.23:0.01"
 
-# estimated p_th unknown
+# estimated p_th = 0.50
 panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
     --ratio equal \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
     --eta "inf" --prob "0.03:0.50:0.03"
 
-panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 102 \
+panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 74 \
     --memory "$memory" --qos "$qos" \
-    --wall_time "$wall_time" --trials 10000 --split 16 $sbatch_dir/$name.sbatch
+    --wall_time "$wall_time" --trials 5000 --split 16 $sbatch_dir/$name.sbatch
 
 # # ============== Undeformed ==============
 # 
