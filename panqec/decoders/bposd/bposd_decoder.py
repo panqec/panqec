@@ -22,7 +22,10 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
         self._osd_order = osd_order
         self._bp_method = bp_method
 
-        self.initialize_decoders()
+        # Do not initialize the decoder until we call the decode method.
+        # This is required because during analysis, there is no need to
+        # initialize the decoder every time.
+        self._initialized = False
 
     def get_probabilities(self):
         pi, px, py, pz = self.error_model.probability_distribution(
@@ -99,8 +102,11 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
                 osd_order=self._osd_order
             )
 
-    def decode(self, syndrome: np.ndarray) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray, **kwargs) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
+
+        if not self._initialized:
+            self.initialize_decoders()
 
         is_css = self.code.is_css
         n_qubits = self.code.n
@@ -118,7 +124,8 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
         probabilities = np.hstack([probabilities_z, probabilities_x])
 
         if is_css:
-            # Update probabilities (in case the distribution is new at each iteration)
+            # Update probabilities (in case the distribution is new at each
+            # iteration)
             self.x_decoder.update_channel_probs(probabilities_x)
             self.z_decoder.update_channel_probs(probabilities_z)
 
@@ -139,13 +146,16 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
 
             correction = np.concatenate([x_correction, z_correction])
         else:
-            # Update probabilities (in case the distribution is new at each iteration)
+            # Update probabilities (in case the distribution is new at each
+            # iteration)
             self.decoder.update_channel_probs(probabilities)
 
             # Decode all errors
             self.decoder.decode(syndrome)
             correction = self.decoder.osdw_decoding
-            correction = np.concatenate([correction[n_qubits:], correction[:n_qubits]])
+            correction = np.concatenate(
+                [correction[n_qubits:], correction[:n_qubits]]
+            )
 
         return correction
 
