@@ -13,21 +13,21 @@ sizes="10,14,18,20"
 wall_time="1:30:00"
 memory="20G"
 
-# estimated p_th < 0.03
+# estimated p_th = 0.015
 panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
     --ratio equal \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
     --eta "0.5" --prob "0.0:0.05:0.005"
 
-# estimated p_th < 0.06
+# estimated p_th = 0.0298
 panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
     --ratio equal \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
     --eta "3" --prob "0.0:0.05:0.005"
 
-# estimated p_th < 0.06
+# estimated p_th = 0.0517
 panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
     --ratio equal \
