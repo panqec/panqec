@@ -5,12 +5,12 @@ mkdir -p "$sbatch_dir"
 mkdir -p temp/paper/share
 qos=dpart
 
-name=med_rhombic_xzzx_xbias
+name=det_rhombic_xzzx_xbias
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
-# sizes="10,14,18,22"
-sizes="8,10,12,14"
-wall_time="0:45:00"
+sizes="10,14,18,20"
+# sizes="8,10,12,14"
+wall_time="1:30:00"
 memory="20G"
 
 # estimated p_th < 0.03
@@ -57,7 +57,7 @@ panqec generate-input -i "$paper_dir/$name/inputs" \
 
 panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 74 \
     --memory "$memory" --qos "$qos" \
-    --wall_time "$wall_time" --trials 5000 --split 16 $sbatch_dir/$name.sbatch
+    --wall_time "$wall_time" --trials 1000 --split 16 $sbatch_dir/$name.sbatch
 
 # # ============== Undeformed ==============
 # 
