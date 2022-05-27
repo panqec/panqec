@@ -5,168 +5,70 @@ mkdir -p "$sbatch_dir"
 mkdir -p temp/paper/share
 qos=dpart
 
-name=det_rhombic_xzzx_xbias
+# =============== Rhombic Undeformed ================
+name=det_rhombic_bposd_undef_xbias
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
-sizes="10,14,18,20"
+sizes="10,14,18,22"
 # sizes="8,10,12,14"
 wall_time="1:30:00"
 memory="20G"
 
-# estimated p_th = 0.015
-panqec generate-input -i "$paper_dir/$name/inputs" \
-    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-    --ratio equal \
-    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "0.5" --prob "0.0:0.05:0.005"
+source scripts/rhombic_undef.sh
 
-# estimated p_th = 0.0298
-panqec generate-input -i "$paper_dir/$name/inputs" \
-    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-    --ratio equal \
-    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "3" --prob "0.0:0.05:0.005"
-
-# estimated p_th = 0.0517
-panqec generate-input -i "$paper_dir/$name/inputs" \
-    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-    --ratio equal \
-    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "10" --prob "0.0:0.10:0.01"
-
-# estimated p_th = 0.1155
-panqec generate-input -i "$paper_dir/$name/inputs" \
-    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-    --ratio equal \
-    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "30" --prob "0.06:0.16:0.01"
-
-# estimated p_th = 0.18
-panqec generate-input -i "$paper_dir/$name/inputs" \
-    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-    --ratio equal \
-    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "100" --prob "0.13:0.23:0.01"
-
-# estimated p_th = 0.50
-panqec generate-input -i "$paper_dir/$name/inputs" \
-    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-    --ratio equal \
-    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "inf" --prob "0.03:0.50:0.03"
-
-panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 74 \
+nfiles=$(ls $paper_dir/$name/inputs | wc -l)
+echo "$nfiles input files created"
+panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles \
     --memory "$memory" --qos "$qos" \
-    --wall_time "$wall_time" --trials 1000 --split 16 $sbatch_dir/$name.sbatch
+    --wall_time "$wall_time" --trials 10000 --split 16 $sbatch_dir/$name.sbatch
 
-# # ============== Undeformed ==============
-# 
-# name=rough_xcube_bposd_undef_zbias
-# rm -rf $paper_dir/$name/inputs
-# rm -rf $paper_dir/$name/logs
-# sizes="9,13,17,21"
-# # sizes="7,9,11,13"
-# wall_time="0:10:00"
-# memory="20G"
-# 
-# # estimated p_th = 0.051
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "0.5" --prob "0.03:0.07:0.005"
-# 
-# # estimated p_th unknown
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "3" --prob "0.10:0.18:0.01"
-# 
-# # estimated p_th = 0.1022
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "10" --prob "0.08:0.12:0.005"
-# 
-# # estimated p_th = 0.0988
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "30" --prob "0.08:0.12:0.005"
-# 
-# # estimated p_th = 0.0975
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "100" --prob "0.08:0.12:0.005"
-# 
-# # estimated p_th = 0.0973
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "inf" --prob "0.08:0.12:0.005"
-# 
-# panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 55 \
-#     --memory "$memory" --qos "$qos" \
-#     --wall_time "$wall_time" --trials 10000 --split 16 $sbatch_dir/$name.sbatch
-# 
-# 
-# # ============== Deformed ==============
-# 
-# name=rough_xcube_bposd_xzzx_zbias
-# rm -rf $paper_dir/$name/inputs
-# rm -rf $paper_dir/$name/logs
-# sizes="9,13,17,21"
-# # sizes="7,9,11,13"
-# wall_time="0:10:00" memory="20G"
-# 
-# # estimated p_th = 0.0477
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "0.5" --prob "0.03:0.07:0.005"
-# 
-# # estimated p_th = 0.0743
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "3" --prob "0.05:0.09:0.005"
-# 
-# # estimated p_th = 0.1121
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "10" --prob "0.09:0.13:0.005"
-# 
-# # estimated p_th = 12.82
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "30" --prob "0.11:0.15:0.005"
-# 
-# # estimated p_th unknown but point sector p_th = 0.14
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "100" --prob "0.12:0.16:0.005"
-# 
-# # estimated p_th unknown but point sector 0.14
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "inf" --prob "0.12:0.16:0.03"
-# 
-# panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 51 \
-#     --memory "$memory" --qos "$qos" \
-#     --wall_time "$wall_time" --trials 10000 --split 16 $sbatch_dir/$name.sbatch
+# =============== Rhombic Deformed ================
+name=det_rhombic_bposd_xzzx_xbias
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="10,14,18,22"
+# sizes="8,10,12,14"
+wall_time="1:30:00"
+memory="20G"
+
+source scripts/rhombic_xzzx.sh
+
+nfiles=$(ls $paper_dir/$name/inputs | wc -l)
+echo "$nfiles input files created"
+panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles \
+    --memory "$memory" --qos "$qos" \
+    --wall_time "$wall_time" --trials 10000 --split 16 $sbatch_dir/$name.sbatch
+
+# ============== XCube Undeformed ==============
+name=rough_xcube_bposd_undef_zbias
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="9,13,17,21"
+# sizes="7,9,11,13"
+wall_time="0:10:00"
+memory="20G"
+
+source scripts/xcube_undef.sh
+
+nfiles=$(ls $paper_dir/$name/inputs | wc -l)
+echo "$nfiles input files created"
+panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles \
+    --memory "$memory" --qos "$qos" \
+    --wall_time "$wall_time" --trials 10000 --split 16 $sbatch_dir/$name.sbatch
+
+# ============== XCube Deformed ==============
+name=rough_xcube_bposd_xzzx_zbias
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="9,13,17,21"
+# sizes="7,9,11,13"
+wall_time="0:10:00"
+memory="20G"
+
+source scripts/xcube_xzzx.sh
+
+nfiles=$(ls $paper_dir/$name/inputs | wc -l)
+echo "$nfiles input files created"
+panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles \
+    --memory "$memory" --qos "$qos" \
+    --wall_time "$wall_time" --trials 10000 --split 16 $sbatch_dir/$name.sbatch
