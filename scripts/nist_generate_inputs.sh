@@ -262,7 +262,7 @@ mkdir -p temp/paper/share
 name=det_rhombic_bposd_undef_xbias
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
-sizes="10,14,18,22"
+sizes="10,14,18,20"
 wall_time="240:00:00"
 memory="90GB"
 
@@ -278,7 +278,7 @@ panqec nist-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$me
 name=det_rhombic_bposd_xzzx_xbias
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
-sizes="10,14,18,22"
+sizes="10,14,18,20"
 wall_time="240:00:00"
 memory="90GB"
 
