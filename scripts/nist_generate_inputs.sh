@@ -258,6 +258,25 @@ mkdir -p temp/paper/share
 # panqec nist-sbatch --data_dir "$paper_dir/$name" --n_array 35 --memory "$memory" \
 #     --wall_time "$wall_time" --trials 10000 --split 8 $sbatch_dir/$name.sbatch
 
+# =============== Test Run ================
+name=test_run
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="4,6"
+wall_time="0:01:00"
+memory="20G"
+
+panqec generate-input -i "$paper_dir/$name/inputs" \
+    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+    --eta "10,30" --prob "0.0:0.5:0.07"
+
+nfiles=$(ls $paper_dir/$name/inputs | wc -l)
+echo "$nfiles input files created"
+panqec nist-sbatch --data_dir "$paper_dir/$name" --n_array 3 --memory "$memory" \
+    --wall_time "$wall_time" --trials 10000 --split auto $sbatch_dir/$name.sbatch
+
 # =============== Rhombic Undeformed ================
 name=det_rhombic_bposd_undef_xbias
 rm -rf $paper_dir/$name/inputs
@@ -271,7 +290,7 @@ source scripts/rhombic_undef.sh
 nfiles=$(ls $paper_dir/$name/inputs | wc -l)
 echo "$nfiles input files created"
 panqec nist-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
-    --wall_time "$wall_time" --trials 10000 --split 36 $sbatch_dir/$name.sbatch \
+    --wall_time "$wall_time" --trials 10000 --split auto $sbatch_dir/$name.sbatch \
     --max_sim_array 100
 
 # =============== Rhombic Deformed ================
@@ -287,7 +306,7 @@ source scripts/rhombic_xzzx.sh
 nfiles=$(ls $paper_dir/$name/inputs | wc -l)
 echo "$nfiles input files created"
 panqec nist-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
-    --wall_time "$wall_time" --trials 10000 --split 36 $sbatch_dir/$name.sbatch \
+    --wall_time "$wall_time" --trials 10000 --split auto $sbatch_dir/$name.sbatch \
     --max_sim_array 100
 
 # ============== XCube Undeformed ==============
@@ -303,7 +322,7 @@ source scripts/xcube_undef.sh
 nfiles=$(ls $paper_dir/$name/inputs | wc -l)
 echo "$nfiles input files created"
 panqec nist-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
-    --wall_time "$wall_time" --trials 10000 --split 36 $sbatch_dir/$name.sbatch \
+    --wall_time "$wall_time" --trials 10000 --split auto $sbatch_dir/$name.sbatch \
     --max_sim_array 100
 
 # ============== XCube Deformed ==============
@@ -320,5 +339,5 @@ source scripts/xcube_xzzx.sh
 nfiles=$(ls $paper_dir/$name/inputs | wc -l)
 echo "$nfiles input files created"
 panqec nist-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
-    --wall_time "$wall_time" --trials 10000 --split 36 $sbatch_dir/$name.sbatch \
+    --wall_time "$wall_time" --trials 10000 --split auto $sbatch_dir/$name.sbatch \
     --max_sim_array 100

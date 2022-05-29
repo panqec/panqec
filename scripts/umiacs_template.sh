@@ -96,7 +96,7 @@ function build_script {
                     remainder=$(( n_cores % total_tasks_this_node ))
 
                     # The first few assigned tasks get an extra split.
-                    if [ "$tasks_assigned" -lt "$remainder"  ]; then
+                    if [ "$tasks_assigned" -lt "$remainder" ]; then
                         n_split=$(( n_split + 1 ))
                     fi
                 fi
