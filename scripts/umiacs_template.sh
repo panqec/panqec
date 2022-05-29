@@ -85,7 +85,7 @@ function build_script {
             if [ "$autosplit" = "true" ]; then
 
                 # Don't split if there are more tasks than cores.
-                if [ "$total_tasks_this_node" > "$n_cores" ]; then
+                if [ "$total_tasks_this_node" -gt "$n_cores" ]; then
                     n_split=1
                 else
 
