@@ -47,14 +47,15 @@ i_task=$SLURM_ARRAY_TASK_ID
 
 # Count the number of cores.
 n_cores=$( nproc --all )
+echo "n_cores=$n_cores"
 
 # Run a CPU and RAM usage logging script in the background.
 python scripts/monitor.py "$log_dir/usage_${SLURM_JOB_ID}_${i_task}.txt" &
 
 # Count total number of tasks assigned to this node.
 total_tasks_this_node=0
+counter=0
 for filename in $input_dir/*.json; do
-    counter=0
     if [[ $(( counter % n_tasks + 1 )) -eq $i_task ]]; then
         total_tasks_this_node=$(( total_tasks_this_node + 1 ))
     fi
@@ -83,11 +84,11 @@ function build_script {
             # Calculate n_split if set to auto.
             if [ "$autosplit" = "true" ]; then
 
-                # Don't split if there are tasks than cores.
+                # Don't split if there are more tasks than cores.
                 if [ "$total_tasks_this_node" > "$n_cores" ]; then
                     n_split=1
-
                 else
+
                     # Number of splits for typical task, rounded down.
                     n_split=$(( n_cores / total_tasks_this_node ))
 
