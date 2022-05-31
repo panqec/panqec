@@ -4,9 +4,8 @@ sbatch_dir=temp/paper/sbatch
 mkdir -p "$sbatch_dir"
 mkdir -p temp/paper/share
 
-wall_time="24:00:00"
+wall_time="12:00:00"
 memory="64GB"
-
 
 # ======= Rhombic Deformed =======
 common_name=det_rhombic_bposd_xzzx_xbias
@@ -20,14 +19,14 @@ source scripts/rhombic_xzzx.sh
 nfiles=$(ls $paper_dir/$name/inputs | wc -l)
 echo "$nfiles input files created"
 
-for repeat in $(seq 1 40); do
+for repeat in $(seq 1 20); do
     name=${common_name}_${repeat}
     mkdir -p $paper_dir/$name
     rm -rf $paper_dir/$name/inputs
     rm -rf $paper_dir/$name/logs
     cp -R $paper_dir/${common_name}_temp/inputs $paper_dir/$name/inputs
     panqec cc-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
-        --wall_time "$wall_time" --trials 250 --split auto $sbatch_dir/$name.sbatch
+        --wall_time "$wall_time" --trials 500 --split auto $sbatch_dir/$name.sbatch
 done
 
 rm -rf $paper_dir/${common_name}_temp

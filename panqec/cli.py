@@ -417,7 +417,7 @@ def pi_sbatch(sbatch_file, data_dir, n_array, queue, wall_time, trials, split):
     '-t', '--trials', default=1000, type=click.INT, show_default=True
 )
 @click.option(
-    '-s', '--split', default=1, type=click.INT, show_default=True
+    '-s', '--split', default='auto', type=str, show_default=True
 )
 def cc_sbatch(
     sbatch_file, data_dir, n_array, account, email, wall_time, memory, trials,
