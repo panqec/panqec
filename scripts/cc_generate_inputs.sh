@@ -7,6 +7,32 @@ mkdir -p temp/paper/share
 wall_time="24:00:00"
 memory="64GB"
 
+
+# ======= Rhombic Deformed =======
+common_name=det_rhombic_bposd_xzzx_xbias
+name=${common_name}_temp
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="10,14,18,20"
+
+source scripts/rhombic_xzzx.sh
+
+nfiles=$(ls $paper_dir/$name/inputs | wc -l)
+echo "$nfiles input files created"
+
+for repeat in $(seq 1 40); do
+    name=${common_name}_${repeat}
+    mkdir -p $paper_dir/$name
+    rm -rf $paper_dir/$name/inputs
+    rm -rf $paper_dir/$name/logs
+    cp -R $paper_dir/${common_name}_temp/inputs $paper_dir/$name/inputs
+    panqec cc-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
+        --wall_time "$wall_time" --trials 250 --split auto $sbatch_dir/$name.sbatch
+done
+
+rm -rf $paper_dir/${common_name}_temp
+
+
 # # Rough runs using BPOSD decoder on toric code
 # for repeat in $(seq 1 6); do
 #     name=unrot_bposd_xzzx_zbias_$repeat
@@ -60,26 +86,26 @@ memory="64GB"
 
 
 
-# Extra rhombic
-common_name=det_rhombic_bposd_xzzx_xbias_inf
-name=${common_name}_temp
-rm -rf $paper_dir/$name/inputs
-rm -rf $paper_dir/$name/logs
-sizes="10,14,18,20"
-panqec generate-input -i "$paper_dir/$name/inputs" \
-    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-    --ratio equal \
-    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "inf" --prob "0.20:0.30:0.02"
-
-for repeat in $(seq 1 40); do
-    name=${common_name}_${repeat}
-    mkdir -p $paper_dir/$name
-    rm -rf $paper_dir/$name/inputs
-    rm -rf $paper_dir/$name/logs
-    cp -R $paper_dir/${common_name}_temp/inputs $paper_dir/$name/inputs
-    panqec cc-sbatch --data_dir "$paper_dir/$name" --n_array 13 --memory "$memory" \
-        --wall_time "$wall_time" --trials 250 --split 4 $sbatch_dir/$name.sbatch
-done
-
-rm -rf $paper_dir/${common_name}_temp
+# # Extra rhombic
+# common_name=det_rhombic_bposd_xzzx_xbias_inf
+# name=${common_name}_temp
+# rm -rf $paper_dir/$name/inputs
+# rm -rf $paper_dir/$name/logs
+# sizes="10,14,18,20"
+# panqec generate-input -i "$paper_dir/$name/inputs" \
+#     --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
+#     --ratio equal \
+#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+#     --eta "inf" --prob "0.20:0.30:0.02"
+# 
+# for repeat in $(seq 1 40); do
+#     name=${common_name}_${repeat}
+#     mkdir -p $paper_dir/$name
+#     rm -rf $paper_dir/$name/inputs
+#     rm -rf $paper_dir/$name/logs
+#     cp -R $paper_dir/${common_name}_temp/inputs $paper_dir/$name/inputs
+#     panqec cc-sbatch --data_dir "$paper_dir/$name" --n_array 13 --memory "$memory" \
+#         --wall_time "$wall_time" --trials 250 --split 4 $sbatch_dir/$name.sbatch
+# done
+# 
+# rm -rf $paper_dir/${common_name}_temp
