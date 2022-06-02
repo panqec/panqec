@@ -64,7 +64,12 @@ done
 # Function that prints out tab-separated values with columns input name,
 # results directory name and number of trials to do for that split.
 function filter_input {
+
+    # Counter for total number of tasks.
     counter=0
+
+    # Number of tasks assigned to this node so far.
+    tasks_assigned=0
     
     # Iterate through files in the input directory.
     for filename in $input_dir/*.json; do
