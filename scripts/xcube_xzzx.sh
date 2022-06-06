@@ -17,26 +17,26 @@ panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
     --ratio equal \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-    --eta "10" --prob "0.6:0.19:0.01"
+    --eta "10" --prob "0.06:0.19:0.01"
 
-# estimated p_th = 12.82
+# estimated p_th = 0.1282
 panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
     --ratio equal \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-    --eta "30" --prob "0.11:0.15:0.005"
+    --eta "30" --prob "0.11:0.16:0.005"
 
 # estimated p_th unknown but point sector p_th = 0.14
 panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
     --ratio equal \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-    --eta "100" --prob "0.12:0.16:0.005"
+    --eta "100" --prob "0.12:0.18:0.005"
 
 # estimated p_th unknown but point sector 0.13
 panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
     --ratio equal \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-    --eta "inf" --prob "0.12:0.16:0.03"
+    --eta "inf" --prob "0.12:0.18:0.005"
 
