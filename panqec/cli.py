@@ -471,8 +471,13 @@ def cc_sbatch(
     '-s', '--split', default=1, type=click.INT, show_default=True
 )
 @click.option('-p', '--partition', default='pml', type=str, show_default=True)
+@click.option(
+    '--max_sim_array', default=None, type=int, show_default=True,
+    help='Max number of simultaneous array jobs'
+)
 def nist_sbatch(
-    sbatch_file, data_dir, n_array, wall_time, memory, trials, split, partition
+    sbatch_file, data_dir, n_array, wall_time, memory, trials, split,
+    partition, max_sim_array
 ):
     """Generate NIST-style sbatch file with parallel array jobs."""
     template_file = os.path.join(
@@ -486,11 +491,14 @@ def nist_sbatch(
         f'{inputs_dir} missing, please create it and generate inputs'
     )
     name = os.path.basename(data_dir)
+    narray_str = str(n_array)
+    if max_sim_array is not None:
+        narray_str += '%' + str(max_sim_array)
     replace_map = {
         '${TIME}': wall_time,
         '${MEMORY}': memory,
         '${NAME}': name,
-        '${NARRAY}': str(n_array),
+        '${NARRAY}': narray_str,
         '${DATADIR}': os.path.abspath(data_dir),
         '${TRIALS}': str(trials),
         '${SPLIT}': str(split),

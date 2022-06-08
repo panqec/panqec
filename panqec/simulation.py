@@ -246,8 +246,8 @@ class BatchSimulation():
         output_dir: Optional[str] = None,
     ):
         self._simulations = []
-        self.code = {}
-        self.decoder = {}
+        self.code: Dict = {}
+        self.decoder: Dict = {}
         self.update_frequency = update_frequency
         self.save_frequency = save_frequency
         self.label = label
@@ -469,7 +469,9 @@ def parse_run(run: Dict[str, Any]) -> Simulation:
     code = _parse_code_dict(run['code'])
     error_model = _parse_error_model_dict(run['noise'])
     error_rate = run['probability']
-    decoder = _parse_decoder_dict(run['decoder'], code, error_model, error_rate)
+    decoder = _parse_decoder_dict(
+        run['decoder'], code, error_model, error_rate
+    )
 
     simulation = Simulation(code, error_model, decoder, error_rate)
     return simulation
