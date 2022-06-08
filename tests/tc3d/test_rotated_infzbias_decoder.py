@@ -1,11 +1,11 @@
 import pytest
 from itertools import combinations
 import numpy as np
-from qecsim.paulitools import bsf_wt
-from panqec.bpauli import bcommute
+from panqec.bpauli import bcommute, bsf_wt
 from panqec.decoders import split_posts_at_active_fences
 from panqec.codes import RotatedPlanar3DCode
 from panqec.decoders import RotatedInfiniteZBiasDecoder
+from panqec.error_models import PauliErrorModel
 
 
 @pytest.mark.parametrize('active_fences, segments, n_fences', [
@@ -36,17 +36,18 @@ def test_split_posts_at_active_fences_trivial(
     assert segments == split_posts_at_active_fences(active_fences, n_fences)
 
 
-@pytest.mark.skip(reason='sparse')
 class TestRotatedInfiniteZBiasDecoder:
     """Test 1-qubit errors on corners fully correctable."""
 
     @pytest.fixture
     def code(self):
-        return RotatedPlanar3DCode(2, 2, 2)
+        return RotatedPlanar3DCode(5, 5, 3)
 
     @pytest.fixture
-    def decoder(self):
-        return RotatedInfiniteZBiasDecoder()
+    def decoder(self, code):
+        error_model = PauliErrorModel(0, 0, 1)
+        error_rate = 0.5
+        return RotatedInfiniteZBiasDecoder(code, error_model, error_rate)
 
     @pytest.mark.parametrize('location', [
         (1, 3, 5),
@@ -56,16 +57,16 @@ class TestRotatedInfiniteZBiasDecoder:
         (9, 9, 5)
     ])
     def test_sweep_errors_on_extreme_layer(self, code, decoder, location):
-        error = dict()
-        assert location in code.qubit_coordinates
-        error[location] = 'Z'
-        assert bsf_wt(code.to_bsf(error)) == 1
+        error = code.to_bsf({
+            location: 'Z'
+        })
+        assert bsf_wt(error) == 1
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
-        correction = decoder.decode(code, syndrome)
-        total_error = (code.to_bsf(error) + correction) % 2
+        correction = decoder.decode(syndrome)
+        total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
             'Total error not in codespace'
         )
@@ -94,17 +95,20 @@ class TestRotatedInfiniteZBiasDecoder:
             ]
 
         for location in qubit_locations:
-            error = dict()
-            error[location] = pauli
-            assert bsf_wt(code.to_bsf(error)) == 1
+            error = code.to_bsf({
+                location: pauli
+            })
+            assert bsf_wt(error) == 1
 
             syndrome = code.measure_syndrome(error)
             assert np.any(syndrome != 0)
 
-            correction = decoder.decode(code, syndrome)
-            total_error = (code.to_bsf(error) + correction) % 2
+            correction = decoder.decode(syndrome)
+            total_error = (error + correction) % 2
 
-            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+            assert np.all(
+                bcommute(code.stabilizer_matrix, total_error) == 0
+            ), 'Total error not in code space'
 
             correctable = True
             if np.any(bcommute(code.logicals_x, total_error) != 0):
@@ -134,16 +138,17 @@ class TestRotatedInfiniteZBiasDecoder:
         uncorrectable_error_locations = []
         undecodable_error_locations = []
         for locations in error_locations:
-            error = dict()
-            for location in locations:
-                error[location] = pauli
-            assert bsf_wt(code.to_bsf(error)) == len(locations)
+            error = code.to_bsf({
+                location: pauli
+                for location in locations
+            })
+            assert bsf_wt(error) == len(locations)
 
             syndrome = code.measure_syndrome(error)
             assert np.any(syndrome != 0)
 
-            correction = decoder.decode(code, syndrome)
-            total_error = (code.to_bsf(error) + correction) % 2
+            correction = decoder.decode(syndrome)
+            total_error = (error + correction) % 2
 
             decodable = True
             if np.any(bcommute(code.stabilizer_matrix, total_error) != 0):

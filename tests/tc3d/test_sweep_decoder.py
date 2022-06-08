@@ -1,15 +1,13 @@
 import itertools
 import pytest
 import numpy as np
-from qecsim.paulitools import bsf_wt
 from panqec.codes import Toric3DCode
 from panqec.decoders import SweepDecoder3D
-from panqec.bpauli import bcommute
+from panqec.bpauli import bcommute, bsf_wt
 from panqec.error_models import PauliErrorModel
-from panqec.utils import set_where
+from panqec.utils import edge_coords, face_coords
 
 
-@pytest.mark.skip(reason='sparse')
 class TestSweepDecoder3D:
 
     @pytest.fixture
@@ -17,64 +15,72 @@ class TestSweepDecoder3D:
         return Toric3DCode(3, 4, 5)
 
     @pytest.fixture
-    def decoder(self):
-        return SweepDecoder3D()
+    def decoder(self, code):
+        error_model = PauliErrorModel(0, 0, 1)
+        error_rate = 0.5
+        return SweepDecoder3D(code, error_model, error_rate)
 
     def test_decoder_has_required_attributes(self, decoder):
         assert decoder.label is not None
         assert decoder.decode is not None
 
     def test_decode_trivial_syndrome(self, decoder, code):
-        syndrome = np.zeros(shape=len(code.stabilizer_matrix), dtype=np.uint)
-        correction = decoder.decode(code, syndrome)
-        assert correction.shape == 2*code.n
+        syndrome = np.zeros(
+            shape=code.stabilizer_matrix.shape[0], dtype=np.uint
+        )
+        correction = decoder.decode(syndrome)
+        assert correction.shape[0] == 2*code.n
         assert np.all(bcommute(code.stabilizer_matrix, correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 
     def test_decode_Z_error(self, decoder, code):
-        error = dict()
-        error[(2, 1, 2)] = 'Z'
-        assert bsf_wt(code.to_bsf(error)) == 1
+        error = code.to_bsf({
+            (2, 1, 2): 'Z',
+        })
+        assert bsf_wt(error) == 1
 
         # Measure the syndrome and ensure non-triviality.
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
-        correction = decoder.decode(code, syndrome)
-        total_error = (code.to_bsf(error) + correction) % 2
+        correction = decoder.decode(syndrome)
+        total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     def test_decode_many_Z_errors(self, decoder, code):
         error = dict()
-        error[(1, 0, 0)] = 'Z'
-        error[(0, 1, 0)] = 'Z'
-        error[(0, 0, 3)] = 'Z'
-        assert bsf_wt(code.to_bsf(error)) == 3
+        error = code.to_bsf({
+            (1, 0, 0): 'Z',
+            (0, 1, 0): 'Z',
+            (0, 0, 3): 'Z',
+        })
+        assert bsf_wt(error) == 3
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
-        correction = decoder.decode(code, syndrome)
-        total_error = (code.to_bsf(error) + correction) % 2
+        correction = decoder.decode(syndrome)
+        total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     def test_unable_to_decode_X_error(self, decoder, code):
-        error = dict()
-        error[(1, 0, 2)] = 'X'
-        assert bsf_wt(code.to_bsf(error)) == 1
+        error = code.to_bsf({
+            (1, 0, 2): 'X'
+        })
+        assert bsf_wt(error) == 1
 
         syndrome = code.measure_syndrome(error)
         assert np.any(syndrome != 0)
 
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         assert np.all(correction == 0)
 
-        total_error = (code.to_bsf(error) + correction) % 2
-        assert np.all(code.to_bsf(error) == total_error)
+        total_error = (error + correction) % 2
+        assert np.all(error == total_error)
 
         assert np.any(bcommute(code.stabilizer_matrix, total_error) != 0)
 
-    def test_decode_many_codes_and_errors_with_same_decoder(self, decoder):
+    def test_decode_many_codes_and_errors_with_same_decoder(self):
 
         codes = [
             Toric3DCode(3, 4, 5),
@@ -87,40 +93,59 @@ class TestSweepDecoder3D:
             (1, 0, 0),
             (0, 1, 0)
         ]
+        
+        error_model = PauliErrorModel(0, 0, 1)
+        error_rate = 0.5
 
         for code, site in itertools.product(codes, sites):
-            error = dict()
-            error[site] = 'Z'
+            decoder = SweepDecoder3D(code, error_model, error_rate)
+            error = code.to_bsf({
+                site: 'Z',
+            })
             syndrome = code.measure_syndrome(error)
-            correction = decoder.decode(code, syndrome)
-            total_error = (code.to_bsf(error) + correction) % 2
+            correction = decoder.decode(syndrome)
+            total_error = (error + correction) % 2
             assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
-    def test_decode_error_on_two_edges_sharing_same_vertex(self):
-        code = Toric3DCode(3, 3, 3)
-        decoder = SweepDecoder3D()
-        error_pauli = dict()
-        error_pauli[(1, 0, 0)] = 'Z'
-        error_pauli[(0, 1, 0)] = 'Z'
-        error = code.to_bsf(error_pauli)
+
+class Test3x3x3SweepDecoder3D:
+
+    @pytest.fixture
+    def code(self):
+        return Toric3DCode(3, 3, 3)
+
+    @pytest.fixture
+    def decoder(self, code):
+        error_model = PauliErrorModel(0, 0, 1)
+        error_rate = 0.1
+        return SweepDecoder3D(code, error_model, error_rate)
+
+    def test_decode_error_on_two_edges_sharing_same_vertex(
+        self, code, decoder
+    ):
+        error = code.to_bsf({
+            (1, 0, 0): 'Z',
+            (0, 1, 0): 'Z',
+        })
         syndrome = bcommute(code.stabilizer_matrix, error)
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
     def test_decode_with_general_Z_noise(self):
         code = Toric3DCode(3, 3, 3)
-        decoder = SweepDecoder3D()
-        np.random.seed(0)
         error_model = PauliErrorModel(0, 0, 1)
+        error_rate = 0.1
+        decoder = SweepDecoder3D(code, error_model, error_rate)
+        np.random.seed(0)
 
         in_codespace = []
         for i in range(100):
             error = error_model.generate(
-                code, probability=0.1, rng=np.random
+                code, error_rate=error_rate, rng=np.random
             )
             syndrome = bcommute(code.stabilizer_matrix, error)
-            correction = decoder.decode(code, syndrome)
+            correction = decoder.decode(syndrome)
             total_error = (error + correction) % 2
             in_codespace.append(
                 np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
@@ -133,71 +158,81 @@ class TestSweepDecoder3D:
     @pytest.mark.parametrize(
         'edge_location, faces_flipped',
         [
-            ((0, 0, 0, 0), {
-                (1, 0, 0, 0), (1, 0, 0, 2), (2, 0, 0, 0), (2, 0, 2, 0)
+            ((1, 0, 0), {
+                (1, 1, 0), (1, 5, 0), (1, 0, 1), (1, 0, 5)
             }),
-            ((1, 0, 0, 0), {
-                (0, 0, 0, 0), (0, 0, 0, 2), (2, 0, 0, 0), (2, 2, 0, 0)
+            ((0, 1, 0), {
+                (1, 1, 0), (5, 1, 0), (0, 1, 1), (0, 1, 5)
             }),
-            ((2, 0, 0, 0), {
-                (0, 0, 0, 0), (0, 0, 2, 0), (1, 0, 0, 0), (1, 2, 0, 0)
+            ((0, 0, 1), {
+                (1, 0, 1), (5, 0, 1), (0, 1, 1), (0, 5, 1)
             }),
         ]
     )
-    def test_flip_edge(self, edge_location, faces_flipped):
-        code = Toric3DCode(3, 3, 3)
-        decoder = SweepDecoder3D()
-        signs = np.zeros(code.shape, dtype=np.uint)
+    def test_flip_edge(self, edge_location, faces_flipped, code, decoder):
+        signs = decoder.get_initial_state(
+            np.zeros(code.stabilizer_matrix.shape[0])
+        )
         decoder.flip_edge(edge_location, signs)
-        assert set_where(signs) == faces_flipped
+        assert faces_flipped == {
+            code.stabilizer_coordinates[index]
+            for index in np.where(signs)[0]
+        }
 
-    def test_decode_loop_step_by_step(self):
-        code = Toric3DCode(3, 3, 3)
-        decoder = SweepDecoder3D()
+    def test_decode_loop_step_by_step(self, code, decoder):
+        sites = set(edge_coords([
+            (0, 0, 0, 0), (1, 1, 0, 0), (0, 0, 1, 0), (1, 0, 0, 0),
+        ], code.size))
 
         error_pauli = dict()
-        sites = [
-            (0, 0, 0, 0), (1, 1, 0, 0), (0, 0, 1, 0), (1, 0, 0, 0),
-        ]
         for site in sites:
             error_pauli[site] = 'Z'
-        assert set_where(error_pauli._zs) == set(sites)
+        assert set(error_pauli.keys()) == set(sites)
         error = code.to_bsf(error_pauli)
 
-        # Intialize the correction.
+        # Initialize the correction.
         correction = dict()
 
         # Compute the syndrome.
         syndrome = bcommute(code.stabilizer_matrix, error)
 
-        signs = np.reshape(
-            decoder.get_face_syndromes(code, syndrome),
-            newshape=code.shape
-        )
-        assert np.all(signs.reshape(code.n) == syndrome[:code.n])
-        assert set_where(signs) == {
+        signs = decoder.get_initial_state(syndrome)
+        assert np.all(signs == syndrome)
+        # assert np.all(
+        #     rebuild_syndrome(code, signs)[:code.n_k_d[0]]
+        #     == syndrome[:code.n_k_d[0]]
+        # )
+
+        # assert np.all(signs.reshape(code.n) == syndrome[:code.n])
+        assert {
+            code.stabilizer_coordinates[index]
+            for index in np.where(signs)[0]
+        } == set(face_coords([
             (0, 0, 0, 0), (0, 0, 0, 2), (0, 1, 0, 0), (0, 1, 0, 2),
             (1, 0, 0, 0), (1, 0, 0, 2), (1, 0, 1, 0), (1, 0, 1, 2),
             (2, 0, 1, 0), (2, 0, 2, 0), (2, 1, 0, 0), (2, 2, 0, 0),
-        }
+        ], code.size))
 
         signs = decoder.sweep_move(signs, correction)
-        assert set_where(correction._zs) == {
+        assert set(correction.keys()) == set(edge_coords([
             (0, 0, 1, 0), (1, 1, 0, 0),
             (2, 0, 0, 0), (2, 0, 0, 2),
-        }
-        assert set_where(signs) == {
+        ], code.size))
+        assert {
+            code.stabilizer_coordinates[index]
+            for index in np.where(signs)[0]
+        } == set(face_coords([
             (0, 0, 2, 0), (0, 0, 2, 2),
             (1, 2, 0, 0), (1, 2, 0, 2),
             (2, 2, 0, 0), (2, 0, 2, 0),
-        }
+        ], code.size))
 
         signs = decoder.sweep_move(signs, correction)
-        assert set_where(correction._zs) == {
+        assert set(correction.keys()) == set(edge_coords([
             (0, 0, 1, 0), (1, 1, 0, 0),
             (2, 0, 0, 0), (2, 0, 0, 2),
             (0, 2, 0, 0), (1, 0, 2, 0)
-        }
+        ], code.size))
         assert np.all(signs == 0)
 
         total_error = (error + code.to_bsf(correction)) % 2
@@ -206,53 +241,59 @@ class TestSweepDecoder3D:
 
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
-    def test_decode_loop_ok(self):
-        code = Toric3DCode(3, 3, 3)
-        decoder = SweepDecoder3D()
+    def test_decode_loop_ok(self, code, decoder):
 
         error_pauli = dict()
+        """
         sites = [
             (0, 0, 0, 0), (1, 1, 0, 0), (0, 0, 1, 0), (1, 0, 0, 0)
         ]
+        """
+        sites = [(1, 0, 0), (2, 1, 0), (1, 2, 0), (0, 1, 0)]
         for site in sites:
             error_pauli[site] = 'Z'
-        assert set_where(error_pauli._zs) == set(sites)
+        assert set(error_pauli.keys()) == set(sites)
         error = code.to_bsf(error_pauli)
 
         # Compute the syndrome.
         syndrome = bcommute(code.stabilizer_matrix, error)
 
-        signs = np.reshape(
-            decoder.get_face_syndromes(code, syndrome),
-            newshape=code.shape
-        )
-        assert set_where(signs) == {
+        signs = decoder.get_initial_state(syndrome)
+        """
+        assert dict_where(signs) == {
             (0, 0, 0, 0), (0, 0, 0, 2), (0, 1, 0, 0), (0, 1, 0, 2),
             (1, 0, 0, 0), (1, 0, 0, 2), (1, 0, 1, 0), (1, 0, 1, 2),
             (2, 0, 1, 0), (2, 0, 2, 0), (2, 1, 0, 0), (2, 2, 0, 0)
         }
+        """
+        assert {
+            code.stabilizer_coordinates[index]
+            for index in np.where(signs)[0]
+        } == {
+            (1, 2, 1), (2, 1, 1), (1, 0, 1), (3, 1, 0), (1, 5, 0), (1, 0, 5),
+            (0, 1, 5), (1, 2, 5), (2, 1, 5), (5, 1, 0), (1, 3, 0), (0, 1, 1)
+        }
 
-        assert np.all(signs.reshape(code.n) == syndrome[:code.n])
+        assert np.all(signs == syndrome)
 
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
 
         assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
 
-    def test_oscillating_cycle_fail(self):
-        code = Toric3DCode(3, 3, 3)
-        decoder = SweepDecoder3D()
+    def test_oscillating_cycle_fail(self, code, decoder):
 
-        error_pauli = dict()
-        sites = [
+        sites = edge_coords([
             (0, 0, 1, 0), (0, 0, 1, 1), (0, 0, 2, 0), (0, 0, 2, 1),
             (0, 0, 2, 2), (0, 1, 1, 2), (0, 2, 0, 0), (0, 2, 0, 1),
             (0, 2, 0, 2), (1, 1, 0, 1), (1, 1, 2, 0), (1, 1, 2, 2),
             (1, 2, 0, 0), (1, 2, 0, 1), (1, 2, 0, 2), (1, 2, 2, 0),
             (1, 2, 2, 1), (1, 2, 2, 2), (2, 1, 0, 0), (2, 1, 1, 1),
             (2, 1, 2, 1),
-        ]
+        ], code.size)
         assert len(set(sites)) == 21
+
+        error_pauli = dict()
         for site in sites:
             error_pauli[site] = 'Z'
         error = code.to_bsf(error_pauli)
@@ -260,7 +301,7 @@ class TestSweepDecoder3D:
         syndrome = bcommute(code.stabilizer_matrix, error)
 
         # Signs array.
-        signs = decoder.get_sign_array(code, syndrome)
+        signs = decoder.get_initial_state(syndrome)
 
         # Keep a copy of the initial signs array.
         start_signs = signs.copy()
@@ -276,22 +317,22 @@ class TestSweepDecoder3D:
         assert np.all(signs == start_signs)
 
         # The total correction is trivial.
-        assert np.all(bcommute(code.stabilizer_matrix, code.to_bsf(correction)) == 0)
+        assert np.all(
+            bcommute(code.stabilizer_matrix, code.to_bsf(correction)) == 0
+        )
 
         # The total error still is not in code space.
         total_error = (error + code.to_bsf(correction)) % 2
         assert np.any(bcommute(code.stabilizer_matrix, total_error) != 0)
 
-    def test_never_ending_staircase_fails(self):
-        code = Toric3DCode(3, 3, 3)
-        decoder = SweepDecoder3D()
+    def test_never_ending_staircase_fails(self, code, decoder):
 
         # Weight-8 Z error that may start infinite loop in sweep decoder.
         error_pauli = dict()
-        sites = [
+        sites = edge_coords([
             (0, 0, 2, 2), (0, 1, 1, 1), (0, 2, 0, 2), (1, 0, 0, 0),
             (1, 1, 0, 2), (1, 2, 2, 1), (2, 1, 2, 1), (2, 2, 0, 0)
-        ]
+        ], code.size)
         for site in sites:
             error_pauli[site] = 'Z'
         error = code.to_bsf(error_pauli)
@@ -302,7 +343,7 @@ class TestSweepDecoder3D:
         assert np.any(syndrome)
 
         # Check face X stabilizer syndrome measurements.
-        expected_syndrome_faces = [
+        expected_syndrome_faces = face_coords([
             (0, 0, 0, 0), (0, 0, 0, 2), (0, 1, 0, 1), (0, 1, 0, 2),
             (0, 1, 1, 1), (0, 1, 2, 1), (0, 2, 0, 0), (0, 2, 2, 1),
             (1, 0, 2, 2), (1, 1, 0, 0), (1, 1, 1, 0), (1, 1, 1, 1),
@@ -310,72 +351,94 @@ class TestSweepDecoder3D:
             (2, 0, 0, 0), (2, 0, 0, 2), (2, 0, 1, 2), (2, 0, 2, 2),
             (2, 1, 0, 1), (2, 1, 0, 2), (2, 1, 1, 1), (2, 1, 2, 1),
             (2, 2, 0, 0), (2, 2, 0, 2), (2, 2, 2, 1), (2, 2, 2, 2)
-        ]
+        ], code.size)
+        expected_signs = {k: 0 for k in code.type_index('face')}
+        for k in expected_syndrome_faces:
+            expected_signs[k] = 1
+        expected_syndrome = rebuild_syndrome(
+            code, expected_signs
+        )
+        assert np.all(syndrome == expected_syndrome)
+        """
         assert np.all(
             np.array(expected_syndrome_faces).T
             == np.where(syndrome[:code.n].reshape(3, 3, 3, 3))
         )
+        """
 
         # Attempt to perform decoding.
-        correction = decoder.decode(code, syndrome)
+        correction = decoder.decode(syndrome)
 
         total_error = (error + correction) % 2
 
         # Assert that decoding has failed.
         np.any(bcommute(code.stabilizer_matrix, total_error))
 
-    def test_sweep_move_two_edges(self):
-        code = Toric3DCode(3, 3, 3)
-        decoder = SweepDecoder3D()
+    def test_sweep_move_two_edges(self, code, decoder):
 
-        error = dict()
-        error[(0, 1, 0)] = 'Z'
-        error[(1, 0, 0)] = 'Z'
+        error = {
+            (0, 1, 0): 'Z',
+            (1, 0, 0): 'Z',
+        }
 
         syndrome = bcommute(code.stabilizer_matrix, code.to_bsf(error))
 
         correction = dict()
 
         # Syndrome from errors on x edge and y edge on vertex (0, 0, 0).
-        signs = np.zeros((3, 3, 3, 3), dtype=np.uint)
-        signs[1, 1, 1, 1] = 1
-        signs[1, 1, 1, 0] = 1
-        signs[0, 1, 1, 1] = 1
-        signs[0, 1, 1, 0] = 1
-        signs[2, 1, 0, 1] = 1
-        signs[2, 0, 1, 1] = 1
-        n_faces = code.n
-        assert np.all(syndrome[:n_faces].reshape(signs.shape) == signs)
+        signs = {k: 0 for k in code.type_index('face')}
+        faces = [
+            (1, 5, 0), (0, 1, 1), (0, 1, 5),
+            (5, 1, 0), (1, 0, 1), (1, 0, 5),
+        ]
+        signs = np.zeros(code.stabilizer_matrix.shape[0], dtype=np.uint)
+        for face in faces:
+            signs[code.stabilizer_index[face]] = 1
+
+        assert np.all(decoder.get_initial_state(syndrome) == signs)
 
         # Expected signs after one sweep.
-        expected_signs_1 = np.zeros((3, 3, 3, 3), dtype=np.uint)
-        expected_signs_1[2, 1, 0, 1] = 1
-        expected_signs_1[2, 0, 1, 1] = 1
-        expected_signs_1[0, 1, 0, 1] = 1
-        expected_signs_1[0, 1, 0, 0] = 1
-        expected_signs_1[1, 0, 1, 1] = 1
-        expected_signs_1[1, 0, 1, 0] = 1
+        expected_faces_1 = [
+            (0, 5, 1), (0, 5, 5),
+            (1, 5, 0),
+            (5, 0, 1), (5, 0, 5),
+            (5, 1, 0),
+        ]
         signs_1 = decoder.sweep_move(signs, correction)
-        assert np.all(expected_signs_1 == signs_1)
+        faces_1 = {
+            code.stabilizer_coordinates[index]
+            for index in np.where(signs_1)[0]
+        }
+        assert set(expected_faces_1) == set(faces_1)
 
         # Expected signs after two sweeps, should be all gone.
         signs_2 = decoder.sweep_move(signs_1, correction)
-        assert np.all(signs_2 == 0)
+        assert all(signs_2 == 0)
 
-        expected_correction = dict()
-        expected_correction[(2, 1, 1, 1)] = 'Z'
-        expected_correction[(0, 0, 1, 1)] = 'Z'
-        expected_correction[(1, 1, 0, 1)] = 'Z'
-        expected_correction[(2, 1, 1, 0)] = 'Z'
+        expected_correction = {
+            (0, 5, 0): 'Z',
+            (5, 0, 0): 'Z',
+            (0, 0, 1): 'Z',
+            (0, 0, 5): 'Z',
+        }
 
-        # Only need to compare the Z block because sweep only corrects Z block
-        # anyway.
-        correction_edges = set(
-            map(tuple, np.array(np.where(correction._zs)).T)
-        )
-        expected_correction_edges = set(
-            map(tuple, np.array(np.where(expected_correction._zs)).T)
-        )
+        assert correction == expected_correction
 
-        assert correction_edges == expected_correction_edges
-        assert np.all(correction._zs == expected_correction._zs)
+
+def find_sites(error_pauli):
+    """List of sites where Pauli has support over."""
+    return set([
+        location
+        for location, index in error_pauli.code.qubit_index.items()
+        if index in np.where(error_pauli._zs.toarray()[0])[0]
+    ])
+
+
+def rebuild_syndrome(code, signs):
+    reconstructed_syndrome = np.zeros(
+        code.stabilizer_matrix.shape[0], dtype=np.uint
+    )
+    for location, index in code.type_index('face').items():
+        if signs[location]:
+            reconstructed_syndrome[index] = 1
+    return reconstructed_syndrome

@@ -2,7 +2,6 @@ from typing import Tuple
 from abc import ABCMeta, abstractmethod
 import numpy as np
 from panqec.codes import StabilizerCode
-from scipy.sparse import csr_matrix
 
 
 class BaseErrorModel(metaclass=ABCMeta):
@@ -16,28 +15,28 @@ class BaseErrorModel(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def generate(self, code: StabilizerCode, probability: float, rng=None) -> csr_matrix:
+    def generate(self, code: StabilizerCode, error_rate: float, rng=None) -> np.ndarray:
         """Generate errors for a given code and probability of failure
 
         Parameters
         ----------
         code : StabilizerCode
             Errors will be generated on the qubits of the provided code
-        probability: float
+        error_rate: float
             Physical error rate
         rng: numpy.random.Generator
             Random number generator (default=None resolves to numpy.random.default_rng())
 
         Returns
         -------
-        error : scipy.sparse.csr_matrix
-            Error as a sparse array of size 1 x 2n (with n the number of qubits)
+        error : np.ndarray
+            Error as an array of size 2n (with n the number of qubits)
             in the binary symplectic format
         """
 
     @abstractmethod
     def probability_distribution(
-        self, code: StabilizerCode, probability: float
+        self, code: StabilizerCode, error_rate: float
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Probability distribution of X, Y and Z errors on all the qubits of a code
         Can be used to generate errors and configure decoders
@@ -46,7 +45,7 @@ class BaseErrorModel(metaclass=ABCMeta):
         ----------
         code : StabilizerCode
             Code used for the error model
-        probability: float
+        error_rate: float
             Physical error rate
 
         Returns

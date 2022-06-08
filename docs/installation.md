@@ -6,9 +6,15 @@ PyMatching can be downloaded and installed from [PyPI](https://pypi.org/project/
 pip install panqec
 ```
 
-If instead you would like to install PanQEC from source, clone the repository and then use `pip` to install::
+To test that the installation worked, you can try starting the GUI locally:
 
 ```bash
-git clone https://github.com/ehua7365/panqec
+panqec start-gui
+```
+
+If instead you would like to install PanQEC from source, clone the repository and then use `pip` to install:
+
+```bash
+git clone https://github.com/panqec/panqec
 pip install -e ./panqec
 ```

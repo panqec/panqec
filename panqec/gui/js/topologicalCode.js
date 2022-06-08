@@ -126,9 +126,9 @@ class TopologicalCode {
         stabilizer.visible = (stabilizer.material.opacity != 0)
 
         // For objects with a wireframe
-        if (stabilizer.children.length > 0 && stabilizer.children[0].type == 'LineSegment') {
+        if (stabilizer.children.length > 0 && stabilizer.children[0].type == 'LineSegments') {
             var wireframe = stabilizer.children[0]
-            wireframe.material.opacity = stabilizer.material.opacity > 0 ? 1 : 0;
+            wireframe.material.opacity = stabilizer.material.opacity;
         }
     }
 
@@ -188,9 +188,9 @@ class TopologicalCode {
             stabilizer.visible = (stabilizer.material.opacity != 0)
 
             // For objects with a wireframe
-            if (stabilizer.children.length > 0 && stabilizer.children[0].type == 'LineSegment') {
+            if (stabilizer.children.length > 0 && stabilizer.children[0].type == 'LineSegments') {
                 var wireframe = stabilizer.children[0]
-                wireframe.material.opacity = stabilizer.material.opacity > 0 ? 1 : 0;
+                wireframe.material.opacity = stabilizer.material.opacity;
             }
 
             stabilizer.isActivated = false;

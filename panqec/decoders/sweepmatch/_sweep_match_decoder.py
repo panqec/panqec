@@ -1,30 +1,30 @@
 import numpy as np
 from panqec.codes import StabilizerCode
-from panqec.decoders import BaseDecoder
-from ._sweep_decoder_3d import SweepDecoder3D
-from ._pymatching_decoder import Toric3DPymatchingDecoder
-import panqec.bsparse as bsparse
+from panqec.decoders import (
+    BaseDecoder, SweepDecoder3D, Toric3DMatchingDecoder
+)
+from panqec.error_models import BaseErrorModel
 
 
 class SweepMatchDecoder(BaseDecoder):
 
-    label = 'Toric 3D Sweep Pymatching Decoder'
-    _sweeper: SweepDecoder3D
-    _matcher: Toric3DPymatchingDecoder
+    label = 'Toric 3D Sweep + Matching Decoder'
+    sweeper: SweepDecoder3D
+    matcher: Toric3DMatchingDecoder
 
-    def __init__(self, error_model, probability):
-        super().__init__(error_model, probability)
-        self._sweeper = SweepDecoder3D(error_model, probability)
-        self._matcher = Toric3DPymatchingDecoder(error_model, probability)
+    def __init__(self, code: StabilizerCode,
+                 error_model: BaseErrorModel,
+                 error_rate: float):
+        super().__init__(code, error_model, error_rate)
+        self.sweeper = SweepDecoder3D(code, error_model, error_rate)
+        self.matcher = Toric3DMatchingDecoder(code, error_model, error_rate)
 
-    def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
-        z_correction = self._sweeper.decode(code, syndrome)
-        x_correction = self._matcher.decode(code, syndrome)
+        z_correction = self.sweeper.decode(syndrome)
+        x_correction = self.matcher.decode(syndrome)
 
-        correction = x_correction + z_correction
-        correction.data %= 2
-        correction = correction.astype(np.uint)
+        correction = (x_correction + z_correction) % 2
 
-        return bsparse.from_array(correction)
+        return correction

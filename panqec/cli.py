@@ -6,7 +6,7 @@ from tqdm import tqdm
 import numpy as np
 import json
 from json.decoder import JSONDecodeError
-from .app import run_file, merge_results_dicts
+from .simulation import run_file, merge_results_dicts
 from .config import CODES, ERROR_MODELS, DECODERS, PANQEC_DIR, BASE_DIR
 from .slurm import (
     generate_sbatch, get_status, generate_sbatch_nist, count_input_runs,
@@ -279,7 +279,7 @@ def generate_input(
             if decoder == "BeliefPropagationOSDDecoder":
                 decoder_model = "BeliefPropagationOSDDecoder"
                 decoder_parameters = {'max_bp_iter': 1000,
-                                      'osd_order': 10}
+                                      'osd_order': 0}
             else:
                 decoder_model = decoder
                 decoder_parameters = {}
@@ -471,8 +471,13 @@ def cc_sbatch(
     '-s', '--split', default=1, type=click.INT, show_default=True
 )
 @click.option('-p', '--partition', default='pml', type=str, show_default=True)
+@click.option(
+    '--max_sim_array', default=None, type=int, show_default=True,
+    help='Max number of simultaneous array jobs'
+)
 def nist_sbatch(
-    sbatch_file, data_dir, n_array, wall_time, memory, trials, split, partition
+    sbatch_file, data_dir, n_array, wall_time, memory, trials, split,
+    partition, max_sim_array
 ):
     """Generate NIST-style sbatch file with parallel array jobs."""
     template_file = os.path.join(
@@ -486,11 +491,14 @@ def nist_sbatch(
         f'{inputs_dir} missing, please create it and generate inputs'
     )
     name = os.path.basename(data_dir)
+    narray_str = str(n_array)
+    if max_sim_array is not None:
+        narray_str += '%' + str(max_sim_array)
     replace_map = {
         '${TIME}': wall_time,
         '${MEMORY}': memory,
         '${NAME}': name,
-        '${NARRAY}': str(n_array),
+        '${NARRAY}': narray_str,
         '${DATADIR}': os.path.abspath(data_dir),
         '${TRIALS}': str(trials),
         '${SPLIT}': str(split),
@@ -552,6 +560,63 @@ def generate_qsub(
     with open(qsub_file, 'w') as f:
         f.write(text)
     print(f'Wrote to {qsub_file}')
+
+
+@click.command()
+@click.argument('sbatch_file', required=True)
+@click.option('-d', '--data_dir', type=click.Path(exists=True), required=True)
+@click.option('-n', '--n_array', default=6, type=click.INT, show_default=True)
+@click.option(
+    '-w', '--wall_time', default='0-23:00', type=str, show_default=True
+)
+@click.option(
+    '-m', '--memory', default='32GB', type=str, show_default=True
+)
+@click.option(
+    '-t', '--trials', default=1000, type=click.INT, show_default=True
+)
+@click.option(
+    '-s', '--split', default=1, type=click.INT, show_default=True
+)
+@click.option(
+    '-p', '--partition', default='dpart', type=str, show_default=True
+)
+@click.option(
+    '-q', '--qos', default='dpart', type=str, show_default=True
+)
+def umiacs_sbatch(
+    sbatch_file, data_dir, n_array, wall_time, memory, trials, split,
+    partition, qos
+):
+    """Generate UMIACS-style sbatch file with parallel array jobs."""
+    template_file = os.path.join(
+        os.path.dirname(BASE_DIR), 'scripts', 'umiacs_template.sh'
+    )
+    with open(template_file) as f:
+        text = f.read()
+
+    inputs_dir = os.path.join(data_dir, 'inputs')
+    assert os.path.isdir(inputs_dir), (
+        f'{inputs_dir} missing, please create it and generate inputs'
+    )
+    name = os.path.basename(data_dir)
+    replace_map = {
+        '${TIME}': wall_time,
+        '${MEMORY}': memory,
+        '${NAME}': name,
+        '${NARRAY}': str(n_array),
+        '${DATADIR}': os.path.abspath(data_dir),
+        '${TRIALS}': str(trials),
+        '${SPLIT}': str(split),
+        '${QOS}': qos,
+        '${QUEUE}': partition,
+    }
+    for template_string, value in replace_map.items():
+        text = text.replace(template_string, value)
+
+    with open(sbatch_file, 'w') as f:
+        f.write(text)
+    print(f'Wrote to {sbatch_file}')
 
 
 @click.command()
@@ -632,3 +697,4 @@ cli.add_command(cc_sbatch)
 cli.add_command(merge_dirs)
 cli.add_command(nist_sbatch)
 cli.add_command(generate_qsub)
+cli.add_command(umiacs_sbatch)

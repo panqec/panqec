@@ -1,76 +1,58 @@
-from typing import Tuple
-import itertools
+from typing import Tuple, Dict
 import numpy as np
 from pymatching import Matching
 from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
-from panqec.error_models import BaseErrorModel
+from panqec.error_models import BaseErrorModel, PauliErrorModel
 from .. import (
-    SweepDecoder3D, Toric3DPymatchingDecoder, RotatedPlanarPymatchingDecoder,
+    SweepDecoder3D, Toric3DMatchingDecoder, RotatedPlanarMatchingDecoder,
     RotatedSweepDecoder3D
 )
-import panqec.bsparse as bsparse
 
 
-class DeformedToric3DPymatchingDecoder(Toric3DPymatchingDecoder):
-
-    _error_model: BaseErrorModel
-    _probability: float
+class DeformedToric3DMatchingDecoder(Toric3DMatchingDecoder):
+    code: StabilizerCode
+    error_rate: float
+    error_model: PauliErrorModel
     _epsilon: float
+    _n_faces: Dict[str, int]
 
-    def __init__(self, error_model: BaseErrorModel, probability: float):
-        super(DeformedToric3DPymatchingDecoder, self).__init__()
-        self._error_model = error_model
-        self._probability = probability
+    def __init__(self, code: StabilizerCode,
+                 error_model: BaseErrorModel,
+                 error_rate: float):
         self._epsilon = 1e-15
+        self._n_faces = dict()
+        super().__init__(code, error_model, error_rate)
 
-    def new_matcher(self, code: StabilizerCode):
+    def get_matcher(self):
         """Return a new Matching object."""
         # Get the number of X stabilizers (faces).
-        n_faces = int(np.product(code.shape))
-        self._n_faces[code.label] = n_faces
-        n_qubits = code.n
+        n_faces: int = int(3*np.product(self.code.size))
+        self._n_faces[self.code.label] = n_faces
 
         # Only keep the Z vertex stabilizers.
-        H_z = code.stabilizer_matrix[n_faces:, n_qubits:]
-        weights = self.get_deformed_weights(code)
+        H_z = self.code.Hz
+        weights = self.get_deformed_weights()
+        print("weights", weights)
         return Matching(H_z, spacelike_weights=weights)
 
-    def get_deformed_weights(self, code: StabilizerCode) -> np.ndarray:
+    def get_deformed_weights(self) -> np.ndarray:
         """Get MWPM weights for deformed Pauli noise."""
 
-        # The x-edges are deformed.
-        deformed_edge = code.X_AXIS
-
-        regular_weight, deformed_weight = get_regular_and_deformed_weights(
-            self._error_model.direction, self._probability, self._epsilon
+        return calculate_deformed_weights(
+            self.error_model, self.error_rate, self.code, self._epsilon
         )
-
-        # All weights are regular weights to start off with.
-        weights = np.ones(code.shape, dtype=float)*regular_weight
-
-        # The ranges of indices to iterate over.
-        ranges = [range(length) for length in code.shape]
-
-        # The weights on the deformed edge are different.
-        for axis, x, y, z in itertools.product(*ranges):
-            if axis == deformed_edge:
-                weights[axis, x, y, z] = deformed_weight
-
-        # Return flattened arrays.
-        return weights.flatten()
 
 
 class DeformedSweepDecoder3D(SweepDecoder3D):
 
-    _error_model: BaseErrorModel
-    _probability: float
+    code: StabilizerCode
+    error_model: BaseErrorModel
+    error_rate: float
     _p_edges: int
 
-    def __init__(self, error_model, probability):
-        super(DeformedSweepDecoder3D, self).__init__()
-        self._error_model = error_model
-        self._probability = probability
+    def __init__(self, code, error_model, error_rate):
+        super().__init__(code, error_model, error_rate)
         self._p_edges = self.get_edge_probabilities()
 
     def get_edge_probabilities(self):
@@ -79,7 +61,7 @@ class DeformedSweepDecoder3D(SweepDecoder3D):
         p_edges: Tuple[float, float, float]
 
         p_X, p_Y, p_Z = (
-            np.array(self._error_model.direction)*self._probability
+            np.array(self.error_model.direction)*self.error_rate
         )
         p_regular = p_Y + p_Z
         p_deformed = p_Y + p_X
@@ -97,89 +79,104 @@ class DeformedSweepDecoder3D(SweepDecoder3D):
 
 class DeformedSweepMatchDecoder(BaseDecoder):
 
-    label = 'Deformed Toric 3D Sweep Pymatching Decoder'
-    _sweeper: DeformedSweepDecoder3D
-    _matcher: DeformedToric3DPymatchingDecoder
+    label = 'Deformed Toric 3D Sweep Matching Decoder'
+    sweeper: BaseDecoder
+    matcher: BaseDecoder
 
-    def __init__(self, error_model: BaseErrorModel, probability: float):
-        self._sweeper = DeformedSweepDecoder3D(
-            error_model, probability
+    def __init__(self, code: StabilizerCode,
+                 error_model: BaseErrorModel,
+                 error_rate: float):
+        self.sweeper = DeformedSweepDecoder3D(
+            code, error_model, error_rate
         )
-        self._matcher = DeformedToric3DPymatchingDecoder(
-            error_model, probability
+        self.matcher = DeformedToric3DMatchingDecoder(
+            code, error_model, error_rate
         )
 
-    def decode(self, code: StabilizerCode, syndrome: np.ndarray) -> np.ndarray:
+    def decode(
+        self, syndrome: np.ndarray, **kwargs
+    ) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
-        z_correction = self._sweeper.decode(code, syndrome)
-        x_correction = self._matcher.decode(code, syndrome)
+        z_correction = self.sweeper.decode(syndrome)
+        x_correction = self.matcher.decode(syndrome)
 
         correction = (z_correction + x_correction) % 2
         correction = correction.astype(np.uint)
-        return bsparse.from_array(correction)
+        return correction
 
 
 class DeformedRotatedSweepMatchDecoder(DeformedSweepMatchDecoder):
 
-    def __init__(self, error_model: BaseErrorModel, probability: float):
-        self._sweeper = RotatedSweepDecoder3D()
-        self._matcher = DeformedRotatedPlanarPymatchingDecoder(
-            error_model, probability
+    def __init__(self, code: StabilizerCode,
+                 error_model: BaseErrorModel,
+                 error_rate: float):
+        self.sweeper = RotatedSweepDecoder3D(code, error_model, error_rate)
+        self.matcher = DeformedRotatedPlanarMatchingDecoder(
+            code, error_model, error_rate
         )
 
 
-class DeformedRotatedPlanarPymatchingDecoder(RotatedPlanarPymatchingDecoder):
+class DeformedRotatedPlanarMatchingDecoder(RotatedPlanarMatchingDecoder):
 
-    def __init__(self, error_model: BaseErrorModel, probability: float):
-        super(DeformedRotatedPlanarPymatchingDecoder, self).__init__()
-        self._error_model = error_model
-        self._probability = probability
+    def __init__(self, code, error_model: BaseErrorModel, error_rate: float):
         self._epsilon = 1e-15
+        super().__init__(code, error_model, error_rate)
 
-    def new_matcher(self, code: StabilizerCode):
+    def get_matcher(self):
         """Return a new Matching object."""
         # Get the number of X stabilizers (faces).
-        n_faces = len(code.face_index)
-        self._n_faces[code.label] = n_faces
-        n_qubits = code.n
-        self._n_qubits[code.label] = n_qubits
+        n_faces = len([
+            location
+            for location in self.code.stabilizer_coordinates
+            if self.code.stabilizer_type(location) == 'face'
+        ])
+        self._n_faces[self.code.label] = n_faces
+        n_qubits = self.code.n
+        self._n_qubits[self.code.label] = n_qubits
 
         # Only keep the Z vertex stabilizers.
-        H_z = code.stabilizer_matrix[n_faces:, n_qubits:]
-        weights = self.get_deformed_weights(code)
+        H_z = self.code.Hz
+        weights = self.get_deformed_weights()
         return Matching(H_z, spacelike_weights=weights)
 
-    def get_deformed_weights(self, code: StabilizerCode) -> np.ndarray:
+    def get_deformed_weights(self) -> np.ndarray:
         """Get MWPM weights for deformed Pauli noise."""
 
-        regular_weight, deformed_weight = get_regular_and_deformed_weights(
-            self._error_model.direction, self._probability, self._epsilon
+        return calculate_deformed_weights(
+            self.error_model, self.error_rate, self.code, self._epsilon
         )
 
-        # Count qubits and faces.
-        n_qubits = code.n
 
-        # All weights are regular weights to start off with.
-        weights = np.ones(n_qubits, dtype=float)*regular_weight
+def calculate_deformed_weights(
+    error_model: PauliErrorModel, probability: float,
+    code: StabilizerCode, epsilon
+) -> np.ndarray:
+    regular_weight, deformed_weight = get_regular_and_deformed_weights(
+        error_model.direction, probability, epsilon
+    )
 
-        # The weights on the deformed edge are different.
-        for i_qubit, (x, y, z) in code.qubit_coordinates:
-            if z % 2 == 0:
-                weights[i_qubit] = deformed_weight
+    # All weights are regular weights to start off with.
+    weights = np.ones(code.n, dtype=float)*regular_weight
 
-        # Return flattened arrays.
-        return weights
+    # Get indices of deformed qubits from error model.
+    deformation_indices = error_model.get_deformation_indices(code)
+
+    # The weights on the deformed edge are different.
+    weights[deformation_indices] = deformed_weight
+
+    # Return flattened arrays.
+    return weights
 
 
 def get_regular_and_deformed_weights(
-    direction: Tuple[float, float, float], probability: float, epsilon: float
+    direction: Tuple[float, float, float], error_rate: float, epsilon: float
 ) -> Tuple[float, float]:
     """Get MWPM weights for given Pauli noise probabilities."""
 
     # Extract undeformed error probabilities.
     r_x, r_y, r_z = direction
-    p_X, p_Y, p_Z = np.array([r_x, r_y, r_z])*probability
+    p_X, p_Y, p_Z = np.array([r_x, r_y, r_z])*error_rate
 
     # For undeformed qubit sites, only X and Y errors can be detected,
     # so the probability of error is the sum of their probabilities.
@@ -195,12 +192,10 @@ def get_regular_and_deformed_weights(
     # Divide by the probability of no (detectable) error because that is
     # the baseline to compare with.
     regular_weight = -np.log(
-        (p_regular + epsilon)
-        / (1 - p_regular + epsilon)
+        (p_regular + epsilon) / (1 - p_regular + epsilon)
     )
     deformed_weight = -np.log(
-        (p_deformed + epsilon)
-        / (1 - p_deformed + epsilon)
+        (p_deformed + epsilon) / (1 - p_deformed + epsilon)
     )
 
     return regular_weight, deformed_weight

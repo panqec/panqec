@@ -39,7 +39,7 @@ class RhombicCode(StabilizerCode):
         return coordinates
 
     def get_stabilizer_coordinates(self) -> Coordinates:
-        coordinates = []
+        coordinates: List[Tuple] = []
         Lx, Ly, Lz = self.size
 
         # Cubes
@@ -49,7 +49,9 @@ class RhombicCode(StabilizerCode):
                 coordinates.append((x, y, z))
 
         # Triangles
-        ranges = [range(4), range(0, 2*Lx, 2), range(0, 2*Ly, 2), range(0, 2*Lz, 2)]
+        ranges = [
+            range(4), range(0, 2*Lx, 2), range(0, 2*Ly, 2), range(0, 2*Lz, 2)
+        ]
         for axis, x, y, z in itertools.product(*ranges):
             coordinates.append((axis, x, y, z))
 
@@ -96,11 +98,17 @@ class RhombicCode(StabilizerCode):
 
         operator = dict()
         for d in delta:
-            qubit_location = tuple(np.add([x, y, z], d) % (2*np.array(self.size)))
+            qubit_location = tuple(
+                np.add([x, y, z], d) % (2*np.array(self.size))
+            )
 
             if self.is_qubit(qubit_location):
-                is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
-                operator[qubit_location] = deformed_pauli if is_deformed else pauli
+                is_deformed = (
+                    self.qubit_axis(qubit_location) == deformed_axis
+                )
+                operator[qubit_location] = (
+                    deformed_pauli if is_deformed else pauli
+                )
 
         return operator
 
@@ -114,22 +122,24 @@ class RhombicCode(StabilizerCode):
         elif (z % 2 == 1) and (x % 2 == 0) and (y % 2 == 0):
             axis = 'z'
         else:
-            raise ValueError(f'Location {location} does not correspond to a qubit')
+            raise ValueError(
+                f'Location {location} does not correspond to a qubit'
+            )
 
         return axis
 
-    def get_logicals_x(self) -> Operator:
+    def get_logicals_x(self) -> List[Operator]:
         """The 3 logical X operators."""
 
         Lx, Ly, Lz = self.size
-        logicals = []
+        logicals: List[Operator] = []
 
-        # Sheet of X operators normal to the z direction
-        operator = dict()
-        for x in range(2*Lx):
-            for y in range(2*Ly):
-                if (x + y) % 2 == 1:
-                    operator[(x, y, 0)] = 'X'
+        # Sheet of X operators normal to the x direction
+        operator: Operator = dict()
+        for y in range(2*Ly):
+            for z in range(2*Lz):
+                if (y + z) % 2 == 1:
+                    operator[(0, y, z)] = 'X'
         logicals.append(operator)
 
         # Sheet of X operators normal to the y direction
@@ -140,24 +150,24 @@ class RhombicCode(StabilizerCode):
                     operator[(x, 0, z)] = 'X'
         logicals.append(operator)
 
-        # Sheet of X operators normal to the x direction
+        # Sheet of X operators normal to the z direction
         operator = dict()
-        for y in range(2*Ly):
-            for z in range(2*Lz):
-                if (y + z) % 2 == 1:
-                    operator[(0, y, z)] = 'X'
+        for x in range(2*Lx):
+            for y in range(2*Ly):
+                if (x + y) % 2 == 1:
+                    operator[(x, y, 0)] = 'X'
         logicals.append(operator)
 
         return logicals
 
-    def get_logicals_z(self) -> Operator:
+    def get_logicals_z(self) -> List[Operator]:
         """The 3 logical Z operators."""
 
         Lx, Ly, Lz = self.size
         logicals = []
 
         # Line of parallel Z operators along the x direction
-        operator = dict()
+        operator: Operator = dict()
         for x in range(0, 2*Lx, 2):
             operator[(x, 1, 0)] = 'Z'
         logicals.append(operator)
@@ -176,8 +186,12 @@ class RhombicCode(StabilizerCode):
 
         return logicals
 
-    def stabilizer_representation(self, location, rotated_picture=False) -> Dict:
-        representation = super().stabilizer_representation(location, rotated_picture)
+    def stabilizer_representation(
+        self, location, rotated_picture=False, json_file=None
+    ) -> Dict:
+        representation = super().stabilizer_representation(
+            location, rotated_picture, json_file
+        )
 
         if self.stabilizer_type(location) == 'triangle':
             axis, x, y, z = location
@@ -188,7 +202,10 @@ class RhombicCode(StabilizerCode):
 
             delta = delta_1 if ((x + y + z) % 4 == 0) else delta_2
 
-            a = 0.5
+            a = 1.
+            if rotated_picture:
+                a = 1.
+
             dx, dy, dz = tuple(a * np.array(delta[axis]))
 
             representation['params']['vertices'] = [[dx, 0, 0],
