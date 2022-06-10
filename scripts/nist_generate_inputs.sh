@@ -329,8 +329,8 @@ panqec nist-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$me
 name=det_xcube_bposd_xzzx_zbias
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
-# sizes="9,13,17,21"
-sizes="9,11,13,15"
+sizes="9,13,17,21"
+# sizes="9,11,13,15"
 wall_time="48:00:00"
 memory="90GB"
 
