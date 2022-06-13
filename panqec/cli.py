@@ -16,6 +16,7 @@ from .statmech.cli import statmech
 from .utils import get_direction_from_bias_ratio
 from panqec.gui import GUI
 from glob import glob
+from .usage import summarize_usage
 
 
 @click.group(invoke_without_command=True)
@@ -682,6 +683,23 @@ def status():
     get_status()
 
 
+@click.command
+@click.argument('data_dirs', type=click.Path(exists=True), nargs=-1)
+def check_usage(data_dirs=None):
+    """Check usage of resources."""
+    log_dirs = []
+    if data_dirs is None:
+        log_dirs = glob(os.path.join(PANQEC_DIR, 'paper', '*', 'logs'))
+    else:
+        for data_dir in data_dirs:
+            log_dir = os.path.join(data_dir, 'logs')
+            if not os.path.isdir(log_dir):
+                print(f'{log_dir} not a directory')
+            else:
+                log_dirs.append(log_dir)
+    summarize_usage(log_dirs)
+
+
 slurm.add_command(gen)
 slurm.add_command(gennist)
 slurm.add_command(status)
@@ -699,3 +717,4 @@ cli.add_command(merge_dirs)
 cli.add_command(nist_sbatch)
 cli.add_command(generate_qsub)
 cli.add_command(umiacs_sbatch)
+cli.add_command(check_usage)
