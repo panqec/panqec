@@ -4,8 +4,56 @@ sbatch_dir=temp/paper/sbatch
 mkdir -p "$sbatch_dir"
 mkdir -p temp/paper/share
 
-wall_time="12:00:00"
+wall_time="24:00:00"
 memory="64GB"
+
+# ============== XCube Deformed ==============
+common_name=det_xcube_bposd_xzzx_zbias
+name=${common_name}_temp
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="9,13,17,21"
+
+source scripts/xcube_xzzx.sh
+
+nfiles=$(ls $paper_dir/$name/inputs | wc -l)
+echo "$nfiles input files created"
+
+for repeat in $(seq 1 30); do
+    name=${common_name}_${repeat}
+    mkdir -p $paper_dir/$name
+    rm -rf $paper_dir/$name/inputs
+    rm -rf $paper_dir/$name/logs
+    cp -R $paper_dir/${common_name}_temp/inputs $paper_dir/$name/inputs
+    panqec cc-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
+        --wall_time "$wall_time" --trials 500 --split auto $sbatch_dir/$name.sbatch
+done
+
+rm -rf $paper_dir/${common_name}_temp
+
+# ============== XCube Undeformed ==============
+common_name=det_xcube_bposd_undef_zbias
+name=${common_name}_temp
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="9,13,17,21"
+
+source scripts/xcube_undef.sh
+
+nfiles=$(ls $paper_dir/$name/inputs | wc -l)
+echo "$nfiles input files created"
+
+for repeat in $(seq 1 30); do
+    name=${common_name}_${repeat}
+    mkdir -p $paper_dir/$name
+    rm -rf $paper_dir/$name/inputs
+    rm -rf $paper_dir/$name/logs
+    cp -R $paper_dir/${common_name}_temp/inputs $paper_dir/$name/inputs
+    panqec cc-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
+        --wall_time "$wall_time" --trials 200 --split auto $sbatch_dir/$name.sbatch
+done
+
+rm -rf $paper_dir/${common_name}_temp
 
 # ======= Rhombic Deformed =======
 common_name=det_rhombic_bposd_xzzx_xbias
@@ -19,7 +67,7 @@ source scripts/rhombic_xzzx.sh
 nfiles=$(ls $paper_dir/$name/inputs | wc -l)
 echo "$nfiles input files created"
 
-for repeat in $(seq 1 20); do
+for repeat in $(seq 1 30); do
     name=${common_name}_${repeat}
     mkdir -p $paper_dir/$name
     rm -rf $paper_dir/$name/inputs
