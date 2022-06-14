@@ -241,8 +241,8 @@ class BatchSimulation():
         self,
         label='unlabelled',
         on_update: Callable = identity,
-        update_frequency: int = 10,
-        save_frequency: int = 20,
+        update_frequency: int = 5,
+        save_frequency: int = 5,
         output_dir: Optional[str] = None,
     ):
         self._simulations = []
