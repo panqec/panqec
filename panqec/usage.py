@@ -1,5 +1,7 @@
 """
 Routines for checking usage and progress.
+
+Works by reading usage txt files produced by scripts/monitor.py.
 """
 
 from typing import List, Dict, Tuple, Any, Optional, Union
@@ -103,7 +105,6 @@ def get_usage(logs_dir, jobs):
 
 
 def get_time_df(usage):
-    breakpoint()
     date_ranges = pd.date_range(
         usage.date.min(), usage.date.max(), freq='15min'
     )
