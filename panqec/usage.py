@@ -18,9 +18,12 @@ def summarize_usage(logs_dirs: List[str]):
         jobs = get_jobs(logs_dir)
         usage = get_usage(logs_dir, jobs)
         usage_df_list.append(usage)
-    usage_df = pd.concat(usage_df_list, axis=0)
-    time_df = get_time_df(usage_df)
-    plot_usage(time_df)
+    if usage_df_list:
+        usage_df = pd.concat(usage_df_list, axis=0)
+        time_df = get_time_df(usage_df)
+        plot_usage(time_df)
+    else:
+        print('No usage logs found')
 
 
 def plot_usage(time_df):
