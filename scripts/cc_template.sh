@@ -38,6 +38,9 @@ source venv/bin/activate
 log_dir="$data_dir/logs"
 mkdir -p $log_dir
 
+# Print out available disk space.
+df -h
+
 # Print out the environmental variables and the time.
 printenv
 date
