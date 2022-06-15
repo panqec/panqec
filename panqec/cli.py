@@ -684,19 +684,21 @@ def status():
 
 
 @click.command
-@click.argument('data_dirs', type=click.Path(exists=True), nargs=-1)
+@click.argument(
+    'data_dirs', default=None, type=click.Path(exists=True), nargs=-1
+)
 def check_usage(data_dirs=None):
     """Check usage of resources."""
     log_dirs = []
-    if data_dirs is None:
-        log_dirs = glob(os.path.join(PANQEC_DIR, 'paper', '*', 'logs'))
-    else:
+    if data_dirs:
         for data_dir in data_dirs:
             log_dir = os.path.join(data_dir, 'logs')
             if not os.path.isdir(log_dir):
                 print(f'{log_dir} not a directory')
             else:
                 log_dirs.append(log_dir)
+    else:
+        log_dirs = glob(os.path.join(PANQEC_DIR, 'paper', '*', 'logs'))
     summarize_usage(log_dirs)
 
 

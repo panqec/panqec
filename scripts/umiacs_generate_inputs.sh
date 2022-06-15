@@ -43,21 +43,21 @@ panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles \
     --wall_time "$wall_time" --trials 10000 --split auto $sbatch_dir/$name.sbatch
 
 # =============== Rhombic Deformed ================
-name=det_rhombic_bposd_xzzx_xbias
+name=test_rhombic_bposd_xzzx_xbias
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
-sizes="10,14,18,22"
+sizes="10,14,18,20"
 # sizes="8,10,12,14"
-wall_time="1:30:00"
+wall_time="1:00:00"
 memory="20G"
 
 source scripts/rhombic_xzzx.sh
 
 nfiles=$(ls $paper_dir/$name/inputs | wc -l)
 echo "$nfiles input files created"
-panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles \
+panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 8 \
     --memory "$memory" --qos "$qos" \
-    --wall_time "$wall_time" --trials 10000 --split auto $sbatch_dir/$name.sbatch
+    --wall_time "$wall_time" --trials 250 --split auto $sbatch_dir/$name.sbatch
 
 # ============== XCube Undeformed ==============
 name=rough_xcube_bposd_undef_zbias
@@ -82,7 +82,7 @@ rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
 sizes="9,13,17,21"
 # sizes="7,9,11,13"
-wall_time="0:10:00"
+wall_time="2:00:00"
 memory="20G"
 
 source scripts/xcube_xzzx.sh
