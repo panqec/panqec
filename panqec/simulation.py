@@ -79,6 +79,24 @@ def run_file(
     batch_sim.run(n_trials, progress=progress)
 
 
+def calculate_logical_error_rate(
+    code: StabilizerCode,
+    error_model: BaseErrorModel,
+    decoder: BaseDecoder,
+    error_rate: float,
+    n_runs: int,
+    verbose: bool = False
+):
+    n_fails = 0
+    for run in range(n_runs):
+        if verbose:
+            print(f"Run {run+1} / {n_runs}", end='\r')
+        results = run_once(code, error_model, decoder, error_rate)
+        n_fails += 1 - results['success']
+
+    return n_fails / n_runs
+
+
 class Simulation:
     """Quantum Error Correction Simulation."""
 
