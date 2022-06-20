@@ -4,4 +4,5 @@ python-dotenv==0.17.0
 psutil==5.8.0
 ldpc==0.1.0
 click==8.1.2
+pandas==1.4.2
 -e .

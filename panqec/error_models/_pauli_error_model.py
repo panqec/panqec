@@ -75,3 +75,26 @@ class PauliErrorModel(BaseErrorModel):
 
     def get_deformation_indices(self, code: StabilizerCode) -> np.ndarray:
         return np.zeros(code.n, dtype=bool)
+
+    def error_probability(
+        self, error: np.ndarray, code: StabilizerCode,
+        error_rate: float, log_output: bool = False
+    ) -> np.ndarray:
+
+        pi, px, py, pz = self.probability_distribution(code, error_rate)
+
+        prob_vector = np.zeros(code.n)
+        prob_vector += py * (error[:code.n] == error[code.n:])
+        prob_vector += px * np.logical_and(error[:code.n],
+                                           np.logical_not(error[code.n:]))
+        prob_vector += pz * np.logical_and(np.logical_not(error[:code.n]),
+                                           error[code.n:])
+        prob_vector += pi * np.logical_and(np.logical_not(error[:code.n]),
+                                           np.logical_not(error[code.n:]))
+
+        if log_output:
+            prob = np.sum(np.log(prob_vector))
+        else:
+            prob = np.prod(prob_vector)
+
+        return prob
