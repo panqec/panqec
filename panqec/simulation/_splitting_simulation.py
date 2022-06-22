@@ -14,6 +14,9 @@ def g(x):
     return 1 / (1 + x)
 
 
+g = np.vectorize(g)
+
+
 class SplittingSimulation(BaseSimulation):
     """Quantum Error Correction Simulation."""
 
@@ -32,17 +35,22 @@ class SplittingSimulation(BaseSimulation):
         error_model: BaseErrorModel,
         decoders: List[BaseDecoder],
         error_rates: List[float],
+        n_init_runs: int,
+        start_run: int = 0,
         rng=None
     ):
         super().__init__(code, error_model, rng=rng)
 
         self.decoders = decoders
         self.error_rates = np.sort(error_rates)[::-1]
+        self.n_init_runs = n_init_runs
         self.label = '_'.join([
             code.label, error_model.label, decoders[0].label
         ])
 
         self.current_error = None
+        self.initial_logical_p = None
+        self.start_run = start_run
 
         self._results = {
             **self._results,
@@ -58,6 +66,12 @@ class SplittingSimulation(BaseSimulation):
     def _run(self, n_runs: int):
         """Run assuming perfect measurement."""
         # Find an error that leads to a decoding failure
+
+        if self.initial_logical_p is None:
+            self.initial_logical_p = calculate_logical_error_rate(
+                self.code, self.error_model, self.decoders[0],
+                self.error_rates[0], self.n_init_runs
+            )
 
         if self.current_error is None:
             if (self.error_model.error_probability(
@@ -180,9 +194,8 @@ class SplittingSimulation(BaseSimulation):
 
     def compute_optimal_c(self):
         list_c = np.linspace(0.0001, 1, 100)
-        n_runs = self._results['n_runs']
         n_p = len(self.error_rates)
-        log_p_errors = self._results['log_p_errors']
+        log_p_errors = np.array(self._results['log_p_errors'])
 
         optimal_c = []
 
@@ -190,14 +203,14 @@ class SplittingSimulation(BaseSimulation):
             lhs = []
             rhs = []
             for c in list_c:
-                lhs.append(np.sum([
-                    g(c * np.exp(log_p_errors[j][k] - log_p_errors[j+1][k]))
-                    for k in range(n_runs)
-                ]))
-                rhs.append(np.sum([
-                    g(1/c * np.exp(log_p_errors[j+1][k] - log_p_errors[j][k]))
-                    for k in range(n_runs)
-                ]))
+                lhs.append(np.sum(
+                    g(c * np.exp(log_p_errors[j][self.start_run:] 
+                    - log_p_errors[j+1][self.start_run:]))
+                ))
+                rhs.append(np.sum(
+                    g(1/c * np.exp(log_p_errors[j+1][self.start_run:] 
+                    - log_p_errors[j][self.start_run:]))
+                ))
 
             lhs = np.array(lhs)
             rhs = np.array(rhs)
@@ -211,27 +224,23 @@ class SplittingSimulation(BaseSimulation):
         return optimal_c
 
     def compute_logical_probabilities(self):
-        n_runs = self._results['n_runs']
         n_p = len(self.error_rates)
-        log_p_errors = self._results['log_p_errors']
+        log_p_errors = np.array(self._results['log_p_errors'])
         optimal_c = self.compute_optimal_c()
 
         logical_p = np.zeros(n_p)
-        logical_p[0] = calculate_logical_error_rate(
-            self.code, self.error_model, self.decoders[0], self.error_rates[0],
-            1000
-        )
+        logical_p[0] = self.initial_logical_p
 
         for j in range(n_p-1):
             c = optimal_c[j]
-            numerator = np.sum([
-                g(c * np.exp(log_p_errors[j][k] - log_p_errors[j+1][k]))
-                for k in range(n_runs)
-            ])
-            denominator = np.sum([
-                g(1/c * np.exp(log_p_errors[j+1][k] - log_p_errors[j][k]))
-                for k in range(n_runs)
-            ])
+            numerator = np.sum(
+                g(c * np.exp(log_p_errors[j][self.start_run:]
+                             - log_p_errors[j+1][self.start_run:]))
+            )
+            denominator = np.sum(
+                g(1/c * np.exp(log_p_errors[j+1][self.start_run:]
+                               - log_p_errors[j][self.start_run:]))
+            )
             ratio = c * numerator / denominator
 
             logical_p[j+1] = logical_p[j] * ratio

@@ -188,9 +188,16 @@ def read_range_input(specification: str) -> List[float]:
     show_default=True,
     help='Explicitly specify the noise class, e.g. DeformedXZZXErrorModel'
 )
+@click.option(
+    '-m', '--method', default='direct',
+    show_default=True,
+    type=click.Choice(['direct', 'splitting']),
+    help='Simulation method, between "direct" (simple Monte-Carlo simulation)'
+         'and "splitting" (Metropolis-Hastings for low error rates)'
+)
 def generate_input(
     input_dir, lattice, boundary, deformation, ratio, sizes, decoder, bias,
-    eta, prob, code_class, noise_class
+    eta, prob, code_class, noise_class, method
 ):
     """Generate the json files of every experiment.
 
@@ -280,10 +287,20 @@ def generate_input(
             decoder_model = decoder
             decoder_parameters = {}
 
+        method_parameters = {}
+        if method == 'splitting':
+            method_parameters['n_init_runs'] = 20000
+
+        method_dict = {
+            'name': method,
+            'parameters': method_parameters
+        }
+
         decoder_dict = {"model": decoder_model,
                         "parameters": decoder_parameters}
 
         ranges_dict = {"label": label,
+                       "method": method_dict,
                        "code": code_dict,
                        "noise": noise_dict,
                        "decoder": decoder_dict,
@@ -522,11 +539,11 @@ def nist_sbatch(
     '-t', '--trials', default=1000, type=click.INT, show_default=True
 )
 @click.option(
-    '-s', '--split', default=1, type=click.INT, show_default=True
+    '-c', '--cores', default=1, type=click.INT, show_default=True
 )
 @click.option('-p', '--partition', default='pml', type=str, show_default=True)
 def generate_qsub(
-    qsub_file, data_dir, n_array, wall_time, memory, trials, split, partition
+    qsub_file, data_dir, n_array, wall_time, memory, trials, cores, partition
 ):
     """Generate qsub (PBS) file with parallel array jobs."""
     template_file = os.path.join(
@@ -547,7 +564,7 @@ def generate_qsub(
         '${NARRAY}': str(n_array),
         '${DATADIR}': os.path.abspath(data_dir),
         '${TRIALS}': str(trials),
-        '${SPLIT}': str(split),
+        '${CORES}': str(cores),
         '${QUEUE}': partition,
     }
     for template_string, value in replace_map.items():

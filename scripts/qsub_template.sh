@@ -21,7 +21,7 @@ conda activate panqec
 # Variables to change.
 trials=${TRIALS}
 data_dir=${DATADIR}
-n_split=${SPLIT}
+n_cores=${CORES}
 script_dir='/home/ucapacp/panqec/scripts'
 
 # The input directory.
@@ -41,53 +41,55 @@ mkdir -p $log_dir
 # printenv
 # date
 
-n_tasks=${NARRAY}
-i_task=$SGE_TASK_ID
+n_nodes=${NARRAY}
+i_node=$SGE_TASK_ID
+list_inputs=( $(ls $input_dir/*.json) )
+n_inputs=$(( #list_filenames[@] ))
+n_tasks=$(( n_nodes * n_cores ))
 
-echo "Task: $i_task / $n_tasks"
+echo "Node: $i_node / $n_nodes"
 
 # Run a CPU and RAM usage logging script in the background.
-python $script_dir/monitor.py "$log_dir/usage_${JOB_ID}_${i_task}.txt" &
+python $script_dir/monitor.py "$log_dir/usage_${JOB_ID}_${i_node}.txt" &
 
 # Function that prints out tab-separated values with columns input name,
 # results directory name and number of trials to do for that split.
 function filter_input {
-    counter=0
-    
-    # Iterate through files in the input directory.
-    for filename in $input_dir/*.json; do
+    for i_core in $( seq 0 ${n_cores-1} ); do
+        i_task=$((n_cores * i_node + i_core))
 
-        # Just the file name without directory and extension.
+        n_tasks_per_input=$(( n_tasks / n_inputs ))
+        if [ $i_input == $(( n_inputs-1 )) ]; then
+            n_tasks_per_input+=$(( n_tasks % n_inputs ))
+        fi
+
+        i_input=$(( i_task / n_tasks_per_input ))
+        i_input=$(( i_input < n_inputs ? i_input : n_inputs-1))
+
+        i_task_in_input=$(( i_task % n_tasks_per_input ))
+        
+        if [ $i_input == $(( n_inputs-1 )) ]; then
+            i_task_in_input=$(( i_task - n_tasks / n_inputs * (n_inputs - 1) ))
+        fi
+
+        n_runs=$(( trials / n_tasks_per_input ))
+
+        if [ $i_task_in_input == $n_tasks_per_input-1 ]; then
+            n_runs+=$(( trials % n_runs ))
+
+        filename=list_inputs[i_input]
         input_name=$(basename -s .json $filename)
 
-        # Each array job gets assigned some input files.
-        if [[ $(( counter % n_tasks + 1 )) -eq $i_task ]]; then
+        # Split the results over directories results_1, results_2, etc.
+        results_dir="results_$i_task"
+        mkdir -p $data_dir/$results_dir
 
-            # Name the results directory 'results' if no splitting.
-            if [ $n_split -eq 1 ]; then
-                results_dir=results
-                split_trials=$trials
-                echo -e "$input_name\t$results_dir\t$split_trials"
-
-            # Split the results over directories results_1, results_2, etc.
-            else
-                for i_split in $(seq 1 $n_split); do
-                    results_dir="results_$i_split"
-                    mkdir -p $data_dir/$results_dir
-                    split_trials=$(( (trials - trials % n_split)/n_split ))
-                    if [ $i_split -eq $n_split ]; then
-                        split_trials=$(( split_trials + trials % n_split ))
-                    fi
-                    echo -e "$input_name\t$results_dir\t$split_trials"
-                done
-            fi
-        fi
-        counter=$(( counter + 1 ))
+        echo -e "$input_name\t$results_dir\t$n_runs"
     done
 }
 
 # Write filtered input into GNU parallel to text file in logs.
-filter_input  >> $log_dir/filter_${JOB_ID}_${i_task}.txt
+filter_input  >> $log_dir/filter_${JOB_ID}_${i_node}.txt
 
 # Run in parallel.
 filter_input | parallel --colsep '\t' --results $log_dir "$bash_command"

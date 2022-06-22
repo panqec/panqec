@@ -195,10 +195,10 @@ class BatchSimulation():
         results = batch_results
 
         results_df = pd.DataFrame(results)
-        
+
         if self.method == 'splitting':
             results_df = results_df.explode(['error_rates', 'p_est', 'p_se'])
-            
+
         return results_df
 
 
@@ -399,7 +399,8 @@ def get_simulations(
                         for noise_dict in noise_range]
 
         if 'method' in data['ranges']:
-            method = data['ranges']['method']
+            method = data['ranges']['method']['name']
+            method_params = data['ranges']['method']['parameters']
 
     elif 'runs' in data:
         codes = [_parse_code_dict(run['code']) for run in data['runs']]
@@ -423,7 +424,7 @@ def get_simulations(
                                           error_rate)
 
             simulations.append(DirectSimulation(code, error_model, decoder,
-                                                error_rate))
+                                                error_rate, **method_params))
 
     if method == 'splitting':
         for (
@@ -434,8 +435,9 @@ def get_simulations(
             decoders = [_parse_decoder_dict(decoder_dict, code, error_model, p)
                         for p in error_rates]
 
-            simulations.append(SplittingSimulation(code, error_model, decoders,
-                                                   error_rates))
+            simulations.append(SplittingSimulation(
+                code, error_model, decoders, error_rates, **method_params
+            ))
 
     if start is not None:
         simulations = simulations[start:]
@@ -461,7 +463,7 @@ def read_input_dict(
             label = data['ranges']['label']
 
         if 'method' in data['ranges']:
-            method = data['ranges']['method']
+            method = data['ranges']['method']['name']
 
     kwargs['label'] = label
     kwargs['method'] = method
