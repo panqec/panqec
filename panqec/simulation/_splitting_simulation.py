@@ -74,7 +74,10 @@ class SplittingSimulation(BaseSimulation):
             )
 
         if self.current_error is None:
-            if (self.error_model.error_probability(
+            # TODO; clean that part
+            initial_error = np.concatenate([np.zeros(self.code.n),
+                                            np.ones(self.code.n)])
+            """if (self.error_model.error_probability(
                 self.code.logicals_x[0], self.code, 0.5
             ) != 0):
                 initial_error = self.code.logicals_x[0]
@@ -88,6 +91,7 @@ class SplittingSimulation(BaseSimulation):
                     "probability. Please specify another error that fails"
                     "when decoded"
                 )
+            """
 
             # Check that the chosen error indeed fails
             syndrome = self.code.measure_syndrome(initial_error)
