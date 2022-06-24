@@ -74,9 +74,13 @@ class SplittingSimulation(BaseSimulation):
             )
 
         if self.current_error is None:
-            # TODO; clean that part
+            # Only works for deformed 3D rotated toric code
+            # TODO; remove that (or replace it)
             initial_error = np.concatenate([np.zeros(self.code.n),
                                             np.ones(self.code.n)])
+            deformation_indices = self.error_model.get_deformation_indices(self.code)
+            initial_error[self.code.n:][deformation_indices] = 0
+            initial_error[:self.code.n][deformation_indices] = 1
             """if (self.error_model.error_probability(
                 self.code.logicals_x[0], self.code, 0.5
             ) != 0):
