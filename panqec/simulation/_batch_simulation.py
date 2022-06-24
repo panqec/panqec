@@ -36,8 +36,12 @@ def run_file(
         for simulation in batch_sim._simulations:
             code = simulation.code.label
             noise = simulation.error_model.label
-            decoder = simulation.decoder.label
-            error_rate = simulation.error_rate
+            if type(simulation).__name__ == "SplittingSimulation":
+                decoder = simulation.decoders[0].label
+                error_rate = simulation.error_rates
+            else:
+                decoder = simulation.decoder.label
+                error_rate = simulation.error_rate
             print(f'    {code}, {noise}, {decoder}, {error_rate}')
     batch_sim.run(n_trials, progress=progress)
 
