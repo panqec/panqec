@@ -1,0 +1,10 @@
+Draw single cubes
+Fig 6 OK
+Fig 7 checkerboard separate figures for cubes, better colour
+Fig 9 OK
+Fig 11 update with separate
+
+tex begin scope
+Exemplar figures here https://arxiv.org/pdf/2106.02621.pdf
+
+Discussed how to prove 50% threshold for xcube

@@ -1,5 +1,5 @@
 import numpy as np
-from bn3d.analysis import get_subthreshold_fit_function
+from panqec.analysis import get_subthreshold_fit_function
 
 
 def test_subthreshold_cubic_fit_function():

@@ -1,4 +1,4 @@
-from bn3d.io import serialize_results, dump_results
+from panqec.io import serialize_results, dump_results
 import numpy as np
 import datetime
 import os

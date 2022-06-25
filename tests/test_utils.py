@@ -1,9 +1,10 @@
 import json
 import pytest
 import numpy as np
-from bn3d.utils import (
+from panqec.bsparse import from_array
+from panqec.utils import (
     sizeof_fmt, identity, NumpyEncoder, list_where_str, list_where, set_where,
-    format_polynomial,
+    format_polynomial, simple_print
 )
 
 
@@ -103,3 +104,30 @@ def test_format_polynomial():
     assert format_polynomial('y', [1.2, 0, 3.3], digits=2) == (
         '1.20 + 3.30y^2'
     )
+
+
+class TestSimplePrint:
+
+    def test_unint_array(self, capsys):
+        a = np.eye(3, dtype=np.uint)
+        simple_print(a)
+        captured = capsys.readouterr()
+        assert captured.out == '100\n010\n001\n'
+
+    def test_sparse_array(self, capsys):
+        a = from_array(np.eye(3, dtype=np.uint))
+        simple_print(a)
+        captured = capsys.readouterr()
+        assert captured.out == '100\n010\n001\n'
+
+    def test_sparse_array_space_zeros(self, capsys):
+        a = from_array(np.eye(3, dtype=np.uint))
+        simple_print(a, zeros=False)
+        captured = capsys.readouterr()
+        assert captured.out == '1\n 1\n  1\n'
+
+    def test_1d_array(self, capsys):
+        a = np.array([1, 0, 1, 0])
+        simple_print(a)
+        captured = capsys.readouterr()
+        assert captured.out == '1010\n'
