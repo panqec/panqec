@@ -488,8 +488,9 @@ def merge_results_dicts(results_dicts: List[Dict]) -> Dict:
 
     # If splitting method
     if 'log_p_errors' in results_dicts[0]['results'].keys():
+        error_rates = results_dicts[0]['error_rates']
         results = {
-            'log_p_errors': [],
+            'log_p_errors': [[] for _ in error_rates],
             'n_runs': 0,
             'wall_time': 0.0
         }
@@ -504,7 +505,7 @@ def merge_results_dicts(results_dicts: List[Dict]) -> Dict:
             for i, p in enumerate(results_dict['results']['log_p_errors']):
                 results['log_p_errors'][i] += p
 
-        results['error_rates'] = results_dicts[0]['error_rates']
+        results['error_rates'] = error_rates
 
     # If direct method
     else:
