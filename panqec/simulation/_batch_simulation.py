@@ -485,19 +485,43 @@ def read_input_dict(
 
 def merge_results_dicts(results_dicts: List[Dict]) -> Dict:
     """Merge results dicts into one dict."""
-    results = {
-        'effective_error': [],
-        'success': [],
-        'codespace': [],
-        'wall_time': 0.0
-    }
-    inputs = results_dicts[0]['inputs']
-    for results_dict in results_dicts:
-        for key in results.keys():
-            results[key] += results_dict['results'][key]
-        assert results_dict['inputs'] == inputs, (
-            'Warning: attempting to merge results of different inputs'
-        )
+
+    # If splitting method
+    if 'log_p_errors' in results_dicts[0]['results'].keys():
+        results = {
+            'log_p_errors': [],
+            'n_runs': 0,
+            'wall_time': 0.0
+        }
+        inputs = results_dicts[0]['inputs']
+        for results_dict in results_dicts:
+            assert results_dict['inputs'] == inputs, (
+                'Warning: attempting to merge results of different inputs'
+            )
+            results['n_runs'] += results_dict['results']['n_runs']
+            results['wall_time'] += results_dict['results']['wall_time']
+
+            for i, p in enumerate(results_dict['results']['log_p_errors']):
+                results['log_p_errors'][i] += p
+
+        results['error_rates'] = results_dicts[0]['error_rates']
+
+    # If direct method
+    else:
+        results = {
+            'effective_error': [],
+            'success': [],
+            'codespace': [],
+            'n_runs': 0,
+            'wall_time': 0.0
+        }
+        inputs = results_dicts[0]['inputs']
+        for results_dict in results_dicts:
+            for key in results.keys():
+                results[key] += results_dict['results'][key]
+            assert results_dict['inputs'] == inputs, (
+                'Warning: attempting to merge results of different inputs'
+            )
 
     merged_dict = {
         'results': results,

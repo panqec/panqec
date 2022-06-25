@@ -61,6 +61,7 @@ class SplittingSimulation(BaseSimulation):
             **self._inputs,
             'decoder': self.decoders[0].label,
             'probability': self.error_rates,
+            'method': 'splitting'
         }
 
     def _run(self, n_runs: int):
