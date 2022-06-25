@@ -79,7 +79,7 @@ function filter_input {
             n_runs=$(( n_runs +     trials % n_runs ))
         fi
 
-        filename=${list_inputs[1+i_input]}
+        filename=${list_inputs[i_input]}
         input_name=$(basename -s .json $filename)
 
         # Split the results over directories results_1, results_2, etc.

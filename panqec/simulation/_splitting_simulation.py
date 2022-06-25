@@ -68,9 +68,10 @@ class SplittingSimulation(BaseSimulation):
         # Find an error that leads to a decoding failure
 
         if self.initial_logical_p is None:
+            print("Calculate initial logical error rate")
             self.initial_logical_p = calculate_logical_error_rate(
                 self.code, self.error_model, self.decoders[0],
-                self.error_rates[0], self.n_init_runs
+                self.error_rates[0], self.n_init_runs, verbose=True
             )
 
         if self.current_error is None:
