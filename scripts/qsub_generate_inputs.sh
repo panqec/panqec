@@ -21,7 +21,7 @@ panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class RotatedToric3DCode --noise_class DeformedXZZXErrorModel \
     --ratio coprime \
     --sizes "$sizes" --decoder_class BeliefPropagationOSDDecoder --bias Z \
-    --eta "inf" --prob "$prob" --method "splitting"
+    --eta "inf" --prob "$prob" --method "splitting" --label $name
 
 panqec generate-qsub --data_dir "$paper_dir/$name" --n_array $n_array --memory "$memory" \
     --wall_time "$wall_time" --trials $n_trials --cores $n_cores "$qsub_dir/$name.qsub"

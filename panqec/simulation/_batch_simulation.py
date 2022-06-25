@@ -488,7 +488,7 @@ def merge_results_dicts(results_dicts: List[Dict]) -> Dict:
 
     # If splitting method
     if 'log_p_errors' in results_dicts[0]['results'].keys():
-        error_rates = results_dicts[0]['error_rates']
+        error_rates = results_dicts[0]['results']['error_rates']
         results = {
             'log_p_errors': [[] for _ in error_rates],
             'n_runs': 0,
