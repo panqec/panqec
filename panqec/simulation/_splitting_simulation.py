@@ -37,9 +37,10 @@ class SplittingSimulation(BaseSimulation):
         error_rates: List[float],
         n_init_runs: int,
         start_run: int = 0,
+        verbose: bool = True,
         rng=None
     ):
-        super().__init__(code, error_model, rng=rng)
+        super().__init__(code, error_model, verbose=verbose, rng=rng)
 
         self.decoders = decoders
         self.error_rates = np.sort(error_rates)[::-1]
@@ -55,7 +56,8 @@ class SplittingSimulation(BaseSimulation):
         self._results = {
             **self._results,
             'error_rates': self.error_rates,
-            'log_p_errors': [[] for _ in self.error_rates]
+            'log_p_errors': [[] for _ in self.error_rates],
+            'logical_error_rates': []
         }
         self._inputs = {
             **self._inputs,
@@ -80,7 +82,9 @@ class SplittingSimulation(BaseSimulation):
             # TODO; remove that (or replace it)
             initial_error = np.concatenate([np.zeros(self.code.n),
                                             np.ones(self.code.n)])
-            deformation_indices = self.error_model.get_deformation_indices(self.code)
+            deformation_indices = self.error_model.get_deformation_indices(
+                self.code
+            )
             initial_error[self.code.n:][deformation_indices] = 0
             initial_error[:self.code.n][deformation_indices] = 1
             """if (self.error_model.error_probability(
@@ -119,11 +123,16 @@ class SplittingSimulation(BaseSimulation):
                 self._results['log_p_errors'][i_p].append(log_p_error)
             self._results['n_runs'] += 1
 
-    def get_results(self):
-        """Return results as dictionary."""
+    def postprocess(self):
+        super().postprocess()
 
         logical_p = self.compute_logical_probabilities()
         self._results['logical_error_rates'] = logical_p
+
+    def get_results(self):
+        """Return results as dictionary."""
+
+        # self.postprocess()
 
         simulation_data = {
             'size': self.code.size,
@@ -134,7 +143,7 @@ class SplittingSimulation(BaseSimulation):
             'error_model': self.error_model.label,
             'error_rates': self.error_rates,
             'n_runs': self._results['n_runs'],
-            'p_est': logical_p
+            'p_est': self._results['logical_error_rates']
         }
 
         # Use posterior Beta distribution of the effective error rate
@@ -210,16 +219,18 @@ class SplittingSimulation(BaseSimulation):
         optimal_c = []
 
         for j in range(n_p-1):
+            print(f"{j+1} / {n_p - 1}")
             lhs = []
             rhs = []
             for c in list_c:
+                print(f"C : {c}", end="\r")
                 lhs.append(np.sum(
-                    g(c * np.exp(log_p_errors[j][self.start_run:] 
-                    - log_p_errors[j+1][self.start_run:]))
+                    g(c * np.exp(log_p_errors[j][self.start_run:]
+                      - log_p_errors[j+1][self.start_run:]))
                 ))
                 rhs.append(np.sum(
-                    g(1/c * np.exp(log_p_errors[j+1][self.start_run:] 
-                    - log_p_errors[j][self.start_run:]))
+                    g(1/c * np.exp(log_p_errors[j+1][self.start_run:]
+                      - log_p_errors[j][self.start_run:]))
                 ))
 
             lhs = np.array(lhs)
@@ -236,10 +247,27 @@ class SplittingSimulation(BaseSimulation):
     def compute_logical_probabilities(self):
         n_p = len(self.error_rates)
         log_p_errors = np.array(self._results['log_p_errors'])
-        optimal_c = self.compute_optimal_c()
 
         logical_p = np.zeros(n_p)
+
+        if self.verbose:
+            print("Compute initial logical error rate")
+
+        self.initial_logical_p = calculate_logical_error_rate(
+            self.code, self.error_model, self.decoders[0],
+            self.error_rates[0], self.n_init_runs, verbose=True
+        )
         logical_p[0] = self.initial_logical_p
+
+        if self.verbose:
+            print(f"P = {self.initial_logical_p}")
+
+        if self.verbose:
+            print("Compute optimal C")
+        optimal_c = self.compute_optimal_c()
+
+        if self.verbose:
+            print("Compute logical error rates")
 
         for j in range(n_p-1):
             c = optimal_c[j]

@@ -8,7 +8,6 @@ from json import JSONDecodeError
 import datetime
 import numpy as np
 from panqec.codes import StabilizerCode
-from panqec.decoders import BaseDecoder
 from panqec.error_models import BaseErrorModel
 
 from ..utils import NumpyEncoder
@@ -28,11 +27,14 @@ class BaseSimulation(metaclass=ABCMeta):
         self,
         code: StabilizerCode,
         error_model: BaseErrorModel,
+        verbose=True,
         rng=None
     ):
         self.code = code
         self.error_model = error_model
+        self.verbose = verbose
         self.rng = rng
+        self.label = ''
 
         self._results = {
             'n_runs': 0,
@@ -116,4 +118,7 @@ class BaseSimulation(metaclass=ABCMeta):
 
     @abstractmethod
     def _run(self, n_runs: int):
+        pass
+
+    def postprocess(self):
         pass

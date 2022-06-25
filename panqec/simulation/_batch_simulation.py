@@ -60,7 +60,8 @@ class BatchSimulation():
         update_frequency: int = 10,
         save_frequency: int = 20,
         output_dir: Optional[str] = None,
-        method: str = "direct"
+        method: str = "direct",
+        verbose: bool = True
     ):
         self._simulations = []
         self.code: Dict = {}
@@ -69,6 +70,7 @@ class BatchSimulation():
         self.save_frequency = save_frequency
         self.label = label
         self.method = method
+        self.verbose = verbose
         if output_dir is not None:
             self._output_dir = os.path.join(output_dir, self.label)
         else:
@@ -135,6 +137,11 @@ class BatchSimulation():
             if i_trial == max_remaining_trials - 1:
                 self.on_update()
                 self.save_results()
+
+        for simulation in self._simulations:
+            if self.verbose:
+                print(f"\nPost-processing {simulation.label}")
+            simulation.postprocess()
 
     def _save_results(self):
         for simulation in self._simulations:
@@ -388,6 +395,7 @@ def count_runs(file_path: str) -> Optional[int]:
 
 def get_simulations(
     data: dict, start: Optional[int] = None, n_runs: Optional[int] = None,
+    verbose: Optional[bool] = True
 ) -> List[dict]:
     simulations = []
 
@@ -428,7 +436,8 @@ def get_simulations(
                                           error_rate)
 
             simulations.append(DirectSimulation(code, error_model, decoder,
-                                                error_rate, **method_params))
+                                                error_rate, verbose=verbose,
+                                                **method_params))
 
     if method == 'splitting':
         for (
@@ -440,7 +449,8 @@ def get_simulations(
                         for p in error_rates]
 
             simulations.append(SplittingSimulation(
-                code, error_model, decoders, error_rates, **method_params
+                code, error_model, decoders, error_rates, 
+                verbose=verbose, **method_params
             ))
 
     if start is not None:
@@ -455,6 +465,7 @@ def read_input_dict(
     data: dict,
     start: Optional[int] = None,
     n_runs: Optional[int] = None,
+    verbose: Optional[bool] = True,
     *args, **kwargs
 ) -> BatchSimulation:
     """Return BatchSimulation from input dict."""
@@ -471,11 +482,13 @@ def read_input_dict(
 
     kwargs['label'] = label
     kwargs['method'] = method
+    kwargs['verbose'] = verbose
 
     batch_sim = BatchSimulation(*args, **kwargs)
     assert len(batch_sim._simulations) == 0
 
-    simulations = get_simulations(data, start=start, n_runs=n_runs)
+    simulations = get_simulations(data, start=start, n_runs=n_runs,
+                                  verbose=verbose)
 
     for sim in simulations:
         batch_sim.append(sim)

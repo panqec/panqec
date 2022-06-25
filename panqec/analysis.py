@@ -86,7 +86,9 @@ def get_results_df(
     ]
     batches = {}
     for i in range(len(input_files)):
+        print("Read input")
         batch_sim = read_input_json(input_files[i])
+        print("Load results")
         for sim in batch_sim:
             sim.load_results(output_dirs[i])
         batches[batch_sim.label] = batch_sim
@@ -115,7 +117,8 @@ def get_results_df(
             batch_result['eta_y'] = eta_y
             batch_result['eta_z'] = eta_z
 
-            if len(sim.results['effective_error']) > 0:
+            if ('effective_error' in sim.results and
+                    len(sim.results['effective_error']) > 0):
                 codespace = np.array(sim.results['codespace'])
                 x_errors = np.array(
                     sim.results['effective_error']

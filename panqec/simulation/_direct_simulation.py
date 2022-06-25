@@ -85,9 +85,11 @@ class DirectSimulation(BaseSimulation):
         code: StabilizerCode,
         error_model: BaseErrorModel,
         decoder: BaseDecoder,
-        error_rate: float, rng=None
+        error_rate: float, 
+        verbose=True,
+        rng=None
     ):
-        super().__init__(code, error_model, rng=rng)
+        super().__init__(code, error_model, verbose=verbose, rng=rng)
 
         self.decoder = decoder
         self.error_rate = error_rate
