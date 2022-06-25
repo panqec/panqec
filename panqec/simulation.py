@@ -415,11 +415,20 @@ def expand_input_ranges(data: dict) -> List[Dict]:
     return runs
 
 
+def _parse_legacy_names(old_code_name: str) -> str:
+    """Parse legacy code names into new names."""
+    new_code_name = old_code_name
+    if old_code_name == 'LayeredRotatedToricCode':
+        new_code_name = 'RotatedToric3DCode'
+    return new_code_name
+
+
 def _parse_code_dict(code_dict: Dict[str, Any]) -> StabilizerCode:
     code_name = code_dict['model']
     code_params: Union[list, dict] = []
     if 'parameters' in code_dict:
         code_params = code_dict['parameters']
+    code_name = _parse_legacy_names(code_name)
     code_class = CODES[code_name]
     if isinstance(code_params, dict):
         code = code_class(**code_params)
