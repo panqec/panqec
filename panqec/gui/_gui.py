@@ -10,6 +10,7 @@ from panqec.decoders import (
     Toric2DMatchingDecoder, RotatedSweepMatchDecoder,
     ZMatchingDecoder, SweepMatchDecoder, DeformedSweepMatchDecoder,
     BeliefPropagationOSDDecoder, MemoryBeliefPropagationDecoder,
+    UnionFindDecoder
 
 )
 from panqec.error_models import PauliErrorModel
@@ -41,6 +42,7 @@ noise_directions = {'Pure X': (1, 0, 0),
                     'Depolarizing': (1/3, 1/3, 1/3)}
 
 decoders = {'BP-OSD': BeliefPropagationOSDDecoder,
+            'Union-Find': UnionFindDecoder,
             'MBP': MemoryBeliefPropagationDecoder,
             'SweepMatch': SweepMatchDecoder,
             'RotatedSweepMatch': RotatedSweepMatchDecoder,

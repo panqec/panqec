@@ -12,7 +12,7 @@ const params = {
     errorProbability: 0.3,
     L: defaultSize,
     noise_deformation: 'None',
-    decoder: 'BP-OSD',
+    decoder: 'Union-Find',
     max_bp_iter: 10,
     alpha: 0.4,
     beta: 0,

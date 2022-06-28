@@ -3,6 +3,8 @@ from .base._base_decoder import BaseDecoder  # noqa
 from .bposd.bposd_decoder import BeliefPropagationOSDDecoder  # noqa
 from .bposd.mbp_decoder import MemoryBeliefPropagationDecoder  # noqa
 
+from .union_find.uf_decoder import UnionFindDecoder  # noqa
+
 from .sweepmatch._toric_3d_match_decoder import Toric3DMatchingDecoder  # noqa
 from .sweepmatch._rotated_planar_match_decoder import RotatedPlanarMatchingDecoder  # noqa
 from .sweepmatch._sweep_decoder_3d import SweepDecoder3D  # noqa

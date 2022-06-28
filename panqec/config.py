@@ -13,7 +13,8 @@ from .codes import (
 )
 from .decoders import (
     Toric3DMatchingDecoder, SweepMatchDecoder,
-    RotatedSweepMatchDecoder, RotatedInfiniteZBiasDecoder
+    RotatedSweepMatchDecoder, RotatedInfiniteZBiasDecoder,
+    UnionFindDecoder
 )
 from .decoders.bposd.bposd_decoder import BeliefPropagationOSDDecoder
 from .decoders.bposd.mbp_decoder import MemoryBeliefPropagationDecoder
@@ -79,7 +80,8 @@ DECODERS = {
     'DeformedRotatedSweepMatchDecoder': DeformedRotatedSweepMatchDecoder,
     'BeliefPropagationOSDDecoder': BeliefPropagationOSDDecoder,
     'MemoryBeliefPropagationDecoder': MemoryBeliefPropagationDecoder,
-    'RotatedInfiniteZBiasDecoder': RotatedInfiniteZBiasDecoder
+    'RotatedInfiniteZBiasDecoder': RotatedInfiniteZBiasDecoder,
+    'UnionFindDecoder': UnionFindDecoder
 }
 
 # Slurm automation config.
