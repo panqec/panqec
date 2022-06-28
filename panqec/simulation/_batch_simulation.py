@@ -138,10 +138,10 @@ class BatchSimulation():
                 self.on_update()
                 self.save_results()
 
-        for simulation in self._simulations:
-            if self.verbose:
-                print(f"\nPost-processing {simulation.label}")
-            simulation.postprocess()
+        # for simulation in self._simulations:
+        #     if self.verbose:
+        #         print(f"\nPost-processing {simulation.label}")
+        #     simulation.postprocess()
 
     def _save_results(self):
         for simulation in self._simulations:
