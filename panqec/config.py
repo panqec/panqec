@@ -16,7 +16,8 @@ from .codes import (
 )
 from .decoders import (
     SweepMatchDecoder, XCubeMatchingDecoder,
-    RotatedSweepMatchDecoder
+    RotatedSweepMatchDecoder,
+    UnionFindDecoder
 )
 from .decoders import BeliefPropagationOSDDecoder
 from .decoders import MemoryBeliefPropagationDecoder
@@ -78,7 +79,8 @@ DECODERS: Dict[str, Any] = {
     'RotatedSweepMatchDecoder': RotatedSweepMatchDecoder,
     'BeliefPropagationOSDDecoder': BeliefPropagationOSDDecoder,
     'MemoryBeliefPropagationDecoder': MemoryBeliefPropagationDecoder,
-    'XCubeMatchingDecoder': XCubeMatchingDecoder
+    'XCubeMatchingDecoder': XCubeMatchingDecoder,
+    'UnionFindDecoder': UnionFindDecoder
 }
 
 # Slurm automation config.
