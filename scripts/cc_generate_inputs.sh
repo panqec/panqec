@@ -67,7 +67,7 @@ source scripts/rhombic_xzzx.sh
 nfiles=$(ls $paper_dir/$name/inputs | wc -l)
 echo "$nfiles input files created"
 
-for repeat in $(seq 1 30); do
+for repeat in $(seq 1 20); do
     name=${common_name}_${repeat}
     mkdir -p $paper_dir/$name
     rm -rf $paper_dir/$name/inputs
