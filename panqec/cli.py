@@ -6,6 +6,7 @@ from tqdm import tqdm
 import numpy as np
 import json
 from json.decoder import JSONDecodeError
+import gzip
 from .simulation import run_file, merge_results_dicts
 from .config import CODES, ERROR_MODELS, DECODERS, PANQEC_DIR, BASE_DIR
 from .slurm import (
@@ -327,7 +328,9 @@ def merge_dirs(outdir, dirs):
     file_lists: Dict[Tuple[str, str], List[str]] = dict()
     for sep_dir in results_dirs:
         for sub_dir in os.listdir(sep_dir):
-            for file_path in glob(os.path.join(sep_dir, sub_dir, '*.json')):
+            file_list = glob(os.path.join(sep_dir, sub_dir, '*.json'))
+            file_list += glob(os.path.join(sep_dir, sub_dir, '*.json.gz'))
+            for file_path in file_list:
                 base_name = os.path.basename(file_path)
                 key = (sub_dir, base_name)
                 if key not in file_lists:
@@ -343,8 +346,14 @@ def merge_dirs(outdir, dirs):
         results_dicts = []
         for file_path in file_list:
             try:
-                with open(file_path) as f:
-                    results_dicts.append(json.load(f))
+                if os.path.splitext(file_path)[-1] == '.json':
+                    with open(file_path) as f:
+                        results_dicts.append(json.load(f))
+                else:
+                    with gzip.open(file_path, 'r') as gz:
+                        results_dicts.append(
+                            json.loads(gz.read().decode('utf-8'))
+                        )
             except JSONDecodeError:
                 print(f'Error reading {file_path}, skipping')
 
