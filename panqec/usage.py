@@ -106,7 +106,7 @@ def get_usage(logs_dir, jobs):
 
 def get_time_df(usage):
     date_ranges = pd.date_range(
-        usage.date.min(), usage.date.max(), freq='15min'
+        usage.date.min(), usage.date.max(), periods=100
     )
     cores_used = [0]
     cores_avail = [0]
