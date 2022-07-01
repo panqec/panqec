@@ -91,13 +91,15 @@ class Simulation:
     label: str
     _results: dict = {}
     rng = None
+    compress: bool
 
     def __init__(
         self,
         code: StabilizerCode,
         error_model: BaseErrorModel,
         decoder: BaseDecoder,
-        error_rate: float, rng=None
+        error_rate: float, rng=None,
+        compress: bool = True
     ):
         self.code = code
         self.error_model = error_model
@@ -113,6 +115,7 @@ class Simulation:
             'codespace': [],
             'wall_time': 0,
         }
+        self.compress = compress
 
     @property
     def wall_time(self):
@@ -144,7 +147,11 @@ class Simulation:
 
     @property
     def file_name(self) -> str:
-        file_name = self.label + '.json.gz'
+        if self.compress:
+            extension = '.json.gz'
+        else:
+            extension = '.json'
+        file_name = self.label + extension
         return file_name
 
     def get_file_path(self, output_dir: str) -> str:
@@ -178,22 +185,25 @@ class Simulation:
 
     def save_results(self, output_dir: str):
         """Save results to directory."""
-        with gzip.open(self.get_file_path(output_dir), 'w') as f:
-            f.write(
-                json.dumps({
-                    'results': self._results,
-                    'inputs': {
-                        'size': self.code.size,
-                        'code': self.code.label,
-                        'n': self.code.n,
-                        'k': self.code.k,
-                        'd': self.code.d,
-                        'error_model': self.error_model.label,
-                        'decoder': self.decoder.label,
-                        'probability': self.error_rate,
-                    }
-                }, cls=NumpyEncoder).encode('utf-8')
-            )
+        data = {
+            'results': self._results,
+            'inputs': {
+                'size': self.code.size,
+                'code': self.code.label,
+                'n': self.code.n,
+                'k': self.code.k,
+                'd': self.code.d,
+                'error_model': self.error_model.label,
+                'decoder': self.decoder.label,
+                'probability': self.error_rate,
+            }
+        }
+        if self.compress:
+            with gzip.open(self.get_file_path(output_dir), 'w') as gz:
+                gz.write(json.dumps(data, cls=NumpyEncoder).encode('utf-8'))
+        else:
+            with open(self.get_file_path(output_dir), 'w') as json_file:
+                json.dump(data, json_file, indent=4, cls=NumpyEncoder)
 
     def get_results(self):
         """Return results as dictionary."""
@@ -490,7 +500,7 @@ def parse_run(run: Dict[str, Any]) -> Simulation:
 
 
 def read_input_json(file_path: str, *args, **kwargs) -> BatchSimulation:
-    """Read json input file."""
+    """Read json input file or .json.gz file."""
     try:
         if os.path.splitext(file_path)[-1] == '.json':
             with open(file_path) as f:
