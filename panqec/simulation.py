@@ -161,9 +161,19 @@ class Simulation:
     def load_results(self, output_dir: str):
         """Load previously written results from directory."""
         file_path = self.get_file_path(output_dir)
+
+        # Find the alternative compressed file path if it doesn't exist.
+        if not os.path.exists(file_path):
+            alt_file_path = file_path
+            if os.path.splitext(file_path)[-1] == '.json':
+                alt_file_path = file_path + '.gz'
+            elif os.path.splitext(file_path)[-1] == '.gz':
+                alt_file_path = file_path.replace('.json.gz', '.json')
+            if os.path.exists(alt_file_path):
+                file_path = alt_file_path
         try:
             if os.path.exists(file_path):
-                if self.compress:
+                if os.path.splitext(file_path)[-1] == '.gz':
                     with gzip.open(file_path, 'rb') as gz:
                         data = json.loads(gz.read().decode('utf-8'))
                 else:
