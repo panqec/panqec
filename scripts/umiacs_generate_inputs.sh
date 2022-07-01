@@ -9,12 +9,12 @@ qos=dpart
 name=test_run
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
-sizes="4,6"
-wall_time="0:01:00"
+sizes="3,4,5"
+wall_time="0:02:00"
 memory="20G"
 
 panqec generate-input -i "$paper_dir/$name/inputs" \
-    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
+    --code_class Toric2DCode --noise_class DeformedXZZXErrorModel \
     --ratio equal \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
     --eta "10,30" --prob "0.0:0.5:0.07"
@@ -23,7 +23,7 @@ nfiles=$(ls $paper_dir/$name/inputs | wc -l)
 echo "$nfiles input files created"
 panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 3 \
     --memory "$memory" --qos "$qos" \
-    --wall_time "$wall_time" --trials 10000 --split auto $sbatch_dir/$name.sbatch
+    --wall_time "$wall_time" --trials 100 --split auto $sbatch_dir/$name.sbatch
 
 # =============== Rhombic Undeformed ================
 name=det_rhombic_bposd_undef_xbias
