@@ -350,7 +350,7 @@ def merge_dirs(outdir, dirs):
                     with open(file_path) as f:
                         results_dicts.append(json.load(f))
                 else:
-                    with gzip.open(file_path, 'r') as gz:
+                    with gzip.open(file_path, 'rb') as gz:
                         results_dicts.append(
                             json.loads(gz.read().decode('utf-8'))
                         )
@@ -359,8 +359,12 @@ def merge_dirs(outdir, dirs):
 
         combined_results = merge_results_dicts(results_dicts)
 
-        with open(combined_file, 'w') as f:
-            json.dump(combined_results, f)
+        if os.path.splitext(file_path)[-1] == '.json':
+            with open(combined_file, 'wb') as f:
+                json.dump(combined_results, f)
+        else:
+            with gzip.open(combined_file, 'wb') as gz:
+                gz.write(json.dumps(combined_results).encode('utf-8'))
 
 
 @click.command()
