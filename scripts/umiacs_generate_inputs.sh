@@ -23,7 +23,7 @@ nfiles=$(ls $paper_dir/$name/inputs | wc -l)
 echo "$nfiles input files created"
 panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 3 \
     --memory "$memory" --qos "$qos" \
-    --wall_time "$wall_time" --trials 100 --split auto $sbatch_dir/$name.sbatch
+    --wall_time "$wall_time" --trials 3000 --split auto $sbatch_dir/$name.sbatch
 
 # =============== Rhombic Undeformed ================
 name=det_rhombic_bposd_undef_xbias

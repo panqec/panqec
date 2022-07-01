@@ -10,7 +10,7 @@ for name in "$@"; do
 
         # Only zip slurm .out files if there are usage logs.
         for out_file in *.out; do
-            zip -ur "$name\_logs.zip" out_file
+            zip -ur "$name\_logs.zip" $out_file
         done
     fi
 
