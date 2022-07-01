@@ -164,7 +164,7 @@ class Simulation:
         try:
             if os.path.exists(file_path):
                 if self.compress:
-                    with gzip.open(file_path, 'r') as gz:
+                    with gzip.open(file_path, 'rb') as gz:
                         data = json.loads(gz.read().decode('utf-8'))
                 else:
                     with open(file_path) as json_file:
@@ -203,7 +203,7 @@ class Simulation:
             }
         }
         if self.compress:
-            with gzip.open(self.get_file_path(output_dir), 'w') as gz:
+            with gzip.open(self.get_file_path(output_dir), 'wb') as gz:
                 gz.write(json.dumps(data, cls=NumpyEncoder).encode('utf-8'))
         else:
             with open(self.get_file_path(output_dir), 'w') as json_file:
@@ -510,7 +510,7 @@ def read_input_json(file_path: str, *args, **kwargs) -> BatchSimulation:
             with open(file_path) as f:
                 data = json.load(f)
         else:
-            with gzip.open(file_path, 'r') as g:
+            with gzip.open(file_path, 'rb') as g:
                 data = json.loads(g.read().decode('utf-8'))
     except JSONDecodeError as err:
         print(f'Error reading input file {file_path}')
