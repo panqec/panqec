@@ -3,6 +3,7 @@ API for running simulations.
 """
 import os
 import json
+import gzip
 from json import JSONDecodeError
 import itertools
 from typing import List, Dict, Callable, Union, Any, Optional, Tuple
@@ -143,7 +144,7 @@ class Simulation:
 
     @property
     def file_name(self) -> str:
-        file_name = self.label + '.json'
+        file_name = self.label + '.json.gz'
         return file_name
 
     def get_file_path(self, output_dir: str) -> str:
@@ -155,8 +156,8 @@ class Simulation:
         file_path = self.get_file_path(output_dir)
         try:
             if os.path.exists(file_path):
-                with open(file_path) as f:
-                    data = json.load(f)
+                with gzip.open(file_path, 'r') as f:
+                    data = json.loads(f.read().decode('utf-8'))
                 for key in self._results.keys():
                     if key in data['results'].keys():
                         self._results[key] = data['results'][key]
@@ -177,20 +178,22 @@ class Simulation:
 
     def save_results(self, output_dir: str):
         """Save results to directory."""
-        with open(self.get_file_path(output_dir), 'w') as f:
-            json.dump({
-                'results': self._results,
-                'inputs': {
-                    'size': self.code.size,
-                    'code': self.code.label,
-                    'n': self.code.n,
-                    'k': self.code.k,
-                    'd': self.code.d,
-                    'error_model': self.error_model.label,
-                    'decoder': self.decoder.label,
-                    'probability': self.error_rate,
-                }
-            }, f, cls=NumpyEncoder)
+        with gzip.open(self.get_file_path(output_dir), 'w') as f:
+            f.write(
+                json.dumps({
+                    'results': self._results,
+                    'inputs': {
+                        'size': self.code.size,
+                        'code': self.code.label,
+                        'n': self.code.n,
+                        'k': self.code.k,
+                        'd': self.code.d,
+                        'error_model': self.error_model.label,
+                        'decoder': self.decoder.label,
+                        'probability': self.error_rate,
+                    }
+                }, cls=NumpyEncoder).encode('utf-8')
+            )
 
     def get_results(self):
         """Return results as dictionary."""
@@ -489,8 +492,12 @@ def parse_run(run: Dict[str, Any]) -> Simulation:
 def read_input_json(file_path: str, *args, **kwargs) -> BatchSimulation:
     """Read json input file."""
     try:
-        with open(file_path) as f:
-            data = json.load(f)
+        if os.path.splitext(file_path)[-1] == '.json':
+            with open(file_path) as f:
+                data = json.load(f)
+        else:
+            with gzip.open(file_path, 'r') as g:
+                data = json.loads(g.read().decode('utf-8'))
     except JSONDecodeError as err:
         print(f'Error reading input file {file_path}')
         raise err
