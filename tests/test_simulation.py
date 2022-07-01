@@ -1,5 +1,6 @@
 import os
 import json
+from glob import glob
 import pytest
 import numpy as np
 from panqec.error_models import PauliErrorModel
@@ -25,6 +26,8 @@ def required_fields():
     [
         ('single_input.json', 1),
         ('range_input.json', 27),
+        ('single_input.json.gz', 1),
+        ('range_input.json.gz', 27),
     ]
 )
 def test_read_json_input(file_name, expected_runs):
@@ -123,6 +126,8 @@ def test_run_file_range_input(tmpdir):
     run_file(input_json, n_trials, output_dir=tmpdir)
     assert os.listdir(tmpdir) == ['test_range']
     assert len(os.listdir(os.path.join(tmpdir, 'test_range'))) > 0
+    out_files = glob(os.path.join(tmpdir, 'test_range', '*.json.gz'))
+    assert len(out_files) > 0
 
 
 def test_merge_results():
