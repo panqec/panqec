@@ -163,8 +163,12 @@ class Simulation:
         file_path = self.get_file_path(output_dir)
         try:
             if os.path.exists(file_path):
-                with gzip.open(file_path, 'r') as f:
-                    data = json.loads(f.read().decode('utf-8'))
+                if self.compress:
+                    with gzip.open(file_path, 'r') as gz:
+                        data = json.loads(gz.read().decode('utf-8'))
+                else:
+                    with open(file_path) as json_file:
+                        data = json.load(json_file)
                 for key in self._results.keys():
                     if key in data['results'].keys():
                         self._results[key] = data['results'][key]
