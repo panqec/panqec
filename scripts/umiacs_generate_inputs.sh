@@ -97,7 +97,7 @@ panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles \
 name=umiacs_xcube_bposd_xzzx_zbias_inf
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
-sizes="9,13,17,21"
+sizes="9,13,15"
 # sizes="7,9,11,13"
 wall_time="00:05:00"
 memory="20G"
