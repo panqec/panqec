@@ -33,7 +33,7 @@ panqec generate-input -i "$paper_dir/$name/inputs" \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
     --eta "100" --prob "0.12:0.18:0.005"
 
-# estimated p_th unknown but point sector 0.13
+# estimated p_th unknown but point sector 0.13, but should be inf
 panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
     --ratio equal \
