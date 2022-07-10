@@ -1,5 +1,8 @@
 from abc import ABCMeta, abstractmethod
+from __future__ import annotations
 from typing import Tuple, List
+
+from pyrsistent import s
 
 
 
@@ -7,33 +10,27 @@ class Cluster_Tree():
 
     def __init__(self):
         self._size_ = 1
-        self._root_ = None
+        self._root_: Vertex = None
+        self._boundary_list: List[Vertex] = []
 
-class Vertex(metaclass=ABCMeta):
+class Vertex():
 
     def __init__(self,
                  location: Tuple,
-                 parent=None,
-                 children=[]):
+                 parent: Vertex = None,
+                 children: List[Vertex] = []):
         self._location_ = location
-        self._parent = parent
-        self._children= children
-        
+        self._parent_ = parent
+        self._children_ = children
     
+    def add_child(self, child):
+        self._children_.append(child)
+    
+    def remove_child(self, child):
+        self._children_.remove(child)
 
-class Root(Vertex):
-
-    def __init__(self, 
-                 location: Tuple, 
-                 cluster_tree: Cluster_Tree,
-                 parent=None, 
-                 children=[]):
-        super().__init__(location)
-        self._cluster_tree = cluster_tree
-
-class Node(Vertex):
-    def __init__(self, 
-                 location: Tuple,
-                 parent=None, 
-                 children=[]):
-        super().__init__(location, parent, children)
+    def set_parent(self, new_parent):
+        self._parent_ = new_parent
+    
+    def get_parent(self):
+        return self._parent_
