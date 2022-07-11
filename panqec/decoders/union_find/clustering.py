@@ -31,10 +31,10 @@ def union(vt_v, vt_u, forest):
 class Cluster_Tree():
 
     def __init__(self, root):
-        self._size_ = 1
-        self._odd_ = True
-        self._root_: Vertex = root
-        self._boundary_list_: List[Vertex] = [root]
+        self._size = 1
+        self._odd = True
+        self._root: Vertex = root
+        self._boundary_list: List[Vertex] = [root]
     
     def grow
         
@@ -45,21 +45,21 @@ class Vertex():
                  location: Tuple,
                  parent: Vertex = None,
                  children: List[Vertex] = []):
-        self._location_ = location
-        self._parent_ = parent
-        self._children_ = children
+        self._location = location
+        self._parent = parent
+        self._children = children
     
     def add_child(self, child):
-        self._children_.append(child)
+        self._children.append(child)
     
     def remove_child(self, child):
-        self._children_.remove(child)
+        self._children.remove(child)
 
     def set_parent(self, new_parent):
-        self._parent_ = new_parent
+        self._parent = new_parent
     
     def get_parent(self):
-        return self._parent_
+        return self._parent
 
     def find(self) -> Vertex:
         pass
@@ -69,7 +69,7 @@ class Edge():
      def __init__(self, location):
          self.u: Vertex = None
          self.v: Vertex = None
-         self._location_ = location
+         self._location = location
 
 def Support():
     UNOCCUPIED = 0
@@ -77,18 +77,18 @@ def Support():
     GROWN      = 2
 
     def __init__(self, x_len, y_len):
-        self._x_len_ = x_len
-        self._y_len_ = y_len
-        self._edges_ = np.zeros((x_len, y_len), dtype='uint8')
+        self._x_len = x_len
+        self._y_len = y_len
+        self._edges = np.zeros((x_len, y_len), dtype='uint8')
 
     def grow(location: Tuple):
-        surrond_edges = _get_surrond_edges_(location)
-        
+        surrond_edges = _get_surrond_edges(location)
+
 
         #TODO Next
         return
     
-    def _get_surrond_edges_(self, location: Tuple) -> List[Tuple]:
+    def _get_surrond_edges(self, location: Tuple) -> List[Tuple]:
         """
         Input: coordinate tuple (x, y) of a vertex (point)
 
@@ -101,9 +101,9 @@ def Support():
             edges.append((x - 1, y))
         if y > 0:
             edges.append((x, y - 1))
-        if x + 1 < self._x_len_:
+        if x + 1 < self._x_len:
             edges.append((x + 1, y))
-        if y + 1 < self._y_len_:
+        if y + 1 < self._y_len:
             edges.append((x, y + 1))
         
         return edges
