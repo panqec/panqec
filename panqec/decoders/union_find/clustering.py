@@ -1,8 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from __future__ import annotations
-from typing import Tuple, List
+from typing import Dict, Tuple, List
 import numpy as np
-from pyrsistent import s
+from pyrsistent import b, s
 
 def clustering(syndrome):
     vertices: List = transfer_syndrome(syndrome) # turn syndromes into vertices
@@ -12,7 +12,7 @@ def clustering(syndrome):
     while vertices:
         fusion_list = []
         for u in vertices:
-            fursion_list = grow(cluster_forest(u)) #inlcude step 9
+            fusion_list.append(grow(cluster_forest(u))) #inlcude step 9
         
         for e in fusion_list:
             if find(e.u) != find(e.v):
@@ -35,6 +35,9 @@ class Cluster_Tree():
         self._odd_ = True
         self._root_: Vertex = root
         self._boundary_list_: List[Vertex] = [root]
+    
+    def grow
+        
 
 class Vertex():
 
@@ -61,6 +64,13 @@ class Vertex():
     def find(self) -> Vertex:
         pass
 
+class Edge():
+
+     def __init__(self, location):
+         self.u: Vertex = None
+         self.v: Vertex = None
+         self._location_ = location
+
 def Support():
     UNOCCUPIED = 0
     HALF_GROWN = 1
@@ -71,8 +81,36 @@ def Support():
         self._y_len_ = y_len
         self._edges_ = np.zeros((x_len, y_len), dtype='uint8')
 
-    def grow(vertex):
-        return
+    def grow(location: Tuple):
+        surrond_edges = _get_surrond_edges_(location)
+        
 
-def map_vertex_tree(vertices: List[Vertex]):
+        #TODO Next
+        return
+    
+    def _get_surrond_edges_(self, location: Tuple) -> List[Tuple]:
+        """
+        Input: coordinate tuple (x, y) of a vertex (point)
+
+        Return: the edges coordinate around the vertex.
+        
+        """
+        (x, y) = location
+        edges = []
+        if x > 0:
+            edges.append((x - 1, y))
+        if y > 0:
+            edges.append((x, y - 1))
+        if x + 1 < self._x_len_:
+            edges.append((x + 1, y))
+        if y + 1 < self._y_len_:
+            edges.append((x, y + 1))
+        
+        return edges
+
+
+def map_vertex_tree(vertices: List[Vertex]) -> Dict[Vertex, Cluster_Tree]:
     return dict(map(lambda v : (v, Cluster_Tree(v)), vertices))
+
+def grow(tree: Cluster_Tree):
+
