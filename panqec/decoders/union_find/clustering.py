@@ -24,6 +24,7 @@ def clustering(syndrome):
 
     return #grwon supprt and syndrome
 
+
 def union(vt_v, vt_u, forest):
     return
 
@@ -33,7 +34,7 @@ class Cluster_Tree():
         self._size_ = 1
         self._odd_ = True
         self._root_: Vertex = root
-        self._boundary_list: List[Vertex] = [root]
+        self._boundary_list_: List[Vertex] = [root]
 
 class Vertex():
 
@@ -71,3 +72,7 @@ def Support():
         self._edges_ = np.zeros((x_len, y_len), dtype='uint8')
 
     def grow(vertex):
+        return
+
+def map_vertex_tree(vertices: List[Vertex]):
+    return dict(map(lambda v : (v, Cluster_Tree(v)), vertices))
