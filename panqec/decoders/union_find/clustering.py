@@ -1,5 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from __future__ import annotations
+from os import stat
+from re import U
 from typing import Dict, Tuple, List
 import numpy as np
 from pyrsistent import b, s
@@ -65,37 +67,72 @@ class Vertex():
         pass
 
 class Edge():
+    
 
-     def __init__(self, location):
-         self.u: Vertex = None
-         self.v: Vertex = None
-         self._location = location
+    def __init__(self, location):
+        self.fst: Vertex = None
+        self.snd: Vertex = None
+        self._location = location
+    
+    def add_vertex(self, fst=None, snd=None):
+        self.fst = fst
+        self.snd = snd
+
 
 def Support():
     UNOCCUPIED = 0
     HALF_GROWN = 1
     GROWN      = 2
+    # improvement: Eliminate vertex from the support matrix, need hash function
 
     def __init__(self, x_len, y_len):
         self._x_len = x_len
         self._y_len = y_len
-        self._edges = np.zeros((x_len, y_len), dtype='uint8')
+        self._status = np.zeros((x_len, y_len), dtype='uint8')
+        self._loc_edge_map = {}
 
-    def grow(location: Tuple):
-        surrond_edges = _get_surrond_edges(location)
+    def grow(self, vertex: Vertex, fusion_list: List[Edge]):
+        surround_edges_loc: List[Tuple] = _get_surrond_edges(vertex)
+        new_grown =[]
+        grown = True
+        for e in surround_edges_loc:
+            status = self._status[e]
+            
+            if status is UNOCCUPIED:
+                edge = Edge(e)
+                edge.add_vertex(vertex)
+                self._loc_edge_map[e] = edge
+                self._status[e] = HALF_GROWN
+                grown = False
+            elif status is HALF_GROWN:
+                edge = self._loc_edge_map[e]
+                if vertex is edge.fst:
+                    # append new vertex, but check if it has been approached 
+                    # from the otehr end
+                    if 
+                else:
+                    edge = self._loc_edge_map[e]
+                    edge.add(snd = vertex)
+                    self._status[e] = GROWN
+                    fusion_list.append(edge)
+
+
+
+
+
 
 
         #TODO Next
         return
     
-    def _get_surrond_edges(self, location: Tuple) -> List[Tuple]:
+    def _get_surrond_edges(self, vertex: Vertex) -> List[Tuple]:
         """
-        Input: coordinate tuple (x, y) of a vertex (point)
+        Input: vertex to extract for its coordinates
 
         Return: the edges coordinate around the vertex.
         
         """
-        (x, y) = location
+        (x, y) = vertex.location
         edges = []
         if x > 0:
             edges.append((x - 1, y))
