@@ -2,14 +2,15 @@ from abc import ABCMeta, abstractmethod
 from __future__ import annotations
 from os import stat
 from re import U
-from typing import Dict, Tuple, List
+from typing import Any, Dict, Tuple, List
+from xmlrpc.client import Boolean
 import numpy as np
-from pyrsistent import b, s
+from pyrsistent import T, b, s
 
 def clustering(syndrome):
     vertices: List = transfer_syndrome(syndrome) # turn syndromes into vertices
     cluster_forest = map_vertex_tree(vertices) # map vertices with cluster information
-    support = Support()
+    support = Support(syndrome)
 
     while vertices:
         fusion_list = []
@@ -38,7 +39,8 @@ class Cluster_Tree():
         self._root: Vertex = root
         self._boundary_list: List[Vertex] = [root]
     
-    def grow
+    def is_odd(self) -> Boolean:
+        return self._odd
         
 
 class Vertex():
@@ -63,8 +65,13 @@ class Vertex():
     def get_parent(self):
         return self._parent
 
-    def find(self) -> Vertex:
-        pass
+    def find_root(self) -> Vertex:
+        v = self
+        p = v.get_parent()
+        while p is not None:
+            v = p
+            p = v.get_parent()
+        return v
 
 class Edge():
     
@@ -80,16 +87,36 @@ class Edge():
 
 
 def Support():
+    # edges status
     UNOCCUPIED = 0
     HALF_GROWN = 1
     GROWN      = 2
-    # improvement: Eliminate vertex from the support matrix, need hash function
 
-    def __init__(self, x_len, y_len):
+    # vertex status
+    DARK_POINT = 0
+    VERTEX     = 1
+    SYNDROME   = 2
+    # improvement1: Eliminate faces...
+    # improvement2: Eliminate vertex from the support matrix, need hash function
+
+    def __init__(self, syndrome: List[Tuple], x_len, y_len):
         self._x_len = x_len
         self._y_len = y_len
         self._status = np.zeros((x_len, y_len), dtype='uint8')
+        self._loc_vertex_map = {}
+        self._loc_cluster_map = {}
         self._loc_edge_map = {}
+
+        _init_loc_syndrome(syndrome)
+        _init_loc_cluster(syndrome)
+    
+    def _init_loc_syndrome(self, syndrome: List[T]) -> Dict[T, Vertex]:
+        self._status[syndrome] = SYNDROME  # light up the seen vertex
+        return dict(map(lambda l : (l, Vertex(l)), syndrome))
+    
+    def _init_loc_cluster(self, locations: List[T]) -> Dict[T, Cluster_Tree]:
+        return dict(map(lambda l : (l, Cluster_Tree(self._loc_vertex_map[l])), 
+                        locations))
 
     def grow(self, vertex: Vertex, fusion_list: List[Edge]):
         surround_edges_loc: List[Tuple] = _get_surrond_edges(vertex)
@@ -132,6 +159,8 @@ def Support():
         Return: the edges coordinate around the vertex.
         
         """
+
+        #TODO get around the graph
         (x, y) = vertex.location
         edges = []
         if x > 0:
@@ -146,8 +175,7 @@ def Support():
         return edges
 
 
-def map_vertex_tree(vertices: List[Vertex]) -> Dict[Vertex, Cluster_Tree]:
-    return dict(map(lambda v : (v, Cluster_Tree(v)), vertices))
+
 
 def grow(tree: Cluster_Tree):
 
