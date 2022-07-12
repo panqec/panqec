@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from __future__ import annotations
+from msilib.schema import Error
 from os import stat
 from re import U
 from typing import Any, Dict, Tuple, List
@@ -41,6 +42,9 @@ class Cluster_Tree():
     
     def is_odd(self) -> Boolean:
         return self._odd
+    
+    def size_increment(self, inc = 1):
+        self._size += inc
         
 
 class Vertex():
@@ -53,8 +57,15 @@ class Vertex():
         self._parent = parent
         self._children = children
     
+    def get_location(self):
+        return self._location
+    
     def add_child(self, child):
+        """
+            Add new children, return root for cluster size increase.
+        """
         self._children.append(child)
+        return self.find_root()
     
     def remove_child(self, child):
         self._children.remove(child)
@@ -74,13 +85,15 @@ class Vertex():
         return v
 
 class Edge():
-    
 
     def __init__(self, location):
         self.fst: Vertex = None
         self.snd: Vertex = None
         self._location = location
     
+    def get_location(self) -> Tuple:
+        return self._location
+
     def add_vertex(self, fst=None, snd=None):
         self.fst = fst
         self.snd = snd
@@ -104,7 +117,7 @@ def Support():
         self._y_len = y_len
         self._status = np.zeros((x_len, y_len), dtype='uint8')
         self._loc_vertex_map = {}
-        self._loc_cluster_map = {}
+        self._loc_cluster_map: Dict[Tuple, Cluster_Tree] = {}
         self._loc_edge_map = {}
 
         _init_loc_syndrome(syndrome)
@@ -117,40 +130,73 @@ def Support():
     def _init_loc_cluster(self, locations: List[T]) -> Dict[T, Cluster_Tree]:
         return dict(map(lambda l : (l, Cluster_Tree(self._loc_vertex_map[l])), 
                         locations))
+    
+    def get_clusters(self) -> List:
+        return list(self._loc_cluster_map.value())
 
     def grow(self, vertex: Vertex, fusion_list: List[Edge]):
+        #TODO refactor
         surround_edges_loc: List[Tuple] = _get_surrond_edges(vertex)
         new_grown =[]
         grown = True
         for e in surround_edges_loc:
             status = self._status[e]
             
-            if status is UNOCCUPIED:
+            if status == UNOCCUPIED:
                 edge = Edge(e)
                 edge.add_vertex(vertex)
                 self._loc_edge_map[e] = edge
                 self._status[e] = HALF_GROWN
                 grown = False
-            elif status is HALF_GROWN:
+            elif status == HALF_GROWN:
                 edge = self._loc_edge_map[e]
+                self._status[e] = GROWN
                 if vertex is edge.fst:
                     # append new vertex, but check if it has been approached 
                     # from the otehr end
-                    if 
+                    loc_u = _get_other_vertex_loc(vertex, edge)
+                    u_status = self._status[loc_u]
+                    if u_status == DARK_POINT:
+                        vertex_u = Vertex(loc_u, parent=vertex)
+                        #refactor
+                        self._status[loc_u] = VERTEX
+                        self._loc_vertex_map[loc_u] = vertex_u
+                        #
+                        root = vertex.add_child(vertex_u) #TODO cluster size++
+                        self._loc_cluster_map[root.get_location()].size_increment()
+                        edge.add_vertex(snd = vertex_u)
+
+                    else:
+                        # that means the vertex is already belong to a cluster
+                        # but probably the same cluster
+                        edge.add_vertex(snd = vertex)
+                        fusion_list.append(edge)
                 else:
-                    edge = self._loc_edge_map[e]
-                    edge.add(snd = vertex)
-                    self._status[e] = GROWN
+                    edge.add_vertex(snd = vertex)
                     fusion_list.append(edge)
-
-
-
-
-
 
 
         #TODO Next
         return
+    
+    def _get_other_vertex_loc(vertex: Vertex, edge: Edge):
+        """
+            Given an edge and a vertex attached, infer the coordinate of 
+            the other vertex of the edge.
+        """
+        #TODO overflow bound
+        (v_x, v_y) = vertex.get_location
+        (e_x, e_y) = edge.get_location
+
+        (x, y) = (0, 0)
+        if v_x == e_x:
+            (x, y) = (v_x, e_y + (e_y - v_y)) 
+            # true because vertex is on the other side
+        elif v_y == e_y:
+            (x, y) = (e_x + (e_x - v_x), v_y)
+        
+        return (x, y)
+
     
     def _get_surrond_edges(self, vertex: Vertex) -> List[Tuple]:
         """
@@ -161,7 +207,7 @@ def Support():
         """
 
         #TODO get around the graph
-        (x, y) = vertex.location
+        (x, y) = vertex.get_location()
         edges = []
         if x > 0:
             edges.append((x - 1, y))
