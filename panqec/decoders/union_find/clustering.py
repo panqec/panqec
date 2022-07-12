@@ -9,27 +9,31 @@ import numpy as np
 from pyrsistent import T, b, s
 
 def clustering(syndrome):
-    vertices: List = transfer_syndrome(syndrome) # turn syndromes into vertices
-    cluster_forest = map_vertex_tree(vertices) # map vertices with cluster information
+    # vertices: List = transfer_syndrome(syndrome) # turn syndromes into vertices
+    # cluster_forest = map_vertex_tree(vertices) # map vertices with cluster information
     support = Support(syndrome)
 
-    while vertices:
+    odd_clusters = filter(lambda c : c.is_odd(), support.get_clusters())
+
+    while odd_clusters:
         fusion_list = []
-        for u in vertices:
-            fusion_list.append(grow(cluster_forest(u))) #inlcude step 9
+        for c in odd_clusters:
+            fusion_list += c.grow()
+            # fusion_list.append(grow(cluster_forest(u))) #inlcude step 9
         
         for e in fusion_list:
-            if find(e.u) != find(e.v):
+            if e.fst.find_root() is not e.snd.find_root():
                 union(e.u, e.v) #include step 7,8
             else:
                 fusion_list.remove(e)
         
-        update_verices(vertices) #remove if true       
+        update_verices(vertices) #remove even cluster       
 
     return #grwon supprt and syndrome
 
 
 def union(vt_v, vt_u, forest):
+    #TODO
     return
 
 class Cluster_Tree():
@@ -45,6 +49,15 @@ class Cluster_Tree():
     
     def size_increment(self, inc = 1):
         self._size += inc
+    
+    def grow(self, support: Support):
+        """ 
+            grow the boundary list of the cluster, returns fusion list 
+        """
+        #TODO update boundary list
+        return map(lambda v : v.grow(support) , self._boundary_list)
+
+        
         
 
 class Vertex():
@@ -77,12 +90,17 @@ class Vertex():
         return self._parent
 
     def find_root(self) -> Vertex:
+        #TODO path compression
         v = self
         p = v.get_parent()
         while p is not None:
             v = p
             p = v.get_parent()
         return v
+    
+    def grow(self, support: Support):
+        #TODO move support grow to here
+        support.grow(self)
 
 class Edge():
 
@@ -99,7 +117,7 @@ class Edge():
         self.snd = snd
 
 
-def Support():
+class Support():
     # edges status
     UNOCCUPIED = 0
     HALF_GROWN = 1
@@ -120,11 +138,11 @@ def Support():
         self._loc_cluster_map: Dict[Tuple, Cluster_Tree] = {}
         self._loc_edge_map = {}
 
-        _init_loc_syndrome(syndrome)
-        _init_loc_cluster(syndrome)
+        self._init_loc_syndrome(syndrome)
+        self._init_loc_cluster(syndrome)
     
     def _init_loc_syndrome(self, syndrome: List[T]) -> Dict[T, Vertex]:
-        self._status[syndrome] = SYNDROME  # light up the seen vertex
+        self._status[syndrome] = Support.SYNDROME  # light up the seen vertex
         return dict(map(lambda l : (l, Vertex(l)), syndrome))
     
     def _init_loc_cluster(self, locations: List[T]) -> Dict[T, Cluster_Tree]:
@@ -134,32 +152,31 @@ def Support():
     def get_clusters(self) -> List:
         return list(self._loc_cluster_map.value())
 
-    def grow(self, vertex: Vertex, fusion_list: List[Edge]):
+    def grow(self, vertex: Vertex):
         #TODO refactor
-        surround_edges_loc: List[Tuple] = _get_surrond_edges(vertex)
-        new_grown =[]
-        grown = True
+        fusion_list: List[Edge] = []
+        surround_edges_loc: List[Tuple] = self._get_surrond_edges(vertex)
         for e in surround_edges_loc:
             status = self._status[e]
             
-            if status == UNOCCUPIED:
+            if status == Support.UNOCCUPIED:
                 edge = Edge(e)
                 edge.add_vertex(vertex)
                 self._loc_edge_map[e] = edge
-                self._status[e] = HALF_GROWN
+                self._status[e] = Support.HALF_GROWN
                 grown = False
-            elif status == HALF_GROWN:
+            elif status == Support.HALF_GROWN:
                 edge = self._loc_edge_map[e]
-                self._status[e] = GROWN
+                self._status[e] = Support.GROWN
                 if vertex is edge.fst:
                     # append new vertex, but check if it has been approached 
                     # from the otehr end
-                    loc_u = _get_other_vertex_loc(vertex, edge)
+                    loc_u = self._get_other_vertex_loc(vertex, edge)
                     u_status = self._status[loc_u]
-                    if u_status == DARK_POINT:
+                    if u_status == Support.DARK_POINT:
                         vertex_u = Vertex(loc_u, parent=vertex)
                         #refactor
-                        self._status[loc_u] = VERTEX
+                        self._status[loc_u] = Support.VERTEX
                         self._loc_vertex_map[loc_u] = vertex_u
                         #
                         root = vertex.add_child(vertex_u) #TODO cluster size++
@@ -167,7 +184,6 @@ def Support():
                         edge.add_vertex(snd = vertex_u)
 
                     else:
-                        # that means the vertex is already belong to a cluster
                         # but probably the same cluster
                         edge.add_vertex(snd = vertex)
                         fusion_list.append(edge)
@@ -175,9 +191,7 @@ def Support():
                     edge.add_vertex(snd = vertex)
                     fusion_list.append(edge)
 
-
-        #TODO Next
-        return
+        return fusion_list
     
     def _get_other_vertex_loc(vertex: Vertex, edge: Edge):
         """
@@ -219,9 +233,4 @@ def Support():
             edges.append((x, y + 1))
         
         return edges
-
-
-
-
-def grow(tree: Cluster_Tree):
 
