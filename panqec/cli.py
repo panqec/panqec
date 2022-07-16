@@ -358,7 +358,7 @@ def merge_dirs(outdir, dirs):
         combined_results = merge_results_dicts(results_dicts)
 
         if os.path.splitext(file_path)[-1] == '.json':
-            with open(combined_file, 'wb') as f:
+            with open(combined_file, 'w') as f:
                 json.dump(combined_results, f)
         else:
             with gzip.open(combined_file, 'wb') as gz:
