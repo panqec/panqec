@@ -1,18 +1,18 @@
 -r common.txt
-jupyter==1.0.0
-pytest==6.2.2
-flake8==3.9.0
-matplotlib==3.3.4
-pytest-sugar==0.9.4
-mypy==0.812
+jupyter>=1.0.0
+pytest>=6.2.2
+flake8>=3.9.0
+matplotlib>=3.3.4
+pytest-sugar>=0.9.4
+mypy>=0.812
 jupyterlab>=3.0.17
-coverage==5.5
-pytest-cov==2.11.1
-pandas==1.2.4
-sphinx==4.5.0
-sphinx-rtd-theme==1.0.0
-nbsphinx==0.8.8
-myst-parser==0.17.0
+coverage>=5.5
+pytest-cov>=2.11.1
+pandas>=1.2.4
+sphinx>=4.5.0
+sphinx-rtd-theme>=1.0.0
+nbsphinx>=0.8.8
+myst-parser>=0.17.0
 
 # GUI
-Flask==2.0.1
+Flask>=2.0.1

@@ -2,6 +2,6 @@ PyMatching==0.2.4
 tqdm==4.59.0
 python-dotenv==0.17.0
 psutil==5.8.0
-ldpc==0.1.0
+ldpc>=0.1.0
 click==8.1.2
 -e .
