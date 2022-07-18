@@ -563,7 +563,7 @@ def count_runs(file_path: str) -> Optional[int]:
 
 def get_simulations(
     data: dict, start: Optional[int] = None, n_runs: Optional[int] = None
-) -> List[dict]:
+) -> List[Simulation]:
     simulations = []
 
     if 'ranges' in data:
