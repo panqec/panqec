@@ -2,13 +2,14 @@ import os
 import json
 from glob import glob
 import pytest
+import gzip
 import numpy as np
 from panqec.error_models import PauliErrorModel
 from panqec.codes import Toric2DCode
 from panqec.decoders import BeliefPropagationOSDDecoder
 from panqec.simulation import (
     read_input_json, run_once, Simulation, expand_input_ranges, run_file,
-    merge_results_dicts, filter_legacy_params
+    merge_results_dicts, filter_legacy_params, BatchSimulation
 )
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
@@ -105,6 +106,62 @@ class TestSimulationToric2DCode():
         simulation.run(10)
         assert len(simulation._results['success']) == 10
         assert set(required_fields).issubset(simulation._results.keys())
+
+
+class TestBatchSimulationOneFile():
+
+    def test_output_to_one_file(self, tmpdir):
+        assert os.path.isdir(tmpdir)
+
+        assert len(os.listdir(tmpdir)) == 0
+        batch_sim = BatchSimulation(
+            label='mylabel',
+            save_frequency=1,
+            output_dir=tmpdir,
+            onefile=True
+        )
+
+        for size, error_rate in [(3, 0.1), (4, 0.5)]:
+            code = Toric2DCode(size, size)
+            error_model = PauliErrorModel(1/3, 1/3, 1/3)
+            decoder = BeliefPropagationOSDDecoder(
+                code, error_model, error_rate
+            )
+            simulation = Simulation(code, error_model, decoder, error_rate)
+            batch_sim.append(simulation)
+
+        assert len(batch_sim) == 2
+
+        n_trials = 5
+        batch_sim.run(n_trials)
+        batch_sim.save_results()
+
+        combined_outfile = os.path.join(tmpdir, 'mylabel', 'mylabel.json.gz')
+        assert os.path.isfile(combined_outfile)
+        with gzip.open(combined_outfile, 'rb') as gz:
+            results = json.loads(gz.read().decode('utf-8'))
+
+        # Check integrity of results.
+        assert len(results) == 2
+        expected_input_keys = [
+            'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
+            'probability'
+        ]
+        expected_results_keys = [
+            'effective_error', 'success', 'codespace', 'wall_time',
+        ]
+        for key in expected_input_keys:
+            assert key in results[0]['inputs']
+            assert key in results[1]['inputs']
+
+        for key in expected_results_keys:
+            assert key in results[0]['results']
+            assert key in results[1]['results']
+
+        # Numerical tests on the results.
+        assert len(results[0]['results']['effective_error']) == n_trials
+        assert len(results[0]['results']['success']) == n_trials
+        assert len(results[0]['results']['codespace']) == n_trials
 
 
 @pytest.fixture

@@ -63,11 +63,23 @@ def run_file(
     progress: Callable = identity,
     output_dir: Optional[str] = None,
     verbose: bool = True,
+    onefile: bool = True,
 ):
-    """Run an input json file."""
+    """Run an input json file.
+
+    Parameters
+    ----------
+    onefile : bool
+        If set to True, then all outputs get written to one file.
+
+    Returns
+    -------
+    None
+    """
     batch_sim = read_input_json(
         file_name, output_dir=output_dir,
-        start=start, n_runs=n_runs
+        start=start, n_runs=n_runs,
+        onefile=onefile
     )
     if verbose:
         print(f'running {len(batch_sim._simulations)} simulations:')
@@ -99,7 +111,7 @@ class Simulation:
         error_model: BaseErrorModel,
         decoder: BaseDecoder,
         error_rate: float, rng=None,
-        compress: bool = True
+        compress: bool = True,
     ):
         self.code = code
         self.error_model = error_model
@@ -197,8 +209,8 @@ class Simulation:
             print('Starting this from scratch')
             print(err)
 
-    def save_results(self, output_dir: str):
-        """Save results to directory."""
+    def get_results_to_save(self) -> dict:
+        """Get the results to save as a dict."""
         data = {
             'results': self._results,
             'inputs': {
@@ -212,6 +224,11 @@ class Simulation:
                 'probability': self.error_rate,
             }
         }
+        return data
+
+    def save_results(self, output_dir: str):
+        """Save results to directory."""
+        data = self.get_results_to_save()
         if self.compress:
             with gzip.open(self.get_file_path(output_dir), 'wb') as gz:
                 gz.write(json.dumps(data, cls=NumpyEncoder).encode('utf-8'))
@@ -263,6 +280,7 @@ class BatchSimulation():
     update_frequency: int
     save_frequency: int
     _output_dir: str
+    onefile: bool
 
     def __init__(
         self,
@@ -271,6 +289,7 @@ class BatchSimulation():
         update_frequency: int = 5,
         save_frequency: int = 5,
         output_dir: Optional[str] = None,
+        onefile: bool = False,
     ):
         self._simulations = []
         self.code: Dict = {}
@@ -283,6 +302,7 @@ class BatchSimulation():
         else:
             self._output_dir = os.path.join(PANQEC_DIR, self.label)
         os.makedirs(self._output_dir, exist_ok=True)
+        self.onefile = onefile
 
     def __getitem__(self, *args):
         return self._simulations.__getitem__(*args)
@@ -292,6 +312,9 @@ class BatchSimulation():
 
     def __next__(self):
         return self._simulations.__next__()
+
+    def __len__(self):
+        return self._simulations.__len__()
 
     def append(self, simulation: Simulation):
         self._simulations.append(simulation)
@@ -346,8 +369,48 @@ class BatchSimulation():
                 self.save_results()
 
     def _save_results(self):
-        for simulation in self._simulations:
+        for i_simulation, simulation in enumerate(self._simulations):
             simulation.save_results(self._output_dir)
+            if self.onefile:
+                self._update_onefile(
+                    i_simulation, simulation.get_results_to_save()
+                )
+
+    def get_onefile_path(self) -> str:
+        """Get path of combined all-in-one output file."""
+        return os.path.join(self._output_dir, self.label + '.json.gz')
+
+    def save_onefile(self):
+        """Do a complete save of the onefile."""
+        out_file = self.get_onefile_path()
+        combined_data = []
+        for simulation in self._simulations:
+            combined_data.append(simulation.get_results_to_save())
+        with gzip.open(out_file, 'wb') as gz:
+            gz.write(
+                json.dumps(combined_data, cls=NumpyEncoder).encode('utf-8')
+            )
+
+    def _update_onefile(self, i_simulation: int, new_data: dict) -> None:
+        """Update only the i-th simulation's results to the onefile."""
+        out_file = self.get_onefile_path()
+
+        # First time file does not exist, so write it ot start.
+        if not os.path.isfile(out_file):
+            self.save_onefile()
+
+        # A bit slow, but just unzip the previously existing zip file.
+        with gzip.open(out_file, 'rb') as gz:
+            combined_data = json.loads(gz.read().decode('utf-8'))
+
+        # Update only the i-th simulation with the new data.
+        combined_data[i_simulation] = new_data
+
+        # Write the updated list to the .json.gz file.
+        with gzip.open(out_file, 'wb') as gz:
+            gz.write(
+                json.dumps(combined_data, cls=NumpyEncoder).encode('utf-8')
+            )
 
     def save_results(self):
         try:
