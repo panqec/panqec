@@ -431,6 +431,107 @@
         }
     },
 
+    "Fractal2DCode": {
+        "qubits": {
+            "kitaev": {
+                "object": "sphere",
+                "color": {
+                    "I": "white",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.6
+                    }
+                },
+                "params": {
+                    "radius": 0.2
+                }
+            },
+            "rotated": {
+                "object": "sphere",
+                "color": {
+                    "I": "white",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.6
+                    }
+                },
+                "params": {
+                    "radius": 0.2
+                }
+            }
+        },
+        "stabilizers": {
+            "kitaev": {
+                "tetris": {
+                    "object": "rectangle",
+                    "color": {
+                        "activated": "light-orange",
+                        "deactivated": "salmon"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.9,
+                            "max": 0.9
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.2
+                        }
+                    },
+                    "params": {
+                        "w": 0.8,
+                        "h": 0.8,
+                        "normal": [0,0,1],
+                        "angle": 0
+                    }
+                }
+            },
+            "rotated": {
+                "tetris": {
+                    "object": "rectangle",
+                    "color": {
+                        "activated": "light-orange",
+                        "deactivated": "salmon"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.9,
+                            "max": 0.9
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.2
+                        }
+                    },
+                    "params": {
+                        "w": 0.8,
+                        "h": 0.8,
+                        "normal": [0,0,1],
+                        "angle": 0
+                    }
+                }
+            }
+        }
+    },
+
     "Toric3DCode": {
         "qubits": {
             "kitaev": {

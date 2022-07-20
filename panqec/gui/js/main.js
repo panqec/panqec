@@ -235,7 +235,7 @@ async function buildGUI() {
     codeFolder.add(params, 'codeName', codes).name('Code type').onChange(changeLatticeSize);
     codeFolder.add(params, 'rotated').name('Rotated picture').onChange(changeLatticeSize);
     codeFolder.add(params, 'coprime').name('Coprime dimensions').onChange(changeLatticeSize);
-    codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
+    codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '20': 20}).name('Lattice size').onChange(changeLatticeSize);
 
     let deformedOptions = {'None': 'None', 'x axis': 'x', 'y axis': 'y'};
     if (codeDimension == 3)
