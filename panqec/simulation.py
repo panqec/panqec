@@ -370,11 +370,12 @@ class BatchSimulation():
 
     def _save_results(self):
         for i_simulation, simulation in enumerate(self._simulations):
-            simulation.save_results(self._output_dir)
             if self.onefile:
                 self._update_onefile(
                     i_simulation, simulation.get_results_to_save()
                 )
+            else:
+                simulation.save_results(self._output_dir)
 
     def get_onefile_path(self) -> str:
         """Get path of combined all-in-one output file."""

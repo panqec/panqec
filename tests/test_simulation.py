@@ -136,8 +136,10 @@ class TestBatchSimulationOneFile():
         batch_sim.run(n_trials)
         batch_sim.save_results()
 
+        # Make sure this is the only file produced.
         combined_outfile = os.path.join(tmpdir, 'mylabel', 'mylabel.json.gz')
         assert os.path.isfile(combined_outfile)
+        assert len(os.listdir(os.path.join(tmpdir, 'mylabel'))) == 1
         with gzip.open(combined_outfile, 'rb') as gz:
             results = json.loads(gz.read().decode('utf-8'))
 
