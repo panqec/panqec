@@ -4,7 +4,7 @@ sbatch_dir=temp/paper/sbatch
 mkdir -p "$sbatch_dir"
 mkdir -p temp/paper/share
 
-wall_time="168:00:00"
+wall_time="24:00:00"
 memory="64GB"
 
 # ============== XCube Deformed ==============
@@ -26,7 +26,7 @@ for repeat in $(seq 1 30); do
     rm -rf $paper_dir/$name/logs
     cp -R $paper_dir/${common_name}_temp/inputs $paper_dir/$name/inputs
     panqec cc-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
-        --wall_time "$wall_time" --trials 500 --split auto $sbatch_dir/$name.sbatch
+        --wall_time "$wall_time" --trials 200 --split auto $sbatch_dir/$name.sbatch
 done
 
 rm -rf $paper_dir/${common_name}_temp
@@ -50,7 +50,7 @@ for repeat in $(seq 1 30); do
     rm -rf $paper_dir/$name/logs
     cp -R $paper_dir/${common_name}_temp/inputs $paper_dir/$name/inputs
     panqec cc-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
-        --wall_time "$wall_time" --trials 500 --split auto $sbatch_dir/$name.sbatch
+        --wall_time "$wall_time" --trials 200 --split auto $sbatch_dir/$name.sbatch
 done
 
 rm -rf $paper_dir/${common_name}_temp
@@ -74,7 +74,7 @@ for repeat in $(seq 1 30); do
     rm -rf $paper_dir/$name/logs
     cp -R $paper_dir/${common_name}_temp/inputs $paper_dir/$name/inputs
     panqec cc-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
-        --wall_time "$wall_time" --trials 500 --split auto $sbatch_dir/$name.sbatch
+        --wall_time "$wall_time" --trials 200 --split auto $sbatch_dir/$name.sbatch
 done
 
 rm -rf $paper_dir/${common_name}_temp
