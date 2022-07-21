@@ -27,14 +27,12 @@ def clustering(syndrome):
             # else:
             #     fusion_list.remove(e)
         #TODO 111 update THE cluster
-        update_verices(vertices) #remove even cluster       
+        for c in odd_clusters: 
+            c.update_boundary(support)
+
+        odd_clusters = filter(lambda c : c.is_odd(), support.get_clusters())
 
     return #grwon supprt and syndrome
-
-
-def union(vt_v, vt_u, forest):
-    #TODO
-    return
 
 class Cluster_Tree():
 
