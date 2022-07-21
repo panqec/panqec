@@ -191,23 +191,25 @@ class Simulation:
                 else:
                     with open(file_path) as json_file:
                         data = json.load(json_file)
-                for key in self._results.keys():
-                    if key in data['results'].keys():
-                        self._results[key] = data['results'][key]
-                        if (
-                            isinstance(self.results[key], list)
-                            and len(self.results[key]) > 0
-                            and isinstance(self._results[key][0], list)
-                        ):
-                            self._results[key] = [
-                                np.array(array_value)
-                                for array_value in self._results[key]
-                            ]
-                self._results = data['results']
+                self.load_results_from_dict(data)
         except JSONDecodeError as err:
             print(f'Error loading existing results file {file_path}')
             print('Starting this from scratch')
             print(err)
+
+    def load_results_from_dict(self, data):
+        for key in self._results.keys():
+            if key in data['results'].keys():
+                self._results[key] = data['results'][key]
+                if (
+                    isinstance(self.results[key], list)
+                    and len(self.results[key]) > 0
+                    and isinstance(self._results[key][0], list)
+                ):
+                    self._results[key] = [
+                        np.array(array_value)
+                        for array_value in self._results[key]
+                    ]
 
     def get_results_to_save(self) -> dict:
         """Get the results to save as a dict."""
@@ -412,6 +414,9 @@ class BatchSimulation():
             gz.write(
                 json.dumps(combined_data, cls=NumpyEncoder).encode('utf-8')
             )
+
+    def load_onefile(self):
+        pass
 
     def save_results(self):
         try:
@@ -713,6 +718,35 @@ def merge_results_dicts(results_dicts: List[Dict]) -> Dict:
         'inputs': inputs,
     }
     return merged_dict
+
+
+def merge_lists_of_results_dicts(
+    results_dicts: List[Union[dict, list]]
+) -> List[dict]:
+    """List of results lists of dicts produced by BatchSimulation onefile."""
+    flattened_results_dicts = []
+    for element in results_dicts:
+        if isinstance(element, dict):
+            flattened_results_dicts.append(element)
+        elif isinstance(element, list):
+            for value in element:
+                flattened_results_dicts.append(value)
+
+    # Combine results by sorting unique inputs.
+    input_jsons = [
+        json.dumps(element['inputs'])
+        for element in flattened_results_dicts
+    ]
+
+    # The combined results is a list.
+    combined_results = []
+    for unique_input in set(input_jsons):
+        combined_results.append(merge_results_dicts([
+            flattened_results_dicts[i]
+            for i, value in enumerate(input_jsons)
+            if value == unique_input
+        ]))
+    return combined_results
 
 
 def filter_legacy_params(decoder_params: Dict[str, Any]) -> Dict[str, Any]:

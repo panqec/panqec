@@ -1,5 +1,6 @@
 import os
 import json
+import shutil
 from glob import glob
 import pytest
 import gzip
@@ -11,6 +12,7 @@ from panqec.simulation import (
     read_input_json, run_once, Simulation, expand_input_ranges, run_file,
     merge_results_dicts, filter_legacy_params, BatchSimulation
 )
+from panqec.cli import merge_dirs
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 
@@ -110,14 +112,19 @@ class TestSimulationToric2DCode():
 
 class TestBatchSimulationOneFile():
 
-    def test_output_to_one_file(self, tmpdir):
-        assert os.path.isdir(tmpdir)
+    n_trials: int = 5
 
-        assert len(os.listdir(tmpdir)) == 0
+    @pytest.fixture
+    def output_dir(self, tmpdir):
+        out_dir = os.path.join(tmpdir, 'output_dir')
+        os.mkdir(out_dir)
+        assert os.path.isdir(out_dir)
+
+        assert len(os.listdir(out_dir)) == 0
         batch_sim = BatchSimulation(
             label='mylabel',
             save_frequency=1,
-            output_dir=tmpdir,
+            output_dir=out_dir,
             onefile=True
         )
 
@@ -132,14 +139,19 @@ class TestBatchSimulationOneFile():
 
         assert len(batch_sim) == 2
 
-        n_trials = 5
-        batch_sim.run(n_trials)
+        batch_sim.run(self.n_trials)
         batch_sim.save_results()
 
+        return out_dir
+
+    def test_output_to_one_file(self, output_dir):
+
         # Make sure this is the only file produced.
-        combined_outfile = os.path.join(tmpdir, 'mylabel', 'mylabel.json.gz')
+        combined_outfile = os.path.join(
+            output_dir, 'mylabel', 'mylabel.json.gz'
+        )
         assert os.path.isfile(combined_outfile)
-        assert len(os.listdir(os.path.join(tmpdir, 'mylabel'))) == 1
+        assert len(os.listdir(os.path.join(output_dir, 'mylabel'))) == 1
         with gzip.open(combined_outfile, 'rb') as gz:
             results = json.loads(gz.read().decode('utf-8'))
 
@@ -161,9 +173,25 @@ class TestBatchSimulationOneFile():
             assert key in results[1]['results']
 
         # Numerical tests on the results.
-        assert len(results[0]['results']['effective_error']) == n_trials
-        assert len(results[0]['results']['success']) == n_trials
-        assert len(results[0]['results']['codespace']) == n_trials
+        assert len(results[0]['results']['effective_error']) == self.n_trials
+        assert len(results[0]['results']['success']) == self.n_trials
+        assert len(results[0]['results']['codespace']) == self.n_trials
+
+    @pytest.mark.skip
+    def test_merge_output_dirs(self, tmpdir, output_dir):
+        shutil.copytree(output_dir, os.path.join(tmpdir, 'results_1'))
+        shutil.copytree(output_dir, os.path.join(tmpdir, 'results_2'))
+        assert set(os.listdir(tmpdir)) == set([
+            'output_dir', 'results_1', 'results_2'
+        ])
+        merge_dirs(
+            os.path.join(tmpdir, 'results'),
+            ' '.join([
+                os.path.join(tmpdir, 'results_1'),
+                os.path.join(tmpdir, 'results_2'),
+            ])
+        )
+        assert os.path.exists(os.path.join(tmpdir, 'results'))
 
 
 @pytest.fixture

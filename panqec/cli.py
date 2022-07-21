@@ -7,14 +7,16 @@ import numpy as np
 import json
 from json.decoder import JSONDecodeError
 import gzip
-from .simulation import run_file, merge_results_dicts
+from .simulation import (
+    run_file, merge_results_dicts, merge_lists_of_results_dicts
+)
 from .config import CODES, ERROR_MODELS, DECODERS, PANQEC_DIR, BASE_DIR
 from .slurm import (
     generate_sbatch, get_status, generate_sbatch_nist, count_input_runs,
     clear_out_folder, clear_sbatch_folder
 )
 from .statmech.cli import statmech
-from .utils import get_direction_from_bias_ratio
+from .utils import get_direction_from_bias_ratio, NumpyEncoder
 from panqec.gui import GUI
 from glob import glob
 from .usage import summarize_usage
@@ -355,7 +357,13 @@ def merge_dirs(outdir, dirs):
             except JSONDecodeError:
                 print(f'Error reading {file_path}, skipping')
 
-        combined_results = merge_results_dicts(results_dicts)
+        # If any combined files, flatten the lists of dicts into dicts.
+        if any(isinstance(element, list) for element in results_dicts):
+            combined_results = merge_lists_of_results_dicts(results_dicts)
+
+        # Otherwise deal with it the old way.
+        else:
+            combined_results = merge_results_dicts(results_dicts)
 
         if os.path.splitext(file_path)[-1] == '.json':
             with open(combined_file, 'w') as f:

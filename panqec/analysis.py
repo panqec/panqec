@@ -8,6 +8,8 @@ Routines for analysing output data.
 import os
 import warnings
 from typing import List, Optional, Tuple, Union, Callable
+import json
+import gzip
 import itertools
 from multiprocessing import Pool, cpu_count
 import numpy as np
@@ -19,7 +21,7 @@ from scipy.signal import argrelextrema
 from .config import SLURM_DIR
 from .simulation import read_input_json
 from .plots._hashing_bound import project_triangle
-from .utils import fmt_uncertainty
+from .utils import fmt_uncertainty, NumpyEncoder
 from .bpauli import int_to_bvector, bvector_to_pauli_string
 
 
@@ -86,10 +88,42 @@ def get_results_df(
     ]
     batches = {}
     for i in range(len(input_files)):
-        batch_sim = read_input_json(input_files[i])
-        for sim in batch_sim:
-            sim.load_results(output_dirs[i])
-        batches[batch_sim.label] = batch_sim
+
+        # Determine whether or not it's a onefile format.
+        onefile = False
+        output_file_list = os.listdir(output_dirs[i])
+        if len(output_file_list) == 1:
+            if '.json.gz' in output_file_list[0]:
+                results_onefile = os.path.join(
+                    output_dirs[i], output_file_list[0]
+                )
+                with gzip.open(results_onefile, 'rb') as g:
+                    data = json.loads(g.read().decode('utf-8'))
+                if isinstance(data, list):
+                    onefile = True
+
+        if onefile:
+            batch_sim = read_input_json(input_files[i])
+            input_jsons = [json.dumps(element['inputs']) for element in data]
+            for sim in batch_sim:
+                sim_input_json = json.dumps(
+                    sim.get_results_to_save()['inputs'],
+                    cls=NumpyEncoder
+                )
+                matching_indices = [
+                    i
+                    for i, value in enumerate(input_jsons)
+                    if value == sim_input_json
+                ]
+                if matching_indices:
+                    sim.load_results_from_dict(data[matching_indices[0]])
+            batches[batch_sim.label] = batch_sim
+
+        else:
+            batch_sim = read_input_json(input_files[i])
+            for sim in batch_sim:
+                sim.load_results(output_dirs[i])
+            batches[batch_sim.label] = batch_sim
 
     results = []
 
