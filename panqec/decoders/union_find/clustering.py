@@ -3,7 +3,7 @@ from __future__ import annotations
 from msilib.schema import Error
 from os import stat
 from re import U
-from typing import Any, Dict, Tuple, List
+from typing import Any, Dict, Set, Tuple, List
 from xmlrpc.client import Boolean
 import numpy as np
 from pyrsistent import T, b, s
@@ -17,16 +17,16 @@ def clustering(syndrome):
 
     while odd_clusters:
         fusion_list = []
-        for c in odd_clusters:
+        for c in odd_clusters: # should only update the smallest cluster, no loop
             fusion_list += c.grow()
             # fusion_list.append(grow(cluster_forest(u))) #inlcude step 9
         
         for e in fusion_list:
             if e.fst.find_root() is not e.snd.find_root():
-                union(e.u, e.v) #include step 7,8
-            else:
-                fusion_list.remove(e)
-        
+                support.union(e.fst, e.snd) #include step 7,8
+            # else:
+            #     fusion_list.remove(e)
+        #TODO 111 update THE cluster
         update_verices(vertices) #remove even cluster       
 
     return #grwon supprt and syndrome
@@ -42,11 +42,20 @@ class Cluster_Tree():
         self._size = 1
         self._odd = True
         self._root: Vertex = root
-        self._boundary_list: List[Vertex] = [root]
+        self._boundary_list: Set[Vertex] = [root]
     
     def is_odd(self) -> Boolean:
         return self._odd
     
+    def get_size(self):
+        return self._size
+    
+    def get_root(self):
+        return self._root
+
+    def get_boundary(self):
+        return self._boundary_list
+
     def size_increment(self, inc = 1):
         self._size += inc
     
@@ -55,10 +64,32 @@ class Cluster_Tree():
             grow the boundary list of the cluster, returns fusion list 
         """
         #TODO update boundary list
-        return map(lambda v : v.grow(support) , self._boundary_list)
+        new_boundary = []
+        fusion_list = []
+        for v in self._boundary_list:
+            # what if no boundary list?
+            (fl, nb) = support.grow_vertex(v)
+            new_boundary += nb
+            fusion_list += fl
+        
+        self._boundary_list.union(new_boundary)
+        return fusion_list
+    
+    def merge(self, clst: Cluster_Tree):
+        self._size += clst.get_size()
+        self._odd = False
+        rt = clst.get_root()
+        rt.set_parent(self._root)
+        self._root.add_child(rt)
+        self._boundary_list.union(clst.get_boundary())
+        
+    def update_boundary(self, support: Support):
+        self._boundary_list = set(filter(lambda b : support.vertex_is_boundary(b),
+                                     self._boundary_list))
+
 
         
-        
+
 
 class Vertex():
 
@@ -97,10 +128,6 @@ class Vertex():
             v = p
             p = v.get_parent()
         return v
-    
-    def grow(self, support: Support):
-        #TODO move support grow to here
-        support.grow(self)
 
 class Edge():
 
@@ -135,11 +162,11 @@ class Support():
         self._y_len = y_len
         self._status = np.zeros((x_len, y_len), dtype='uint8')
         self._loc_vertex_map = {}
-        self._loc_cluster_map: Dict[Tuple, Cluster_Tree] = {}
+        self._loc_cluster_map: Dict[Tuple, Cluster_Tree] = {} # root loc map cluster
         self._loc_edge_map = {}
 
-        self._init_loc_syndrome(syndrome)
-        self._init_loc_cluster(syndrome)
+        self._loc_vertex_map = self._init_loc_syndrome(syndrome)
+        self._loc_cluster_map = self._init_loc_cluster(syndrome)
     
     def _init_loc_syndrome(self, syndrome: List[T]) -> Dict[T, Vertex]:
         self._status[syndrome] = Support.SYNDROME  # light up the seen vertex
@@ -152,34 +179,49 @@ class Support():
     def get_clusters(self) -> List:
         return list(self._loc_cluster_map.value())
 
-    def grow(self, vertex: Vertex):
+    def vertex_is_boundary(self, v: Vertex):
+        return [] != \
+            filter(lambda s : s != Support.GROWN, \
+                self._status[self._get_surrond_edges(v)])
+
+    def union(self, rt_v: Vertex, rt_u: Vertex):
+        clst_v = self._loc_cluster_map[rt_v.get_location()]
+        clst_u = self._loc_cluster_map[rt_u.get_location()]
+
+        big, sml = clst_u, clst_v if clst_u.get_size() > clst_v.get_size() \
+                                  else clst_v, clst_u 
+        big.merge(sml)
+        self._loc_cluster_map.pop(sml)
+
+    def grow_vertex(self, vertex: Vertex):
         #TODO refactor
+        new_boundary: List[Vertex] =[]
         fusion_list: List[Edge] = []
         surround_edges_loc: List[Tuple] = self._get_surrond_edges(vertex)
         for e in surround_edges_loc:
             status = self._status[e]
             
             if status == Support.UNOCCUPIED:
-                edge = Edge(e)
-                edge.add_vertex(vertex)
-                self._loc_edge_map[e] = edge
-                self._status[e] = Support.HALF_GROWN
-                grown = False
+                edge = Edge(e) #1
+                edge.add_vertex(vertex) #1
+                self._loc_edge_map[e] = edge #1
+                self._status[e] = Support.HALF_GROWN #1
             elif status == Support.HALF_GROWN:
-                edge = self._loc_edge_map[e]
-                self._status[e] = Support.GROWN
+                edge = self._loc_edge_map[e] #1
+                self._status[e] = Support.GROWN #1
                 if vertex is edge.fst:
                     # append new vertex, but check if it has been approached 
                     # from the otehr end
                     loc_u = self._get_other_vertex_loc(vertex, edge)
-                    u_status = self._status[loc_u]
-                    if u_status == Support.DARK_POINT:
+                    if self._status[loc_u] == Support.DARK_POINT:
                         vertex_u = Vertex(loc_u, parent=vertex)
+                        # ^^ new boundary
+                        new_boundary.append(vertex_u)
                         #refactor
                         self._status[loc_u] = Support.VERTEX
                         self._loc_vertex_map[loc_u] = vertex_u
                         #
-                        root = vertex.add_child(vertex_u) #TODO cluster size++
+                        root = vertex.add_child(vertex_u)
                         self._loc_cluster_map[root.get_location()].size_increment()
                         edge.add_vertex(snd = vertex_u)
 
@@ -191,7 +233,7 @@ class Support():
                     edge.add_vertex(snd = vertex)
                     fusion_list.append(edge)
 
-        return fusion_list
+        return (fusion_list, new_boundary)
     
     def _get_other_vertex_loc(vertex: Vertex, edge: Edge):
         """
