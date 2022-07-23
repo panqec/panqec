@@ -119,6 +119,8 @@ class DeformedRotatedSweepMatchDecoder(DeformedSweepMatchDecoder):
 
 class DeformedRotatedPlanarMatchingDecoder(RotatedPlanarMatchingDecoder):
 
+    error_model: PauliErrorModel
+
     def __init__(self, code, error_model: BaseErrorModel, error_rate: float):
         self._epsilon = 1e-15
         super().__init__(code, error_model, error_rate)

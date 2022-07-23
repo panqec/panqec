@@ -334,7 +334,7 @@ def bsf_to_pauli(bsf):
         assert np.all(bsf.data == 1), \
                 'BSF {} is not in binary form'.format(bsf)
 
-        def _to_pauli(b):
+        def _to_pauli(b):  # type:ignore
             n = bsf.shape[1] // 2
             pauli_string = ['I' for _ in range(n)]
             for i in b.indices:

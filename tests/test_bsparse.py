@@ -88,8 +88,10 @@ def test_insert_mod2():
 
 def test_equal():
     matrix1 = bsparse.from_array([[0, 1, 0, 1, 0, 0], [1, 1, 1, 1, 0, 1]])
-    matrix1_prime = bsparse.from_array([[0, 1, 0, 1, 0, 0], [1, 1, 1, 1, 0, 1]])
-    matrix1_wrong = bsparse.from_array([[1, 1, 0, 1, 0, 0], [1, 1, 1, 1, 0, 1]])
+    matrix1_prime = bsparse.from_array([[0, 1, 0, 1, 0, 0],
+                                        [1, 1, 1, 1, 0, 1]])
+    matrix1_wrong = bsparse.from_array([[1, 1, 0, 1, 0, 0],
+                                        [1, 1, 1, 1, 0, 1]])
     matrix2 = bsparse.from_array(np.ones((5, 10)))
     matrix3 = bsparse.from_array(np.zeros((5, 10)))
 
@@ -135,7 +137,8 @@ def test_hstack():
 
     new_matrix = bsparse.hstack([a_block, b_block])
 
-    assert new_matrix.shape == (a_block.shape[0], a_block.shape[1] + b_block.shape[1])
+    assert new_matrix.shape == (a_block.shape[0],
+                                a_block.shape[1] + b_block.shape[1])
     assert bsparse.equal(new_matrix, full_block)
 
 

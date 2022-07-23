@@ -244,7 +244,8 @@ class RotatedSweepDecoder3D(BaseDecoder):
             ]
 
         # Only keep faces that are actually on the cut lattice.
-        faces = [face for face in faces if self.code.is_stabilizer(face, 'face')]
+        faces = [face for face in faces
+                 if self.code.is_stabilizer(face, 'face')]
 
         # Flip the state of the faces.
         for face in faces:

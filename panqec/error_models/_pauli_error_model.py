@@ -11,7 +11,7 @@ class PauliErrorModel(BaseErrorModel):
 
     def __init__(self, r_x: float, r_y: float, r_z: float):
         """Initialize Pauli error model at a given rate of X, Y and Z errors,
-        i.e. $P(u) = p * r_u$ for $u \in \{X, Y, Z\}$, $p$ the total error
+        i.e. $P(u) = p * r_u$ for $u \\in \\{X, Y, Z\\}$, $p$ the total error
         rate, and $P(u)$ the probability of getting the error $u$ on each
         qubit.
 

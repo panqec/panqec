@@ -53,7 +53,8 @@ class DeformedXYErrorModel(PauliErrorModel):
                          'RotatedPlanar2DCode': 'x'}
 
         if code.id not in deformed_axis.keys():
-            raise NotImplementedError(f"Code {code.id} has no XY deformation implemented")
+            raise NotImplementedError(f"Code {code.id} has no XY deformation"
+                                      "implemented")
 
         for index, location in enumerate(code.qubit_coordinates):
             if code.qubit_axis(location) == deformed_axis[code.id]:
