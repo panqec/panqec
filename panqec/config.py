@@ -53,6 +53,8 @@ if os.getenv('PANQEC_DIR') is not None:
             f'PANQEC_DIR={PANQEC_DIR} is not a valid directory. '
             'Check .env configuration.'
         )
+else:
+    os.makedirs(PANQEC_DIR, exist_ok=True)
 
 # Register your models here.
 CODES = {
