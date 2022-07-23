@@ -2,7 +2,6 @@ from typing import Dict, Tuple, List
 import numpy as np
 from panqec.decoders import BaseDecoder
 from pymatching import Matching
-from ...codes import StabilizerCode
 from ..sweepmatch._rotated_sweep_decoder import RotatedSweepDecoder3D
 
 
@@ -47,7 +46,8 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
             if self.code.stabilizer_type(location) == 'face'
         ]
         edges = sorted([
-            (x, y, z) for x, y, z in self.code.qubit_coordinates if z == z_plane
+            (x, y, z) for x, y, z in self.code.qubit_coordinates
+            if z == z_plane
         ])
         faces = sorted([
             (x, y, z) for x, y, z in face_coordinates if z == z_plane

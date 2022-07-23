@@ -4,7 +4,7 @@ Decoder for Rotated Planar 3D Code using PyMatching.
 import numpy as np
 from typing import Dict
 from pymatching import Matching
-from panqec.codes import Toric3DCode
+from panqec.codes import StabilizerCode
 from panqec.decoders import Toric3DMatchingDecoder
 from panqec.error_models import BaseErrorModel
 
@@ -19,7 +19,7 @@ class RotatedPlanarMatchingDecoder(Toric3DMatchingDecoder):
     _n_faces: Dict[str, int] = {}
     _n_qubits: Dict[str, int] = {}
 
-    def __init__(self, code: Toric3DCode,
+    def __init__(self, code: StabilizerCode,
                  error_model: BaseErrorModel,
                  error_rate: float):
         super().__init__(code, error_model, error_rate)
@@ -29,7 +29,7 @@ class RotatedPlanarMatchingDecoder(Toric3DMatchingDecoder):
 
         return Matching(self.code.Hz)
 
-    def decode(self, syndrome: np.ndarray) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray, **kwargs) -> np.ndarray:
         """Get X corrections given code and measured syndrome."""
 
         # Initialize correction as full bsf.

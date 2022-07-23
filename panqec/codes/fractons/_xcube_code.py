@@ -21,7 +21,8 @@ class XCubeCode(StabilizerCode):
         for x in range(1, 2*Lx, 2):
             for y in range(0, 2*Ly, 2):
                 for z in range(0, 2*Lz, 2):
-                    coordinates.append((x, y, z))
+                    location: Tuple = (x, y, z)
+                    coordinates.append(location)
 
         # Qubits along e_y
         for x in range(0, 2*Lx, 2):
@@ -44,16 +45,18 @@ class XCubeCode(StabilizerCode):
         # Cubes
         ranges = [range(1, 2*Lx, 2), range(1, 2*Ly, 2), range(1, 2*Lz, 2)]
         for x, y, z in itertools.product(*ranges):
-            coordinates.append((x, y, z))
+            location: Tuple = (x, y, z)
+            coordinates.append(location)
 
         # Faces
-        ranges = [range(3), range(0, 2*Lx, 2), range(0, 2*Ly, 2), range(0, 2*Lz, 2)]
+        ranges = [range(3), range(0, 2*Lx, 2), range(0, 2*Ly, 2),
+                  range(0, 2*Lz, 2)]
         for axis, x, y, z in itertools.product(*ranges):
             coordinates.append((axis, x, y, z))
 
         return coordinates
 
-    def stabilizer_type(self, location: Tuple[int, int, int]) -> str:
+    def stabilizer_type(self, location: Tuple) -> str:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location} for a stabilizer")
 
@@ -90,10 +93,18 @@ class XCubeCode(StabilizerCode):
         Lx, Ly, Lz = self.size
         operator = dict()
         for d in delta:
-            qubit_location = ((x + d[0]) % (2*Lx), (y + d[1]) % (2*Ly), (z + d[2]) % (2*Lz))
+            qubit_location: Tuple = (
+                (x + d[0]) % (2*Lx),
+                (y + d[1]) % (2*Ly),
+                (z + d[2]) % (2*Lz)
+            )
             if self.is_qubit(qubit_location):
-                is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
-                operator[qubit_location] = deformed_pauli if is_deformed else pauli
+                is_deformed = (
+                    self.qubit_axis(qubit_location) == deformed_axis
+                )
+                operator[qubit_location] = (
+                    deformed_pauli if is_deformed else pauli
+                )
 
         return operator
 
@@ -107,17 +118,18 @@ class XCubeCode(StabilizerCode):
         elif (z % 2 == 1) and (x % 2 == 0) and (y % 2 == 0):
             axis = 'z'
         else:
-            raise ValueError(f'Location {location} does not correspond to a qubit')
+            raise ValueError(f'Location {location} does not correspond'
+                             'to a qubit')
 
         return axis
 
-    def get_logicals_x(self) -> Operator:
+    def get_logicals_x(self) -> List[Operator]:
         Lx, Ly, Lz = self.size
         logicals = []
 
         # Line of parallel Z operators along the x direction
         for y in range(0, 2*Ly, 2):
-            operator = dict()
+            operator: Operator = dict()
             for z in range(0, 2*Lz, 2):
                 operator[(1, y, z)] = 'X'
             logicals.append(operator)
@@ -156,13 +168,13 @@ class XCubeCode(StabilizerCode):
 
         return logicals
 
-    def get_logicals_z(self) -> Operator:
+    def get_logicals_z(self) -> List[Operator]:
         Lx, Ly, Lz = self.size
         logicals = []
 
         # Line of Z operators along the x direction
         for y in range(0, 2*Ly, 2):
-            operator = dict()
+            operator: Operator = dict()
             for x in range(1, 2*Lx, 2):
                 operator[(x, y, 0)] = 'Z'
             logicals.append(operator)
@@ -201,9 +213,12 @@ class XCubeCode(StabilizerCode):
 
         return logicals
 
-    def stabilizer_representation(self, location, rotated_picture=False) -> Dict:
-        representation = super().stabilizer_representation(location, rotated_picture)
-
+    def stabilizer_representation(
+        self, location, rotated_picture=False, json_file=None
+    ) -> Dict:
+        representation = super().stabilizer_representation(
+            location, rotated_picture, json_file=json_file
+        )
         if self.stabilizer_type(location) == 'face':
             axis, x, y, z = location
             representation['location'] = [x, y, z]

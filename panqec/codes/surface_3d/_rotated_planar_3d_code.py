@@ -134,13 +134,6 @@ class RotatedPlanar3DCode(StabilizerCode):
 
         # X operators along x edges in x direction.
         operator: Operator = dict()
-        """
-        for x in range(1, min(2*Lx, 2*Ly), 2):
-            if min(Lx, Ly) % 2 == 1:
-                operator[(x, 2*Ly - x, 1)] = 'X'
-            else:
-                operator[(x, 2*Ly - 1 - x, 1)] = 'X'
-        """
         for x in range(1, 2*Lx, 2):
             operator[(x, 1, 1)] = 'X'
         logicals.append(operator)
@@ -155,11 +148,7 @@ class RotatedPlanar3DCode(StabilizerCode):
 
         # Z operators along x edges in x direction.
         operator: Operator = dict()
-        """
-        for z in range(1, 2*Lz, 2):
-            for x in range(1, min(2*Lx, 2*Ly), 2):
-                operator[(x, x, z)] = 'Z'
-        """
+
         for z in range(1, 2*Lz, 2):
             for y in range(1, 2*Ly, 2):
                 operator[(1, y, z)] = 'Z'

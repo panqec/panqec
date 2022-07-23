@@ -23,7 +23,7 @@ class TestDeformedRotatedPlanarMatchingDecoder:
 
     @pytest.fixture
     def decoder(self, code, error_model):
-        return DeformedRotatedSweepMatchDecoder(code, error_model, 
+        return DeformedRotatedSweepMatchDecoder(code, error_model,
                                                 self.error_rate)
 
     def test_decode(self, code, error_model, decoder):

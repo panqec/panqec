@@ -150,7 +150,7 @@ class TestDeformedDecoder:
     def test_deformed_pymatching_weights_nonuniform(self, code):
         error_model = DeformedXZZXErrorModel(0.1, 0.2, 0.7)
         probability = 0.1
-        decoder = DeformedSweepMatchDecoder(error_model, probability)
+        decoder = DeformedSweepMatchDecoder(code, error_model, probability)
         assert decoder._matcher._error_model.direction == (0.1, 0.2, 0.7)
         matching = decoder._matcher.get_matcher(code)
         assert matching.matching_graph.distance(0, 0) == 0
@@ -194,7 +194,7 @@ class TestDeformedDecoder:
         error_model = DeformedXZZXErrorModel(0.4, 0.2, 0.4)
         print(f'{error_model.direction=}')
         probability = 0.1
-        decoder = DeformedSweepMatchDecoder(error_model, probability)
+        decoder = DeformedSweepMatchDecoder(code, error_model, probability)
         assert decoder._matcher._error_model.direction == (0.4, 0.2, 0.4)
         matching = decoder._matcher.get_matcher(code)
         assert matching.matching_graph.distance(0, 0) == 0

@@ -168,7 +168,7 @@ class TestRotatedSweepMatchDecoder:
             (RotatedPlanar3DCode(4, 4, 4), (5, 5, 5)),
             (RotatedPlanar3DCode(5, 5, 5), (3, 3, 3)),
         ]
-        
+
         error_model = PauliErrorModel(1/3, 1/3, 1/3)
         error_rate = 0.5
 

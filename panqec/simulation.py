@@ -458,9 +458,9 @@ def _parse_code_dict(code_dict: Dict[str, Any]) -> StabilizerCode:
     code_name = _parse_legacy_names(code_name)
     code_class = CODES[code_name]
     if isinstance(code_params, dict):
-        code = code_class(**code_params)
+        code = code_class(**code_params)  # type: ignore
     else:
-        code = code_class(*code_params)
+        code = code_class(*code_params)  # type: ignore
     return code
 
 

@@ -13,7 +13,6 @@ from .slurm import (
     generate_sbatch, get_status, generate_sbatch_nist, count_input_runs,
     clear_out_folder, clear_sbatch_folder
 )
-from .statmech.cli import statmech
 from .utils import get_direction_from_bias_ratio
 from panqec.gui import GUI
 from glob import glob
@@ -157,7 +156,7 @@ def read_range_input(specification: str) -> List[float]:
 @click.option(
     '--decoder', default='BeliefPropagationOSDDecoder',
     show_default=True,
-    type=click.Choice(DECODERS.keys()),
+    type=click.Choice(list(DECODERS.keys())),
     help='Decoder name'
 )
 @click.option(
@@ -723,7 +722,6 @@ cli.add_command(run)
 cli.add_command(ls)
 cli.add_command(slurm)
 cli.add_command(generate_input)
-cli.add_command(statmech)
 cli.add_command(pi_sbatch)
 cli.add_command(cc_sbatch)
 cli.add_command(merge_dirs)

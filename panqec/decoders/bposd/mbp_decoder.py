@@ -1,3 +1,4 @@
+from typing import Sequence
 import numpy as np
 from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
@@ -54,7 +55,7 @@ def tanh_prod(a, eps=1e-8):
     return 2 * np.arctanh(prod)
 
 
-def log_exp_bias(pauli, gamma, eps=1e-12):
+def log_exp_bias(pauli, gamma, eps=1e-12) -> Sequence:
     """ Function lambda defined in II.B of arXiv:2104.13659"""
     denominator = np.sum(np.exp(-gamma), axis=0)
     gamma_pauli = np.choose(pauli, gamma)
@@ -100,7 +101,8 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
         # ===================== Initialize BP variables ====================
 
         # Create channel log ratios
-        self.lambda_channel = np.log((1 - self.p_channel[1:]) / self.p_channel[1:])
+        self.lambda_channel = np.log((1 - self.p_channel[1:])
+                                     / self.p_channel[1:])
 
         # Initialize [qubit to stabilizer] messages (gamma)
         n_stabs, n_qubits = self.H_pauli.shape
@@ -122,7 +124,7 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
         )
         return pi, px, py, pz
 
-    def decode(self, syndrome: np.ndarray) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray, **kwargs) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
         H = self.H
@@ -145,10 +147,13 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
                 # --------- Stabilizer to qubit update (prod-sum) ---------
 
                 for m in self.neighboring_stabs[n]:
-                    lambda_neighbor = [log_exp_bias(H_pauli[m, n_prime]-1,
-                                                    gamma_q2s[:, n_prime, m])
-                                       for n_prime in self.neighboring_qubits[m]
-                                       if n_prime != n]
+                    lambda_neighbor = np.array([
+                        log_exp_bias(
+                            H_pauli[m, n_prime]-1, gamma_q2s[:, n_prime, m]
+                        )
+                        for n_prime in self.neighboring_qubits[m]
+                        if n_prime != n
+                    ])
                     lambda_neighbor = np.array(lambda_neighbor)
 
                     sign = (-1)**syndrome[m]

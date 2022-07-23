@@ -75,9 +75,8 @@ class TestRunOnce:
 
     def test_run_once_invalid_probability(self, code, error_model):
         error_rate = -1
-        decoder = BeliefPropagationOSDDecoder(
-            code, error_model, error_rate=0.5
-        )
+        decoder = BeliefPropagationOSDDecoder(code, error_model,
+                                              error_rate=0.5)
         with pytest.raises(ValueError):
             run_once(code, error_model, decoder, error_rate=error_rate)
 
