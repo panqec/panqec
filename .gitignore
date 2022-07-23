@@ -145,3 +145,4 @@ gui/static/node_modules
 gui/static/package-lock.json
 
 temp/
+.tmuxinator
