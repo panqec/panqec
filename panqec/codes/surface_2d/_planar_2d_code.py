@@ -2,8 +2,8 @@ from typing import Tuple, Dict, List
 from panqec.codes import StabilizerCode
 import numpy as np
 
-Operator = Dict[Tuple[int, int], str]  # Location to pauli ('X', 'Y' or 'Z')
-Coordinates = List[Tuple[int, int]]  # List of locations
+Operator = Dict[Tuple, str]  # Location to pauli ('X', 'Y' or 'Z')
+Coordinates = List[Tuple]  # List of locations
 
 
 class Planar2DCode(StabilizerCode):
@@ -14,7 +14,7 @@ class Planar2DCode(StabilizerCode):
         return 'Planar {}x{}'.format(*self.size)
 
     def get_qubit_coordinates(self) -> Coordinates:
-        coordinates = []
+        coordinates: Coordinates = []
         Lx, Ly = self.size
 
         # Qubits along e_x
@@ -30,7 +30,7 @@ class Planar2DCode(StabilizerCode):
         return coordinates
 
     def get_stabilizer_coordinates(self) -> Coordinates:
-        coordinates = []
+        coordinates: Coordinates = []
         Lx, Ly = self.size
 
         # Vertices
@@ -45,7 +45,7 @@ class Planar2DCode(StabilizerCode):
 
         return coordinates
 
-    def stabilizer_type(self, location: Tuple[int, int]) -> str:
+    def stabilizer_type(self, location: Tuple) -> str:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location}"
                              "for a stabilizer")
@@ -68,9 +68,9 @@ class Planar2DCode(StabilizerCode):
 
         deformed_pauli = {'X': 'Z', 'Z': 'X'}[pauli]
 
-        delta = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        delta: List[Tuple] = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
-        operator = dict()
+        operator: Operator = dict()
         for d in delta:
             qubit_location = tuple(np.add(location, d))
 
@@ -83,7 +83,7 @@ class Planar2DCode(StabilizerCode):
 
         return operator
 
-    def qubit_axis(self, location: Tuple[int, int]) -> str:
+    def qubit_axis(self, location: Tuple) -> str:
         x, y = location
 
         if (x % 2 == 1) and (y % 2 == 0):
@@ -96,24 +96,24 @@ class Planar2DCode(StabilizerCode):
 
         return axis
 
-    def get_logicals_x(self) -> Operator:
+    def get_logicals_x(self) -> List[Operator]:
         Lx, Ly = self.size
-        logicals = []
+        logicals: List[Operator] = []
 
         # X operators along x edges in x direction.
-        operator = dict()
+        operator: Operator = dict()
         for x in range(1, 2*Lx, 2):
             operator[(x, 0)] = 'X'
         logicals.append(operator)
 
         return logicals
 
-    def get_logicals_z(self) -> Operator:
+    def get_logicals_z(self) -> List[Operator]:
         Lx, Ly = self.size
-        logicals = []
+        logicals: List[Operator] = []
 
         # X operators along x edges in x direction.
-        operator = dict()
+        operator: Operator = dict()
         for y in range(0, 2*Ly, 2):
             operator[(1, y)] = 'Z'
         logicals.append(operator)

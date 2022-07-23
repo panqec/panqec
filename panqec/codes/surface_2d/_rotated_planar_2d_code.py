@@ -2,8 +2,8 @@ from typing import Tuple, Dict, List
 import numpy as np
 from panqec.codes import StabilizerCode
 
-Operator = Dict[Tuple[int, int], str]  # Location to pauli ('X','Y','Z')
-Coordinates = List[Tuple[int, int]]  # List of locations
+Operator = Dict[Tuple, str]  # Location to pauli ('X','Y','Z')
+Coordinates = List[Tuple]  # List of locations
 
 
 class RotatedPlanar2DCode(StabilizerCode):
@@ -13,8 +13,8 @@ class RotatedPlanar2DCode(StabilizerCode):
     def label(self) -> str:
         return 'Rotated Planar {}x{}'.format(*self.size)
 
-    def get_qubit_coordinates(self) -> Operator:
-        coordinates = []
+    def get_qubit_coordinates(self) -> Coordinates:
+        coordinates: Coordinates = []
         Lx, Ly = self.size
 
         # Qubits along e_x
@@ -25,7 +25,7 @@ class RotatedPlanar2DCode(StabilizerCode):
         return coordinates
 
     def get_stabilizer_coordinates(self) -> Coordinates:
-        coordinates = []
+        coordinates: Coordinates = []
         Lx, Ly = self.size
 
         # Vertices
@@ -42,7 +42,7 @@ class RotatedPlanar2DCode(StabilizerCode):
 
         return coordinates
 
-    def stabilizer_type(self, location: Tuple[int, int]):
+    def stabilizer_type(self, location: Tuple):
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location} for a stabilizer")
 
@@ -91,24 +91,24 @@ class RotatedPlanar2DCode(StabilizerCode):
 
         return axis
 
-    def get_logicals_x(self) -> np.ndarray:
+    def get_logicals_x(self) -> List[Operator]:
         Lx, Ly = self.size
         logicals = []
 
         # X operators along first diagonal
-        operator = dict()
+        operator: Operator = dict()
         for x in range(1, 2*Lx+1, 2):
             operator[(x, 1)] = 'X'
         logicals.append(operator)
 
         return logicals
 
-    def get_logicals_z(self) -> np.ndarray:
+    def get_logicals_z(self) -> List[Operator]:
         Lx, Ly = self.size
         logicals = []
 
         # Z operators along first diagonal
-        operator = dict()
+        operator: Operator = dict()
         for y in range(1, 2*Ly+1, 2):
             operator[(1, y)] = 'Z'
         logicals.append(operator)

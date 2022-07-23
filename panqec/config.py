@@ -5,6 +5,7 @@ Settings from environmental variables and config files.
     Eric Huang
 """
 import os
+from typing import Dict, Any
 from dotenv import load_dotenv
 from .codes import (
     Toric3DCode, Toric2DCode,
@@ -69,7 +70,7 @@ ERROR_MODELS = {
     'DeformedXYErrorModel': DeformedXYErrorModel,
     'DeformedRhombicErrorModel': DeformedRhombicErrorModel,
 }
-DECODERS = {
+DECODERS: Dict[str, Any] = {
     'Toric2DMatchingDecoder': Toric2DMatchingDecoder,
     'Toric3DMatchingDecoder': Toric3DMatchingDecoder,
     'SweepMatchDecoder': SweepMatchDecoder,

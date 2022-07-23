@@ -26,7 +26,7 @@ class FoliatedMatchingDecoder(BaseDecoder):
     def __init__(self, code: StabilizerCode,
                  error_model: BaseErrorModel,
                  error_rate: float):
-        self.matcher = dict()
+        self.matcher: Dict = dict()
         super().__init__(code, error_model, error_rate)
 
     def get_matcher_list(self) -> List[Matching]:

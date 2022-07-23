@@ -40,7 +40,7 @@ class BaseErrorModel(metaclass=ABCMeta):
     @abstractmethod
     def probability_distribution(
         self, code: StabilizerCode, error_rate: float
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> Tuple:
         """Probability distribution of X, Y and Z errors on all the qubits of a code
         Can be used to generate errors and configure decoders
 

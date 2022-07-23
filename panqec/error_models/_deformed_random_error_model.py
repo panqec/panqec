@@ -1,4 +1,5 @@
 from typing import Tuple
+import functools
 import numpy as np
 from panqec.codes import StabilizerCode
 from . import PauliErrorModel
@@ -24,6 +25,7 @@ class DeformedRandomErrorModel(PauliErrorModel):
             *self.direction
         )
 
+    @functools.lru_cache()
     def probability_distribution(
         self, code: StabilizerCode, error_rate: float
     ) -> Tuple:
