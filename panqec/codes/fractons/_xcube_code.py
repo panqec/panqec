@@ -47,7 +47,8 @@ class XCubeCode(StabilizerCode):
             coordinates.append((x, y, z))
 
         # Faces
-        ranges = [range(3), range(0, 2*Lx, 2), range(0, 2*Ly, 2), range(0, 2*Lz, 2)]
+        ranges = [range(3), range(0, 2*Lx, 2), range(0, 2*Ly, 2),
+                  range(0, 2*Lz, 2)]
         for axis, x, y, z in itertools.product(*ranges):
             coordinates.append((axis, x, y, z))
 
@@ -90,10 +91,14 @@ class XCubeCode(StabilizerCode):
         Lx, Ly, Lz = self.size
         operator = dict()
         for d in delta:
-            qubit_location = ((x + d[0]) % (2*Lx), (y + d[1]) % (2*Ly), (z + d[2]) % (2*Lz))
+            qubit_location = ((x + d[0]) % (2*Lx), (y + d[1]) % (2*Ly),
+                              (z + d[2]) % (2*Lz))
             if self.is_qubit(qubit_location):
-                is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
-                operator[qubit_location] = deformed_pauli if is_deformed else pauli
+                is_deformed = (
+                    self.qubit_axis(qubit_location) == deformed_axis
+                )
+                operator[qubit_location] = (deformed_pauli if is_deformed
+                                            else pauli)
 
         return operator
 
@@ -107,7 +112,8 @@ class XCubeCode(StabilizerCode):
         elif (z % 2 == 1) and (x % 2 == 0) and (y % 2 == 0):
             axis = 'z'
         else:
-            raise ValueError(f'Location {location} does not correspond to a qubit')
+            raise ValueError(f'Location {location} does not correspond'
+                             'to a qubit')
 
         return axis
 
@@ -201,8 +207,11 @@ class XCubeCode(StabilizerCode):
 
         return logicals
 
-    def stabilizer_representation(self, location, rotated_picture=False) -> Dict:
-        representation = super().stabilizer_representation(location, rotated_picture)
+    def stabilizer_representation(
+        self, location, rotated_picture=False
+    ) -> Dict:
+        representation = super().stabilizer_representation(location,
+                                                           rotated_picture)
 
         if self.stabilizer_type(location) == 'face':
             axis, x, y, z = location

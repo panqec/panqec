@@ -1,8 +1,9 @@
 """
-Module to deal with binary sparse matrices, in the compressed sparse row (CSR) format.
+Module to deal with binary sparse matrices, in the compressed sparse row (CSR)
+format.
 
-It is mostly a wrapper around scipy.sparse, making sure that everything is in the correct
-format and is done as efficiently as possible.
+It is mostly a wrapper around scipy.sparse, making sure that everything is in
+the correct format and is done as efficiently as possible.
 """
 
 from scipy import sparse
@@ -13,13 +14,15 @@ import numpy as np
 def zero_row(n_cols: int):
     """Create a zero sparse row in the csr format"""
 
-    return csr_matrix((np.array([]), (np.array([]), np.array([]))), shape=(1, n_cols), dtype='uint8')
+    return csr_matrix((np.array([]), (np.array([]), np.array([]))),
+                      shape=(1, n_cols), dtype='uint8')
 
 
 def zero_matrix(shape):
     """Create a zero sparse matrix in the csr format"""
 
-    return csr_matrix((np.array([]), (np.array([]), np.array([]))), shape=shape, dtype='uint8')
+    return csr_matrix((np.array([]), (np.array([]), np.array([]))),
+                      shape=shape, dtype='uint8')
 
 
 def empty_row(n_cols: int):
@@ -61,7 +64,8 @@ def insert_mod2(index: int, row_matrix):
 
     # Check that matrix is a row matrix
     if len(row_matrix.shape) != 2 or row_matrix.shape[0] != 1:
-        raise ValueError(f"The input should be a row matrix, not a {row_matrix.shape}-matrix")
+        raise ValueError("The input should be a row matrix,"
+                         f"not a {row_matrix.shape}-matrix")
 
     # If matrix[index] is not zero, put it to zero
     if index in row_matrix.indices:
@@ -82,10 +86,12 @@ def hstack(matrices):
 
 
 def hsplit(matrix):
-    """Split a row matrix into two row matrices with half the number of columns"""
+    """Split a row matrix into two row matrices with half the number
+    of columns"""
 
     if matrix.shape[1] % 2 != 0:
-        raise ValueError(f"Matrix should have an even number of columns, not {matrix.shape[1]}")
+        raise ValueError("Matrix should have an even number of columns,"
+                         f"not {matrix.shape[1]}")
 
     # Fast version for row matrices
     if matrix.shape[0] == 1:
@@ -101,8 +107,10 @@ def hsplit(matrix):
         a_data = np.ones(len(a_indices), dtype='uint8')
         b_data = np.ones(len(b_indices), dtype='uint8')
 
-        a = csr_matrix((a_data, a_indices, a_indptr), shape=(1, n), dtype='uint8')
-        b = csr_matrix((b_data, b_indices, b_indptr), shape=(1, n), dtype='uint8')
+        a = csr_matrix((a_data, a_indices, a_indptr),
+                       shape=(1, n), dtype='uint8')
+        b = csr_matrix((b_data, b_indices, b_indptr),
+                       shape=(1, n), dtype='uint8')
     else:
         n = matrix.shape[1] // 2
         a = matrix[:, :n]
@@ -122,9 +130,11 @@ def dot(a, b):
 
     # Check if the dimensions are correct
     if a.shape[0] != 1 or b.shape[0] != 1:
-        raise ValueError(f"Dot product only implemented for row vectors, not {a.shape} and {b.shape}")
+        raise ValueError("Dot product only implemented for row vectors,"
+                         f"not {a.shape} and {b.shape}")
     if a.shape[1] != b.shape[1]:
-        raise ValueError(f"Dimensions {a.shape} and {b.shape} don't agree for dot product")
+        raise ValueError(f"Dimensions {a.shape} and {b.shape} don't agree"
+                         "for dot product")
 
     n_common_ones = len(np.intersect1d(a.indices, b.indices))
     dot_product = int(n_common_ones % 2)
@@ -133,7 +143,8 @@ def dot(a, b):
 
 
 def equal(a, b):
-    """Test if two matrices are equal, or if a matrix equal a unique number everywhere"""
+    """Test if two matrices are equal, or if a matrix equal a unique
+    number everywhere"""
 
     # Matrix equality
     if isinstance(a, csr_matrix) and isinstance(b, csr_matrix):
@@ -149,4 +160,5 @@ def equal(a, b):
         else:
             return (len(b.data) == np.product(b.shape)) and np.all(b.data == a)
     else:
-        raise TypeError(f"Equality not supported between {type(a)} and {type(b)}")
+        raise TypeError("Equality not supported between"
+                        f"{type(a)} and {type(b)}")

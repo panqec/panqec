@@ -100,7 +100,8 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
         # ===================== Initialize BP variables ====================
 
         # Create channel log ratios
-        self.lambda_channel = np.log((1 - self.p_channel[1:]) / self.p_channel[1:])
+        self.lambda_channel = np.log((1 - self.p_channel[1:])
+                                     / self.p_channel[1:])
 
         # Initialize [qubit to stabilizer] messages (gamma)
         n_stabs, n_qubits = self.H_pauli.shape
@@ -147,7 +148,8 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
                 for m in self.neighboring_stabs[n]:
                     lambda_neighbor = [log_exp_bias(H_pauli[m, n_prime]-1,
                                                     gamma_q2s[:, n_prime, m])
-                                       for n_prime in self.neighboring_qubits[m]
+                                       for n_prime in
+                                       self.neighboring_qubits[m]
                                        if n_prime != n]
                     lambda_neighbor = np.array(lambda_neighbor)
 

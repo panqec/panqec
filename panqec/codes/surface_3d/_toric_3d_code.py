@@ -1,8 +1,7 @@
 from typing import Tuple, Dict, List
-import numpy as np
 from panqec.codes import StabilizerCode
 
-Operator = Dict[Tuple[int, int, int], str]  # Location to pauli ('X', 'Y' or 'Z')
+Operator = Dict[Tuple[int, int, int], str]  # Location to pauli ('X','Y','Z')
 Coordinates = List[Tuple[int, int, int]]  # List of locations
 
 
@@ -91,7 +90,8 @@ class Toric3DCode(StabilizerCode):
         x, y, z = location
 
         if self.stabilizer_type(location) == 'vertex':
-            delta = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
+            delta = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1),
+                     (0, 0, 1)]
         else:
             # Face in xy-plane.
             if z % 2 == 0:
@@ -106,11 +106,15 @@ class Toric3DCode(StabilizerCode):
         operator = dict()
         for d in delta:
             Lx, Ly, Lz = self.size
-            qubit_location = ((x + d[0]) % (2*Lx), (y + d[1]) % (2*Ly), (z + d[2]) % (2*Lz))
+            qubit_location = ((x + d[0]) % (2*Lx), (y + d[1]) % (2*Ly),
+                              (z + d[2]) % (2*Lz))
 
             if self.is_qubit(qubit_location):
-                is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
-                operator[qubit_location] = deformed_pauli if is_deformed else pauli
+                is_deformed = (
+                    self.qubit_axis(qubit_location) == deformed_axis
+                )
+                operator[qubit_location] = (deformed_pauli if is_deformed
+                                            else pauli)
 
         return operator
 
@@ -124,7 +128,8 @@ class Toric3DCode(StabilizerCode):
         elif (z % 2 == 1) and (x % 2 == 0) and (y % 2 == 0):
             axis = 'z'
         else:
-            raise ValueError(f'Location {location} does not correspond to a qubit')
+            raise ValueError(f"Location {location} does not correspond"
+                             "to a qubit")
 
         return axis
 
@@ -182,8 +187,11 @@ class Toric3DCode(StabilizerCode):
 
         return logicals
 
-    def stabilizer_representation(self, location, rotated_picture=False) -> Dict:
-        representation = super().stabilizer_representation(location, rotated_picture)
+    def stabilizer_representation(
+        self, location, rotated_picture=False
+    ) -> Dict:
+        representation = super().stabilizer_representation(location,
+                                                           rotated_picture)
 
         x, y, z = location
         if not rotated_picture and self.stabilizer_type(location) == 'face':

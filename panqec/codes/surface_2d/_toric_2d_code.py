@@ -70,11 +70,15 @@ class Toric2DCode(StabilizerCode):
 
         operator = dict()
         for d in delta:
-            qubit_location = tuple(np.add(location, d) % (2*np.array(self.size)))
+            qubit_location = tuple(np.add(location, d) %
+                                   (2*np.array(self.size)))
 
             if self.is_qubit(qubit_location):
-                is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
-                operator[qubit_location] = deformed_pauli if is_deformed else pauli
+                is_deformed = (
+                    self.qubit_axis(qubit_location) == deformed_axis
+                )
+                operator[qubit_location] = (deformed_pauli if is_deformed
+                                            else pauli)
 
         return operator
 
@@ -86,7 +90,8 @@ class Toric2DCode(StabilizerCode):
         elif (x % 2 == 0) and (y % 2 == 1):
             axis = 'y'
         else:
-            raise ValueError(f'Location {location} does not correspond to a qubit')
+            raise ValueError(f'Location {location} does not correspond'
+                             'to a qubit')
 
         return axis
 

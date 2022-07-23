@@ -2,7 +2,7 @@ from typing import Tuple, Dict, List
 import numpy as np
 from panqec.codes import StabilizerCode
 
-Operator = Dict[Tuple[int, int], str]  # Location to pauli ('X', 'Y' or 'Z')
+Operator = Dict[Tuple[int, int], str]  # Location to pauli ('X','Y','Z')
 Coordinates = List[Tuple[int, int]]  # List of locations
 
 
@@ -70,8 +70,11 @@ class RotatedPlanar2DCode(StabilizerCode):
             qubit_location = tuple(np.add(location, d))
 
             if self.is_qubit(qubit_location):
-                is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
-                operator[qubit_location] = deformed_pauli if is_deformed else pauli
+                is_deformed = (
+                    self.qubit_axis(qubit_location) == deformed_axis
+                )
+                operator[qubit_location] = (deformed_pauli if is_deformed
+                                            else pauli)
 
         return operator
 
@@ -83,7 +86,8 @@ class RotatedPlanar2DCode(StabilizerCode):
         elif (x + y) % 4 == 0:
             axis = 'y'
         else:
-            raise ValueError(f'Location {location} does not correspond to a qubit')
+            raise ValueError(f'Location {location} does not correspond'
+                             f'to a qubit')
 
         return axis
 

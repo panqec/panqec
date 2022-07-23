@@ -47,7 +47,8 @@ class Planar2DCode(StabilizerCode):
 
     def stabilizer_type(self, location: Tuple[int, int]) -> str:
         if not self.is_stabilizer(location):
-            raise ValueError(f"Invalid coordinate {location} for a stabilizer")
+            raise ValueError(f"Invalid coordinate {location}"
+                             "for a stabilizer")
 
         x, y = location
         if x % 2 == 0:
@@ -57,7 +58,8 @@ class Planar2DCode(StabilizerCode):
 
     def get_stabilizer(self, location, deformed_axis=None) -> Operator:
         if not self.is_stabilizer(location):
-            raise ValueError(f"Invalid coordinate {location} for a stabilizer")
+            raise ValueError(f"Invalid coordinate {location}"
+                             "for a stabilizer")
 
         if self.stabilizer_type(location) == 'vertex':
             pauli = 'Z'
@@ -73,12 +75,15 @@ class Planar2DCode(StabilizerCode):
             qubit_location = tuple(np.add(location, d))
 
             if self.is_qubit(qubit_location):
-                is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
-                operator[qubit_location] = deformed_pauli if is_deformed else pauli
+                is_deformed = (
+                    self.qubit_axis(qubit_location) == deformed_axis
+                )
+                operator[qubit_location] = (deformed_pauli if is_deformed
+                                            else pauli)
 
         return operator
 
-    def qubit_axis(self, location: Tuple[int, int]) -> int:
+    def qubit_axis(self, location: Tuple[int, int]) -> str:
         x, y = location
 
         if (x % 2 == 1) and (y % 2 == 0):
@@ -86,7 +91,8 @@ class Planar2DCode(StabilizerCode):
         elif (x % 2 == 0) and (y % 2 == 1):
             axis = 'y'
         else:
-            raise ValueError(f'Location {location} does not correspond to a qubit')
+            raise ValueError(f'Location {location} does not correspond'
+                             'to a qubit')
 
         return axis
 

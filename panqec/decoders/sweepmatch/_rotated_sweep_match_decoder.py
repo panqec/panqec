@@ -1,5 +1,4 @@
 from ._rotated_sweep_decoder import RotatedSweepDecoder3D
-from ._sweep_decoder_3d import SweepDecoder3D
 from ._sweep_match_decoder import SweepMatchDecoder
 from ._rotated_planar_match_decoder import RotatedPlanarMatchingDecoder
 from panqec.codes import StabilizerCode

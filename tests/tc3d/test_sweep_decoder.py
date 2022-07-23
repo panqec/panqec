@@ -93,7 +93,7 @@ class TestSweepDecoder3D:
             (1, 0, 0),
             (0, 1, 0)
         ]
-        
+
         error_model = PauliErrorModel(0, 0, 1)
         error_rate = 0.5
 
