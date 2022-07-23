@@ -10,6 +10,7 @@ from panqec.decoders import (
     DeformedSweepMatchDecoder, DeformedSweepDecoder3D,
     DeformedToric3DMatchingDecoder, FoliatedMatchingDecoder
 )
+from panqec.utils import simple_print
 
 
 @pytest.fixture
