@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-requirements = ["PyMatching==0.2.4",
+requirements = ["PyMatching>=0.6.2",
                 "numpy>=1.22.0",
                 "scipy>=1.8.0",
                 "tqdm>=4.59.0",
