@@ -1,3 +1,6 @@
+
+![panqec-screenshot](https://user-images.githubusercontent.com/1157968/180657086-48ea0da0-6da4-4f9c-88e5-4a3f1233db40.png)
+
 # PanQEC
 
 PanQEC is a Python package that simplifies the simulation and visualization of quantum error correction codes.
