@@ -419,9 +419,9 @@ def _parse_code_dict(code_dict: Dict[str, Any]) -> StabilizerCode:
         code_params = code_dict['parameters']
     code_class = CODES[code_name]
     if isinstance(code_params, dict):
-        code = code_class(**code_params)
+        code = code_class(**code_params)  # type: ignore
     else:
-        code = code_class(*code_params)
+        code = code_class(*code_params)  # type: ignore
     return code
 
 
@@ -520,7 +520,7 @@ def count_runs(file_path: str) -> Optional[int]:
 
 def get_simulations(
     data: dict, start: Optional[int] = None, n_runs: Optional[int] = None
-) -> List[dict]:
+) -> List[Simulation]:
     simulations = []
 
     if 'ranges' in data:

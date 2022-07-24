@@ -2,7 +2,7 @@ from typing import Tuple, Dict
 import numpy as np
 from panqec.decoders import BaseDecoder
 from panqec.error_models import BaseErrorModel
-from panqec.codes import Toric3DCode
+from panqec.codes import StabilizerCode
 
 Operator = Dict[Tuple, str]
 
@@ -14,7 +14,7 @@ class SweepDecoder3D(BaseDecoder):
     max_sweep_factor: int
 
     def __init__(self,
-                 code: Toric3DCode,
+                 code: StabilizerCode,
                  error_model: BaseErrorModel,
                  error_rate: float,
                  seed: int = 0,

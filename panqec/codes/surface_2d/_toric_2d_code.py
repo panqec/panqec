@@ -2,8 +2,8 @@ from typing import Tuple, Dict, List
 import numpy as np
 from panqec.codes import StabilizerCode
 
-Operator = Dict[Tuple[int, int], str]  # Location to pauli ('X', 'Y' or 'Z')
-Coordinates = List[Tuple[int, int]]  # List of locations
+Operator = Dict[Tuple, str]  # Location to pauli ('X', 'Y' or 'Z')
+Coordinates = List[Tuple]  # List of locations
 
 
 class Toric2DCode(StabilizerCode):
@@ -14,7 +14,7 @@ class Toric2DCode(StabilizerCode):
         return 'Toric {}x{}'.format(*self.size)
 
     def get_qubit_coordinates(self) -> Coordinates:
-        coordinates = []
+        coordinates: Coordinates = []
         Lx, Ly = self.size
 
         # Qubits along e_x
@@ -30,7 +30,7 @@ class Toric2DCode(StabilizerCode):
         return coordinates
 
     def get_stabilizer_coordinates(self) -> Coordinates:
-        coordinates = []
+        coordinates: Coordinates = []
         Lx, Ly = self.size
 
         # Vertices
@@ -45,7 +45,7 @@ class Toric2DCode(StabilizerCode):
 
         return coordinates
 
-    def stabilizer_type(self, location: Tuple[int, int]) -> str:
+    def stabilizer_type(self, location: Tuple) -> str:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location} for a stabilizer")
 
@@ -82,7 +82,7 @@ class Toric2DCode(StabilizerCode):
 
         return operator
 
-    def qubit_axis(self, location) -> int:
+    def qubit_axis(self, location) -> str:
         x, y = location
 
         if (x % 2 == 1) and (y % 2 == 0):
@@ -95,14 +95,14 @@ class Toric2DCode(StabilizerCode):
 
         return axis
 
-    def get_logicals_x(self) -> Operator:
+    def get_logicals_x(self) -> List[Operator]:
         """The 2 logical X operators."""
 
         Lx, Ly = self.size
         logicals = []
 
         # X operators along x edges in x direction.
-        operator = dict()
+        operator: Operator = dict()
         for x in range(1, 2*Lx, 2):
             operator[(x, 0)] = 'X'
         logicals.append(operator)
@@ -115,14 +115,14 @@ class Toric2DCode(StabilizerCode):
 
         return logicals
 
-    def get_logicals_z(self) -> Operator:
+    def get_logicals_z(self) -> List[Operator]:
         """The 2 logical Z operators."""
 
         Lx, Ly = self.size
         logicals = []
 
         # Z operators on x edges forming surface normal to x (yz plane).
-        operator = dict()
+        operator: Operator = dict()
         for y in range(0, 2*Ly, 2):
             operator[(1, y)] = 'Z'
         logicals.append(operator)

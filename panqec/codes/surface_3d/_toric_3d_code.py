@@ -1,8 +1,8 @@
 from typing import Tuple, Dict, List
 from panqec.codes import StabilizerCode
 
-Operator = Dict[Tuple[int, int, int], str]  # Location to pauli ('X','Y','Z')
-Coordinates = List[Tuple[int, int, int]]  # List of locations
+Operator = Dict[Tuple, str]  # Location to pauli ('X','Y','Z')
+Coordinates = List[Tuple]  # List of locations
 
 
 class Toric3DCode(StabilizerCode):
@@ -13,7 +13,7 @@ class Toric3DCode(StabilizerCode):
         return 'Toric {}x{}x{}'.format(*self.size)
 
     def get_qubit_coordinates(self) -> Coordinates:
-        coordinates = []
+        coordinates: Coordinates = []
         Lx, Ly, Lz = self.size
 
         # Qubits along e_x
@@ -37,7 +37,7 @@ class Toric3DCode(StabilizerCode):
         return coordinates
 
     def get_stabilizer_coordinates(self) -> Coordinates:
-        coordinates = []
+        coordinates: Coordinates = []
         Lx, Ly, Lz = self.size
 
         # Vertices
@@ -66,7 +66,7 @@ class Toric3DCode(StabilizerCode):
 
         return coordinates
 
-    def stabilizer_type(self, location: Tuple[int, int, int]) -> str:
+    def stabilizer_type(self, location: Tuple) -> str:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location} for a stabilizer")
 
@@ -103,7 +103,7 @@ class Toric3DCode(StabilizerCode):
             elif (y % 2 == 0):
                 delta = [(-1, 0, 0), (1, 0, 0), (0, 0, -1), (0, 0, 1)]
 
-        operator = dict()
+        operator: Operator = dict()
         for d in delta:
             Lx, Ly, Lz = self.size
             qubit_location = ((x + d[0]) % (2*Lx), (y + d[1]) % (2*Ly),
@@ -133,14 +133,14 @@ class Toric3DCode(StabilizerCode):
 
         return axis
 
-    def get_logicals_x(self) -> Operator:
+    def get_logicals_x(self) -> List[Operator]:
         """The 3 logical X operators."""
 
         Lx, Ly, Lz = self.size
         logicals = []
 
         # X operators along x edges in x direction.
-        operator = dict()
+        operator: Operator = dict()
         for x in range(1, 2*Lx, 2):
             operator[(x, 0, 0)] = 'X'
         logicals.append(operator)
@@ -159,13 +159,13 @@ class Toric3DCode(StabilizerCode):
 
         return logicals
 
-    def get_logicals_z(self) -> Operator:
+    def get_logicals_z(self) -> List[Operator]:
         """Get the 3 logical Z operators."""
         Lx, Ly, Lz = self.size
         logicals = []
 
         # Z operators on x edges forming surface normal to x (yz plane).
-        operator = dict()
+        operator: Operator = dict()
         for y in range(0, 2*Ly, 2):
             for z in range(0, 2*Lz, 2):
                 operator[(1, y, z)] = 'Z'
@@ -188,10 +188,11 @@ class Toric3DCode(StabilizerCode):
         return logicals
 
     def stabilizer_representation(
-        self, location, rotated_picture=False
+        self, location, rotated_picture=False, json_file=None
     ) -> Dict:
-        representation = super().stabilizer_representation(location,
-                                                           rotated_picture)
+        representation = super().stabilizer_representation(
+            location, rotated_picture, json_file=json_file
+        )
 
         x, y, z = location
         if not rotated_picture and self.stabilizer_type(location) == 'face':
