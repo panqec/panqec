@@ -263,18 +263,10 @@ class Support():
         Return: the edges coordinate around the vertex.
         
         """
-
-        #TODO get around the graph
         (x, y) = vertex.get_location()
-        edges = []
-        if x > 0:
-            edges.append((x - 1, y))
-        if y > 0:
-            edges.append((x, y - 1))
-        if x + 1 < self._x_len:
-            edges.append((x + 1, y))
-        if y + 1 < self._y_len:
-            edges.append((x, y + 1))
-        
+        edges = [((x - 1) % self._x_len, y),
+                 (x, (y - 1) % self._y_len),
+                 ((x + 1) % self._x_len, y),
+                 (x, (y + 1) % self._y_len)]
         return edges
 
