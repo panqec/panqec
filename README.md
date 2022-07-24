@@ -33,6 +33,14 @@ PanQEC documentation is available at [panqec.readthedocs.io](https://panqec.read
 
 You can install it using `pip install panqec`.
 
+# Start the GUI
+
+To start the GUI, run
+```
+panqec start-gui
+```
+Then open your browser and go to the link printed out in the command line.
+
 # Setup for development
 
 Clone the repo and enter the repo
@@ -61,14 +69,6 @@ If you don't do this, as a fallback, the data files will be written to the
 
 Optionally, if you use dark theme in Jupyter Lab, setting
 `PANQEC_DARK_THEME=True` in the `.env` file will make the plots show up nicer.
-
-# Start the GUI
-
-To start the GUI, run
-```
-panqec start-gui
-```
-Then open your browser and go to the link printed out in the command line.
 
 # Build the documentation
 
