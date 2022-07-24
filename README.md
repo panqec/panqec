@@ -27,6 +27,11 @@ PanQEC also currently offers the following decoders:
 * **MWPM** (Minimum-Weight Perfect Matching decoder) for 2D surface codes, using the library [PyMatching](https://pymatching.readthedocs.io) developed by Oscar Higgott.
 * **SweepMatch** for 3D surface codes (using our implementation of the [sweep decoder](https://arxiv.org/abs/2004.07247) for loop-syndrome decoding and PyMatching for point-syndrome).
 
+# Installation and documentation
+
+PanQEC documentation is available at [panqec.readthedocs.io](https://panqec.readthedocs.io).
+
+You can install it using `pip install panqec`.
 
 # Setup for development
 
