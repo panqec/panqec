@@ -126,7 +126,6 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
     def decode(self, syndrome: np.ndarray, **kwargs) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
-        H = self.H
         H_pauli = self.H_pauli
 
         n_stabs, n_qubits = H_pauli.shape

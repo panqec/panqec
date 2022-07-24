@@ -127,7 +127,7 @@ class Test3x3x3SweepDecoder3D:
             (1, 0, 0): 'Z',
             (0, 1, 0): 'Z',
         })
-        syndrome = code.measure_syndrome( error)
+        syndrome = code.measure_syndrome(error)
         correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
         assert np.all(code.measure_syndrome(total_error) == 0)

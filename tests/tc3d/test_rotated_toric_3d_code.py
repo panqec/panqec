@@ -4,7 +4,7 @@ from typing import Tuple, List
 import pytest
 import numpy as np
 from panqec.codes import RotatedToric3DCode
-from panqec.bpauli import bs_prod, apply_deformation
+from panqec.bpauli import apply_deformation
 from panqec.error_models import DeformedXZZXErrorModel
 from panqec.decoders import BeliefPropagationOSDDecoder
 
