@@ -85,10 +85,6 @@ class Cluster_Tree():
         self._boundary_list = set(filter(lambda b : support.vertex_is_boundary(b),
                                      self._boundary_list))
 
-
-        
-
-
 class Vertex():
 
     def __init__(self,
@@ -119,13 +115,21 @@ class Vertex():
         return self._parent
 
     def find_root(self) -> Vertex:
-        #TODO path compression
         v = self
         p = v.get_parent()
+        seen_v = []
         while p is not None:
+            seen_v.append(v)
             v = p
             p = v.get_parent()
+        self._compress(v, seen_v)
         return v
+        
+    def _compress(r: Vertex, l: List[Vertex]):
+        for v in l:
+            r.add_child(v)
+            v.set_parent(r)
+
 
 class Edge():
 
@@ -239,8 +243,8 @@ class Support():
             the other vertex of the edge.
         """
         #TODO overflow bound
-        (v_x, v_y) = vertex.get_location
-        (e_x, e_y) = edge.get_location
+        (v_x, v_y) = vertex.get_location()
+        (e_x, e_y) = edge.get_location()
 
         (x, y) = (0, 0)
         if v_x == e_x:
