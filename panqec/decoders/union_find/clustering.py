@@ -237,21 +237,20 @@ class Support():
 
         return (fusion_list, new_boundary)
     
-    def _get_other_vertex_loc(vertex: Vertex, edge: Edge):
+    def _get_other_vertex_loc(self, vertex: Vertex, edge: Edge):
         """
             Given an edge and a vertex attached, infer the coordinate of 
             the other vertex of the edge.
         """
-        #TODO overflow bound
         (v_x, v_y) = vertex.get_location()
         (e_x, e_y) = edge.get_location()
 
         (x, y) = (0, 0)
         if v_x == e_x:
-            (x, y) = (v_x, e_y + (e_y - v_y)) 
+            (x, y) = (v_x, (e_y + (e_y - v_y)) % self._y_len) 
             # true because vertex is on the other side
         elif v_y == e_y:
-            (x, y) = (e_x + (e_x - v_x), v_y)
+            (x, y) = ((e_x + (e_x - v_x)) % self._x_len, v_y)
         
         return (x, y)
 
