@@ -6,7 +6,7 @@ import json
 from scipy.sparse import csr_matrix, dok_matrix
 
 import panqec
-from panqec.bpauli import bcommute, get_effective_error
+from panqec.bpauli import bs_prod, get_effective_error
 from panqec import bsparse
 
 os.environ['PANQEC_ROOT_DIR'] = os.path.dirname(panqec.__file__)
@@ -360,7 +360,7 @@ class StabilizerCode(metaclass=ABCMeta):
             Whether or not the error is in the codespace
         """
 
-        return bool(np.all(bcommute(self.stabilizer_matrix, error) == 0))
+        return bool(np.all(self.measure_syndrome(error) == 0))
 
     def logical_errors(self, error: np.ndarray) -> np.ndarray:
         """Return the logical errors, as an array of size 2k
@@ -523,7 +523,7 @@ class StabilizerCode(metaclass=ABCMeta):
             of stabilizers)
         """
 
-        return bcommute(self.stabilizer_matrix, error)
+        return bs_prod(self.stabilizer_matrix, error)
 
     def is_stabilizer(self, location: Tuple, stab_type: str = None):
         """Returns whether a given location in the coordinate system
@@ -746,15 +746,6 @@ class StabilizerCode(metaclass=ABCMeta):
             data = json.load(f)
 
         code_name = self.id
-
-        # if self.id == 'MyToric3DCode':
-        #     print(data)
-        #     print()
-        #     print()
-        #     print(data[code_name])
-        #     print()
-        #     print(data[code_name]['qubits'])
-        #     print(data[code_name]['qubits'][picture])
 
         picture = 'rotated' if rotated_picture else 'kitaev'
 

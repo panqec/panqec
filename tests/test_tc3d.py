@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from panqec.bpauli import bcommute, get_effective_error
+from panqec.bpauli import bs_prod
 from pymatching import Matching
 from panqec.codes import Toric3DCode
 
@@ -98,25 +98,25 @@ class TestCommutationRelations:
 
     def test_stabilizers_commute_with_each_other(self, code):
         stabilizers = code.stabilizer_matrix.toarray()
-        assert np.all(bcommute(stabilizers, stabilizers) == 0)
+        assert np.all(bs_prod(stabilizers, stabilizers) == 0)
 
     def test_Z_logicals_commute_with_each_other(self, code):
         logicals = code.logicals_z
-        assert np.all(bcommute(logicals, logicals) == 0)
+        assert np.all(bs_prod(logicals, logicals) == 0)
 
     def test_X_logicals_commute_with_each_other(self, code):
         logicals = code.logicals_x
-        assert np.all(bcommute(logicals, logicals) == 0)
+        assert np.all(bs_prod(logicals, logicals) == 0)
 
     def test_stabilizers_commute_with_logicals(self, code):
         stabilizers = code.stabilizer_matrix.toarray()
         logicals = np.vstack([code.logicals_x, code.logicals_z])
-        assert np.all(bcommute(logicals, stabilizers) == 0)
+        assert np.all(bs_prod(logicals, stabilizers) == 0)
 
     def test_X_and_Z_logicals_commutation(self, code, L):
         X_logicals = code.logicals_x
         Z_logicals = code.logicals_z
-        commutation = bcommute(X_logicals, Z_logicals)
+        commutation = bs_prod(X_logicals, Z_logicals)
         assert np.all(commutation == np.identity(L))
 
 
@@ -144,9 +144,7 @@ def test_correcting_X_noise_produces_X_logical_errors_only(code, L):
     total_error[:3*L**3] = total_error_X
 
     # Compute the effective error on the logical qubits.
-    effective_error = get_effective_error(
-        total_error, X_logicals, Z_logicals
-    )
+    effective_error = code.logical_errors(total_error)
 
     # Make sure the total error is non-trivial.
     assert total_error.sum() > 0
@@ -155,10 +153,10 @@ def test_correcting_X_noise_produces_X_logical_errors_only(code, L):
     assert np.any(effective_error != 0)
 
     # Therefore it should anticommute with some Z logicals.
-    assert np.any(bcommute(Z_logicals, total_error) == 1)
+    assert np.any(bs_prod(Z_logicals, total_error) == 1)
 
     # Total error is in code space.
-    assert np.all(bcommute(Z_stabilizers, total_error) == 0)
+    assert np.all(bs_prod(Z_stabilizers, total_error) == 0)
 
     # Total commutes with all X logicals.
-    assert np.all(bcommute(X_logicals, total_error) == 0)
+    assert np.all(bs_prod(X_logicals, total_error) == 0)
