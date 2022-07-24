@@ -1,7 +1,7 @@
 import pytest
 from itertools import combinations
 import numpy as np
-from panqec.bpauli import bcommute, bsf_wt
+from panqec.bpauli import bs_prod, bsf_wt
 from panqec.decoders import split_posts_at_active_fences
 from panqec.codes import RotatedPlanar3DCode
 from panqec.decoders import RotatedInfiniteZBiasDecoder
@@ -67,14 +67,14 @@ class TestRotatedInfiniteZBiasDecoder:
 
         correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
-        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
+        assert np.all(code.measure_syndrome(total_error) == 0), (
             'Total error not in codespace'
         )
 
-        assert np.all(bcommute(code.logicals_x, total_error) == 0), (
+        assert np.all(bs_prod(code.logicals_x, total_error) == 0), (
             'Total error anticommutes with logical X'
         )
-        assert np.all(bcommute(code.logicals_z, total_error) == 0), (
+        assert np.all(bs_prod(code.logicals_z, total_error) == 0), (
             'Total error anticommutes with logical Z'
         )
 
@@ -107,13 +107,13 @@ class TestRotatedInfiniteZBiasDecoder:
             total_error = (error + correction) % 2
 
             assert np.all(
-                bcommute(code.stabilizer_matrix, total_error) == 0
+                code.measure_syndrome(total_error) == 0
             ), 'Total error not in code space'
 
             correctable = True
-            if np.any(bcommute(code.logicals_x, total_error) != 0):
+            if np.any(bs_prod(code.logicals_x, total_error) != 0):
                 correctable = False
-            if np.all(bcommute(code.logicals_z, total_error) != 0):
+            if np.all(bs_prod(code.logicals_z, total_error) != 0):
                 correctable = False
             if not correctable:
                 uncorrectable_locations.append(location)
@@ -151,15 +151,15 @@ class TestRotatedInfiniteZBiasDecoder:
             total_error = (error + correction) % 2
 
             decodable = True
-            if np.any(bcommute(code.stabilizer_matrix, total_error) != 0):
+            if np.any(code.measure_syndrome(total_error) != 0):
                 decodable = False
             if not decodable:
                 undecodable_error_locations.append(locations)
 
             correctable = True
-            if np.any(bcommute(code.logicals_x, total_error) != 0):
+            if np.any(bs_prod(code.logicals_x, total_error) != 0):
                 correctable = False
-            if np.all(bcommute(code.logicals_z, total_error) != 0):
+            if np.all(bs_prod(code.logicals_z, total_error) != 0):
                 correctable = False
             if not correctable:
                 uncorrectable_error_locations.append(locations)

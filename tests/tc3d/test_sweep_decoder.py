@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 from panqec.codes import Toric3DCode
 from panqec.decoders import SweepDecoder3D
-from panqec.bpauli import bcommute, bsf_wt
+from panqec.bpauli import bsf_wt
 from panqec.error_models import PauliErrorModel
 from panqec.utils import edge_coords, face_coords
 
@@ -30,7 +30,7 @@ class TestSweepDecoder3D:
         )
         correction = decoder.decode(syndrome)
         assert correction.shape[0] == 2*code.n
-        assert np.all(bcommute(code.stabilizer_matrix, correction) == 0)
+        assert np.all(code.measure_syndrome(correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 
     def test_decode_Z_error(self, decoder, code):
@@ -45,7 +45,7 @@ class TestSweepDecoder3D:
 
         correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
-        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+        assert np.all(code.measure_syndrome(total_error) == 0)
 
     def test_decode_many_Z_errors(self, decoder, code):
         error = dict()
@@ -61,7 +61,7 @@ class TestSweepDecoder3D:
 
         correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
-        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+        assert np.all(code.measure_syndrome(total_error) == 0)
 
     def test_unable_to_decode_X_error(self, decoder, code):
         error = code.to_bsf({
@@ -78,7 +78,7 @@ class TestSweepDecoder3D:
         total_error = (error + correction) % 2
         assert np.all(error == total_error)
 
-        assert np.any(bcommute(code.stabilizer_matrix, total_error) != 0)
+        assert np.any(code.measure_syndrome(total_error) != 0)
 
     def test_decode_many_codes_and_errors_with_same_decoder(self):
 
@@ -105,7 +105,7 @@ class TestSweepDecoder3D:
             syndrome = code.measure_syndrome(error)
             correction = decoder.decode(syndrome)
             total_error = (error + correction) % 2
-            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+            assert np.all(code.measure_syndrome(total_error) == 0)
 
 
 class Test3x3x3SweepDecoder3D:
@@ -127,10 +127,10 @@ class Test3x3x3SweepDecoder3D:
             (1, 0, 0): 'Z',
             (0, 1, 0): 'Z',
         })
-        syndrome = bcommute(code.stabilizer_matrix, error)
+        syndrome = code.measure_syndrome( error)
         correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
-        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+        assert np.all(code.measure_syndrome(total_error) == 0)
 
     def test_decode_with_general_Z_noise(self):
         code = Toric3DCode(3, 3, 3)
@@ -144,11 +144,11 @@ class Test3x3x3SweepDecoder3D:
             error = error_model.generate(
                 code, error_rate=error_rate, rng=np.random
             )
-            syndrome = bcommute(code.stabilizer_matrix, error)
+            syndrome = code.measure_syndrome(error)
             correction = decoder.decode(syndrome)
             total_error = (error + correction) % 2
             in_codespace.append(
-                np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+                np.all(code.measure_syndrome(total_error) == 0)
             )
 
         # Some will just be fails and not in code space, but assert that at
@@ -194,7 +194,7 @@ class Test3x3x3SweepDecoder3D:
         correction = dict()
 
         # Compute the syndrome.
-        syndrome = bcommute(code.stabilizer_matrix, error)
+        syndrome = code.measure_syndrome(error)
 
         signs = decoder.get_initial_state(syndrome)
         assert np.all(signs == syndrome)
@@ -239,7 +239,7 @@ class Test3x3x3SweepDecoder3D:
         vertex_operator = code.get_stabilizer((0, 0, 0))
         assert np.all(total_error == code.to_bsf(vertex_operator))
 
-        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+        assert np.all(code.measure_syndrome(total_error) == 0)
 
     def test_decode_loop_ok(self, code, decoder):
 
@@ -256,7 +256,7 @@ class Test3x3x3SweepDecoder3D:
         error = code.to_bsf(error_pauli)
 
         # Compute the syndrome.
-        syndrome = bcommute(code.stabilizer_matrix, error)
+        syndrome = code.measure_syndrome(error)
 
         signs = decoder.get_initial_state(syndrome)
         """
@@ -279,7 +279,7 @@ class Test3x3x3SweepDecoder3D:
         correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
 
-        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+        assert np.all(code.measure_syndrome(total_error) == 0)
 
     def test_oscillating_cycle_fail(self, code, decoder):
 
@@ -298,7 +298,7 @@ class Test3x3x3SweepDecoder3D:
             error_pauli[site] = 'Z'
         error = code.to_bsf(error_pauli)
 
-        syndrome = bcommute(code.stabilizer_matrix, error)
+        syndrome = code.measure_syndrome(error)
 
         # Signs array.
         signs = decoder.get_initial_state(syndrome)
@@ -318,12 +318,12 @@ class Test3x3x3SweepDecoder3D:
 
         # The total correction is trivial.
         assert np.all(
-            bcommute(code.stabilizer_matrix, code.to_bsf(correction)) == 0
+            code.measure_syndrome(code.to_bsf(correction)) == 0
         )
 
         # The total error still is not in code space.
         total_error = (error + code.to_bsf(correction)) % 2
-        assert np.any(bcommute(code.stabilizer_matrix, total_error) != 0)
+        assert np.any(code.measure_syndrome(total_error) != 0)
 
     def test_never_ending_staircase_fails(self, code, decoder):
 
@@ -339,7 +339,7 @@ class Test3x3x3SweepDecoder3D:
         # assert error.sum() == 8
 
         # Compute the syndrome and make sure it's nontrivial.
-        syndrome = bcommute(code.stabilizer_matrix, error)
+        syndrome = code.measure_syndrome(error)
         assert np.any(syndrome)
 
         # Check face X stabilizer syndrome measurements.
@@ -372,7 +372,7 @@ class Test3x3x3SweepDecoder3D:
         total_error = (error + correction) % 2
 
         # Assert that decoding has failed.
-        np.any(bcommute(code.stabilizer_matrix, total_error))
+        np.any(code.measure_syndrome(total_error))
 
     def test_sweep_move_two_edges(self, code, decoder):
 
@@ -381,7 +381,7 @@ class Test3x3x3SweepDecoder3D:
             (1, 0, 0): 'Z',
         }
 
-        syndrome = bcommute(code.stabilizer_matrix, code.to_bsf(error))
+        syndrome = code.measure_syndrome(code.to_bsf(error))
 
         correction = dict()
 

@@ -4,7 +4,6 @@ from panqec.decoders import BaseDecoder
 from panqec.error_models import BaseErrorModel
 from typing import Dict
 import panqec.bsparse as bsparse
-from panqec.bpauli import bcommute
 from scipy.sparse import csr_matrix
 
 
@@ -194,7 +193,7 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
 
             # --------------- Break loop if syndrome reached ---------------
 
-            new_syndrome = bcommute(H, correction_symplectic)
+            new_syndrome = self.code.measure_syndrome(correction_symplectic)
             if np.all(new_syndrome == syndrome):
                 # print(f"Syndrome reached in {iter} iterations\n")
                 break
@@ -214,7 +213,6 @@ def test_symplectic_to_pauli():
 
 def test_decoder():
     from panqec.codes import Toric3DCode
-    from panqec.bpauli import get_effective_error
     from panqec.error_models import PauliErrorModel
     import time
 
@@ -252,9 +250,7 @@ def test_decoder():
         print("Get total error")
         total_error = (correction + error) % 2
         print("Get effective error")
-        effective_error = get_effective_error(
-            total_error, code.logicals_x, code.logicals_z
-        )
+        effective_error = code.logical_errors(total_error)
 
         print("Check codespace")
         codespace = code.in_codespace(total_error)
