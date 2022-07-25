@@ -10,7 +10,7 @@ PanQEC is a Python package for simulating and visualizing quantum error correcti
 It allows to easily create quantum codes, error models and decoders, and evaluate their performance
 by calculating performance metrics, such as the threshold and subthreshold error rates.
 Once a 2D or 3D quantum code is created, it can be visualized and manipulated on a web interface,
-helping to verify the correct implementation of a code or understand the behavior of a decoder.
+helping to verify the correct implementation of a code or understand the behavior of a decoder
 
 To make a feature request or report a bug, please visit the PanQEC `GitHub repository <https://github.com/ehua7365/bn3d>`_.
 
