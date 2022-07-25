@@ -27,6 +27,7 @@ To make a feature request or report a bug, please visit the PanQEC `GitHub repos
    
    tutorials/Panqec basics
    tutorials/Adding new code
+   tutorials/Computing threshold
 
 Indices and tables
 ==================
