@@ -574,7 +574,6 @@ class StabilizerCode(metaclass=ABCMeta):
         `self.stabilizer_coordinates` and `self.stabilizer_index`.
         """
 
-    @abstractmethod
     def qubit_axis(self, location: Tuple) -> str:
         """ Return the orientation of a qubit sitting at given location
         (as a string representing the axis 'x', 'y' or 'z').
@@ -594,6 +593,7 @@ class StabilizerCode(metaclass=ABCMeta):
             Either 'x', 'y' or 'z', depending on the orientation axis of the
             qubit.
         """
+        return ''
 
     @abstractmethod
     def stabilizer_type(self, location: Tuple) -> str:
