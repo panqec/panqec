@@ -8,14 +8,14 @@ from xmlrpc.client import Boolean
 import numpy as np
 from pyrsistent import T, b, s
 
-def clustering(syndrome):
+def clustering(syndrome: np.ndarray, code_size):
     # vertices: List = transfer_syndrome(syndrome) # turn syndromes into vertices
     # cluster_forest = map_vertex_tree(vertices) # map vertices with cluster information
-    support = Support(syndrome)
+    support = Support(syndrome, )
 
     odd_clusters = filter(lambda c : c.is_odd(), support.get_clusters())
 
-    while odd_clusters:
+    while odd_clusters: # TODO full graph?
         fusion_list = []
         for c in odd_clusters: # should only update the smallest cluster, no loop
             fusion_list += c.grow()
@@ -26,7 +26,7 @@ def clustering(syndrome):
                 support.union(e.fst, e.snd) #include step 7,8
             # else:
             #     fusion_list.remove(e)
-        #TODO 111 update THE cluster
+        #TODO 111 update smallest cluster
         for c in odd_clusters: 
             c.update_boundary(support)
 
@@ -61,7 +61,6 @@ class Cluster_Tree():
         """ 
             grow the boundary list of the cluster, returns fusion list 
         """
-        #TODO update boundary list
         new_boundary = []
         fusion_list = []
         for v in self._boundary_list:
@@ -159,20 +158,30 @@ class Support():
     # improvement1: Eliminate faces...
     # improvement2: Eliminate vertex from the support matrix, need hash function
 
-    def __init__(self, syndrome: List[Tuple], x_len, y_len):
-        self._x_len = x_len
-        self._y_len = y_len
-        self._status = np.zeros((x_len, y_len), dtype='uint8')
-        self._loc_vertex_map = {}
-        self._loc_cluster_map: Dict[Tuple, Cluster_Tree] = {} # root loc map cluster
+    def __init__(self, syndrome: np.ndarray, code_size: Tuple):
+        x, y = code_size
+        self._L_x, self._L_y = x*2, y*2
+        self._status = np.zeros((self._L_x, self._L_y), dtype='uint8')
         self._loc_edge_map = {}
-
+        self._syndrome_loc = []
         self._loc_vertex_map = self._init_loc_syndrome(syndrome)
-        self._loc_cluster_map = self._init_loc_cluster(syndrome)
+        self._loc_cluster_map = self._init_loc_cluster(self._syndrome_loc)
     
-    def _init_loc_syndrome(self, syndrome: List[T]) -> Dict[T, Vertex]:
-        self._status[syndrome] = Support.SYNDROME  # light up the seen vertex
-        return dict(map(lambda l : (l, Vertex(l)), syndrome))
+    def _init_loc_syndrome(self, syndrome: np.ndarray) -> Dict[Tuple, Vertex]:
+        
+        # the first sydrome is always (0,0)
+        (x, y) = (0, 0)
+        syn_l = [] 
+        for s in syndrome:
+            if s is 1:
+                syn_l.append((x, y))
+            y += 2
+            if y >= self._L_y:
+                y = 0
+                x += 2
+        self._syndrome_loc = syn_l
+        self._status[syn_l] = Support.SYNDROME  # light up the seen vertex
+        return dict(map(lambda l : (l, Vertex(l)), syn_l))
     
     def _init_loc_cluster(self, locations: List[T]) -> Dict[T, Cluster_Tree]:
         return dict(map(lambda l : (l, Cluster_Tree(self._loc_vertex_map[l])), 
@@ -247,10 +256,10 @@ class Support():
 
         (x, y) = (0, 0)
         if v_x == e_x:
-            (x, y) = (v_x, (e_y + (e_y - v_y)) % self._y_len) 
+            (x, y) = (v_x, (e_y + (e_y - v_y)) % self._L_y) 
             # true because vertex is on the other side
         elif v_y == e_y:
-            (x, y) = ((e_x + (e_x - v_x)) % self._x_len, v_y)
+            (x, y) = ((e_x + (e_x - v_x)) % self._L_x, v_y)
         
         return (x, y)
 
@@ -263,9 +272,9 @@ class Support():
         
         """
         (x, y) = vertex.get_location()
-        edges = [((x - 1) % self._x_len, y),
-                 (x, (y - 1) % self._y_len),
-                 ((x + 1) % self._x_len, y),
-                 (x, (y + 1) % self._y_len)]
+        edges = [((x - 1) % self._L_x, y),
+                 (x, (y - 1) % self._L_y),
+                 ((x + 1) % self._L_x, y),
+                 (x, (y + 1) % self._L_y)]
         return edges
 
