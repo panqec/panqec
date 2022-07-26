@@ -1,15 +1,18 @@
 import os
 import json
+import shutil
 from glob import glob
 import pytest
+import gzip
 import numpy as np
 from panqec.error_models import PauliErrorModel
 from panqec.codes import Toric2DCode
 from panqec.decoders import BeliefPropagationOSDDecoder
 from panqec.simulation import (
     read_input_json, run_once, Simulation, expand_input_ranges, run_file,
-    merge_results_dicts, filter_legacy_params
+    merge_results_dicts, filter_legacy_params, BatchSimulation
 )
+from panqec.cli import merge_dirs
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 
@@ -104,6 +107,90 @@ class TestSimulationToric2DCode():
         simulation.run(10)
         assert len(simulation._results['success']) == 10
         assert set(required_fields).issubset(simulation._results.keys())
+
+
+class TestBatchSimulationOneFile():
+
+    n_trials: int = 5
+
+    @pytest.fixture
+    def output_dir(self, tmpdir):
+        out_dir = os.path.join(tmpdir, 'output_dir')
+        os.mkdir(out_dir)
+        assert os.path.isdir(out_dir)
+
+        assert len(os.listdir(out_dir)) == 0
+        batch_sim = BatchSimulation(
+            label='mylabel',
+            save_frequency=1,
+            output_dir=out_dir,
+            onefile=True
+        )
+
+        for size, error_rate in [(3, 0.1), (4, 0.5)]:
+            code = Toric2DCode(size, size)
+            error_model = PauliErrorModel(1/3, 1/3, 1/3)
+            decoder = BeliefPropagationOSDDecoder(
+                code, error_model, error_rate
+            )
+            simulation = Simulation(code, error_model, decoder, error_rate)
+            batch_sim.append(simulation)
+
+        assert len(batch_sim) == 2
+
+        batch_sim.run(self.n_trials)
+        batch_sim.save_results()
+
+        return out_dir
+
+    def test_output_to_one_file(self, output_dir):
+
+        # Make sure this is the only file produced.
+        combined_outfile = os.path.join(
+            output_dir, 'mylabel', 'mylabel.json.gz'
+        )
+        assert os.path.isfile(combined_outfile)
+        assert len(os.listdir(os.path.join(output_dir, 'mylabel'))) == 1
+        with gzip.open(combined_outfile, 'rb') as gz:
+            results = json.loads(gz.read().decode('utf-8'))
+
+        # Check integrity of results.
+        assert len(results) == 2
+        expected_input_keys = [
+            'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
+            'probability'
+        ]
+        expected_results_keys = [
+            'effective_error', 'success', 'codespace', 'wall_time',
+        ]
+        for key in expected_input_keys:
+            assert key in results[0]['inputs']
+            assert key in results[1]['inputs']
+
+        for key in expected_results_keys:
+            assert key in results[0]['results']
+            assert key in results[1]['results']
+
+        # Numerical tests on the results.
+        assert len(results[0]['results']['effective_error']) == self.n_trials
+        assert len(results[0]['results']['success']) == self.n_trials
+        assert len(results[0]['results']['codespace']) == self.n_trials
+
+    @pytest.mark.skip
+    def test_merge_output_dirs(self, tmpdir, output_dir):
+        shutil.copytree(output_dir, os.path.join(tmpdir, 'results_1'))
+        shutil.copytree(output_dir, os.path.join(tmpdir, 'results_2'))
+        assert set(os.listdir(tmpdir)) == set([
+            'output_dir', 'results_1', 'results_2'
+        ])
+        merge_dirs(
+            os.path.join(tmpdir, 'results'),
+            ' '.join([
+                os.path.join(tmpdir, 'results_1'),
+                os.path.join(tmpdir, 'results_2'),
+            ])
+        )
+        assert os.path.exists(os.path.join(tmpdir, 'results'))
 
 
 @pytest.fixture
