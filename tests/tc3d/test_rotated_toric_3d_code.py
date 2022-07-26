@@ -4,7 +4,7 @@ from typing import Tuple, List
 import pytest
 import numpy as np
 from panqec.codes import RotatedToric3DCode
-from panqec.bpauli import bcommute, apply_deformation
+from panqec.bpauli import apply_deformation
 from panqec.error_models import DeformedXZZXErrorModel
 from panqec.decoders import BeliefPropagationOSDDecoder
 
@@ -259,10 +259,10 @@ class TestBPOSDOnRotatedToric3DCodeOddTimesEven:
             error_pauli = dict()
             error_pauli[site] = pauli
             error = code.to_bsf(error_pauli)
-            syndrome = bcommute(code.stabilizer_matrix, error)
+            syndrome = code.measure_syndrome(error)
             correction = decoder.decode(syndrome)
             total_error = (error + correction) % 2
-            if not np.all(bcommute(code.stabilizer_matrix, total_error) == 0):
+            if not np.all(code.measure_syndrome(total_error) == 0):
                 failing_cases.append(site)
         n_failing = len(failing_cases)
         max_show = 100

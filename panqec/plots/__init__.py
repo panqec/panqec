@@ -6,6 +6,8 @@ Routines for plotting thing .
 """
 import json
 
+from ._threshold import threshold_plot  # noqa
+
 
 def plot_export_json(plt, export_json):
     """Plot data in previously exported .json file."""

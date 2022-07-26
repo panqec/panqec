@@ -14,6 +14,98 @@ from ._hashing_bound import project_triangle, get_hashing_bound
 from ..analysis import quadratic
 
 
+def threshold_plot(
+    plt, results_df, thresholds_df=None, error_model=None, xlim=None,
+    ylim=None, save_folder=None, yscale=None, figsize=(8, 6),
+    label_size=14
+):
+    """Plot routine on loop.
+
+    Parameters
+    ----------
+    plt : matplotlib.pyplot
+        The matplotlib pyplot reference.
+    results_df : pd.Dataframe
+        Results table.
+    error_model : str
+        Name of the error model to filter to.
+    x_limits : Optional[Union[List[Tuple[float, float]], str]]
+        Will set limits from 0 to 0.5 if None given.
+        Will not impose limits if 'auto' given.
+    save_folder : str
+        If given will save save figure as png to directory.
+    yscale : Optional[str]
+        Set to 'log' to make yscale logarithmic.
+    thresholds_df : Optional[pd.DataFrame]
+        Plot the estimated threshold if given.
+    """
+    df = results_df.copy()
+    df.sort_values('probability', inplace=True)
+    fig, ax = plt.subplots(ncols=1, figsize=figsize)
+
+    if error_model is None:
+        error_model = df['error_model'].unique()[0]
+
+    legend_title = None
+
+    for code_size in np.sort(df['size'].unique()):
+        df_filtered = df[
+            (df['size'] == code_size) & (df['error_model'] == error_model)
+        ]
+        ax.errorbar(
+            df_filtered['probability'], df_filtered['p_est'],
+            yerr=df_filtered['p_se'],
+            label=r'$L={}$'.format(df_filtered['size'].iloc[0][0]),
+            capsize=1,
+            linestyle='-',
+            marker='.',
+        )
+    if thresholds_df is not None:
+        thresholds = thresholds_df[
+            thresholds_df['error_model'] == error_model
+        ]
+        if thresholds.shape[0] > 0:
+            p_th_fss_left = thresholds['p_th_fss_left'].iloc[0]
+            p_th_fss_right = thresholds['p_th_fss_right'].iloc[0]
+            p_th_fss = thresholds['p_th_fss'].iloc[0]
+            p_th_fss_se = thresholds['p_th_fss_se'].iloc[0]
+            if not pd.isna(p_th_fss_left) and not pd.isna(p_th_fss_right):
+                ax.axvspan(
+                    p_th_fss_left, p_th_fss_right,
+                    alpha=0.5, color='pink'
+                )
+            if not pd.isna(p_th_fss):
+                ax.axvline(
+                    p_th_fss,
+                    color='red',
+                    linestyle='--',
+                )
+            if p_th_fss_se is not None and p_th_fss is not None:
+                legend_title = r'$p_{\mathrm{th}}=(%.2f\pm %.2f)\%%$' % (
+                    100*p_th_fss, 100*p_th_fss_se,
+                )
+
+    if yscale is not None:
+        ax.set_yscale(yscale)
+
+    if ylim is not None:
+        ax.set_ylim(*ylim)
+    if xlim is not None:
+        ax.set_xlim(*xlim)
+    ax.locator_params(axis='x', nbins=6)
+
+    ax.set_xlabel('Physical Error Rate', size=label_size)
+    if legend_title is not None:
+        ax.legend(loc='best', title=legend_title)
+    else:
+        ax.legend(loc='best')
+    ax.set_ylabel('Logical Error Rate', size=label_size)
+
+    if save_folder:
+        filename = os.path.join(save_folder, results_df['label'][0])
+        plt.savefig(f'{filename}.png')
+
+
 def detailed_plot(
     plt, results_df, error_model, x_limits=None, save_folder=None,
     yscale=None, eta_key='eta_x', min_y_axis=1e-3,

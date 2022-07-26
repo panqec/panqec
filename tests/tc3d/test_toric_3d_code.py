@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from panqec.bpauli import bcommute, bsf_wt
+from panqec.bpauli import bs_prod, bsf_wt
 from panqec.codes import Toric3DCode
 import panqec.bsparse as bsparse
 
@@ -141,23 +141,23 @@ class TestCommutationRelationsToric3DCode:
 
     def test_stabilizers_commute_with_each_other(self, code):
         assert np.all(
-            bcommute(code.stabilizer_matrix, code.stabilizer_matrix) == 0
+            code.measure_syndrome(code.stabilizer_matrix) == 0
         )
 
     def test_Z_logicals_commute_with_each_other(self, code):
-        assert np.all(bcommute(code.logicals_z, code.logicals_z) == 0)
+        assert np.all(bs_prod(code.logicals_z, code.logicals_z) == 0)
 
     def test_X_logicals_commute_with_each_other(self, code):
-        assert np.all(bcommute(code.logicals_x, code.logicals_x) == 0)
+        assert np.all(bs_prod(code.logicals_x, code.logicals_x) == 0)
 
     def test_stabilizers_commute_with_logicals(self, code):
         if isinstance(code.logicals_x, np.ndarray):
             logicals = np.concatenate([code.logicals_x, code.logicals_z])
         else:
             logicals = bsparse.vstack([code.logicals_x, code.logicals_z])
-        assert np.all(bcommute(logicals, code.stabilizer_matrix) == 0)
+        assert np.all(bs_prod(logicals, code.stabilizer_matrix) == 0)
 
     def test_logicals_anticommute_correctly(self, code):
         assert np.all(
-            bcommute(code.logicals_x, code.logicals_z) == np.eye(code.k)
+            bs_prod(code.logicals_x, code.logicals_z) == np.eye(code.k)
         )

@@ -1,3 +1,6 @@
+
+![panqec-screenshot](https://user-images.githubusercontent.com/1157968/180657086-48ea0da0-6da4-4f9c-88e5-4a3f1233db40.png)
+
 # PanQEC
 
 PanQEC is a Python package that simplifies the simulation and visualization of quantum error correction codes.
@@ -24,6 +27,19 @@ PanQEC also currently offers the following decoders:
 * **MWPM** (Minimum-Weight Perfect Matching decoder) for 2D surface codes, using the library [PyMatching](https://pymatching.readthedocs.io) developed by Oscar Higgott.
 * **SweepMatch** for 3D surface codes (using our implementation of the [sweep decoder](https://arxiv.org/abs/2004.07247) for loop-syndrome decoding and PyMatching for point-syndrome).
 
+# Installation and documentation
+
+PanQEC documentation is available at [panqec.readthedocs.io](https://panqec.readthedocs.io).
+
+You can install it using `pip install panqec`.
+
+# Start the GUI
+
+To start the GUI, run
+```
+panqec start-gui
+```
+Then open your browser and go to the link printed out in the command line.
 
 # Setup for development
 
@@ -53,14 +69,6 @@ If you don't do this, as a fallback, the data files will be written to the
 
 Optionally, if you use dark theme in Jupyter Lab, setting
 `PANQEC_DARK_THEME=True` in the `.env` file will make the plots show up nicer.
-
-# Start the GUI
-
-To start the GUI, run
-```
-panqec start-gui
-```
-Then open your browser and go to the link printed out in the command line.
 
 # Build the documentation
 

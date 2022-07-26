@@ -3,7 +3,6 @@ import numpy as np
 from panqec.codes import Toric2DCode
 from panqec.bpauli import bsf_wt
 from panqec.decoders import Toric2DMatchingDecoder
-from panqec.bpauli import bcommute
 from panqec.error_models import PauliErrorModel
 
 
@@ -33,7 +32,7 @@ class TestToric2DMatchingDecoder:
             location: operator
         })
         assert bsf_wt(error) == 1, 'Error should be weight 1'
-        syndromes = bcommute(code.stabilizer_matrix, error)
+        syndromes = code.measure_syndrome(error)
         if operator in ['Z', 'X']:
             assert sum(syndromes) == 2, 'Should be 2 syndromes if X or Z error'
         elif operator == 'Y':
@@ -41,6 +40,6 @@ class TestToric2DMatchingDecoder:
         correction = decoder.decode(syndromes)
         assert bsf_wt(correction) == 1, 'Correction should be weight 1'
         total_error = (error + correction) % 2
-        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
+        assert np.all(code.measure_syndrome(total_error) == 0), (
             'Total error should be in code space'
         )

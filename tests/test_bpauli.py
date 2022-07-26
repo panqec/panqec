@@ -9,7 +9,7 @@ import numpy as np
 from panqec.codes import Toric2DCode
 from panqec.bpauli import (
     pauli_string_to_bvector, bvector_to_pauli_string,
-    bcommute, get_effective_error, bvector_to_int,
+    bs_prod, get_effective_error, bvector_to_int,
     bvectors_to_ints, ints_to_bvectors, apply_deformation
 )
 from panqec.bsparse import from_array, is_sparse, vstack
@@ -37,91 +37,91 @@ def test_pauli_string_bvector_inverse():
     )
 
 
-class TestBcommute:
+class Testbs_prod:
 
-    def test_bcommute_singles(self):
+    def test_bs_prod_singles(self):
         III = np.array([0, 0, 0, 0, 0, 0])
         XXX = np.array([1, 1, 1, 0, 0, 0])
         ZZZ = np.array([0, 0, 0, 1, 1, 1])
-        assert bcommute(XXX, ZZZ) == 1, 'XXX should anticommute with ZZZ'
-        assert bcommute(III, XXX) == 0, 'III should commute with XXX'
-        assert bcommute(III, XXX) == 0, 'III should commute with XXX'
+        assert bs_prod(XXX, ZZZ) == 1, 'XXX should anticommute with ZZZ'
+        assert bs_prod(III, XXX) == 0, 'III should commute with XXX'
+        assert bs_prod(III, XXX) == 0, 'III should commute with XXX'
 
-    def test_bcommute_many_to_one(self):
+    def test_bs_prod_many_to_one(self):
         stabilizers = np.array([
             pauli_string_to_bvector('XXI'),
             pauli_string_to_bvector('IXX'),
         ])
         error = pauli_string_to_bvector('IZI')
-        syndrome = bcommute(stabilizers, error)
+        syndrome = bs_prod(stabilizers, error)
         assert syndrome.shape == (2,), 'syndrome should have shape 2'
         assert np.all(syndrome == [1, 1]), 'IZI should anticommute with both'
 
         # Changing the order shouldn't matter.
-        syndrome = bcommute(error, stabilizers)
+        syndrome = bs_prod(error, stabilizers)
         assert syndrome.shape == (2,)
         assert np.all(syndrome == [1, 1])
 
-    def test_bcommute_one_to_many(self):
+    def test_bs_prod_one_to_many(self):
         XYZ = pauli_string_to_bvector('XYZ')
         IXY = pauli_string_to_bvector('IXY')
         ZZI = pauli_string_to_bvector('ZZI')
-        assert bcommute(XYZ, IXY) == 0
-        assert bcommute(IXY, ZZI) == 1
-        assert np.all(bcommute(XYZ, [IXY, ZZI]) == [[0, 0]])
-        assert np.all(bcommute([XYZ, IXY], [ZZI, IXY]) == [[0, 0], [1, 0]])
+        assert bs_prod(XYZ, IXY) == 0
+        assert bs_prod(IXY, ZZI) == 1
+        assert np.all(bs_prod(XYZ, [IXY, ZZI]) == [[0, 0]])
+        assert np.all(bs_prod([XYZ, IXY], [ZZI, IXY]) == [[0, 0], [1, 0]])
 
     def test_raise_error_if_not_even_length(self):
         with pytest.raises(ValueError):
-            bcommute([0, 0, 1, 0, 1], [0, 1, 0, 1, 0])
+            bs_prod([0, 0, 1, 0, 1], [0, 1, 0, 1, 0])
 
         with pytest.raises(ValueError):
-            bcommute([0, 0, 0], [0, 1])
+            bs_prod([0, 0, 0], [0, 1])
 
         with pytest.raises(ValueError):
-            bcommute([0, 0, 0, 0], [0, 1, 0])
+            bs_prod([0, 0, 0, 0], [0, 1, 0])
 
     def test_raise_error_if_unequal_shapes(self):
         with pytest.raises(ValueError):
-            bcommute([0, 0, 0, 1], [1, 0, 1, 1, 0, 1])
+            bs_prod([0, 0, 0, 1], [1, 0, 1, 1, 0, 1])
 
 
-class TestBcommuteSparse:
+class Testbs_prodSparse:
 
-    def test_bcommute_singles(self):
+    def test_bs_prod_singles(self):
         III = from_array(np.array([0, 0, 0, 0, 0, 0]))
         XXX = from_array(np.array([1, 1, 1, 0, 0, 0]))
         ZZZ = from_array(np.array([0, 0, 0, 1, 1, 1]))
         assert is_sparse(III)
-        assert bcommute(XXX, ZZZ) == 1, 'XXX should anticommute with ZZZ'
-        assert bcommute(III, XXX) == 0, 'III should commute with XXX'
-        assert bcommute(III, XXX) == 0, 'III should commute with XXX'
+        assert bs_prod(XXX, ZZZ) == 1, 'XXX should anticommute with ZZZ'
+        assert bs_prod(III, XXX) == 0, 'III should commute with XXX'
+        assert bs_prod(III, XXX) == 0, 'III should commute with XXX'
 
-    def test_bcommute_many_to_one(self):
+    def test_bs_prod_many_to_one(self):
         stabilizers = from_array(np.array([
             pauli_string_to_bvector('XXI'),
             pauli_string_to_bvector('IXX'),
         ]))
         assert stabilizers.shape == (2, 6)
         error = from_array(pauli_string_to_bvector('IZI'))
-        syndrome = bcommute(stabilizers, error)
+        syndrome = bs_prod(stabilizers, error)
         assert syndrome.shape == (2,), 'syndrome should have shape 2'
         assert np.all(syndrome == [1, 1]), 'IZI should anticommute with both'
 
         # Changing the order shouldn't matter.
-        syndrome = bcommute(error, stabilizers)
+        syndrome = bs_prod(error, stabilizers)
         assert syndrome.shape == (2,)
         assert np.all(syndrome == [1, 1])
 
-    def test_bcommute_one_to_many(self):
+    def test_bs_prod_one_to_many(self):
         XYZ = from_array(pauli_string_to_bvector('XYZ'))
         IXY = from_array(pauli_string_to_bvector('IXY'))
         ZZI = from_array(pauli_string_to_bvector('ZZI'))
-        assert bcommute(XYZ, IXY) == 0
-        assert bcommute(IXY, ZZI) == 1
-        assert np.all(bcommute(XYZ, vstack([IXY, ZZI])) == [[0, 0]])
+        assert bs_prod(XYZ, IXY) == 0
+        assert bs_prod(IXY, ZZI) == 1
+        assert np.all(bs_prod(XYZ, vstack([IXY, ZZI])) == [[0, 0]])
         assert np.all(
-            bcommute(vstack([XYZ, IXY]), vstack([ZZI, IXY]))
+            bs_prod(vstack([XYZ, IXY]), vstack([ZZI, IXY]))
             == [
                 [0, 0],
                 [1, 0]
@@ -288,9 +288,9 @@ class TestApplyDeformation:
             pauli_string_to_bvector(pauli_string)
             for pauli_string in ['IXYZ', 'XXXX', 'ZXYI', 'IIZZ']
         ], dtype=np.uint)
-        commutators = bcommute(operators, operators)
+        commutators = bs_prod(operators, operators)
         deformation_index = [True, False, True, False]
-        deformed_commutators = bcommute(
+        deformed_commutators = bs_prod(
             apply_deformation(deformation_index, operators),
             apply_deformation(deformation_index, operators)
         )

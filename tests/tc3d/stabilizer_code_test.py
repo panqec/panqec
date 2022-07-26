@@ -8,7 +8,7 @@ from tqdm import tqdm
 from itertools import combinations
 from panqec.codes import StabilizerCode
 from panqec.bsparse import is_sparse, vstack, to_array
-from panqec.bpauli import bcommute, brank, bvector_to_pauli_string
+from panqec.bpauli import bs_prod, brank, bvector_to_pauli_string
 
 
 class StabilizerCodeTest(metaclass=ABCMeta):
@@ -45,7 +45,7 @@ class StabilizerCodeTest(metaclass=ABCMeta):
         assert qubits.isdisjoint(stabilizers)
 
     def test_all_stabilizers_commute(self, code):
-        commutators = bcommute(code.stabilizer_matrix, code.stabilizer_matrix)
+        commutators = bs_prod(code.stabilizer_matrix, code.stabilizer_matrix)
         print_non_commuting(
             code, commutators, code.stabilizer_matrix, code.stabilizer_matrix,
             'stabilizer', 'stabilizer'
@@ -56,20 +56,20 @@ class StabilizerCodeTest(metaclass=ABCMeta):
 
     def test_logical_operators_anticommute_pairwise(self, code):
         k = code.k
-        assert np.all(bcommute(code.logicals_x, code.logicals_x) == 0)
-        assert np.all(bcommute(code.logicals_z, code.logicals_z) == 0)
-        commutators = bcommute(code.logicals_x, code.logicals_z)
+        assert np.all(bs_prod(code.logicals_x, code.logicals_x) == 0)
+        assert np.all(bs_prod(code.logicals_z, code.logicals_z) == 0)
+        commutators = bs_prod(code.logicals_x, code.logicals_z)
         assert np.all(commutators == np.eye(k)), (
             f'Not pairwise anticommuting {commutators}'
         )
 
     def test_logical_operators_commute_with_stabilizers(self, code):
-        x_commutators = bcommute(code.logicals_x, code.stabilizer_matrix)
+        x_commutators = bs_prod(code.logicals_x, code.stabilizer_matrix)
         print_non_commuting(
             code, x_commutators, code.logicals_x, code.stabilizer_matrix,
             'logicalX', 'stabilizer'
         )
-        z_commutators = bcommute(code.logicals_z, code.stabilizer_matrix)
+        z_commutators = bs_prod(code.logicals_z, code.stabilizer_matrix)
         print_non_commuting(
             code, z_commutators, code.logicals_z, code.stabilizer_matrix,
             'logicalZ', 'stabilizer'
@@ -220,7 +220,7 @@ class StabilizerCodeTestWithCoordinates(StabilizerCodeTest, metaclass=ABCMeta):
                     else:
                         logical[n + site] = 1  # Z operator on undeformed
 
-                codespace = np.all(bcommute(matrix, logical) == 0)
+                codespace = np.all(bs_prod(matrix, logical) == 0)
                 if codespace:
                     matrix_with_logical = np.concatenate([
                         to_array(matrix),

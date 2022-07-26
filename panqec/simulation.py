@@ -12,7 +12,6 @@ import numpy as np
 from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
 from panqec.error_models import BaseErrorModel
-from .bpauli import get_effective_error
 from .config import (
     CODES, ERROR_MODELS, DECODERS, PANQEC_DIR
 )
@@ -38,9 +37,7 @@ def run_once(
     syndrome = code.measure_syndrome(error)
     correction = decoder.decode(syndrome)
     total_error = (correction + error) % 2
-    effective_error = get_effective_error(
-        total_error, code.logicals_x, code.logicals_z
-    )
+    effective_error = code.logical_errors(total_error)
     codespace = code.in_codespace(total_error)
     success = bool(np.all(effective_error == 0)) and codespace
 

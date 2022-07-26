@@ -13,7 +13,7 @@ from . import bsparse
 from scipy.sparse import csr_matrix
 
 
-def bcommute(a, b) -> np.ndarray:
+def bs_prod(a, b) -> np.ndarray:
     """Array of 0 for commutes and 1 for anticommutes bvectors."""
 
     # If lists, convert to numpy
@@ -52,7 +52,7 @@ def bcommute(a, b) -> np.ndarray:
         )
 
     if bsparse.is_sparse(a) or bsparse.is_sparse(b):
-        commutes = _bcommute_sparse(a, b)
+        commutes = _bs_prod_sparse(a, b)
     else:
         # Number of qubits.
         n = int(a.shape[1]/2)
@@ -71,7 +71,7 @@ def bcommute(a, b) -> np.ndarray:
     return commutes
 
 
-def _bcommute_sparse(a, b):
+def _bs_prod_sparse(a, b):
     """Array of 0 for commutes and 1 for anticommutes bvectors."""
 
     # Commute commutator by binary symplectic form.
@@ -167,8 +167,8 @@ def get_effective_error(
     if num_total_errors == 1:
         final_shape = (2*n_logical, )
 
-    effective_Z = bcommute(logicals_x, total_error)
-    effective_X = bcommute(logicals_z, total_error)
+    effective_Z = bs_prod(logicals_x, total_error)
+    effective_X = bs_prod(logicals_z, total_error)
 
     if num_total_errors == 1:
         effective = np.concatenate([effective_X, effective_Z])
