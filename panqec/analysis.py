@@ -18,7 +18,6 @@ from scipy.optimize import curve_fit
 from scipy.signal import argrelextrema
 from .config import SLURM_DIR
 from .simulation import read_input_json
-from .plots._hashing_bound import project_triangle
 from .utils import fmt_uncertainty
 from .bpauli import int_to_bvector, bvector_to_pauli_string
 
@@ -586,14 +585,8 @@ def get_error_model_df(results_df):
         columns=['r_x', 'r_y', 'r_z']
     )
 
-    projected_triangle = pd.DataFrame(
-        error_model_df['noise_direction'].apply(project_triangle).tolist(),
-        index=error_model_df.index,
-        columns=['h', 'v']
-    )
-
     error_model_df = pd.concat([
-        error_model_df, r_xyz, projected_triangle
+        error_model_df, r_xyz
     ], axis=1)
 
     error_model_df['eta_x'] = error_model_df['r_x']/(
