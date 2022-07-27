@@ -11,7 +11,7 @@ name=${common_name}_temp
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
 sizes="13,17,21"
-wall_time="0:48:00"
+wall_time="72:00:00"
 memory="20G"
 
 # p_th unknown probably about 0.10
