@@ -1,11 +1,13 @@
 from abc import ABCMeta, abstractmethod
 from __future__ import annotations
+from cgitb import small
 from msilib.schema import Error
 from os import stat
 from re import U
 from typing import Any, Dict, Set, Tuple, List
 from xmlrpc.client import Boolean
 import numpy as np
+import sys
 from pyrsistent import T, b, s
 
 def clustering(syndrome: np.ndarray, code_size):
@@ -13,24 +15,26 @@ def clustering(syndrome: np.ndarray, code_size):
     # cluster_forest = map_vertex_tree(vertices) # map vertices with cluster information
     support = Support(syndrome, )
 
-    odd_clusters = filter(lambda c : c.is_odd(), support.get_clusters())
+    #odd_clusters = filter(lambda c : c.is_odd(), support.get_clusters())
 
-    while odd_clusters: # TODO full graph?
-        fusion_list = []
-        for c in odd_clusters: # should only update the smallest cluster, no loop
-            fusion_list += c.grow()
-            # fusion_list.append(grow(cluster_forest(u))) #inlcude step 9
+    (smallest_cluster, odd_clusters) = \
+        _smallest_odd_cluster(support.get_all_clusters())
+
+    while smallest_cluster: # TODO full graph?
+        old_root = smallest_cluster.get_root()
+        fusion_list = smallest_cluster.grow()
         
         for e in fusion_list:
             if e.fst.find_root() is not e.snd.find_root():
                 support.union(e.fst, e.snd) #include step 7,8
             # else:
             #     fusion_list.remove(e)
-        #TODO 111 update smallest cluster
-        for c in odd_clusters: 
-            c.update_boundary(support)
+        #TODO 111 update THE cluster
+        root = old_root.find_root()
+        support.get_cluster(root).update_boundary(support)
 
-        odd_clusters = filter(lambda c : c.is_odd(), support.get_clusters())
+        (smallest_cluster, odd_clusters) = \
+        _smallest_odd_cluster(odd_clusters)
 
     return #grwon supprt and syndrome
 
@@ -144,6 +148,19 @@ class Edge():
         self.fst = fst
         self.snd = snd
 
+def _smallest_odd_cluster(clts: List[Cluster_Tree]) \
+                            -> Tuple[Cluster_Tree, List[Cluster_Tree]]:
+    sml = None
+    odds = []
+    minSize = sys.maxsize
+    for c in clts:
+        if c.is_odd():
+            odds += c
+            if c.get_size < minSize:
+                sml = c
+                minSize = c.get_size
+    return (sml, odds)
+
 
 class Support():
     # edges status
@@ -187,7 +204,10 @@ class Support():
         return dict(map(lambda l : (l, Cluster_Tree(self._loc_vertex_map[l])), 
                         locations))
     
-    def get_clusters(self) -> List:
+    def get_cluster(self, v: Vertex):
+        return self._loc_cluster_map[v.get_location]
+
+    def get_all_clusters(self) -> List:
         return list(self._loc_cluster_map.value())
 
     def vertex_is_boundary(self, v: Vertex):
