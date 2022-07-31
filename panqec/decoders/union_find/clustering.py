@@ -1,15 +1,9 @@
-from abc import ABCMeta, abstractmethod
 from __future__ import annotations
-from cgitb import small
-from msilib.schema import Error
 from operator import xor
-from os import stat
-from re import U
 from typing import Any, Dict, Set, Tuple, List
 from xmlrpc.client import Boolean
 import numpy as np
 import sys
-from pyrsistent import T, b, s
 
 def clustering(syndrome: np.ndarray, code_size):
     """Given a syndrome and the code size, returns a correction to apply
@@ -39,11 +33,13 @@ def clustering(syndrome: np.ndarray, code_size):
 
     while smallest_cluster: 
         old_root = smallest_cluster.get_root()
-        fusion_list = smallest_cluster.grow()
+        fusion_list = smallest_cluster.grow() 
         
+        # TODO improve: only grow one edge at a time
+        # result: no fusion list, only fusion edge
         for e in fusion_list:
             if e.is_fusion_edge():
-                support.union(e.fst, e.snd) #TODO
+                support.union(e.fst, e.snd)
 
         root = old_root.find_root() # the root of cluster after union
         support.get_cluster(root).update_boundary(support)
@@ -373,10 +369,22 @@ class Support():
 
         return (fusion_list, new_boundary)
     
-    def _get_other_vertex_loc(self, vertex: Vertex, edge: Edge):
-        """
-            Given an edge and a vertex attached, infer the coordinate of 
-            the other vertex of the edge.
+    def _get_other_vertex_loc(self, vertex: Vertex, edge: Edge) -> Tuple:
+        """Given a vertex and an edge of the vertex, returns the coordinates of
+        the vertex at the other end of the edge.
+
+        Parameters
+        ----------
+        vertex : Vertex
+            The vertex representaion
+
+        edge : Edge
+            The edge attached to the given vertex
+
+        Returns
+        -------
+        (x, y) : Tuple
+            The coordinates of the vertex at the other end of the edge.
         """
         (v_x, v_y) = vertex.get_location()
         (e_x, e_y) = edge.get_location()
@@ -392,11 +400,17 @@ class Support():
 
     
     def _get_surrond_edges(self, vertex: Vertex) -> List[Tuple]:
-        """
-        Input: vertex to extract for its coordinates
+        """Given a vertex, returns the coordinates of its surrounding edges.
 
-        Return: the edges coordinate around the vertex.
-        
+        Parameters
+        ----------
+        vertex : Vertex
+            the vertex representation
+
+        Returns
+        -------
+        edges : List[Tuple]
+            The coordinates list of the surrounding edges.
         """
         (x, y) = vertex.get_location()
         edges = [((x - 1) % self._L_x, y),
