@@ -2,6 +2,7 @@ from abc import ABCMeta, abstractmethod
 from __future__ import annotations
 from cgitb import small
 from msilib.schema import Error
+from operator import xor
 from os import stat
 from re import U
 from typing import Any, Dict, Set, Tuple, List
@@ -109,7 +110,7 @@ class Cluster_Tree():
             A cluster tree representation
         """ 
         self._size += clst.get_size()
-        self._odd = False
+        self._odd = xor(self._odd, clst.is_odd())
         rt = clst.get_root()
         rt.set_parent(self._root)
         self._root.add_child(rt)
