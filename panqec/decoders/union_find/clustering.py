@@ -109,7 +109,7 @@ class Cluster_Tree():
         self._odd = xor(self._odd, clst.is_odd())
         rt = clst.get_root()
         rt.set_parent(self._root)
-        self._root.add_child(rt)
+        #self._root.add_child(rt)
         self._boundary_list.union(clst.get_boundary())
         
     def update_boundary(self, support: Support):
@@ -163,7 +163,7 @@ class Vertex():
         
     def _compress(r: Vertex, l: List[Vertex]):
         for v in l:
-            r.add_child(v)
+            # r.add_child(v)
             v.set_parent(r)
 
 class Edge():
@@ -364,7 +364,7 @@ class Support():
                         edge.add_vertex(snd = vertex_u) #11
                         fusion_list.append(edge)
                 else:
-                    # must not be the same cluster
+                    # but probably the same cluster
                     edge.add_vertex(snd = vertex)
                     fusion_list.append(edge)
 
