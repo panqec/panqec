@@ -11,26 +11,40 @@ import sys
 from pyrsistent import T, b, s
 
 def clustering(syndrome: np.ndarray, code_size):
-    # vertices: List = transfer_syndrome(syndrome) # turn syndromes into vertices
-    # cluster_forest = map_vertex_tree(vertices) # map vertices with cluster information
-    support = Support(syndrome, )
+    """Given a syndrome and the code size, returns a correction to apply
+    to the qubits
 
-    #odd_clusters = filter(lambda c : c.is_odd(), support.get_clusters())
+    Parameters
+    ----------
+    syndrome: np.ndarray
+        Syndrome as an array of size m, where m is the number of
+        stabilizers. Each element contains 1 if the stabilizer is
+        activated and 0 otherwise
+
+    code_size: tuple
+        Code size is a tuple that specify the length and the width of the
+        toric code.
+
+    Returns
+    -------
+    correction : np.ndarray
+        Correction as an array of size 2n (with n the number of qubits)
+        in the binary symplectic format.
+    """  
+    support = Support(syndrome, code_size)
 
     (smallest_cluster, odd_clusters) = \
         _smallest_odd_cluster(support.get_all_clusters())
 
-    while smallest_cluster: # TODO full graph?
+    while smallest_cluster: 
         old_root = smallest_cluster.get_root()
         fusion_list = smallest_cluster.grow()
         
         for e in fusion_list:
-            if e.fst.find_root() is not e.snd.find_root():
-                support.union(e.fst, e.snd) #include step 7,8
-            # else:
-            #     fusion_list.remove(e)
-        #TODO 111 update THE cluster
-        root = old_root.find_root()
+            if e.is_fusion_edge():
+                support.union(e.fst, e.snd) #TODO
+
+        root = old_root.find_root() # the root of cluster after union
         support.get_cluster(root).update_boundary(support)
 
         (smallest_cluster, odd_clusters) = \
@@ -39,7 +53,7 @@ def clustering(syndrome: np.ndarray, code_size):
     return #grwon supprt and syndrome
 
 class Cluster_Tree():
-
+    """Cluster representation"""
     def __init__(self, root):
         self._size = 1
         self._odd = True
@@ -62,21 +76,38 @@ class Cluster_Tree():
         self._size += inc
     
     def grow(self, support: Support):
+        """Given a support, grow every vertex in the boundary list,
+        returns the fusion list of edges.
+
+        Parameters
+        ----------
+        support: Support
+            The support class instance of the code.
+
+        Returns
+        -------
+        correction : np.ndarray
+            Correction as an array of size 2n (with n the number of qubits)
+            in the binary symplectic format.
         """ 
-            grow the boundary list of the cluster, returns fusion list 
-        """
         new_boundary = []
         fusion_list = []
         for v in self._boundary_list:
-            # what if no boundary list?
             (fl, nb) = support.grow_vertex(v)
             new_boundary += nb
             fusion_list += fl
         
-        self._boundary_list.union(new_boundary)
+        self._boundary_list.union(new_boundary) # append the boundary vertex set
         return fusion_list
     
     def merge(self, clst: Cluster_Tree):
+        """Given a cluster tree, merge it with the current instance of cluster.
+
+        Parameters
+        ----------
+        clst: Cluster_Tree
+            A cluster tree representation
+        """ 
         self._size += clst.get_size()
         self._odd = False
         rt = clst.get_root()
@@ -85,27 +116,29 @@ class Cluster_Tree():
         self._boundary_list.union(clst.get_boundary())
         
     def update_boundary(self, support: Support):
+        """ Eliminate the non-boundary vertx in the list"""
         self._boundary_list = set(filter(lambda b : support.vertex_is_boundary(b),
                                      self._boundary_list))
 
 class Vertex():
-
+    """ Vertex representation for stabilizer"""
     def __init__(self,
                  location: Tuple,
                  parent: Vertex = None,
                  children: List[Vertex] = []):
         self._location = location
         self._parent = parent
-        self._children = children
+        self._children = set(children)
     
     def get_location(self):
+        """ returns coordinates of the vertex location"""
         return self._location
     
     def add_child(self, child):
         """
             Add new children, return root for cluster size increase.
         """
-        self._children.append(child)
+        self._children.add(child)
         return self.find_root()
     
     def remove_child(self, child):
@@ -118,6 +151,9 @@ class Vertex():
         return self._parent
 
     def find_root(self) -> Vertex:
+        """ returns the root vertex of the current vertex,
+        compress the seen vertices along the way.
+        """
         v = self
         p = v.get_parent()
         seen_v = []
@@ -133,23 +169,48 @@ class Vertex():
             r.add_child(v)
             v.set_parent(r)
 
-
 class Edge():
-
+    """Edge representaions for physical quibits"""
     def __init__(self, location):
-        self.fst: Vertex = None
-        self.snd: Vertex = None
+        self.fst: Vertex = None # The edge grows from this vertex
+        self.snd: Vertex = None 
         self._location = location
     
     def get_location(self) -> Tuple:
+        """ Returns the coordinates of the edge."""
         return self._location
 
-    def add_vertex(self, fst=None, snd=None):
+    def add_vertex(self, fst: Vertex = None, snd: Vertex = None):
+        """ Add the attachted vertices sequentially. """ 
         self.fst = fst
         self.snd = snd
+    
+    def is_fusion_edge(self) -> Boolean:
+        """ return if the edge fuese two different clusters"""
+        try:
+            return self.fst.find_root() is not self.snd.find_root()
+        except AttributeError:
+            print("The edge is not attached to 2 vertices!")
 
 def _smallest_odd_cluster(clts: List[Cluster_Tree]) \
                             -> Tuple[Cluster_Tree, List[Cluster_Tree]]:
+    """Given a list of cluster tree, 
+    reutrns a tuple of the smallest cluster tree and a list of odd cluster trees.
+
+    Parameters
+    ----------
+    clts: List[Cluster_Tree]
+        A list of all cluster trees.
+
+    Returns
+    -------
+    smallest_cluster_tree : Cluster_Tree
+        The smallest odd cluster tree
+    
+    odd_trees : List[Cluster_Tree]
+        A list of all odd clutser trees.
+
+    """ 
     sml = None
     odds = []
     minSize = sys.maxsize
@@ -163,6 +224,7 @@ def _smallest_odd_cluster(clts: List[Cluster_Tree]) \
 
 
 class Support():
+    """ Storage Class of status and information of the code."""
     # edges status
     UNOCCUPIED = 0
     HALF_GROWN = 1
@@ -172,8 +234,6 @@ class Support():
     DARK_POINT = 0
     VERTEX     = 1
     SYNDROME   = 2
-    # improvement1: Eliminate faces...
-    # improvement2: Eliminate vertex from the support matrix, need hash function
 
     def __init__(self, syndrome: np.ndarray, code_size: Tuple):
         x, y = code_size
@@ -185,37 +245,83 @@ class Support():
         self._loc_cluster_map = self._init_loc_cluster(self._syndrome_loc)
     
     def _init_loc_syndrome(self, syndrome: np.ndarray) -> Dict[Tuple, Vertex]:
-        
-        # the first sydrome is always (0,0)
+        """Given a syndrome, find and store their coordinates,
+        returns the initial dict mapping coordinates and vertex.
+
+        Parameters
+        ----------
+        syndrome: np.ndarray
+            Syndrome as an array of size m, where m is the number of
+            stabilizers. Each element contains 1 if the stabilizer is
+            activated and 0 otherwise
+
+        Returns
+        -------
+        map : Dict[Tuple, Vertex]
+            map as an dict of coordinates and vertex representation of syndromes.
+        """
+        # the first sydrome starts from (0,0)
         (x, y) = (0, 0)
-        syn_l = [] 
+        syn_l = []  # the coordinate list of syndrome
         for s in syndrome:
             if s is 1:
                 syn_l.append((x, y))
-            y += 2
+            y += 2 # skip the edge
             if y >= self._L_y:
+                # the coordinate is in the next column
                 y = 0
                 x += 2
         self._syndrome_loc = syn_l
-        self._status[syn_l] = Support.SYNDROME  # light up the seen vertex
+        self._status[syn_l] = Support.SYNDROME
         return dict(map(lambda l : (l, Vertex(l)), syn_l))
     
-    def _init_loc_cluster(self, locations: List[T]) -> Dict[T, Cluster_Tree]:
+    def _init_loc_cluster(self, locations: List[Tuple]) -> Dict[Tuple, Cluster_Tree]:
+        """Given a list of coordinates of roots, creates Cluster representation 
+           and returns the initial mapping of the root locations and its cluster.
+
+        Parameters
+        ----------
+        locations: List[Tuple]
+            locations as a list of coordinates of syndrome
+
+        Returns
+        -------
+        map : Dict[Tuple, Cluster_Tree]
+            map as an dict from cluster root coordinates to Cluster_Tree representation.
+        """
         return dict(map(lambda l : (l, Cluster_Tree(self._loc_vertex_map[l])), 
                         locations))
     
-    def get_cluster(self, v: Vertex):
-        return self._loc_cluster_map[v.get_location]
+    def get_cluster(self, rt: Vertex):
+        """Given a root Vertex, returns the Cluster it belongs to"""
+        try:
+            return self._loc_cluster_map[rt.get_location()]
+        except KeyError:
+            print("The input is not a root vertex!")
 
     def get_all_clusters(self) -> List:
-        return list(self._loc_cluster_map.value())
+        """returns all clusters at the current stage."""
+        return list(self._loc_cluster_map.values())
 
     def vertex_is_boundary(self, v: Vertex):
-        return [] != \
+        """Given a vertex, returns true if it is a boundary vertex"""
+        # A vertex is boundary if all edges surrounded are grown.
+        return [] == \
             filter(lambda s : s != Support.GROWN, \
                 self._status[self._get_surrond_edges(v)])
 
-    def union(self, rt_v: Vertex, rt_u: Vertex):
+    def union(self, v: Vertex, u: Vertex):
+        """Given two root vertices, union their cluster.
+
+        Parameters
+        ----------
+        rt_v, rt_u: Vertex
+            Vertex representation of the root of different clusters.
+
+        """
+        rt_v = v.find_root()
+        rt_u = u.find_root()
+
         clst_v = self._loc_cluster_map[rt_v.get_location()]
         clst_u = self._loc_cluster_map[rt_u.get_location()]
 
