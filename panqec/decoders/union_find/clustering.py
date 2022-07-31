@@ -327,48 +327,105 @@ class Support():
         big.merge(sml)
         self._loc_cluster_map.pop(sml)
 
-    def grow_vertex(self, vertex: Vertex):
-        #TODO refactor
+    def grow_vertex(self, vertex: Vertex) -> Tuple:
+        """Given a vertex to grow, returns a list of potential fusion edges and
+        a list of potential new boundary vertices
+
+        Parameters
+        ----------
+        vertex : Vertex
+            The vertex to be grown
+
+        Returns
+        -------
+        fusion_list : List[Edge]
+            The list of new potential fusion edges.
+
+        new_boundary : List[Vertex]
+            The list of new potential boundary vertices.
+        """
         new_boundary: List[Vertex] =[]
         fusion_list: List[Edge] = []
         surround_edges_loc: List[Tuple] = self._get_surrond_edges(vertex)
         for e in surround_edges_loc:
-            status = self._status[e]
-            
-            if status == Support.UNOCCUPIED:
-                edge = Edge(e) #1
-                edge.add_vertex(vertex) #1
-                self._loc_edge_map[e] = edge #1
-                self._status[e] = Support.HALF_GROWN #1
-            elif status == Support.HALF_GROWN:
-                edge = self._loc_edge_map[e] #1
-                self._status[e] = Support.GROWN #1
+            edge = self._edge_newly_grown(e)
+            if edge: # if edge is growing to be grown
                 if vertex is edge.fst:
                     # append new vertex, but check if it has been approached 
                     # from the otehr end
                     loc_u = self._get_other_vertex_loc(vertex, edge)
                     if self._status[loc_u] == Support.DARK_POINT:
-                        vertex_u = Vertex(loc_u, parent=vertex)
-                        # ^^ new boundary
+                        vertex_u = self._light_up_vertex(loc_u, vertex)#11
                         new_boundary.append(vertex_u)
-                        #refactor
-                        self._status[loc_u] = Support.VERTEX
-                        self._loc_vertex_map[loc_u] = vertex_u
-                        #
-                        root = vertex.add_child(vertex_u)
-                        self._loc_cluster_map[root.get_location()].size_increment()
-                        edge.add_vertex(snd = vertex_u)
-
+                        edge.add_vertex(snd = vertex_u) #11
                     else:
                         # but probably the same cluster
-                        edge.add_vertex(snd = vertex)
+                        vertex_u = self._loc_vertex_map[loc_u]#11
+                        edge.add_vertex(snd = vertex_u) #11
                         fusion_list.append(edge)
                 else:
+                    # must not be the same cluster
                     edge.add_vertex(snd = vertex)
                     fusion_list.append(edge)
 
         return (fusion_list, new_boundary)
     
+    def _edge_newly_grown(self, loc: Tuple, v: Vertex) -> Edge:
+        """Given the coordinate of an edge, return the edge instance if the edge 
+        becomes grown from half-grown, returns None otherwise.
+
+        Parameters
+        ----------
+        loc : Tuple
+            The coordinates of the edge to be grown.
+        
+        v : Vertex
+            The vertex that the edge grows from.
+
+        Returns
+        -------
+        edge : Edge
+            The edge instance if the edge becomes grown from half-grown, 
+            None otherwise.
+        """
+        status = self._status[loc]
+
+        if status == Support.HALF_GROWN:
+            edge = self._loc_edge_map[loc]
+            self._status[loc] = Support.GROWN
+            return edge
+        elif status == Support.UNOCCUPIED:
+            edge = Edge(loc)
+            edge.add_vertex(fst=v)
+            self._loc_edge_map[loc] = edge
+            self._status[loc] = Support.HALF_GROWN
+        
+        return None
+
+    def _light_up_vertex(self, loc: Tuple, parent: Vertex):
+        """Given the coordinate and parent vertex of the new vertex, returns 
+        the new Vertex instance of the given coordinates.
+
+        Parameters
+        ----------
+        loc : Tuple
+            The coordinates of the vertex to be lit
+
+        parent : Vertex
+            The parent of the new vertex
+
+        Returns
+        -------
+        vertex : Vertex
+            The vertex instance of the newly created vertex.
+        """
+        vertex = Vertex(loc, parent=parent)
+        self._status[loc] = Support.VERTEX
+        self._loc_vertex_map[loc] = vertex
+        root = parent.add_child(vertex)
+        self._loc_cluster_map[root.get_location()].size_increment()
+        return vertex    
+
     def _get_other_vertex_loc(self, vertex: Vertex, edge: Edge) -> Tuple:
         """Given a vertex and an edge of the vertex, returns the coordinates of
         the vertex at the other end of the edge.
