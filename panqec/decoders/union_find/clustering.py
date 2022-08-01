@@ -504,4 +504,35 @@ class Support():
             if is_leaf:
                 leaves.append(curr)
         return leaves # leaves for peeling
+    
+    def _get_middle_edge_loc(self, v: Vertex, u: Vertex):
+        (v_x, v_y) = v.get_location()
+        (u_x, u_y) = u.get_location()
+
+        if v_x == u_x:
+            if {v_y, u_y} == {0, self._L_y-2}:
+                y = self._L_y - 1
+            else:
+                y = min(v_y, u_y) + 1
+            return (v_x, y)
+        else:
+            if {v_x, u_x} == {0, self._L_x-2}:
+                x = self._L_x - 1
+            else:
+                x = min(v_x, u_x) + 1
+            return (x, v_y)            
+
+
+    def peeling(self, leaves: List[Vertex]):
+        corrections = []
+
+        while len(leaves) > 0:
+
+        
+        return corrections
+        
+
+
+                    
+
 
