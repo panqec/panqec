@@ -1,7 +1,10 @@
 from __future__ import annotations
 from operator import xor
+import queue
 from typing import Any, Dict, Set, Tuple, List
 from xmlrpc.client import Boolean
+
+from click import edit
 import numpy as np
 import sys
 
@@ -475,4 +478,30 @@ class Support():
                  ((x + 1) % self._L_x, y),
                  (x, (y + 1) % self._L_y)]
         return edges
+
+    # peeling algorithms
+
+    def span_tree_by_edge(self, rt: Vertex):
+        """Restore spanning tree with BST"""
+        visited = {rt}
+        leaves = []
+        q = [rt]
+        while len(q) > 0:
+            curr = q.pop(0)
+            is_leaf = True
+            edges = self._get_surrond_edges(curr)
+            # q.extend(filter(lambda e : self._status[e] is Support.GROWN, edges))
+            for e in edges:
+                if self._status[e] is Support.GROWN:
+                    v_loc = self._get_other_vertex_loc(curr, self._loc_edge_map(e))
+                    v = self._loc_vertex_map(v_loc)
+                    if v not in visited:
+                        is_leaf = False
+                        visited.add(v)
+                        v.set_parent(curr)
+                        q.append(v)
+            
+            if is_leaf:
+                leaves.append(curr)
+        return leaves # leaves for peeling
 
