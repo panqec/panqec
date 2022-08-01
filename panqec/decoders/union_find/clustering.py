@@ -527,7 +527,12 @@ class Support():
         corrections = []
 
         while len(leaves) > 0:
-
+            l = leaves.pop(0)
+            p = l.get_parent()
+            if self._status[l.get_location()] is Support.SYNDROME:
+                corrections.append(self._get_middle_edge_loc(l, p))
+                self._status[p.get_location()] = abs(self._status[p.get_location()]-2) # flip syndrome
+            leaves.append(p)
         
         return corrections
         
