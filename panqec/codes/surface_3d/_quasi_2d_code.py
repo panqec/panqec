@@ -83,7 +83,8 @@ class Quasi2DCode(StabilizerCode):
 
     def stabilizer_type(self, location: Tuple[int, int, int]) -> str:
         if not self.is_stabilizer(location):
-            raise ValueError(f"Invalid coordinate {location} for a stabilizer")
+            raise ValueError(f"Invalid coordinate {location}"
+                             "for a stabilizer")
 
         x, y, z = location
         if x % 2 == 0 and y % 2 == 0:
@@ -93,7 +94,8 @@ class Quasi2DCode(StabilizerCode):
 
     def get_stabilizer(self, location, deformed_axis=None) -> Operator:
         if not self.is_stabilizer(location):
-            raise ValueError(f"Invalid coordinate {location} for a stabilizer")
+            raise ValueError(f"Invalid coordinate {location}"
+                             "for a stabilizer")
 
         if self.stabilizer_type(location) == 'vertex':
             pauli = 'Z'
@@ -105,7 +107,8 @@ class Quasi2DCode(StabilizerCode):
         x, y, z = location
 
         if self.stabilizer_type(location) == 'vertex':
-            delta = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
+            delta = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1),
+                     (0, 0, -1)]
         else:
             # Face in xy-plane.
             if z % 2 == 0:
@@ -122,12 +125,14 @@ class Quasi2DCode(StabilizerCode):
             qubit_location = tuple(np.add(location, d))
 
             if self.is_qubit(qubit_location):
-                is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
-                operator[qubit_location] = deformed_pauli if is_deformed else pauli
+                is_deformed = (self.qubit_axis(qubit_location)
+                               == deformed_axis)
+                operator[qubit_location] = (deformed_pauli if is_deformed
+                                            else pauli)
 
         return operator
 
-    def qubit_axis(self, location) -> int:
+    def qubit_axis(self, location) -> str:
         x, y, z = location
 
         if (z % 2 == 0) and (x % 2 == 1) and (y % 2 == 0):
@@ -137,7 +142,8 @@ class Quasi2DCode(StabilizerCode):
         elif (z % 2 == 1) and (x % 2 == 0) and (y % 2 == 0):
             axis = 'z'
         else:
-            raise ValueError(f'Location {location} does not correspond to a qubit')
+            raise ValueError(f'Location {location} does not correspond'
+                             'to a qubit')
 
         return axis
 
@@ -170,8 +176,11 @@ class Quasi2DCode(StabilizerCode):
 
         return logicals
 
-    def stabilizer_representation(self, location, rotated_picture=False) -> Dict:
-        representation = super().stabilizer_representation(location, rotated_picture)
+    def stabilizer_representation(
+        self, location, rotated_picture=False
+    ) -> Dict:
+        representation = super().stabilizer_representation(location,
+                                                           rotated_picture)
 
         x, y, z = location
         if not rotated_picture and self.stabilizer_type(location) == 'face':

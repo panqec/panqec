@@ -314,12 +314,8 @@ def xyz_sector_plot(
 
 def update_plot(plt, results_df, error_model, xlim=None, ylim=None,
                 save_folder=None, yscale=None, eta_key='eta_x',
-<<<<<<< HEAD
                 min_y_axis=1e-3, thresholds_df=None,
                 title=None):
-=======
-                min_y_axis=1e-3):
->>>>>>> main
     """Plot routine on loop."""
     df = results_df.copy()
     df.sort_values('probability', inplace=True)
