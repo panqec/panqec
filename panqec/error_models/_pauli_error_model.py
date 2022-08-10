@@ -32,7 +32,8 @@ class PauliErrorModel(BaseErrorModel):
 
     @property
     def direction(self) -> Tuple[float, float, float]:
-        """Rate of X, Y and Z errors, as given when initializing the error model
+        """Rate of X, Y and Z errors, as given when initializing the 
+        error model
 
         Returns
         -------
