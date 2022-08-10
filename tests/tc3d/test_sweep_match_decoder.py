@@ -1,7 +1,7 @@
 import itertools
 import pytest
 import numpy as np
-from panqec.bpauli import bcommute, bsf_wt
+from panqec.bpauli import bsf_wt
 from panqec.codes import Toric3DCode
 from panqec.decoders import SweepMatchDecoder
 from panqec.error_models import PauliErrorModel
@@ -29,7 +29,7 @@ class TestSweepMatchDecoder:
         )
         correction = decoder.decode(syndrome)
         assert correction.shape == (2*code.n,)
-        assert np.all(bcommute(code.stabilizer_matrix, correction) == 0)
+        assert np.all(code.measure_syndrome(correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 
     @pytest.mark.parametrize(
@@ -52,7 +52,7 @@ class TestSweepMatchDecoder:
 
         correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
-        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+        assert np.all(code.measure_syndrome(total_error) == 0)
 
     @pytest.mark.parametrize(
         'paulis_locations',
@@ -81,7 +81,7 @@ class TestSweepMatchDecoder:
 
         correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
-        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+        assert np.all(code.measure_syndrome(total_error) == 0)
 
     def test_decode_many_codes_and_errors_with_same_decoder(self):
 
@@ -108,4 +108,4 @@ class TestSweepMatchDecoder:
             syndrome = code.measure_syndrome(error)
             correction = decoder.decode(syndrome)
             total_error = (error + correction) % 2
-            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+            assert np.all(code.measure_syndrome(total_error) == 0)

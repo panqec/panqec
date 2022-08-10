@@ -25,5 +25,6 @@ __all__ = [
     "RhombicCode",
     "RotatedToric3DCode",
     "XCubeCode",
-    "Quasi2DCode"
+    "Quasi2DCode",
+    "XCubeCode"
 ]

@@ -8,7 +8,7 @@ from panqec.codes import (
 )
 from panqec.decoders import (
     Toric2DMatchingDecoder, RotatedSweepMatchDecoder,
-    ZMatchingDecoder, SweepMatchDecoder, DeformedSweepMatchDecoder,
+    ZMatchingDecoder, SweepMatchDecoder,
     BeliefPropagationOSDDecoder, MemoryBeliefPropagationDecoder,
 
 )
@@ -60,8 +60,10 @@ class GUI():
     @property
     def code_names(self):
         self._code_names = {
-            '2d': [code[0] for code in self.codes.items() if code[1].dimension == 2],
-            '3d': [code[0] for code in self.codes.items() if code[1].dimension == 3]
+            '2d': [code[0] for code in self.codes.items()
+                   if code[1].dimension == 2],
+            '3d': [code[0] for code in self.codes.items()
+                   if code[1].dimension == 3]
         }
 
         return self._code_names
@@ -137,7 +139,8 @@ class GUI():
 
             qubits = [code.qubit_representation(location, rotated_picture)
                       for location in code.qubit_coordinates]
-            stabilizers = [code.stabilizer_representation(location, rotated_picture)
+            stabilizers = [code.stabilizer_representation(location,
+                                                          rotated_picture)
                            for location in code.stabilizer_coordinates]
 
             logical_z = code.logicals_z
@@ -173,14 +176,16 @@ class GUI():
                 kwargs['alpha'] = alpha
                 kwargs['beta'] = beta
 
-            decoder = self.decoders[decoder_name](code, error_model, p, **kwargs)
+            decoder = self.decoders[decoder_name](code, error_model, p,
+                                                  **kwargs)
 
             correction = decoder.decode(syndrome)
 
             correction_x = correction[:code.n]
             correction_z = correction[code.n:]
 
-            return json.dumps({'x': correction_x.tolist(), 'z': correction_z.tolist()})
+            return json.dumps({'x': correction_x.tolist(),
+                               'z': correction_z.tolist()})
 
         @self.app.route('/new-errors', methods=['POST'])
         def send_random_errors():
@@ -196,14 +201,17 @@ class GUI():
 
             errors = error_model.generate(code, p)
 
-            bsf_to_str_map = {(0, 0): 'I', (1, 0): 'X', (0, 1): 'Z', (1, 1): 'Y'}
+            bsf_to_str_map = {(0, 0): 'I', (1, 0): 'X', (0, 1): 'Z',
+                              (1, 1): 'Y'}
             error_spec = [
                 (
                     bsf_to_str_map[
                         (errors[i_qubit], errors[i_qubit + code.n])
                     ],
                     [
-                        coords for index, coords in enumerate(code.qubit_coordinates)
+                        coords for index, coords in enumerate(
+                            code.qubit_coordinates
+                        )
                         if index == i_qubit
                     ][0]
                 )

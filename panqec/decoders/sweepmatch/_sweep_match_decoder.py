@@ -9,8 +9,8 @@ from panqec.error_models import BaseErrorModel
 class SweepMatchDecoder(BaseDecoder):
 
     label = 'Toric 3D Sweep + Matching Decoder'
-    sweeper: SweepDecoder3D
-    matcher: Toric3DMatchingDecoder
+    sweeper: BaseDecoder
+    matcher: BaseDecoder
 
     def __init__(self, code: StabilizerCode,
                  error_model: BaseErrorModel,
@@ -19,7 +19,7 @@ class SweepMatchDecoder(BaseDecoder):
         self.sweeper = SweepDecoder3D(code, error_model, error_rate)
         self.matcher = Toric3DMatchingDecoder(code, error_model, error_rate)
 
-    def decode(self, syndrome: np.ndarray) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray, **kwargs) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
         z_correction = self.sweeper.decode(syndrome)

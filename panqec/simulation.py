@@ -11,7 +11,6 @@ import numpy as np
 from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
 from panqec.error_models import BaseErrorModel
-from .bpauli import get_effective_error
 from .config import (
     CODES, ERROR_MODELS, DECODERS, PANQEC_DIR
 )
@@ -37,9 +36,7 @@ def run_once(
     syndrome = code.measure_syndrome(error)
     correction = decoder.decode(syndrome)
     total_error = (correction + error) % 2
-    effective_error = get_effective_error(
-        total_error, code.logicals_x, code.logicals_z
-    )
+    effective_error = code.logical_errors(total_error)
     codespace = code.in_codespace(total_error)
     success = bool(np.all(effective_error == 0)) and codespace
 
@@ -246,8 +243,8 @@ class BatchSimulation():
         output_dir: Optional[str] = None,
     ):
         self._simulations = []
-        self.code = {}
-        self.decoder = {}
+        self.code: Dict = {}
+        self.decoder: Dict = {}
         self.update_frequency = update_frequency
         self.save_frequency = save_frequency
         self.label = label
@@ -422,9 +419,9 @@ def _parse_code_dict(code_dict: Dict[str, Any]) -> StabilizerCode:
         code_params = code_dict['parameters']
     code_class = CODES[code_name]
     if isinstance(code_params, dict):
-        code = code_class(**code_params)
+        code = code_class(**code_params)  # type: ignore
     else:
-        code = code_class(*code_params)
+        code = code_class(*code_params)  # type: ignore
     return code
 
 
@@ -469,7 +466,9 @@ def parse_run(run: Dict[str, Any]) -> Simulation:
     code = _parse_code_dict(run['code'])
     error_model = _parse_error_model_dict(run['noise'])
     error_rate = run['probability']
-    decoder = _parse_decoder_dict(run['decoder'], code, error_model, error_rate)
+    decoder = _parse_decoder_dict(
+        run['decoder'], code, error_model, error_rate
+    )
 
     simulation = Simulation(code, error_model, decoder, error_rate)
     return simulation
@@ -521,7 +520,7 @@ def count_runs(file_path: str) -> Optional[int]:
 
 def get_simulations(
     data: dict, start: Optional[int] = None, n_runs: Optional[int] = None
-) -> List[dict]:
+) -> List[Simulation]:
     simulations = []
 
     if 'ranges' in data:

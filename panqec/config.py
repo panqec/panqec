@@ -5,6 +5,7 @@ Settings from environmental variables and config files.
     Eric Huang
 """
 import os
+from typing import Dict, Any
 from dotenv import load_dotenv
 from .codes import (
     Toric3DCode, Toric2DCode,
@@ -53,6 +54,8 @@ if os.getenv('PANQEC_DIR') is not None:
             f'PANQEC_DIR={PANQEC_DIR} is not a valid directory. '
             'Check .env configuration.'
         )
+else:
+    os.makedirs(PANQEC_DIR, exist_ok=True)
 
 # Register your models here.
 CODES = {
@@ -71,7 +74,7 @@ ERROR_MODELS = {
     'DeformedXYErrorModel': DeformedXYErrorModel,
     'DeformedRhombicErrorModel': DeformedRhombicErrorModel,
 }
-DECODERS = {
+DECODERS: Dict[str, Any] = {
     'Toric2DMatchingDecoder': Toric2DMatchingDecoder,
     'Toric3DMatchingDecoder': Toric3DMatchingDecoder,
     'SweepMatchDecoder': SweepMatchDecoder,

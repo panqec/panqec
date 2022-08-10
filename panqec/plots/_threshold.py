@@ -14,6 +14,98 @@ from ._hashing_bound import project_triangle, get_hashing_bound
 from ..analysis import quadratic
 
 
+def threshold_plot(
+    plt, results_df, thresholds_df=None, error_model=None, xlim=None,
+    ylim=None, save_folder=None, yscale=None, figsize=(8, 6),
+    label_size=14
+):
+    """Plot routine on loop.
+
+    Parameters
+    ----------
+    plt : matplotlib.pyplot
+        The matplotlib pyplot reference.
+    results_df : pd.Dataframe
+        Results table.
+    error_model : str
+        Name of the error model to filter to.
+    x_limits : Optional[Union[List[Tuple[float, float]], str]]
+        Will set limits from 0 to 0.5 if None given.
+        Will not impose limits if 'auto' given.
+    save_folder : str
+        If given will save save figure as png to directory.
+    yscale : Optional[str]
+        Set to 'log' to make yscale logarithmic.
+    thresholds_df : Optional[pd.DataFrame]
+        Plot the estimated threshold if given.
+    """
+    df = results_df.copy()
+    df.sort_values('probability', inplace=True)
+    fig, ax = plt.subplots(ncols=1, figsize=figsize)
+
+    if error_model is None:
+        error_model = df['error_model'].unique()[0]
+
+    legend_title = None
+
+    for code_size in np.sort(df['size'].unique()):
+        df_filtered = df[
+            (df['size'] == code_size) & (df['error_model'] == error_model)
+        ]
+        ax.errorbar(
+            df_filtered['probability'], df_filtered['p_est'],
+            yerr=df_filtered['p_se'],
+            label=r'$L={}$'.format(df_filtered['size'].iloc[0][0]),
+            capsize=1,
+            linestyle='-',
+            marker='.',
+        )
+    if thresholds_df is not None:
+        thresholds = thresholds_df[
+            thresholds_df['error_model'] == error_model
+        ]
+        if thresholds.shape[0] > 0:
+            p_th_fss_left = thresholds['p_th_fss_left'].iloc[0]
+            p_th_fss_right = thresholds['p_th_fss_right'].iloc[0]
+            p_th_fss = thresholds['p_th_fss'].iloc[0]
+            p_th_fss_se = thresholds['p_th_fss_se'].iloc[0]
+            if not pd.isna(p_th_fss_left) and not pd.isna(p_th_fss_right):
+                ax.axvspan(
+                    p_th_fss_left, p_th_fss_right,
+                    alpha=0.5, color='pink'
+                )
+            if not pd.isna(p_th_fss):
+                ax.axvline(
+                    p_th_fss,
+                    color='red',
+                    linestyle='--',
+                )
+            if p_th_fss_se is not None and p_th_fss is not None:
+                legend_title = r'$p_{\mathrm{th}}=(%.2f\pm %.2f)\%%$' % (
+                    100*p_th_fss, 100*p_th_fss_se,
+                )
+
+    if yscale is not None:
+        ax.set_yscale(yscale)
+
+    if ylim is not None:
+        ax.set_ylim(*ylim)
+    if xlim is not None:
+        ax.set_xlim(*xlim)
+    ax.locator_params(axis='x', nbins=6)
+
+    ax.set_xlabel('Physical Error Rate', size=label_size)
+    if legend_title is not None:
+        ax.legend(loc='best', title=legend_title)
+    else:
+        ax.legend(loc='best')
+    ax.set_ylabel('Logical Error Rate', size=label_size)
+
+    if save_folder:
+        filename = os.path.join(save_folder, results_df['label'][0])
+        plt.savefig(f'{filename}.png')
+
+
 def detailed_plot(
     plt, results_df, error_model, x_limits=None, save_folder=None,
     yscale=None, eta_key='eta_x', min_y_axis=1e-3,
@@ -110,8 +202,6 @@ def detailed_plot(
         else:
             ax.legend(loc='best')
     axes[0].set_ylabel('Logical Error Rate')
-
-    # fig.suptitle(f"$\eta={eta:.1f}$")
 
     if save_folder:
         filename = os.path.join(save_folder, results_df['label'][0])
@@ -224,8 +314,12 @@ def xyz_sector_plot(
 
 def update_plot(plt, results_df, error_model, xlim=None, ylim=None,
                 save_folder=None, yscale=None, eta_key='eta_x',
+<<<<<<< HEAD
                 min_y_axis=1e-3, thresholds_df=None,
                 title=None):
+=======
+                min_y_axis=1e-3):
+>>>>>>> main
     """Plot routine on loop."""
     df = results_df.copy()
     df.sort_values('probability', inplace=True)
@@ -317,8 +411,6 @@ def plot_data_collapse(plt, df_trunc, params_opt, params_bs):
         fontsize=16
     )
     plt.ylabel(r'Logical failure rate $p_{\mathrm{fail}}$', fontsize=16)
-
-
 
     error_model = df_trunc['error_model'].iloc[0]
     title = get_error_model_format(error_model)
@@ -436,8 +528,8 @@ def plot_threshold_vs_bias(
     png=None,
 ):
     p_th_key = 'p_th_fss'
-    p_th_left_key = 'p_th_fss_left'
-    p_th_right_key = 'p_th_fss_right'
+    # p_th_left_key = 'p_th_fss_left'
+    # p_th_right_key = 'p_th_fss_right'
     if labels is None:
         labels = [
             r'${}$ bias'.format(eta_key[-1].upper())
@@ -457,8 +549,8 @@ def plot_threshold_vs_bias(
 
         df_filt.replace(np.inf, inf_replacement, inplace=True)
 
-        errors_left = df_filt[p_th_key] - df_filt[p_th_left_key]
-        errors_right = df_filt[p_th_right_key] - df_filt[p_th_key]
+        # errors_left = df_filt[p_th_key] - df_filt[p_th_left_key]
+        # errors_right = df_filt[p_th_right_key] - df_filt[p_th_key]
         # errors = np.array([errors_left, errors_right])
         errors = np.zeros(df_filt[p_th_key].shape)
         plt.errorbar(
@@ -483,8 +575,10 @@ def plot_threshold_vs_bias(
 
         # Show label for depolarizing data point.
         if depolarizing_label:
-            p_th_dep = error_model_df[np.isclose(error_model_df[eta_key], 0.5)].iloc[0][p_th_key]
-            plt.text(0.5 + 0.05, p_th_dep + 0.03, f'{p_th_dep:.2f}', ha='center', color=color, fontsize=15)
+            p_th_dep = error_model_df[np.isclose(error_model_df[eta_key],
+                                                 0.5)].iloc[0][p_th_key]
+            plt.text(0.5 + 0.05, p_th_dep + 0.03, f'{p_th_dep:.2f}',
+                     ha='center', color=color, fontsize=15)
 
     # Plot the hashing bound curve.
     if hashing:
@@ -504,7 +598,8 @@ def plot_threshold_vs_bias(
         eta_interp = np.append(eta_interp, [inf_replacement])
         hb_interp = np.append(hb_interp, [get_hashing_bound((0, 0, 1))])
 
-        plt.plot(eta_interp, hb_interp, '-.', color='black', label='Hashing bound', alpha=0.5, linewidth=2)
+        plt.plot(eta_interp, hb_interp, '-.', color='black',
+                 label='Hashing bound', alpha=0.5, linewidth=2)
 
     plt.xscale('log')
 
@@ -517,7 +612,8 @@ def plot_threshold_vs_bias(
     draw_tick_symbol(plt, Line2D, log=True)
     plt.xticks(
         ticks=[0.5, 1e0, 1e1, 1e2, inf_replacement],
-        labels=['0.5', '1', '10', ' '*13 + '100' + ' '*10 + '...', r'$\infty$'],
+        labels=['0.5', '1', '10', ' '*13 + '100' + ' '*10 + '...',
+                r'$\infty$'],
         fontsize=17
     )
     plt.yticks(fontsize=17)
@@ -589,7 +685,7 @@ def plot_combined_threshold_vs_bias(plt, Line2D, thresholds_df,
                                     markers=['o', 'x'],
                                     linestyles=['-', '--'],
                                     depolarizing_labels=[True, False],
-                                    figsize=(5,4),
+                                    figsize=(5, 4),
                                     pdf=None):
     n_plots = len(thresholds_df)
 
@@ -812,4 +908,3 @@ def plot_repetition_code_threshold(plt, pdf=None):
     if pdf is not None:
         plt.savefig(pdf, bbox_inches='tight')
     plt.show()
-

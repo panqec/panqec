@@ -4,7 +4,6 @@ import pytest
 from panqec.codes import RotatedPlanar3DCode
 from panqec.decoders import DeformedRotatedSweepMatchDecoder
 from panqec.error_models import DeformedXZZXErrorModel
-from panqec.bpauli import bcommute, get_effective_error
 
 
 class TestDeformedRotatedPlanarMatchingDecoder:
@@ -23,7 +22,7 @@ class TestDeformedRotatedPlanarMatchingDecoder:
 
     @pytest.fixture
     def decoder(self, code, error_model):
-        return DeformedRotatedSweepMatchDecoder(code, error_model, 
+        return DeformedRotatedSweepMatchDecoder(code, error_model,
                                                 self.error_rate)
 
     def test_decode(self, code, error_model, decoder):
@@ -31,14 +30,12 @@ class TestDeformedRotatedPlanarMatchingDecoder:
         error = error_model.generate(code, self.error_rate, rng=rng)
         assert np.any(error != 0)
 
-        syndrome = bcommute(code.stabilizer_matrix, error)
+        syndrome = code.measure_syndrome(error)
         correction = decoder.decode(syndrome)
         total_error = (correction + error) % 2
-        effective_error = get_effective_error(
-            total_error, code.logicals_x, code.logicals_z
-        )
+        effective_error = code.logical_errors(total_error)
         codespace = bool(
-            np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+            np.all(code.measure_syndrome(total_error) == 0)
         )
         assert codespace, 'Not in code space'
         success = bool(np.all(effective_error == 0)) and codespace
@@ -65,7 +62,7 @@ class TestDeformedRotatedPlanarMatchingDecoder:
         pauli_naive_correction[(5, 3, 5)] = 'X'
         naive_correction = code.to_bsf(pauli_naive_correction)
 
-        syndrome = bcommute(code.stabilizer_matrix, error)
+        syndrome = code.measure_syndrome(error)
         correction = decoder.decode(syndrome)
 
         assert np.any(correction != naive_correction), 'Correction is naive'
@@ -74,12 +71,8 @@ class TestDeformedRotatedPlanarMatchingDecoder:
         )
         total_error = (correction + error) % 2
 
-        effective_error = get_effective_error(
-            total_error, code.logicals_x, code.logicals_z
-        )
-        codespace = bool(
-            np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
-        )
+        effective_error = code.logical_errors(total_error)
+        codespace = code.in_codespace(total_error)
         assert codespace, 'Not in code space'
         success = bool(np.all(effective_error == 0)) and codespace
         assert success, 'Decoding failed'

@@ -1,10 +1,10 @@
+from typing import Sequence
 import numpy as np
 from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
 from panqec.error_models import BaseErrorModel
 from typing import Dict
 import panqec.bsparse as bsparse
-from panqec.bpauli import bcommute
 from scipy.sparse import csr_matrix
 
 
@@ -54,7 +54,7 @@ def tanh_prod(a, eps=1e-8):
     return 2 * np.arctanh(prod)
 
 
-def log_exp_bias(pauli, gamma, eps=1e-12):
+def log_exp_bias(pauli, gamma, eps=1e-12) -> Sequence:
     """ Function lambda defined in II.B of arXiv:2104.13659"""
     denominator = np.sum(np.exp(-gamma), axis=0)
     gamma_pauli = np.choose(pauli, gamma)
@@ -100,7 +100,8 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
         # ===================== Initialize BP variables ====================
 
         # Create channel log ratios
-        self.lambda_channel = np.log((1 - self.p_channel[1:]) / self.p_channel[1:])
+        self.lambda_channel = np.log((1 - self.p_channel[1:])
+                                     / self.p_channel[1:])
 
         # Initialize [qubit to stabilizer] messages (gamma)
         n_stabs, n_qubits = self.H_pauli.shape
@@ -122,10 +123,9 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
         )
         return pi, px, py, pz
 
-    def decode(self, syndrome: np.ndarray) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray, **kwargs) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
-        H = self.H
         H_pauli = self.H_pauli
 
         n_stabs, n_qubits = H_pauli.shape
@@ -145,10 +145,13 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
                 # --------- Stabilizer to qubit update (prod-sum) ---------
 
                 for m in self.neighboring_stabs[n]:
-                    lambda_neighbor = [log_exp_bias(H_pauli[m, n_prime]-1,
-                                                    gamma_q2s[:, n_prime, m])
-                                       for n_prime in self.neighboring_qubits[m]
-                                       if n_prime != n]
+                    lambda_neighbor = np.array([
+                        log_exp_bias(
+                            H_pauli[m, n_prime]-1, gamma_q2s[:, n_prime, m]
+                        )
+                        for n_prime in self.neighboring_qubits[m]
+                        if n_prime != n
+                    ])
                     lambda_neighbor = np.array(lambda_neighbor)
 
                     sign = (-1)**syndrome[m]
@@ -192,7 +195,7 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
 
             # --------------- Break loop if syndrome reached ---------------
 
-            new_syndrome = bcommute(H, correction_symplectic)
+            new_syndrome = self.code.measure_syndrome(correction_symplectic)
             if np.all(new_syndrome == syndrome):
                 # print(f"Syndrome reached in {iter} iterations\n")
                 break
@@ -212,7 +215,6 @@ def test_symplectic_to_pauli():
 
 def test_decoder():
     from panqec.codes import Toric3DCode
-    from panqec.bpauli import get_effective_error
     from panqec.error_models import PauliErrorModel
     import time
 
@@ -250,9 +252,7 @@ def test_decoder():
         print("Get total error")
         total_error = (correction + error) % 2
         print("Get effective error")
-        effective_error = get_effective_error(
-            total_error, code.logicals_x, code.logicals_z
-        )
+        effective_error = code.logical_errors(total_error)
 
         print("Check codespace")
         codespace = code.in_codespace(total_error)

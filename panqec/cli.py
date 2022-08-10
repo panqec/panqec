@@ -12,7 +12,6 @@ from .slurm import (
     generate_sbatch, get_status, generate_sbatch_nist, count_input_runs,
     clear_out_folder, clear_sbatch_folder
 )
-from .statmech.cli import statmech
 from .utils import get_direction_from_bias_ratio
 from panqec.gui import GUI
 from glob import glob
@@ -155,7 +154,7 @@ def read_range_input(specification: str) -> List[float]:
 @click.option(
     '--decoder', default='BeliefPropagationOSDDecoder',
     show_default=True,
-    type=click.Choice(DECODERS.keys()),
+    type=click.Choice(list(DECODERS.keys())),
     help='Decoder name'
 )
 @click.option(
@@ -471,8 +470,13 @@ def cc_sbatch(
     '-s', '--split', default=1, type=click.INT, show_default=True
 )
 @click.option('-p', '--partition', default='pml', type=str, show_default=True)
+@click.option(
+    '--max_sim_array', default=None, type=int, show_default=True,
+    help='Max number of simultaneous array jobs'
+)
 def nist_sbatch(
-    sbatch_file, data_dir, n_array, wall_time, memory, trials, split, partition
+    sbatch_file, data_dir, n_array, wall_time, memory, trials, split,
+    partition, max_sim_array
 ):
     """Generate NIST-style sbatch file with parallel array jobs."""
     template_file = os.path.join(
@@ -486,11 +490,14 @@ def nist_sbatch(
         f'{inputs_dir} missing, please create it and generate inputs'
     )
     name = os.path.basename(data_dir)
+    narray_str = str(n_array)
+    if max_sim_array is not None:
+        narray_str += '%' + str(max_sim_array)
     replace_map = {
         '${TIME}': wall_time,
         '${MEMORY}': memory,
         '${NAME}': name,
-        '${NARRAY}': str(n_array),
+        '${NARRAY}': narray_str,
         '${DATADIR}': os.path.abspath(data_dir),
         '${TRIALS}': str(trials),
         '${SPLIT}': str(split),
@@ -683,7 +690,6 @@ cli.add_command(run)
 cli.add_command(ls)
 cli.add_command(slurm)
 cli.add_command(generate_input)
-cli.add_command(statmech)
 cli.add_command(pi_sbatch)
 cli.add_command(cc_sbatch)
 cli.add_command(merge_dirs)

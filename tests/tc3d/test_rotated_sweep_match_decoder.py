@@ -1,7 +1,7 @@
 import pytest
 from itertools import combinations
 import numpy as np
-from panqec.bpauli import bcommute, bsf_wt
+from panqec.bpauli import bs_prod, bsf_wt
 from panqec.codes import (
     RotatedPlanar3DCode
 )
@@ -32,7 +32,7 @@ class TestRotatedSweepMatchDecoder:
         )
         correction = decoder.decode(syndrome)
         assert correction.shape[0] == 2*code.n
-        assert np.all(bcommute(code.stabilizer_matrix, correction) == 0)
+        assert np.all(code.measure_syndrome(correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 
     @pytest.mark.parametrize(
@@ -56,7 +56,7 @@ class TestRotatedSweepMatchDecoder:
 
         correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
-        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+        assert np.all(code.measure_syndrome(total_error) == 0)
 
     @pytest.mark.parametrize('sweep_direction, diffs', [
         [(+1, 0, +1), [(+1, +1, +1), (+1, -1, +1), (+2, 0, 0)]],
@@ -141,7 +141,7 @@ class TestRotatedSweepMatchDecoder:
 
         correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
-        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+        assert np.all(code.measure_syndrome(total_error) == 0)
 
     def test_undecodable_error(self, decoder, code):
         locations = [
@@ -168,7 +168,7 @@ class TestRotatedSweepMatchDecoder:
             (RotatedPlanar3DCode(4, 4, 4), (5, 5, 5)),
             (RotatedPlanar3DCode(5, 5, 5), (3, 3, 3)),
         ]
-        
+
         error_model = PauliErrorModel(1/3, 1/3, 1/3)
         error_rate = 0.5
 
@@ -179,7 +179,7 @@ class TestRotatedSweepMatchDecoder:
             syndrome = code.measure_syndrome(error)
             correction = decoder.decode(syndrome)
             total_error = (error + correction) % 2
-            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+            assert np.all(code.measure_syndrome(total_error) == 0)
 
 
 class TestSweepMatch3x3x3:
@@ -217,7 +217,7 @@ class TestSweepMatch3x3x3:
         correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
         assert not np.all(
-            bcommute(code.stabilizer_matrix, total_error) == 0
+            code.measure_syndrome(total_error) == 0
         ), 'Total error in codespace when it should not be'
 
 
@@ -275,14 +275,14 @@ class TestSweepMatch4x4x3:
 
         correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
-        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
+        assert np.all(code.measure_syndrome(total_error) == 0), (
             'Total error not in codespace'
         )
 
-        assert np.all(bcommute(code.logicals_x, total_error) == 0), (
+        assert np.all(bs_prod(code.logicals_x, total_error) == 0), (
             'Total error anticommutes with logical X'
         )
-        assert np.all(bcommute(code.logicals_z, total_error) == 0), (
+        assert np.all(bs_prod(code.logicals_z, total_error) == 0), (
             'Total error anticommutes with logical Z'
         )
 
@@ -317,7 +317,7 @@ class TestSweepMatch4x4x3:
         correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
         assert not np.all(
-            bcommute(code.stabilizer_matrix, total_error) == 0
+            code.measure_syndrome(total_error) == 0
         ), 'Total error in codespace when it should not be'
 
 
@@ -352,14 +352,14 @@ class TestSweepCorners:
 
         correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
-        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0), (
+        assert np.all(code.measure_syndrome(total_error) == 0), (
             'Total error not in codespace'
         )
 
-        assert np.all(bcommute(code.logicals_x, total_error) == 0), (
+        assert np.all(bs_prod(code.logicals_x, total_error) == 0), (
             'Total error anticommutes with logical X'
         )
-        assert np.all(bcommute(code.logicals_z, total_error) == 0), (
+        assert np.all(bs_prod(code.logicals_z, total_error) == 0), (
             'Total error anticommutes with logical Z'
         )
 
@@ -377,12 +377,12 @@ class TestSweepCorners:
 
             correction = decoder.decode(syndrome)
             total_error = (error + correction) % 2
-            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+            assert np.all(code.measure_syndrome(total_error) == 0)
 
             correctable = True
-            if np.any(bcommute(code.logicals_x, total_error) != 0):
+            if np.any(bs_prod(code.logicals_x, total_error) != 0):
                 correctable = False
-            if np.all(bcommute(code.logicals_z, total_error) != 0):
+            if np.all(bs_prod(code.logicals_z, total_error) != 0):
                 correctable = False
             if not correctable:
                 uncorrectable_locations.append(location)
@@ -410,12 +410,12 @@ class TestSweepCorners:
 
             correction = decoder.decode(syndrome)
             total_error = (error + correction) % 2
-            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+            assert np.all(code.measure_syndrome(total_error) == 0)
 
             correctable = True
-            if np.any(bcommute(code.logicals_x, total_error) != 0):
+            if np.any(bs_prod(code.logicals_x, total_error) != 0):
                 correctable = False
-            if np.all(bcommute(code.logicals_z, total_error) != 0):
+            if np.all(bs_prod(code.logicals_z, total_error) != 0):
                 correctable = False
             if not correctable:
                 uncorrectable_error_locations.append(locations)
@@ -508,23 +508,23 @@ class TestRotatedSweepDecoder3D:
                     error = dict()
                     error[x_edge] = 'Z'
                     x_edge_bsf = code.to_bsf(error)
-                    assert np.all(bcommute(x_edge_bsf, x_face_bsf) == 0)
-                    assert np.any(bcommute(x_edge_bsf, y_face_bsf) == 1)
-                    assert np.any(bcommute(x_edge_bsf, z_face_bsf) == 1)
+                    assert np.all(bs_prod(x_edge_bsf, x_face_bsf) == 0)
+                    assert np.any(bs_prod(x_edge_bsf, y_face_bsf) == 1)
+                    assert np.any(bs_prod(x_edge_bsf, z_face_bsf) == 1)
 
                     error = dict()
                     error[y_edge] = 'Z'
                     y_edge_bsf = code.to_bsf(error)
-                    assert np.all(bcommute(y_edge_bsf, y_face_bsf) == 0)
-                    assert np.any(bcommute(y_edge_bsf, x_face_bsf) == 1)
-                    assert np.any(bcommute(y_edge_bsf, z_face_bsf) == 1)
+                    assert np.all(bs_prod(y_edge_bsf, y_face_bsf) == 0)
+                    assert np.any(bs_prod(y_edge_bsf, x_face_bsf) == 1)
+                    assert np.any(bs_prod(y_edge_bsf, z_face_bsf) == 1)
 
                     error = dict()
                     error[z_edge] = 'Z'
                     z_edge_bsf = code.to_bsf(error)
-                    assert np.any(bcommute(z_edge_bsf, z_face_bsf) == 0)
-                    assert np.any(bcommute(z_edge_bsf, x_face_bsf) == 1)
-                    assert np.any(bcommute(z_edge_bsf, y_face_bsf) == 1)
+                    assert np.any(bs_prod(z_edge_bsf, z_face_bsf) == 0)
+                    assert np.any(bs_prod(z_edge_bsf, x_face_bsf) == 1)
+                    assert np.any(bs_prod(z_edge_bsf, y_face_bsf) == 1)
 
                     touched_edges.append(x_edge)
                     touched_edges.append(y_edge)
@@ -553,9 +553,6 @@ class TestRotatedSweepDecoder3D:
             error = code.to_bsf({
                 edge: 'Z'
             })
-            pauli_syndrome = bcommute(
-                code.stabilizer_matrix,
-                error
-            )
+            pauli_syndrome = code.measure_syndrome(error)
 
             assert np.all(pauli_syndrome == sign_flip_syndrome)

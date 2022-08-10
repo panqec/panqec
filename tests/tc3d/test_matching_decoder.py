@@ -1,7 +1,7 @@
 import itertools
 import pytest
 import numpy as np
-from panqec.bpauli import bcommute, bsf_wt
+from panqec.bpauli import bsf_wt
 from panqec.codes import Toric3DCode
 from panqec.decoders import Toric3DMatchingDecoder
 from panqec.error_models import PauliErrorModel
@@ -29,7 +29,7 @@ class TestToric3DMatchingDecoder:
         )
         correction = decoder.decode(syndrome)
         assert correction.shape[0] == 2*code.n
-        assert np.all(bcommute(code.stabilizer_matrix, correction) == 0)
+        assert np.all(code.measure_syndrome(correction) == 0)
         assert issubclass(correction.dtype.type, np.integer)
 
     def test_decode_X_error(self, decoder, code):
@@ -45,7 +45,7 @@ class TestToric3DMatchingDecoder:
         correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
 
-        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+        assert np.all(code.measure_syndrome(total_error) == 0)
 
     def test_decode_many_X_errors(self, decoder, code):
         error = code.to_bsf({
@@ -60,7 +60,7 @@ class TestToric3DMatchingDecoder:
 
         correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
-        assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+        assert np.all(code.measure_syndrome(total_error) == 0)
 
     def test_unable_to_decode_Z_error(self, decoder, code):
         error = code.to_bsf({
@@ -78,7 +78,7 @@ class TestToric3DMatchingDecoder:
         total_error = (error + correction) % 2
         assert np.all(error == total_error)
 
-        assert np.any(bcommute(code.stabilizer_matrix, total_error) != 0)
+        assert np.any(code.measure_syndrome(total_error) != 0)
 
     def test_decode_many_codes_and_errors_with_same_decoder(self):
 
@@ -93,7 +93,7 @@ class TestToric3DMatchingDecoder:
             (1, 0, 0),
             (0, 1, 0)
         ]
-        
+
         error_model = PauliErrorModel(1/3, 1/3, 1/3)
         error_rate = 0.1
 
@@ -105,4 +105,4 @@ class TestToric3DMatchingDecoder:
             syndrome = code.measure_syndrome(error)
             correction = decoder.decode(syndrome)
             total_error = (error + correction) % 2
-            assert np.all(bcommute(code.stabilizer_matrix, total_error) == 0)
+            assert np.all(code.measure_syndrome(total_error) == 0)

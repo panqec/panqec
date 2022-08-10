@@ -19,7 +19,7 @@ class Toric2DMatchingDecoder(BaseDecoder):
         self.matcher_z = Matching(self.code.Hz)
         self.matcher_x = Matching(self.code.Hx)
 
-    def decode(self, syndrome: np.ndarray) -> np.ndarray:
+    def decode(self, syndrome: np.ndarray, **kwargs) -> np.ndarray:
         """Get X corrections given code and measured syndrome."""
 
         # Initialize correction as full bsf.

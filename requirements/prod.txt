@@ -1,1 +1,6 @@
--r common.txt
+pytest>=6.2.2
+pytest-sugar>=0.9.4
+mypy>=0.812
+coverage>=5.5
+pytest-cov>=2.11.1
+-e .
