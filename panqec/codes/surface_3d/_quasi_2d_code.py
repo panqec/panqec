@@ -2,8 +2,8 @@ from typing import Tuple, Dict, List
 import numpy as np
 from panqec.codes import StabilizerCode
 
-Operator = Dict[Tuple[int, int, int], str]  # Location to pauli ('X','Y','Z')
-Coordinates = List[Tuple[int, int, int]]  # List of locations
+Operator = Dict[Tuple, str]  # Location to pauli ('X','Y','Z')
+Coordinates = List[Tuple]  # List of locations
 
 
 class Quasi2DCode(StabilizerCode):
@@ -21,7 +21,7 @@ class Quasi2DCode(StabilizerCode):
                 and (z >= 1 and z < 2*Lz-2))
 
     def get_qubit_coordinates(self) -> Coordinates:
-        coordinates = []
+        coordinates: Coordinates = []
         Lx, Ly, Lz = self.size
 
         # Qubits along e_x
@@ -48,7 +48,7 @@ class Quasi2DCode(StabilizerCode):
         return coordinates
 
     def get_stabilizer_coordinates(self) -> Coordinates:
-        coordinates = []
+        coordinates: Coordinates = []
         Lx, Ly, Lz = self.size
 
         # Vertices
@@ -81,7 +81,7 @@ class Quasi2DCode(StabilizerCode):
 
         return coordinates
 
-    def stabilizer_type(self, location: Tuple[int, int, int]) -> str:
+    def stabilizer_type(self, location: Tuple) -> str:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location}"
                              "for a stabilizer")
@@ -147,28 +147,28 @@ class Quasi2DCode(StabilizerCode):
 
         return axis
 
-    def get_logicals_x(self) -> Operator:
+    def get_logicals_x(self) -> List[Operator]:
         """The unique logical X operator."""
 
         Lx, Ly, Lz = self.size
         logicals = []
 
         # X operators along x edges in x direction.
-        operator = dict()
+        operator: Operator = dict()
         for x in range(1, 2*Lx+1, 2):
             operator[(x, 0, 0)] = 'X'
         logicals.append(operator)
 
         return logicals
 
-    def get_logicals_z(self) -> Operator:
+    def get_logicals_z(self) -> List[Operator]:
         """The unique logical Z operator."""
 
         Lx, Ly, Lz = self.size
         logicals = []
 
         # X operators along x edges in x direction.
-        operator = dict()
+        operator: Operator = dict()
         for y in range(0, 2*Ly, 2):
             for z in range(0, 2*Lz, 2):
                 operator[(1, y, z)] = 'Z'
@@ -177,7 +177,7 @@ class Quasi2DCode(StabilizerCode):
         return logicals
 
     def stabilizer_representation(
-        self, location, rotated_picture=False
+        self, location, rotated_picture=False, json_file=None
     ) -> Dict:
         representation = super().stabilizer_representation(location,
                                                            rotated_picture)
