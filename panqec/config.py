@@ -10,7 +10,8 @@ from dotenv import load_dotenv
 from .codes import (
     Toric3DCode, Toric2DCode,
     RotatedPlanar3DCode, XCubeCode,
-    RotatedToric3DCode, RhombicCode
+    RotatedToric3DCode, RhombicCode,
+    Quasi2DCode
 )
 from .decoders import (
     Toric3DMatchingDecoder, SweepMatchDecoder,
@@ -63,7 +64,8 @@ CODES = {
     'RhombicCode': RhombicCode,
     'RotatedPlanar3DCode': RotatedPlanar3DCode,
     'RotatedToric3DCode': RotatedToric3DCode,
-    'XCubeCode': XCubeCode
+    'XCubeCode': XCubeCode,
+    'Quasi2DCode': Quasi2DCode
 }
 ERROR_MODELS = {
     'PauliErrorModel': PauliErrorModel,

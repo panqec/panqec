@@ -254,7 +254,7 @@ async function buildGUI() {
     const decoderFolder = gui.addFolder('Decoder')
 
     decoderFolder.add(params, 'decoder', decoders).name('Decoder');
-    decoderFolder.add(params, 'max_bp_iter', 1, 100, 1).name('Max iterations (BP)');
+    decoderFolder.add(params, 'max_bp_iter', 1, 1000, 1).name('Max iterations (BP)');
     decoderFolder.add(params, 'channel_update').name('Channel update (BP)');
     decoderFolder.add(params, 'alpha', 0.01, 2, 0.01).name('Alpha (MBP)');
     decoderFolder.add(params, 'beta', 0, 2, 0.01).name('Beta (MBP)');
