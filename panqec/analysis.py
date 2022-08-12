@@ -8,6 +8,8 @@ Routines for analysing output data.
 import os
 import warnings
 from typing import List, Optional, Tuple, Union, Callable
+import json
+import gzip
 import itertools
 from multiprocessing import Pool, cpu_count
 import numpy as np
@@ -18,7 +20,7 @@ from scipy.optimize import curve_fit
 from scipy.signal import argrelextrema
 from .config import SLURM_DIR
 from .simulation import read_input_json
-from .utils import fmt_uncertainty
+from .utils import fmt_uncertainty, NumpyEncoder
 from .bpauli import int_to_bvector, bvector_to_pauli_string
 
 
@@ -85,10 +87,42 @@ def get_results_df(
     ]
     batches = {}
     for i in range(len(input_files)):
-        batch_sim = read_input_json(input_files[i])
-        for sim in batch_sim:
-            sim.load_results(output_dirs[i])
-        batches[batch_sim.label] = batch_sim
+
+        # Determine whether or not it's a onefile format.
+        onefile = False
+        output_file_list = os.listdir(output_dirs[i])
+        if len(output_file_list) == 1:
+            if '.json.gz' in output_file_list[0]:
+                results_onefile = os.path.join(
+                    output_dirs[i], output_file_list[0]
+                )
+                with gzip.open(results_onefile, 'rb') as g:
+                    data = json.loads(g.read().decode('utf-8'))
+                if isinstance(data, list):
+                    onefile = True
+
+        if onefile:
+            batch_sim = read_input_json(input_files[i])
+            input_jsons = [json.dumps(element['inputs']) for element in data]
+            for sim in batch_sim:
+                sim_input_json = json.dumps(
+                    sim.get_results_to_save()['inputs'],
+                    cls=NumpyEncoder
+                )
+                matching_indices = [
+                    i
+                    for i, value in enumerate(input_jsons)
+                    if value == sim_input_json
+                ]
+                if matching_indices:
+                    sim.load_results_from_dict(data[matching_indices[0]])
+            batches[batch_sim.label] = batch_sim
+
+        else:
+            batch_sim = read_input_json(input_files[i])
+            for sim in batch_sim:
+                sim.load_results(output_dirs[i])
+            batches[batch_sim.label] = batch_sim
 
     results = []
 
@@ -113,6 +147,7 @@ def get_results_df(
             batch_result['eta_x'] = eta_x
             batch_result['eta_y'] = eta_y
             batch_result['eta_z'] = eta_z
+            batch_result['wall_time'] = sim._results['wall_time']
 
             if len(sim.results['effective_error']) > 0:
                 codespace = np.array(sim.results['codespace'])
@@ -798,6 +833,13 @@ def subthreshold_scaling(results_df, chosen_probabilities=None):
             w=w
         )
 
+        # Fit to ansatz log(p_est) = c_0 + c_3*d**3
+        cubic_coefficients = polyfit(
+            d_values, log_p_est_values,
+            deg=3,
+            w=w
+        )
+
         # The slope of the linear fit.
         linear_fit_gradient = linear_coefficients[-1]
         sts_properties.append({
@@ -807,6 +849,7 @@ def subthreshold_scaling(results_df, chosen_probabilities=None):
             'p_se': p_se_values,
             'linear_coefficients': linear_coefficients,
             'quadratic_coefficients': quadratic_coefficients,
+            'cubic_coefficients': cubic_coefficients,
             'linear_fit_gradient': linear_fit_gradient,
             'log_p_on_1_minus_p': np.log(probability/(1 - probability)),
         })
@@ -816,4 +859,86 @@ def subthreshold_scaling(results_df, chosen_probabilities=None):
         [props['linear_fit_gradient'] for props in sts_properties],
         1
     )
+
     return sts_properties, gradient_coefficients
+
+
+def fit_subthreshold_scaling_cubic(results_df, order=3, ansatz='poly'):
+    """Get fit parameters for subthreshold scaling ansatz."""
+    log_p_L = np.log(results_df['p_est'].values)
+    log_p = np.log(results_df['probability'].values)
+    L = results_df['size'].apply(lambda x: min(x))
+
+    if ansatz == 'free_power':
+        params_0 = [max(log_p_L), max(log_p), 1, 1]
+    elif ansatz == 'simple':
+        params_0 = [max(log_p_L), max(log_p), 1]
+    else:
+        params_0 = tuple(
+            [max(log_p_L), max(log_p)] + np.ones(order + 1).tolist()
+        )
+
+    x_data = np.array([log_p, L])
+    y_data = log_p_L
+    maxfev: int = 2000
+    ftol: float = 1e-5
+
+    subthreshold_fit_function = get_subthreshold_fit_function(
+        order=order, ansatz=ansatz
+    )
+
+    params_opt, _ = curve_fit(
+        subthreshold_fit_function, x_data, y_data,
+        p0=params_0, ftol=ftol, maxfev=maxfev
+    )
+    y_fit = subthreshold_fit_function(x_data, *params_opt)
+    return y_fit, y_data, params_opt
+
+
+def get_subthreshold_fit_function(order=3, ansatz='poly'):
+
+    def free_power_sts_fit_function(x_data, *params):
+        """Subthreshold scaling ansatz fit function log_p_L(log_p, L)."""
+        log_p, L = x_data
+        log_p_L_th, log_p_th = params[:2]
+        const, power = params[2:]
+
+        # Z-distance of code, weight of lowest-weight Z-only logical operator.
+        d = const*L**power
+
+        # The log of the logical error rate according to the ansatz.
+        log_p_L = log_p_L_th + (d + 1)/2*(log_p - log_p_th)
+        return log_p_L
+
+    def simple_sts_fit_function(x_data, *params):
+        """Subthreshold scaling ansatz fit function log_p_L(log_p, L)."""
+        log_p, L = x_data
+        log_p_L_th, log_p_th = params[:2]
+        const = params[2]
+
+        # Z-distance of code, weight of lowest-weight Z-only logical operator.
+        d = const*L**order
+
+        # The log of the logical error rate according to the ansatz.
+        log_p_L = log_p_L_th + (d + 1)/2*(log_p - log_p_th)
+        return log_p_L
+
+    def sts_fit_function(x_data, *params):
+        """Subthreshold scaling ansatz fit function log_p_L(log_p, L)."""
+        log_p, L = x_data
+        log_p_L_th, log_p_th = params[:2]
+        d_coefficients = np.array(params[2:])
+
+        # Z-distance of code, weight of lowest-weight Z-only logical operator.
+        d = d_coefficients.dot([L**n for n in range(order + 1)])
+
+        # The log of the logical error rate according to the ansatz.
+        log_p_L = log_p_L_th + (d + 1)/2*(log_p - log_p_th)
+        return log_p_L
+
+    if ansatz == 'free_power':
+        return free_power_sts_fit_function
+    elif ansatz == 'simple':
+        return simple_sts_fit_function
+    else:
+        return sts_fit_function

@@ -3,6 +3,7 @@ API for running simulations.
 """
 import os
 import json
+import gzip
 from json import JSONDecodeError
 import itertools
 from typing import List, Dict, Callable, Union, Any, Optional, Tuple
@@ -59,11 +60,23 @@ def run_file(
     progress: Callable = identity,
     output_dir: Optional[str] = None,
     verbose: bool = True,
+    onefile: bool = True,
 ):
-    """Run an input json file."""
+    """Run an input json file.
+
+    Parameters
+    ----------
+    onefile : bool
+        If set to True, then all outputs get written to one file.
+
+    Returns
+    -------
+    None
+    """
     batch_sim = read_input_json(
         file_name, output_dir=output_dir,
-        start=start, n_runs=n_runs
+        start=start, n_runs=n_runs,
+        onefile=onefile
     )
     if verbose:
         print(f'running {len(batch_sim._simulations)} simulations:')
@@ -87,13 +100,15 @@ class Simulation:
     label: str
     _results: dict = {}
     rng = None
+    compress: bool
 
     def __init__(
         self,
         code: StabilizerCode,
         error_model: BaseErrorModel,
         decoder: BaseDecoder,
-        error_rate: float, rng=None
+        error_rate: float, rng=None,
+        compress: bool = True,
     ):
         self.code = code
         self.error_model = error_model
@@ -109,6 +124,7 @@ class Simulation:
             'codespace': [],
             'wall_time': 0,
         }
+        self.compress = compress
 
     @property
     def wall_time(self):
@@ -140,7 +156,11 @@ class Simulation:
 
     @property
     def file_name(self) -> str:
-        file_name = self.label + '.json'
+        if self.compress:
+            extension = '.json.gz'
+        else:
+            extension = '.json'
+        file_name = self.label + extension
         return file_name
 
     def get_file_path(self, output_dir: str) -> str:
@@ -150,44 +170,70 @@ class Simulation:
     def load_results(self, output_dir: str):
         """Load previously written results from directory."""
         file_path = self.get_file_path(output_dir)
+
+        # Find the alternative compressed file path if it doesn't exist.
+        if not os.path.exists(file_path):
+            alt_file_path = file_path
+            if os.path.splitext(file_path)[-1] == '.json':
+                alt_file_path = file_path + '.gz'
+            elif os.path.splitext(file_path)[-1] == '.gz':
+                alt_file_path = file_path.replace('.json.gz', '.json')
+            if os.path.exists(alt_file_path):
+                file_path = alt_file_path
         try:
             if os.path.exists(file_path):
-                with open(file_path) as f:
-                    data = json.load(f)
-                for key in self._results.keys():
-                    if key in data['results'].keys():
-                        self._results[key] = data['results'][key]
-                        if (
-                            isinstance(self.results[key], list)
-                            and len(self.results[key]) > 0
-                            and isinstance(self._results[key][0], list)
-                        ):
-                            self._results[key] = [
-                                np.array(array_value)
-                                for array_value in self._results[key]
-                            ]
-                self._results = data['results']
+                if os.path.splitext(file_path)[-1] == '.gz':
+                    with gzip.open(file_path, 'rb') as gz:
+                        data = json.loads(gz.read().decode('utf-8'))
+                else:
+                    with open(file_path) as json_file:
+                        data = json.load(json_file)
+                self.load_results_from_dict(data)
         except JSONDecodeError as err:
             print(f'Error loading existing results file {file_path}')
             print('Starting this from scratch')
             print(err)
 
+    def load_results_from_dict(self, data):
+        for key in self._results.keys():
+            if key in data['results'].keys():
+                self._results[key] = data['results'][key]
+                if (
+                    isinstance(self.results[key], list)
+                    and len(self.results[key]) > 0
+                    and isinstance(self._results[key][0], list)
+                ):
+                    self._results[key] = [
+                        np.array(array_value)
+                        for array_value in self._results[key]
+                    ]
+
+    def get_results_to_save(self) -> dict:
+        """Get the results to save as a dict."""
+        data = {
+            'results': self._results,
+            'inputs': {
+                'size': self.code.size,
+                'code': self.code.label,
+                'n': self.code.n,
+                'k': self.code.k,
+                'd': self.code.d,
+                'error_model': self.error_model.label,
+                'decoder': self.decoder.label,
+                'probability': self.error_rate,
+            }
+        }
+        return data
+
     def save_results(self, output_dir: str):
         """Save results to directory."""
-        with open(self.get_file_path(output_dir), 'w') as f:
-            json.dump({
-                'results': self._results,
-                'inputs': {
-                    'size': self.code.size,
-                    'code': self.code.label,
-                    'n': self.code.n,
-                    'k': self.code.k,
-                    'd': self.code.d,
-                    'error_model': self.error_model.label,
-                    'decoder': self.decoder.label,
-                    'probability': self.error_rate,
-                }
-            }, f, cls=NumpyEncoder)
+        data = self.get_results_to_save()
+        if self.compress:
+            with gzip.open(self.get_file_path(output_dir), 'wb') as gz:
+                gz.write(json.dumps(data, cls=NumpyEncoder).encode('utf-8'))
+        else:
+            with open(self.get_file_path(output_dir), 'w') as json_file:
+                json.dump(data, json_file, indent=4, cls=NumpyEncoder)
 
     def get_results(self):
         """Return results as dictionary."""
@@ -233,14 +279,16 @@ class BatchSimulation():
     update_frequency: int
     save_frequency: int
     _output_dir: str
+    onefile: bool
 
     def __init__(
         self,
         label='unlabelled',
         on_update: Callable = identity,
-        update_frequency: int = 10,
-        save_frequency: int = 20,
+        update_frequency: int = 5,
+        save_frequency: int = 5,
         output_dir: Optional[str] = None,
+        onefile: bool = False,
     ):
         self._simulations = []
         self.code: Dict = {}
@@ -253,6 +301,7 @@ class BatchSimulation():
         else:
             self._output_dir = os.path.join(PANQEC_DIR, self.label)
         os.makedirs(self._output_dir, exist_ok=True)
+        self.onefile = onefile
 
     def __getitem__(self, *args):
         return self._simulations.__getitem__(*args)
@@ -262,6 +311,9 @@ class BatchSimulation():
 
     def __next__(self):
         return self._simulations.__next__()
+
+    def __len__(self):
+        return self._simulations.__len__()
 
     def append(self, simulation: Simulation):
         self._simulations.append(simulation)
@@ -316,8 +368,52 @@ class BatchSimulation():
                 self.save_results()
 
     def _save_results(self):
+        for i_simulation, simulation in enumerate(self._simulations):
+            if self.onefile:
+                self._update_onefile(
+                    i_simulation, simulation.get_results_to_save()
+                )
+            else:
+                simulation.save_results(self._output_dir)
+
+    def get_onefile_path(self) -> str:
+        """Get path of combined all-in-one output file."""
+        return os.path.join(self._output_dir, self.label + '.json.gz')
+
+    def save_onefile(self):
+        """Do a complete save of the onefile."""
+        out_file = self.get_onefile_path()
+        combined_data = []
         for simulation in self._simulations:
-            simulation.save_results(self._output_dir)
+            combined_data.append(simulation.get_results_to_save())
+        with gzip.open(out_file, 'wb') as gz:
+            gz.write(
+                json.dumps(combined_data, cls=NumpyEncoder).encode('utf-8')
+            )
+
+    def _update_onefile(self, i_simulation: int, new_data: dict) -> None:
+        """Update only the i-th simulation's results to the onefile."""
+        out_file = self.get_onefile_path()
+
+        # First time file does not exist, so write it ot start.
+        if not os.path.isfile(out_file):
+            self.save_onefile()
+
+        # A bit slow, but just unzip the previously existing zip file.
+        with gzip.open(out_file, 'rb') as gz:
+            combined_data = json.loads(gz.read().decode('utf-8'))
+
+        # Update only the i-th simulation with the new data.
+        combined_data[i_simulation] = new_data
+
+        # Write the updated list to the .json.gz file.
+        with gzip.open(out_file, 'wb') as gz:
+            gz.write(
+                json.dumps(combined_data, cls=NumpyEncoder).encode('utf-8')
+            )
+
+    def load_onefile(self):
+        pass
 
     def save_results(self):
         try:
@@ -412,11 +508,20 @@ def expand_input_ranges(data: dict) -> List[Dict]:
     return runs
 
 
+def _parse_legacy_names(old_code_name: str) -> str:
+    """Parse legacy code names into new names."""
+    new_code_name = old_code_name
+    if old_code_name == 'LayeredRotatedToricCode':
+        new_code_name = 'RotatedToric3DCode'
+    return new_code_name
+
+
 def _parse_code_dict(code_dict: Dict[str, Any]) -> StabilizerCode:
     code_name = code_dict['model']
     code_params: Union[list, dict] = []
     if 'parameters' in code_dict:
         code_params = code_dict['parameters']
+    code_name = _parse_legacy_names(code_name)
     code_class = CODES[code_name]
     if isinstance(code_params, dict):
         code = code_class(**code_params)  # type: ignore
@@ -475,10 +580,14 @@ def parse_run(run: Dict[str, Any]) -> Simulation:
 
 
 def read_input_json(file_path: str, *args, **kwargs) -> BatchSimulation:
-    """Read json input file."""
+    """Read json input file or .json.gz file."""
     try:
-        with open(file_path) as f:
-            data = json.load(f)
+        if os.path.splitext(file_path)[-1] == '.json':
+            with open(file_path) as f:
+                data = json.load(f)
+        else:
+            with gzip.open(file_path, 'rb') as g:
+                data = json.loads(g.read().decode('utf-8'))
     except JSONDecodeError as err:
         print(f'Error reading input file {file_path}')
         raise err
@@ -606,6 +715,35 @@ def merge_results_dicts(results_dicts: List[Dict]) -> Dict:
         'inputs': inputs,
     }
     return merged_dict
+
+
+def merge_lists_of_results_dicts(
+    results_dicts: List[Union[dict, list]]
+) -> List[dict]:
+    """List of results lists of dicts produced by BatchSimulation onefile."""
+    flattened_results_dicts = []
+    for element in results_dicts:
+        if isinstance(element, dict):
+            flattened_results_dicts.append(element)
+        elif isinstance(element, list):
+            for value in element:
+                flattened_results_dicts.append(value)
+
+    # Combine results by sorting unique inputs.
+    input_jsons = [
+        json.dumps(element['inputs'])
+        for element in flattened_results_dicts
+    ]
+
+    # The combined results is a list.
+    combined_results = []
+    for unique_input in set(input_jsons):
+        combined_results.append(merge_results_dicts([
+            flattened_results_dicts[i]
+            for i, value in enumerate(input_jsons)
+            if value == unique_input
+        ]))
+    return combined_results
 
 
 def filter_legacy_params(decoder_params: Dict[str, Any]) -> Dict[str, Any]:

@@ -79,6 +79,12 @@ sphinx-build -b html docs/ docs/_build/html
 You can then read it by opening the file `docs/_build/html/index.html` on
 your web browser.
 
+Before you start running things on the cluster,
+make sure you create this folder if it doesn't exist already.
+```
+mkdir -p temp/paper/share
+```
+
 # Run the tests
 
 After you've activated your virtual environment and installed the dependences,
