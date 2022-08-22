@@ -13,6 +13,8 @@ from .surface_3d._quasi_2d_code import Quasi2DCode  # noqa
 from .rhombic._rhombic_code import RhombicCode  # noqa
 from .surface_3d._rotated_toric_3d_code import RotatedToric3DCode  # noqa
 from .fractons._xcube_code import XCubeCode  # noqa
+from .color_3d._color_3d_code import Color3DCode  # noqa
+
 
 __all__ = [
     "StabilizerCode",
@@ -26,5 +28,6 @@ __all__ = [
     "RotatedToric3DCode",
     "XCubeCode",
     "Quasi2DCode",
-    "XCubeCode"
+    "XCubeCode",
+    "Color3DCode"
 ]

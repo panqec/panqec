@@ -6,6 +6,7 @@ var create_shape = {'sphere': sphere,
                     'rectangle': rectangle,
                     'cylinder': cylinder,
                     'octahedron': octahedron,
+                    'box': box,
                     'cube': cube,
                     'triangle': triangle,
                     'cuboctahedron': cuboctahedron}
@@ -153,29 +154,39 @@ function cuboctahedron(location, params) {
     return cuboctahedron;
 }
 
-function cube(location, params) {
+function box(location, params) {
     var x = location[0];
     var y = location[1];
     var z = (location.length == 3) ? location[2] : 0;
 
-    var L = params['length']
-    const geometry = new THREE.BoxBufferGeometry(L, L, L);
+    var Lx = params['Lx'];
+    var Ly = params['Ly'];
+    var Lz = params['Lz'];
+    const geometry = new THREE.BoxBufferGeometry(Lx, Ly, Lz);
     const material = new THREE.MeshToonMaterial({transparent: true});
-    const cube = new THREE.Mesh(geometry, material);
+    const box = new THREE.Mesh(geometry, material);
 
-    var geo = new THREE.EdgesGeometry( cube.geometry );
+    var geo = new THREE.EdgesGeometry( box.geometry );
     var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 2,
                                            opacity: 0, transparent: true });
     var wireframe = new THREE.LineSegments(geo, mat);
     wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
 
-    cube.add(wireframe);
+    box.add(wireframe);
 
-    cube.position.x = x;
-    cube.position.y = y;
-    cube.position.z = z;
+    box.position.x = x;
+    box.position.y = y;
+    box.position.z = z;
 
-    return cube;
+    return box;
+}
+
+function cube(location, params) {
+    params['Lx'] = params['length'];
+    params['Ly'] = params['length'];
+    params['Lz'] = params['length'];
+
+    return box(location, params)
 }
 
 function triangle(location, params) {
