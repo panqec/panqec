@@ -3,6 +3,7 @@ from operator import xor
 from typing import Any, Dict, Set, Tuple, List
 from xmlrpc.client import Boolean
 import numpy as np
+from scipy.sparse import csr_matrix
 import sys
 
 def clustering(syndrome: np.ndarray, code_size):
@@ -54,8 +55,8 @@ class Cluster_Tree():
     def __init__(self, root):
         self._size = 1
         self._odd = True
-        self._root: Vertex = root
-        self._boundary_list: Set[Vertex] = [root]
+        self._root: int = root
+        self._boundary_list: Set[int] = [root]
     
     def is_odd(self) -> Boolean:
         return self._odd
@@ -222,92 +223,74 @@ def _smallest_odd_cluster(clts: List[Cluster_Tree]) \
 
 class Support():
     """ Storage Class of status and information of the code."""
-    # edges status
+    # edges(qubits) status
     UNOCCUPIED = 0
     HALF_GROWN = 1
     GROWN      = 2
 
-    # vertex status
+    # vertex(stabilizer) status
     DARK_POINT = 0
     VERTEX     = 1
     SYNDROME   = 2
 
-    def __init__(self, syndrome: np.ndarray, code_size: Tuple):
-        x, y = code_size
-        self._L_x, self._L_y = x*2, y*2
-        self._status = np.zeros((self._L_x, self._L_y), dtype='uint8')
-        self._loc_edge_map = {}
-        self._syndrome_loc = []
-        self._loc_vertex_map = self._init_loc_syndrome(syndrome)
+    def __init__(self, syndrome: np.ndarray, H: csr_matrix):
+        self._num_qubit = H.shape[1]
+        self._num_stabilizer = H.shape[0]
+        self._s_status = syndrome
+        self._q_status = np.zeros(self._num_qubit, dtype='uint8') # eraser
+        self._parents  = np.full(self._num_qubit, -1, dtype='unit8') # -1 means no parents/it's root
+        # self._loc_edge_map = {}
+        # self._syndrome_loc = []
+        # self._loc_vertex_map = self._init_loc_syndrome(syndrome)
         self._loc_cluster_map = self._init_loc_cluster(self._syndrome_loc)
     
-    def _init_loc_syndrome(self, syndrome: np.ndarray) -> Dict[Tuple, Vertex]:
-        """Given a syndrome, find and store their coordinates,
-        returns the initial dict mapping coordinates and vertex.
+    def _init_loc_cluster(self, syndrome: np.ndarray) -> Dict[int, Cluster_Tree]:
+        """Given an array of syndrome, returns a mapping to its cluster tree.
 
         Parameters
         ----------
-        syndrome: np.ndarray
-            Syndrome as an array of size m, where m is the number of
-            stabilizers. Each element contains 1 if the stabilizer is
-            activated and 0 otherwise
+        syndrome: np.array
+            ndarray of syndromes
 
         Returns
         -------
-        map : Dict[Tuple, Vertex]
-            map as an dict of coordinates and vertex representation of syndromes.
+        forest : Dict[int, Cluster_Tree]
+            The index of a syndrome is mapped to a cluster tree
         """
-        # the first sydrome starts from (0,0)
-        (x, y) = (0, 0)
-        syn_l = []  # the coordinate list of syndrome
-        for s in syndrome:
-            if s is 1:
-                syn_l.append((x, y))
-            y += 2 # skip the edge
-            if y >= self._L_y:
-                # the coordinate is in the next column
-                y = 0
-                x += 2
-        self._syndrome_loc = syn_l
-        self._status[syn_l] = Support.SYNDROME
-        return dict(map(lambda l : (l, Vertex(l)), syn_l))
-    
-    def _init_loc_cluster(self, locations: List[Tuple]) -> Dict[Tuple, Cluster_Tree]:
-        """Given a list of coordinates of roots, creates Cluster representation 
-           and returns the initial mapping of the root locations and its cluster.
+        forest = {}
+        for i, s in enumerate(syndrome):
+            if s:
+                forest[i] = Cluster_Tree(i)
+        return forest
 
-        Parameters
-        ----------
-        locations: List[Tuple]
-            locations as a list of coordinates of syndrome
-
-        Returns
-        -------
-        map : Dict[Tuple, Cluster_Tree]
-            map as an dict from cluster root coordinates to Cluster_Tree representation.
-        """
-        return dict(map(lambda l : (l, Cluster_Tree(self._loc_vertex_map[l])), 
-                        locations))
     
-    def get_cluster(self, rt: Vertex):
-        """Given a root Vertex, returns the Cluster it belongs to"""
+    def get_cluster(self, rt: int):
+        """Given a root index, returns the Cluster it belongs to"""
         try:
-            return self._loc_cluster_map[rt.get_location()]
+            return self._loc_cluster_map[rt]
         except KeyError:
             print("The input is not a root vertex!")
 
-    def get_all_clusters(self) -> List:
+    def get_all_clusters(self) -> list:
         """returns all clusters at the current stage."""
         return list(self._loc_cluster_map.values())
 
-    def vertex_is_boundary(self, v: Vertex):
-        """Given a vertex, returns true if it is a boundary vertex"""
+    def vertex_is_boundary(self, s: int):
+        """Given a stabilizer index, returns true if it is a boundary vertex"""
         # A vertex is boundary if all edges surrounded are grown.
         return [] == \
             filter(lambda s : s != Support.GROWN, \
-                self._status[self._get_surrond_edges(v)])
+                self._status[self._get_surrond_edges(s)])
 
-    def union(self, v: Vertex, u: Vertex):
+    def find_root(self, v:int) -> int:
+        """Given a vertex index, returns the root of the cluster it belongs to."""
+        p = self._parents[v]
+        while p != -1:
+            v = p
+            p = self._parents[v]
+        return v
+
+    def union(self, v: int, u: int):
         """Given two root vertices, union their cluster.
 
         Parameters
@@ -316,11 +299,11 @@ class Support():
             Vertex representation of the root of different clusters.
 
         """
-        rt_v = v.find_root()
-        rt_u = u.find_root()
+        rt_v = self.find_root(v)
+        rt_u = self.find_root(u)
 
-        clst_v = self._loc_cluster_map[rt_v.get_location()]
-        clst_u = self._loc_cluster_map[rt_u.get_location()]
+        clst_v = self._loc_cluster_map[rt_v]
+        clst_u = self._loc_cluster_map[rt_u]
 
         big, sml = clst_u, clst_v if clst_u.get_size() > clst_v.get_size() \
                                   else clst_v, clst_u 
