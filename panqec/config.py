@@ -11,7 +11,7 @@ from .codes import (
     Toric3DCode, Toric2DCode,
     RotatedPlanar3DCode, XCubeCode,
     RotatedToric3DCode, RhombicCode,
-    Quasi2DCode
+    Quasi2DCode, Color3DCode
 )
 from .decoders import (
     Toric3DMatchingDecoder, SweepMatchDecoder,
@@ -65,7 +65,8 @@ CODES = {
     'RotatedPlanar3DCode': RotatedPlanar3DCode,
     'RotatedToric3DCode': RotatedToric3DCode,
     'XCubeCode': XCubeCode,
-    'Quasi2DCode': Quasi2DCode
+    'Quasi2DDCode': Quasi2DCode,
+    'Color3DCode': Color3DCode
 }
 ERROR_MODELS = {
     'PauliErrorModel': PauliErrorModel,

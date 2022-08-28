@@ -1469,7 +1469,7 @@
         "stabilizers": {
             "kitaev": {
                 "cell-yellow": {
-                    "object": "box",
+                    "object": "truncated_octahedron",
                     "color": {
                         "activated": "gold",
                         "deactivated": "gold"
@@ -1481,31 +1481,31 @@
                         },
                         "deactivated": {
                             "min": 0.1,
-                            "max": 0.4
+                            "max": 0.7
                         }
                     },
-                    "params": {"Lx": 6, "Ly": 2, "Lz": 4}
+                    "params": {}
                 },
                 "cell-red": {
-                    "object": "box",
+                    "object": "truncated_octahedron",
                     "color": {
                         "activated": "red",
                         "deactivated": "red"
                     },
                     "opacity": {
                         "activated": {
-                            "min": 0.9,
-                            "max": 0.9
+                            "min": 0.8,
+                            "max": 1
                         },
                         "deactivated": {
                             "min": 0.1,
-                            "max": 0.4
+                            "max": 0.7
                         }
                     },
-                    "params": {"Lx": 6, "Ly": 2, "Lz": 4}
+                    "params": {}
                 },
                 "cell-blue": {
-                    "object": "box",
+                    "object": "truncated_octahedron",
                     "color": {
                         "activated": "blue",
                         "deactivated": "blue"
@@ -1513,17 +1513,17 @@
                     "opacity": {
                         "activated": {
                             "min": 0.9,
-                            "max": 0.9
+                            "max": 1
                         },
                         "deactivated": {
                             "min": 0.1,
-                            "max": 0.4
+                            "max": 0.7
                         }
                     },
-                    "params": {"Lx": 6, "Ly": 2, "Lz": 4}
+                    "params": {}
                 },
                 "cell-green": {
-                    "object": "box",
+                    "object": "truncated_octahedron",
                     "color": {
                         "activated": "green",
                         "deactivated": "green"
@@ -1531,34 +1531,178 @@
                     "opacity": {
                         "activated": {
                             "min": 0.8,
-                            "max": 0.8
+                            "max": 1
                         },
                         "deactivated": {
                             "min": 0.1,
-                            "max": 0.4
+                            "max": 0.7
                         }
                     },
-                    "params": {"Lx": 6, "Ly": 2, "Lz": 4}
-                }
-            },
-            "rotated": {
-                "cell": {
-                    "object": "box",
+                    "params": {}
+                },
+                "face-square": {
+                    "object": "rectangle",
                     "color": {
-                        "activated": "white",
-                        "deactivated": "gold"
+                        "activated": "pink",
+                        "deactivated": "pink"
                     },
                     "opacity": {
                         "activated": {
                             "min": 0.8,
-                            "max": 0.8
+                            "max": 1
                         },
                         "deactivated": {
-                            "min": 0.4,
-                            "max": 0.4
+                            "min": 0,
+                            "max": 0
                         }
                     },
-                    "params": {"Lx": 6, "Ly": 2, "Lz": 4}
+                    "params": {
+                        "w": 1.4142,
+                        "h": 1.4142,
+                        "normal": [1, 0, 0],
+                        "angle": 0.7854
+                    }
+                },
+                "face-hex": {
+                    "object": "hexagon",
+                    "color": {
+                        "activated": "pink",
+                        "deactivated": "pink"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.8,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0,
+                            "max": 0
+                        }
+                    },
+                    "params": {
+                        "radius": 1.4,
+                        "normal": [1, 0, 0],
+                        "angle": 0.5236
+                    }
+                }
+            },
+            "rotated": {
+                "cell-yellow": {
+                    "object": "truncated_octahedron",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "gold"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.9,
+                            "max": 0.9
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.7
+                        }
+                    },
+                    "params": {}
+                },
+                "cell-red": {
+                    "object": "truncated_octahedron",
+                    "color": {
+                        "activated": "red",
+                        "deactivated": "red"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.8,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.7
+                        }
+                    },
+                    "params": {}
+                },
+                "cell-blue": {
+                    "object": "truncated_octahedron",
+                    "color": {
+                        "activated": "blue",
+                        "deactivated": "blue"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.9,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.7
+                        }
+                    },
+                    "params": {}
+                },
+                "cell-green": {
+                    "object": "truncated_octahedron",
+                    "color": {
+                        "activated": "green",
+                        "deactivated": "green"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.8,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.7
+                        }
+                    },
+                    "params": {}
+                },
+                "face-square": {
+                    "object": "rectangle",
+                    "color": {
+                        "activated": "pink",
+                        "deactivated": "pink"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.8,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0,
+                            "max": 0
+                        }
+                    },
+                    "params": {
+                        "w": 1.4142,
+                        "h": 1.4142,
+                        "normal": [1, 0, 0],
+                        "angle": 0.7854
+                    }
+                },
+                "face-hex": {
+                    "object": "hexagon",
+                    "color": {
+                        "activated": "pink",
+                        "deactivated": "pink"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.8,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0,
+                            "max": 0
+                        }
+                    },
+                    "params": {
+                        "radius": 1.4,
+                        "normal": [1, 0, 0],
+                        "angle": 0.5236
+                    }
                 }
             }
         }

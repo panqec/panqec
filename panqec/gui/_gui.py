@@ -148,6 +148,8 @@ class GUI():
             logical_z = code.logicals_z
             logical_x = code.logicals_x
 
+            # print(code.stabilizer_matrix.toarray().tolist())
+
             return json.dumps({'H': code.stabilizer_matrix.toarray().tolist(),
                                'qubits': qubits,
                                'stabilizers': stabilizers,
