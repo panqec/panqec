@@ -9,7 +9,7 @@ var defaultCode = codeDimension == 2 ? 'Toric 2D' : '3D Color Code';
 var defaultSize = codeDimension == 2 ? 6 : 4;
 
 const params = {
-    errorProbability: 0.3,
+    errorProbability: 0.01,
     L: defaultSize,
     noise_deformation: 'None',
     decoder: 'BP-OSD',
@@ -235,7 +235,7 @@ async function buildGUI() {
     codeFolder.add(params, 'codeName', codes).name('Code type').onChange(changeLatticeSize);
     codeFolder.add(params, 'rotated').name('Rotated picture').onChange(changeLatticeSize);
     codeFolder.add(params, 'coprime').name('Coprime dimensions').onChange(changeLatticeSize);
-    codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
+    codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '12': 12}).name('Lattice size').onChange(changeLatticeSize);
 
     let deformedOptions = {'None': 'None', 'x axis': 'x', 'y axis': 'y'};
     if (codeDimension == 3)
@@ -245,9 +245,13 @@ async function buildGUI() {
     codeFolder.open();
 
     const errorModelFolder = gui.addFolder('Error Model')
-    errorModelFolder.add(params, 'errorModel', {'Pure X': 'Pure X', 'Pure Y': 'Pure Y', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}).name('Model');
+    errorModelFolder.add(params, 'errorModel', 
+        {'Pure X': 'Pure X', 'Pure Y': 'Pure Y', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}
+    ).name('Model');
     errorModelFolder.add(params, 'errorProbability', 0, 0.5).name('Probability');
-    errorModelFolder.add(params, 'noise_deformation', {'None': 'None', 'XZZX': 'XZZX', 'XY': 'XY', 'Rhombic': 'Rhombic'}).name('Deformation');
+    errorModelFolder.add(params, 'noise_deformation', 
+        {'None': 'None', 'XZZX': 'XZZX', 'XY': 'XY', 'Rhombic': 'Rhombic', 'Color': 'Color'}
+    ).name('Deformation');
     errorModelFolder.add(buttons, 'addErrors').name('▶ Add errors (r)');
     errorModelFolder.open();
 

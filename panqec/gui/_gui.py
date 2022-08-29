@@ -15,7 +15,8 @@ from panqec.decoders import (
 )
 from panqec.error_models import PauliErrorModel
 from panqec.error_models import (
-    DeformedXZZXErrorModel, DeformedXYErrorModel, DeformedRhombicErrorModel
+    DeformedXZZXErrorModel, DeformedXYErrorModel, DeformedRhombicErrorModel,
+    DeformedColorErrorModel
 )
 
 import webbrowser
@@ -36,7 +37,8 @@ codes = {'Toric 2D': Toric2DCode,
 error_models = {'None': PauliErrorModel,
                 'XZZX': DeformedXZZXErrorModel,
                 'XY': DeformedXYErrorModel,
-                'Rhombic': DeformedRhombicErrorModel}
+                'Rhombic': DeformedRhombicErrorModel,
+                'Color': DeformedColorErrorModel}
 
 noise_directions = {'Pure X': (1, 0, 0),
                     'Pure Y': (0, 1, 0),

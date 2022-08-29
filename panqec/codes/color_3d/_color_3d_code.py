@@ -29,6 +29,8 @@ class Color3DCode(StabilizerCode):
                     if coord not in coordinates:
                         coordinates.append(coord)
 
+        print("N", len(coordinates))
+
         return coordinates
 
     def get_stabilizer_coordinates(self) -> Coordinates:
@@ -120,9 +122,9 @@ class Color3DCode(StabilizerCode):
         Lx, Ly, Lz = self.size
 
         if 'cell' in self.stabilizer_type(location):
-            pauli = 'X'
-        else:
             pauli = 'Z'
+        else:
+            pauli = 'X'
 
         x, y, z = location
 
@@ -180,8 +182,8 @@ class Color3DCode(StabilizerCode):
 
         return 'x'
 
-    def get_logicals_x(self) -> List[Operator]:
-        """The 3 logical X operators (errors on all squares
+    def get_logicals_z(self) -> List[Operator]:
+        """The 3 logical Z operators (errors on all squares
         of a given layer)"""
 
         Lx, Ly, Lz = self.size
@@ -191,50 +193,50 @@ class Color3DCode(StabilizerCode):
         operator = dict()
         for z in range(4, 4*Lz+1, 4):
             for y in range(4, 4*Ly+1, 4):
-                operator[(2, (y + 1) % (4 * Ly), z % 16)] = 'X'
-                operator[(2, (y - 1) % (4 * Ly), z % 16)] = 'X'
-                operator[(2, y % 16, (z + 1) % (4 * Lz))] = 'X'
-                operator[(2, y % 16, (z - 1) % (4 * Lz))] = 'X'
+                operator[(2, (y + 1) % (4 * Ly), z % 16)] = 'Z'
+                operator[(2, (y - 1) % (4 * Ly), z % 16)] = 'Z'
+                operator[(2, y % 16, (z + 1) % (4 * Lz))] = 'Z'
+                operator[(2, y % 16, (z - 1) % (4 * Lz))] = 'Z'
         logicals.append(operator)
 
         operator = dict()
         for x in range(4, 4*Lx+1, 4):
             for y in range(4, 4*Ly+1, 4):
-                operator[((x + 1) % (4 * Lx), y % 16, 2)] = 'X'
-                operator[((x - 1) % (4 * Lx), y % 16, 2)] = 'X'
-                operator[(x % 16, (y + 1) % (4 * Ly), 2)] = 'X'
-                operator[(x % 16, (y - 1) % (4 * Ly), 2)] = 'X'
+                operator[((x + 1) % (4 * Lx), y % 16, 2)] = 'Z'
+                operator[((x - 1) % (4 * Lx), y % 16, 2)] = 'Z'
+                operator[(x % 16, (y + 1) % (4 * Ly), 2)] = 'Z'
+                operator[(x % 16, (y - 1) % (4 * Ly), 2)] = 'Z'
         logicals.append(operator)
 
         operator = dict()
         for x in range(4, 4*Lx+1, 4):
             for z in range(4, 4*Ly+1, 4):
-                operator[((x + 1) % (4 * Lx), 2, z % 16)] = 'X'
-                operator[((x - 1) % (4 * Lx), 2, z % 16)] = 'X'
-                operator[(x % 16, 2, (z + 1) % (4 * Lz))] = 'X'
-                operator[(x % 16, 2, (z - 1) % (4 * Lz))] = 'X'
+                operator[((x + 1) % (4 * Lx), 2, z % 16)] = 'Z'
+                operator[((x - 1) % (4 * Lx), 2, z % 16)] = 'Z'
+                operator[(x % 16, 2, (z + 1) % (4 * Lz))] = 'Z'
+                operator[(x % 16, 2, (z - 1) % (4 * Lz))] = 'Z'
         logicals.append(operator)
 
         return logicals
 
-    def get_logicals_z(self) -> List[Operator]:
-        """Get the 3 logical Z operators."""
+    def get_logicals_x(self) -> List[Operator]:
+        """Get the 3 logical X operators."""
         Lx, Ly, Lz = self.size
         logicals = []
 
         operator = dict()
         for z in range(3, 4*Lz+2, 2):
-            operator[(2, 4, z % (4 * Lz))] = 'Z'
+            operator[(2, 4, z % (4 * Lz))] = 'X'
         logicals.append(operator)
 
         operator = dict()
         for x in range(3, 4*Lx+2, 2):
-            operator[(x % (4 * Lx), 2, 4)] = 'Z'
+            operator[(x % (4 * Lx), 2, 4)] = 'X'
         logicals.append(operator)
-        
+
         operator = dict()
         for y in range(3, 4*Ly+2, 2):
-            operator[(2, y % (4 * Ly), 4)] = 'Z'
+            operator[(2, y % (4 * Ly), 4)] = 'X'
         logicals.append(operator)
 
         return logicals

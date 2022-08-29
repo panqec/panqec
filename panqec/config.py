@@ -22,7 +22,8 @@ from .decoders.bposd.mbp_decoder import MemoryBeliefPropagationDecoder
 from .decoders.sweepmatch._toric_2d_match_decoder import Toric2DMatchingDecoder
 from .error_models import (
     DeformedXZZXErrorModel, DeformedXYErrorModel,
-    DeformedRhombicErrorModel, DeformedRandomErrorModel
+    DeformedRhombicErrorModel, DeformedRandomErrorModel,
+    DeformedColorErrorModel
 )
 from .decoders import (
     DeformedSweepMatchDecoder, FoliatedMatchingDecoder,
@@ -74,6 +75,7 @@ ERROR_MODELS = {
     'DeformedRandomErrorModel': DeformedRandomErrorModel,
     'DeformedXYErrorModel': DeformedXYErrorModel,
     'DeformedRhombicErrorModel': DeformedRhombicErrorModel,
+    'DeformedColorErrorModel': DeformedColorErrorModel,
 }
 DECODERS: Dict[str, Any] = {
     'Toric2DMatchingDecoder': Toric2DMatchingDecoder,
