@@ -529,7 +529,7 @@ def fit_fss_params(
         # Sample from Beta distribution.
         f_list_bs = []
         for i in range(df_trunc.shape[0]):
-            n_trials = int(df_trunc['n_trials'].iloc[i])
+            n_trials = int(df_trunc['n_runs'].iloc[i])
             n_fail = int(df_trunc[n_fail_label].iloc[i])
             if n_fail == 0:
                 n_fail = 1
