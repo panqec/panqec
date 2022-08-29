@@ -6,7 +6,7 @@ from panqec.error_models import PauliErrorModel
 from panqec.codes import Toric2DCode
 from panqec.decoders import BeliefPropagationOSDDecoder
 from panqec.simulation import (
-    read_input_json, run_once, Simulation, expand_input_ranges, run_file,
+    read_input_json, run_once, DirectSimulation, expand_input_ranges, run_file,
     merge_results_dicts, filter_legacy_params
 )
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -97,7 +97,7 @@ class TestSimulationToric2DCode():
 
     def test_run(self, code, error_model, decoder, required_fields):
         error_rate = 0.5
-        simulation = Simulation(code, error_model, decoder, error_rate)
+        simulation = DirectSimulation(code, error_model, decoder, error_rate)
         simulation.run(10)
         assert len(simulation._results['success']) == 10
         assert set(required_fields).issubset(simulation._results.keys())

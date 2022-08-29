@@ -1,20 +1,20 @@
-"""
-API for running simulations.
-"""
+"""API for running simulations."""
+
 import os
 import json
 from json import JSONDecodeError
 import itertools
-from typing import List, Dict, Callable, Union, Any, Optional, Tuple
-import datetime
 import numpy as np
+import pandas as pd
+from typing import List, Dict, Callable, Union, Any, Optional, Tuple
 from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
 from panqec.error_models import BaseErrorModel
-from .config import (
+from panqec.config import (
     CODES, ERROR_MODELS, DECODERS, PANQEC_DIR
 )
-from .utils import identity, NumpyEncoder
+from panqec.utils import identity, NumpyEncoder
+from . import BaseSimulation, DirectSimulation, SplittingSimulation
 
 
 def run_once(
@@ -70,166 +70,19 @@ def run_file(
         for simulation in batch_sim._simulations:
             code = simulation.code.label
             noise = simulation.error_model.label
-            decoder = simulation.decoder.label
-            error_rate = simulation.error_rate
+            if type(simulation).__name__ == "SplittingSimulation":
+                decoder = simulation.decoders[0].label
+                error_rate = simulation.error_rates
+            else:
+                decoder = simulation.decoder.label
+                error_rate = simulation.error_rate
             print(f'    {code}, {noise}, {decoder}, {error_rate}')
     batch_sim.run(n_trials, progress=progress)
 
 
-class Simulation:
-    """Quantum Error Correction Simulation."""
-
-    start_time: datetime.datetime
-    code: StabilizerCode
-    error_model: BaseErrorModel
-    decoder: BaseDecoder
-    error_rate: float
-    label: str
-    _results: dict = {}
-    rng = None
-
-    def __init__(
-        self,
-        code: StabilizerCode,
-        error_model: BaseErrorModel,
-        decoder: BaseDecoder,
-        error_rate: float, rng=None
-    ):
-        self.code = code
-        self.error_model = error_model
-        self.decoder = decoder
-        self.error_rate = error_rate
-        self.rng = rng
-        self.label = '_'.join([
-            code.label, error_model.label, decoder.label, f'{error_rate}'
-        ])
-        self._results = {
-            'effective_error': [],
-            'success': [],
-            'codespace': [],
-            'wall_time': 0,
-        }
-
-    @property
-    def wall_time(self):
-        return self._results['wall_time']
-
-    def run(self, repeats: int):
-        """Run assuming perfect measurement."""
-        self.start_time = datetime.datetime.now()
-        for i_trial in range(repeats):
-            shot = run_once(
-                self.code, self.error_model, self.decoder,
-                error_rate=self.error_rate,
-                rng=self.rng
-            )
-            for key, value in shot.items():
-                if key in self._results.keys():
-                    self._results[key].append(value)
-        finish_time = datetime.datetime.now() - self.start_time
-        self._results['wall_time'] += finish_time.total_seconds()
-
-    @property
-    def n_results(self):
-        return len(self._results['success'])
-
-    @property
-    def results(self):
-        res = self._results
-        return res
-
-    @property
-    def file_name(self) -> str:
-        file_name = self.label + '.json'
-        return file_name
-
-    def get_file_path(self, output_dir: str) -> str:
-        file_path = os.path.join(output_dir, self.file_name)
-        return file_path
-
-    def load_results(self, output_dir: str):
-        """Load previously written results from directory."""
-        file_path = self.get_file_path(output_dir)
-        try:
-            if os.path.exists(file_path):
-                with open(file_path) as f:
-                    data = json.load(f)
-                for key in self._results.keys():
-                    if key in data['results'].keys():
-                        self._results[key] = data['results'][key]
-                        if (
-                            isinstance(self.results[key], list)
-                            and len(self.results[key]) > 0
-                            and isinstance(self._results[key][0], list)
-                        ):
-                            self._results[key] = [
-                                np.array(array_value)
-                                for array_value in self._results[key]
-                            ]
-                self._results = data['results']
-        except JSONDecodeError as err:
-            print(f'Error loading existing results file {file_path}')
-            print('Starting this from scratch')
-            print(err)
-
-    def save_results(self, output_dir: str):
-        """Save results to directory."""
-        with open(self.get_file_path(output_dir), 'w') as f:
-            json.dump({
-                'results': self._results,
-                'inputs': {
-                    'size': self.code.size,
-                    'code': self.code.label,
-                    'n': self.code.n,
-                    'k': self.code.k,
-                    'd': self.code.d,
-                    'error_model': self.error_model.label,
-                    'decoder': self.decoder.label,
-                    'probability': self.error_rate,
-                }
-            }, f, cls=NumpyEncoder)
-
-    def get_results(self):
-        """Return results as dictionary."""
-
-        success = np.array(self.results['success'])
-        if len(success) > 0:
-            n_fail = np.sum(~success)
-        else:
-            n_fail = 0
-        simulation_data = {
-            'size': self.code.size,
-            'code': self.code.label,
-            'n': self.code.n,
-            'k': self.code.k,
-            'd': self.code.d,
-            'error_model': self.error_model.label,
-            'probability': self.error_rate,
-            'n_success': np.sum(success),
-            'n_fail': n_fail,
-            'n_trials': len(success),
-        }
-
-        # Use sample mean as estimator for effective error rate.
-        if simulation_data['n_trials'] != 0:
-            simulation_data['p_est'] = (
-                simulation_data['n_fail']/simulation_data['n_trials']
-            )
-        else:
-            simulation_data['p_est'] = np.nan
-
-        # Use posterior Beta distribution of the effective error rate
-        # standard distribution as standard error.
-        simulation_data['p_se'] = np.sqrt(
-            simulation_data['p_est']*(1 - simulation_data['p_est'])
-            / (simulation_data['n_trials'] + 1)
-        )
-        return simulation_data
-
-
 class BatchSimulation():
 
-    _simulations: List[Simulation]
+    _simulations: List[BaseSimulation]
     update_frequency: int
     save_frequency: int
     _output_dir: str
@@ -241,6 +94,8 @@ class BatchSimulation():
         update_frequency: int = 10,
         save_frequency: int = 20,
         output_dir: Optional[str] = None,
+        method: str = "direct",
+        verbose: bool = True
     ):
         self._simulations = []
         self.code: Dict = {}
@@ -248,6 +103,8 @@ class BatchSimulation():
         self.update_frequency = update_frequency
         self.save_frequency = save_frequency
         self.label = label
+        self.method = method
+        self.verbose = verbose
         if output_dir is not None:
             self._output_dir = os.path.join(output_dir, self.label)
         else:
@@ -263,7 +120,7 @@ class BatchSimulation():
     def __next__(self):
         return self._simulations.__next__()
 
-    def append(self, simulation: Simulation):
+    def append(self, simulation: BaseSimulation):
         self._simulations.append(simulation)
 
     def load_results(self):
@@ -315,6 +172,11 @@ class BatchSimulation():
                 self.on_update()
                 self.save_results()
 
+        # for simulation in self._simulations:
+        #     if self.verbose:
+        #         print(f"\nPost-processing {simulation.label}")
+        #     simulation.postprocess()
+
     def _save_results(self):
         for simulation in self._simulations:
             simulation.save_results(self._output_dir)
@@ -336,6 +198,53 @@ class BatchSimulation():
             simulation_data = simulation.get_results()
             results.append(simulation_data)
         return results
+
+    def get_results_df(self):
+        batch_results = self.get_results()
+        # print(
+        #     'wall_time =',
+        #     str(datetime.timedelta(seconds=batch_sim.wall_time))
+        # )
+        # print('n_trials = ', min(sim.n_results for sim in batch_sim))
+        for sim, batch_result in zip(self, batch_results):
+            n_logicals = batch_result['k']
+
+            # Small fix for the current situation. TO REMOVE in later versions
+            if n_logicals == -1:
+                n_logicals = 1
+
+            batch_result['noise_direction'] = sim.error_model.direction
+
+            if self.method == 'direct':
+                if len(sim.results['effective_error']) > 0:
+                    batch_result['p_x'] = np.array(
+                        sim.results['effective_error']
+                    )[:, :n_logicals].any(axis=1).mean()
+                    batch_result['p_x_se'] = np.sqrt(
+                        batch_result['p_x']*(1 - batch_result['p_x'])
+                        / (sim.n_results + 1)
+                    )
+                    batch_result['p_z'] = np.array(
+                        sim.results['effective_error']
+                    )[:, n_logicals:].any(axis=1).mean()
+                    batch_result['p_z_se'] = np.sqrt(
+                        batch_result['p_z']*(1 - batch_result['p_z'])
+                        / (sim.n_results + 1)
+                    )
+                else:
+                    batch_result['p_x'] = np.nan
+                    batch_result['p_x_se'] = np.nan
+                    batch_result['p_z'] = np.nan
+                    batch_result['p_z_se'] = np.nan
+
+        results = batch_results
+
+        results_df = pd.DataFrame(results)
+
+        if self.method == 'splitting':
+            results_df = results_df.explode(['error_rates', 'p_est', 'p_se'])
+
+        return results_df
 
 
 def _parse_parameters_range(parameters):
@@ -461,7 +370,7 @@ def _parse_decoder_dict(
     return decoder
 
 
-def parse_run(run: Dict[str, Any]) -> Simulation:
+def parse_run(run: Dict[str, Any]) -> BaseSimulation:
     """Parse a single dict describing the run."""
     code = _parse_code_dict(run['code'])
     error_model = _parse_error_model_dict(run['noise'])
@@ -470,7 +379,7 @@ def parse_run(run: Dict[str, Any]) -> Simulation:
         run['decoder'], code, error_model, error_rate
     )
 
-    simulation = Simulation(code, error_model, decoder, error_rate)
+    simulation = BaseSimulation(code, error_model, decoder, error_rate)
     return simulation
 
 
@@ -519,39 +428,64 @@ def count_runs(file_path: str) -> Optional[int]:
 
 
 def get_simulations(
-    data: dict, start: Optional[int] = None, n_runs: Optional[int] = None
-) -> List[Simulation]:
+    data: dict, start: Optional[int] = None, n_runs: Optional[int] = None,
+    verbose: Optional[bool] = True
+) -> List[dict]:
     simulations = []
+
+    method = 'direct'
 
     if 'ranges' in data:
         (
-            code_range, noise_range, decoder_range, probability_range
+            code_range, noise_range, decoder_range, error_rates
         ) = _parse_all_ranges(data['ranges'])
 
         codes = [_parse_code_dict(code_dict) for code_dict in code_range]
         error_models = [_parse_error_model_dict(noise_dict)
                         for noise_dict in noise_range]
 
+        if 'method' in data['ranges']:
+            method = data['ranges']['method']['name']
+            method_params = data['ranges']['method']['parameters']
+
     elif 'runs' in data:
         codes = [_parse_code_dict(run['code']) for run in data['runs']]
         decoder_range = [run['decoder'] for run in data['runs']]
         error_models = [_parse_error_model_dict(run['noise'])
                         for run in data['runs']]
-        probability_range = [run['probability'] for run in data['runs']]
+        error_rates = [run['probability'] for run in data['runs']]
 
     else:
         raise ValueError("Invalid data format: does not have 'runs'\
                          or 'ranges' key")
 
-    for (
-        code, error_model, decoder_dict, error_rate
-    ) in itertools.product(codes,
-                           error_models,
-                           decoder_range,
-                           probability_range):
-        decoder = _parse_decoder_dict(decoder_dict, code, error_model,
-                                      error_rate)
-        simulations.append(Simulation(code, error_model, decoder, error_rate))
+    if method == 'direct':
+        for (
+            code, error_model, decoder_dict, error_rate
+        ) in itertools.product(codes,
+                               error_models,
+                               decoder_range,
+                               error_rates):
+            decoder = _parse_decoder_dict(decoder_dict, code, error_model,
+                                          error_rate)
+
+            simulations.append(DirectSimulation(code, error_model, decoder,
+                                                error_rate, verbose=verbose,
+                                                **method_params))
+
+    if method == 'splitting':
+        for (
+            code, error_model, decoder_dict
+        ) in itertools.product(codes,
+                               error_models,
+                               decoder_range):
+            decoders = [_parse_decoder_dict(decoder_dict, code, error_model, p)
+                        for p in error_rates]
+
+            simulations.append(SplittingSimulation(
+                code, error_model, decoders, error_rates,
+                verbose=verbose, **method_params
+            ))
 
     if start is not None:
         simulations = simulations[start:]
@@ -565,19 +499,30 @@ def read_input_dict(
     data: dict,
     start: Optional[int] = None,
     n_runs: Optional[int] = None,
+    verbose: Optional[bool] = True,
     *args, **kwargs
 ) -> BatchSimulation:
     """Return BatchSimulation from input dict."""
+
     label = 'unlabelled'
+    method = 'direct'
+
     if 'ranges' in data:
         if 'label' in data['ranges']:
             label = data['ranges']['label']
+
+        if 'method' in data['ranges']:
+            method = data['ranges']['method']['name']
+
     kwargs['label'] = label
+    kwargs['method'] = method
+    kwargs['verbose'] = verbose
 
     batch_sim = BatchSimulation(*args, **kwargs)
     assert len(batch_sim._simulations) == 0
 
-    simulations = get_simulations(data, start=start, n_runs=n_runs)
+    simulations = get_simulations(data, start=start, n_runs=n_runs,
+                                  verbose=verbose)
 
     for sim in simulations:
         batch_sim.append(sim)
@@ -587,19 +532,44 @@ def read_input_dict(
 
 def merge_results_dicts(results_dicts: List[Dict]) -> Dict:
     """Merge results dicts into one dict."""
-    results = {
-        'effective_error': [],
-        'success': [],
-        'codespace': [],
-        'wall_time': 0.0
-    }
-    inputs = results_dicts[0]['inputs']
-    for results_dict in results_dicts:
-        for key in results.keys():
-            results[key] += results_dict['results'][key]
-        assert results_dict['inputs'] == inputs, (
-            'Warning: attempting to merge results of different inputs'
-        )
+
+    # If splitting method
+    if 'log_p_errors' in results_dicts[0]['results'].keys():
+        error_rates = results_dicts[0]['results']['error_rates']
+        results = {
+            'log_p_errors': [[] for _ in error_rates],
+            'n_runs': 0,
+            'wall_time': 0.0
+        }
+        inputs = results_dicts[0]['inputs']
+        for results_dict in results_dicts:
+            assert results_dict['inputs'] == inputs, (
+                'Warning: attempting to merge results of different inputs'
+            )
+            results['n_runs'] += results_dict['results']['n_runs']
+            results['wall_time'] += results_dict['results']['wall_time']
+
+            for i, p in enumerate(results_dict['results']['log_p_errors']):
+                results['log_p_errors'][i] += p
+
+        results['error_rates'] = error_rates
+
+    # If direct method
+    else:
+        results = {
+            'effective_error': [],
+            'success': [],
+            'codespace': [],
+            'n_runs': 0,
+            'wall_time': 0.0
+        }
+        inputs = results_dicts[0]['inputs']
+        for results_dict in results_dicts:
+            for key in results.keys():
+                results[key] += results_dict['results'][key]
+            assert results_dict['inputs'] == inputs, (
+                'Warning: attempting to merge results of different inputs'
+            )
 
     merged_dict = {
         'results': results,

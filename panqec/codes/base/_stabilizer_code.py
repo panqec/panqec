@@ -405,6 +405,10 @@ class StabilizerCode(metaclass=ABCMeta):
 
         return bool(np.any(self.logical_errors(error) != 0))
 
+    def is_success(self, total_error) -> bool:
+        return (self.in_codespace(total_error) and
+                not self.is_logical_error(total_error))
+
     def extract_x_syndrome(self, syndrome: np.ndarray) -> np.ndarray:
         """For CSS codes only. Returns the part of the syndrome that
         corresponds to X stabilizers.
