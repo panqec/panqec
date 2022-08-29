@@ -19,7 +19,7 @@ n_array=20
 panqec generate-input -i "$paper_dir/$name/inputs" \
     --code_class Color3DCode --noise_class PauliErrorModel \
     --ratio equal \
-    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --sizes "$sizes" --decoder_class BeliefPropagationOSDDecoder --bias Z \
     --eta "inf" --prob "0.01:0.3:0.01"
 
 panqec generate-qsub --data_dir "$paper_dir/$name" --n_array $n_array --memory "$memory" \
