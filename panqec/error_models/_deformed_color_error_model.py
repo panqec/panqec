@@ -40,17 +40,31 @@ class DeformedColorErrorModel(PauliErrorModel):
     def get_deformation_indices(self, code: StabilizerCode):
         is_deformed = [False for _ in range(code.n)]
 
-        if code.id != 'Color3DCode':
+        if code.id == 'Color3DCode':
+            Lx, Ly, Lz = code.size
+
+            for x, y, z in code.type_index('face-square').keys():
+                # Squares on green and blue cells, orthogonal to x axis
+                if x % 4 == 2 and y % 4 == 0 and z % 4 == 0:
+                    for qubit_loc in code.get_stabilizer((x, y, z)):
+                        index = code.qubit_index[qubit_loc]
+                        is_deformed[index] = True
+
+        elif code.id == 'Color2DCode':
+            Lx, Ly = code.size
+
+            # Squares on green and blue cells, orthogonal to x axis
+            for x in range(2, 4*Lx, 6):
+                for y in range(2, min(2*x + 1, 4*Lx - 2*x - 3), 4):
+                    if x - 1 >= 0:
+                        index = code.qubit_index[(x-1, y)]
+                        is_deformed[index] = True
+                    if x + 1 < 4*Lx:
+                        index = code.qubit_index[(x+1, y)]
+                        is_deformed[index] = True
+
+        else:
             raise NotImplementedError(f"Code {code.id} has no color code\
                                       deformation implemented")
-
-        Lx, Ly, Lz = code.size
-
-        for x, y, z in code.type_index('face-square').keys():
-            # Squares on green and blue cells, orthogonal to x axis
-            if x % 4 == 2 and y % 4 == 0 and z % 4 == 0:
-                for qubit_loc in code.get_stabilizer((x, y, z)):
-                    index = code.qubit_index[qubit_loc]
-                    is_deformed[index] = True
 
         return is_deformed
