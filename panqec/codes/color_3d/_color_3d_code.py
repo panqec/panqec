@@ -29,8 +29,6 @@ class Color3DCode(StabilizerCode):
                     if coord not in coordinates:
                         coordinates.append(coord)
 
-        print("N", len(coordinates))
-
         return coordinates
 
     def get_stabilizer_coordinates(self) -> Coordinates:

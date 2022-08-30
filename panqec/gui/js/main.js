@@ -5,8 +5,8 @@ import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat
 
 import { TopologicalCode } from './topologicalCode.js';
 
-var defaultCode = codeDimension == 2 ? 'Toric 2D' : '3D Color Code';
-var defaultSize = codeDimension == 2 ? 6 : 4;
+var defaultCode = codeDimension == 2 ? '2D Color Code' : '3D Color Code';
+var defaultSize = codeDimension == 2 ? 10 : 4;
 
 const params = {
     errorProbability: 0.01,
@@ -235,7 +235,8 @@ async function buildGUI() {
     codeFolder.add(params, 'codeName', codes).name('Code type').onChange(changeLatticeSize);
     codeFolder.add(params, 'rotated').name('Rotated picture').onChange(changeLatticeSize);
     codeFolder.add(params, 'coprime').name('Coprime dimensions').onChange(changeLatticeSize);
-    codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '12': 12}).name('Lattice size').onChange(changeLatticeSize);
+    codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, 
+                                 '8': 8, '9': 9, '10':10, '11':11, '12': 12}).name('Lattice size').onChange(changeLatticeSize);
 
     let deformedOptions = {'None': 'None', 'x axis': 'x', 'y axis': 'y'};
     if (codeDimension == 3)

@@ -5,7 +5,7 @@ from panqec.codes import (
     Toric2DCode, RotatedPlanar2DCode, Planar2DCode,
     Toric3DCode, RotatedPlanar3DCode, RhombicCode,
     Planar3DCode, RotatedToric3DCode, XCubeCode, Quasi2DCode,
-    Color3DCode
+    Color3DCode, Color2DCode
 )
 from panqec.decoders import (
     Toric2DMatchingDecoder, RotatedSweepMatchDecoder,
@@ -25,6 +25,7 @@ import argparse
 codes = {'Toric 2D': Toric2DCode,
          'Planar 2D': Planar2DCode,
          'Rotated Planar 2D': RotatedPlanar2DCode,
+         '2D Color Code': Color2DCode,
          'Toric 3D': Toric3DCode,
          'Rotated Toric 3D': RotatedToric3DCode,
          'Rotated Planar 3D': RotatedPlanar3DCode,
@@ -178,6 +179,7 @@ class GUI():
             kwargs = {}
             if decoder_name in ['BP-OSD', 'MBP']:
                 kwargs['max_bp_iter'] = max_bp_iter
+                kwargs['osd_order'] = 0
             if decoder_name in ['MBP', 'MBP by Joschka']:
                 kwargs['alpha'] = alpha
                 kwargs['beta'] = beta

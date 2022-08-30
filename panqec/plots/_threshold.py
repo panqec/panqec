@@ -107,9 +107,9 @@ def threshold_plot(
 
 
 def detailed_plot(
-    plt, results_df, error_model, x_limits=None, save_folder=None,
+    plt, results_df, error_model, x_limits=None, y_limits=None,
     yscale=None, eta_key='eta_x', min_y_axis=1e-3,
-    thresholds_df=None,
+    thresholds_df=None, save_folder=None
 ):
     """Plot routine on loop.
 
@@ -191,7 +191,12 @@ def detailed_plot(
             ax.set_yscale(yscale)
         if x_limits != 'auto':
             ax.set_xlim(x_limits[i_ax])
-            ax.set_ylim(min_y_axis, 1)
+
+        if y_limits != 'auto':
+            ax.set_ylim(y_limits[i_ax])
+
+        if min_y_axis:
+            ax.set_ylim(min_y_axis, y_limits[i_ax][1])
 
         ax.set_title(title)
         ax.locator_params(axis='x', nbins=6)

@@ -434,6 +434,8 @@ def get_simulations(
     simulations = []
 
     method = 'direct'
+    
+    method_params = {}
 
     if 'ranges' in data:
         (

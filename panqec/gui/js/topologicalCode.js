@@ -172,8 +172,8 @@ class TopologicalCode {
             this.qubits[index] = qubit;
 
             maxQubitCoordinates['x'] = Math.max(qubit.position.x, maxQubitCoordinates['x']);
-            maxQubitCoordinates['y'] = Math.max(qubit.position.x, maxQubitCoordinates['y']);
-            maxQubitCoordinates['z'] = Math.max(qubit.position.x, maxQubitCoordinates['z']);
+            maxQubitCoordinates['y'] = Math.max(qubit.position.y, maxQubitCoordinates['y']);
+            maxQubitCoordinates['z'] = Math.max(qubit.position.z, maxQubitCoordinates['z']);
 
             scene.add(qubit);
         }
