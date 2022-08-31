@@ -208,9 +208,9 @@ class TopologicalCode {
             scene.add(stabilizer);
         }
 
-        var maxCoordinates = {'x': Math.max(maxStabCoordinates['x'], maxQubitCoordinates['x']),
-                              'y': Math.max(maxStabCoordinates['y'], maxQubitCoordinates['y']),
-                              'z': Math.max(maxStabCoordinates['z'], maxQubitCoordinates['z'])};
+        var maxCoordinates = {'x': Math.max(maxStabCoordinates['x']+1, maxQubitCoordinates['x']+1),
+                              'y': Math.max(maxStabCoordinates['y']+1, maxQubitCoordinates['y']+1),
+                              'z': Math.max(maxStabCoordinates['z']+1, maxQubitCoordinates['z']+1)};
 
         var offset = {'x': maxCoordinates['x'] / 2,
                       'y': maxCoordinates['y'] / 2,

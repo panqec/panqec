@@ -5,7 +5,7 @@ from panqec.codes import (
     Toric2DCode, RotatedPlanar2DCode, Planar2DCode,
     Toric3DCode, RotatedPlanar3DCode, RhombicCode,
     Planar3DCode, RotatedToric3DCode, XCubeCode, Quasi2DCode,
-    Color3DCode, Color2DCode
+    Color3DCode, Color666Code, Color488Code
 )
 from panqec.decoders import (
     Toric2DMatchingDecoder, RotatedSweepMatchDecoder,
@@ -25,7 +25,8 @@ import argparse
 codes = {'Toric 2D': Toric2DCode,
          'Planar 2D': Planar2DCode,
          'Rotated Planar 2D': RotatedPlanar2DCode,
-         '2D Color Code': Color2DCode,
+         '6.6.6 Color Code': Color666Code,
+         '4.8.8 Color Code': Color488Code,
          'Toric 3D': Toric3DCode,
          'Rotated Toric 3D': RotatedToric3DCode,
          'Rotated Planar 3D': RotatedPlanar3DCode,

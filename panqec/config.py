@@ -8,7 +8,8 @@ import os
 from typing import Dict, Any
 from dotenv import load_dotenv
 from .codes import (
-    Toric3DCode, Toric2DCode, Color2DCode,
+    Toric3DCode, Toric2DCode, Color666Code,
+    Color488Code,
     RotatedPlanar3DCode, XCubeCode,
     RotatedToric3DCode, RhombicCode,
     Quasi2DCode, Color3DCode
@@ -61,7 +62,8 @@ else:
 # Register your models here.
 CODES = {
     'Toric2DCode': Toric2DCode,
-    'Color2DCode': Color2DCode,
+    'Color666Code': Color666Code,
+    'Color488Code': Color488Code,
     'Toric3DCode': Toric3DCode,
     'RhombicCode': RhombicCode,
     'RotatedPlanar3DCode': RotatedPlanar3DCode,

@@ -10,6 +10,7 @@ var create_shape = {'sphere': sphere,
                     'cube': cube,
                     'triangle': triangle,
                     'hexagon': hexagon,
+                    'polygon': polygon,
                     'cuboctahedron': cuboctahedron,
                     'truncated_octahedron': truncated_octahedron}
 
@@ -287,6 +288,64 @@ function hexagon(location, params) {
     hexagon.add(wireframe);
 
     return hexagon;
+}
+
+function polygon(location, params) {
+    var x = location[0];
+    var y = location[1];
+    var z = (location.length == 3) ? location[2] : 0;
+
+    const geometry = new THREE.BufferGeometry();
+
+    var vertices = params['vertices'];
+
+    // A polygon is defined by many triangles
+    var verticesTriangle = [];
+
+    console.log('test')
+    console.log(vertices)
+    for (var i = 0; i < vertices.length; i++) {
+        verticesTriangle.push(
+            0, 0, 0,
+            vertices[i][0], vertices[i][1], 0,
+            vertices[(i + 1) % vertices.length][0], vertices[(i + 1) % vertices.length][1], 0
+        )
+    }
+
+    var verticesTriangle = new Float32Array(verticesTriangle);
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(verticesTriangle, 3));
+
+    const material = new THREE.MeshBasicMaterial({transparent: true,
+                                                  side: THREE.DoubleSide});
+    const polygon = new THREE.Mesh(geometry, material);
+
+    var normal = {'x': params['normal'][0], 'y': params['normal'][1], 'z': params['normal'][2]};
+    var norm = Math.sqrt(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
+    var norm_xz = Math.sqrt(normal.x*normal.x + normal.z*normal.z);
+    var norm_xy = Math.sqrt(normal.x*normal.x + normal.y*normal.y);
+
+    var theta = (norm_xz == 0) ? Math.PI / 2 : Math.acos(normal.z / norm_xz);
+    theta = (normal.x >= 0) ? theta : -theta;
+    var alpha = (norm_xy == 0) ? 0 : Math.acos(normal.x / norm_xy);
+    alpha = (normal.y > 0) ? alpha : -alpha;
+
+    polygon.geometry.rotateZ(params['angle']);
+
+    polygon.geometry.rotateY(theta);
+    polygon.geometry.rotateZ(alpha);
+
+    polygon.geometry.translate(x, y, z);
+
+    var geo = new THREE.EdgesGeometry(polygon.geometry);
+    var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1,
+                                           transparent: true});
+
+    var wireframe = new THREE.LineSegments(geo, mat);
+    wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
+    polygon.add(wireframe);
+
+    return polygon;
 }
 
 function faces2triangles(faces) {

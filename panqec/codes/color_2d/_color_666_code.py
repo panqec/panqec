@@ -1,12 +1,11 @@
 from typing import Tuple, Dict, List
 from panqec.codes import StabilizerCode
-import numpy as np
 
 Operator = Dict[Tuple, str]  # Location to pauli ('X', 'Y' or 'Z')
 Coordinates = List[Tuple]  # List of locations
 
 
-class Color2DCode(StabilizerCode):
+class Color666Code(StabilizerCode):
     dimension = 2
 
     @property
@@ -130,7 +129,19 @@ class Color2DCode(StabilizerCode):
     ) -> Dict:
         rep = super().stabilizer_representation(location, rotated_picture)
 
+        Lx, Ly = self.size
+        x, y, _ = location
+
         # We remove the last part of the location (indexing X or Z)
-        rep['location'] = (location[0], location[1])
+        rep['location'] = (x, y)
+
+        if y == 2*x:
+            rep["params"]["vertices"] = [[-1, -2], [1, -2], [2, 0], [1, 2]]
+
+        if y == 4*(Lx - 1) - 2*x:
+            rep["params"]["vertices"] = [[-1, -2], [1, -2], [-1, 2], [-2, 0]]
+
+        if y == 0:
+            rep["params"]["vertices"] = [[2, 0], [1, 2], [-1, 2], [-2, 0]]
 
         return rep
