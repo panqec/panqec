@@ -7,7 +7,7 @@ Routines for analysing output data.
 
 import os
 import warnings
-from typing import List, Optional, Tuple, Union, Callable
+from typing import List, Optional, Tuple, Union, Callable, Iterable
 import json
 import gzip
 import itertools
@@ -22,6 +22,8 @@ from .config import SLURM_DIR
 from .simulation import read_input_json
 from .utils import fmt_uncertainty, NumpyEncoder
 from .bpauli import int_to_bvector, bvector_to_pauli_string
+
+Numerical = Union[Iterable, float, int]
 
 
 def get_results_df_from_batch(batch_sim, batch_label):
@@ -217,7 +219,44 @@ def get_results_df(
 
     results_df = pd.DataFrame(results)
 
+    # Calculate the word error rate and standard error.
+    error_rate_labels = [
+        ('p_est', 'p_se'),
+        ('p_x', 'p_x_se'),
+        ('p_z', 'p_z_se'),
+    ]
+    for p_L, p_L_se in error_rate_labels:
+        (
+            results_df[f'{p_L}_word'], results_df[f'{p_L_se}_word']
+        ) = get_word_error_rate(
+            results_df[p_L], results_df[p_L_se], results_df['k']
+        )
+
     return results_df
+
+
+def get_word_error_rate(p_est, p_se, k) -> Tuple:
+    """Calculate the word error rate and its standard error.
+
+    Parameters
+    ----------
+    p_est : Numerical
+        Value or array of estimated logical error rate.
+    p_se : Numerical
+        Value or array of standard error on logical error rate.
+    k : Numerical
+        Number of logical qubits, as value or array.
+
+    Returns
+    -------
+    p_est_word : Numerical
+        Value or array of estimated word error rate.
+    p_se_word : Numerical
+        Value or array of standard error of word error rate.
+    """
+    p_est_word = 1 - (1 - p_est)**(1/k)
+    p_se_word = (1/k)*(1 - p_est)**(1/k - 1)*p_se
+    return p_est_word, p_se_word
 
 
 def get_logical_rates_df(

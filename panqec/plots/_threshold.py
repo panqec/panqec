@@ -109,7 +109,7 @@ def threshold_plot(
 def detailed_plot(
     plt, results_df, error_model, x_limits=None, save_folder=None,
     yscale=None, eta_key='eta_x', min_y_axis=1e-3,
-    thresholds_df=None,
+    thresholds_df=None, word=True
 ):
     """Plot routine on loop.
 
@@ -130,15 +130,24 @@ def detailed_plot(
         Set to 'log' to make yscale logarithmic.
     thresholds_df : Optional[pd.DataFrame]
         Plot the estimated threshold if given.
+    word : bool
+        Use the word error rate instead of the overall error rate.
     """
     df = results_df.copy()
     df.sort_values('probability', inplace=True)
     fig, axes = plt.subplots(ncols=3, figsize=(12, 4))
-    plot_labels = [
-        (0, 'p_est', 'p_se', 'All sectors'),
-        (1, 'p_x', 'p_x_se', 'Point sector'),
-        (2, 'p_z', 'p_z_se', 'Loop sector'),
-    ]
+    if word:
+        plot_labels = [
+            (0, 'p_est_word', 'p_se_word', 'All sectors'),
+            (1, 'p_x_word', 'p_x_se_word', 'Point sector'),
+            (2, 'p_z_word', 'p_z_se_word', 'Loop sector'),
+        ]
+    else:
+        plot_labels = [
+            (0, 'p_est', 'p_se', 'All sectors'),
+            (1, 'p_x', 'p_x_se', 'Point sector'),
+            (2, 'p_z', 'p_z_se', 'Loop sector'),
+        ]
     if x_limits is None:
         x_limits = [(0, 0.5), (0, 0.5), (0, 0.5)]
 
