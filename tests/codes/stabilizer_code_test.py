@@ -85,11 +85,6 @@ class StabilizerCodeTest(metaclass=ABCMeta):
         n, k = code.n, code.k
         matrix = code.stabilizer_matrix
 
-        # Number of independent stabilizer generators.
-        rank = brank(matrix)
-
-        assert rank == n - k
-
         matrix_with_logicals = vstack([
             matrix,
             code.logicals_x,
