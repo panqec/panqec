@@ -1,6 +1,6 @@
 import pytest
 from panqec.codes import RhombicCode
-from tests.tc3d.stabilizer_code_test import StabilizerCodeTest
+from tests.codes.stabilizer_code_test import StabilizerCodeTest
 
 
 class TestRhombicCode(StabilizerCodeTest):

@@ -8,7 +8,7 @@ from panqec.bpauli import apply_deformation
 from panqec.error_models import DeformedXZZXErrorModel
 from panqec.decoders import BeliefPropagationOSDDecoder
 
-from .stabilizer_code_test import StabilizerCodeTestWithCoordinates
+from tests.codes.stabilizer_code_test import StabilizerCodeTestWithCoordinates
 
 
 class RotatedToric3DCodeTest(StabilizerCodeTestWithCoordinates):

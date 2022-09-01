@@ -15,7 +15,7 @@
         "model": "SweepMatchDecoder"
       },
       "probability": 0.1,
-      "trials": 10
+      "n_runs": 10
     }
   ]
 }

@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from panqec.codes import RotatedPlanar3DCode
-from .stabilizer_code_test import (
+from tests.codes.stabilizer_code_test import (
     StabilizerCodeTest, StabilizerCodeTestWithCoordinates
 )
 
