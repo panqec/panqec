@@ -85,9 +85,7 @@ def get_results_df(
     ]
     batches = {}
     for i in range(len(input_files)):
-        print("Read input")
         batch_sim = read_input_json(input_files[i])
-        print("Load results")
         for sim in batch_sim:
             sim.load_results(output_dirs[i])
         batches[batch_sim.label] = batch_sim
