@@ -1,10 +1,10 @@
 import pytest
-from panqec.codes import Color666Code
+from panqec.codes import Color488Code
 from tests.codes.stabilizer_code_test import StabilizerCodeTest
 
 
-class TestColor666Code(StabilizerCodeTest):
+class TestColor488Code(StabilizerCodeTest):
 
     @pytest.fixture
     def code(self):
-        return Color666Code(5, 5, 5)
+        return Color488Code(5, 5, 5)

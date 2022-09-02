@@ -10,7 +10,7 @@ class Color666Code(StabilizerCode):
 
     @property
     def label(self) -> str:
-        return 'Planar {}x{}'.format(*self.size)
+        return 'Color 6.6.6 {}x{}'.format(*self.size)
 
     def get_qubit_coordinates(self) -> Coordinates:
         coordinates: Coordinates = []
@@ -32,8 +32,8 @@ class Color666Code(StabilizerCode):
         coordinates: Coordinates = []
         Lx, Ly = self.size
 
-        for x in range(2, 4*Lx, 1):
-            for y in range(0, min(2*x + 1, 4*Lx - 2*x - 1), 1):
+        for x in range(2, 12*Lx+4, 1):
+            for y in range(0, min(2*x + 1, 12*Lx - 2*x + 3), 1):
                 if (x % 6 == 2 and y % 4 == 0) or (x % 6 == 5 and y % 4 == 2):
                     coordinates.append((x, y, 0))
                     coordinates.append((x, y, 1))
@@ -84,7 +84,7 @@ class Color666Code(StabilizerCode):
             qubit_location = (location[0] + d[0], location[1] + d[1])
             x, y = qubit_location
 
-            if x >= 0 and 0 <= y <= min(2*x + 1, 4*Lx - 2*x - 1):
+            if x >= 0 and 0 <= y <= min(2*x + 1, 12*Lx - 2*x + 3):
                 is_deformed = (
                     self.qubit_axis(qubit_location) == deformed_axis
                 )
@@ -104,7 +104,7 @@ class Color666Code(StabilizerCode):
 
         # X operators in x direction.
         operator: Operator = dict()
-        for x in range(0, 4*Lx, 2):
+        for x in range(0, 12*Lx+4, 2):
             if self.is_qubit((x, 0)):
                 operator[(x, 0)] = 'X'
         logicals.append(operator)
@@ -117,7 +117,7 @@ class Color666Code(StabilizerCode):
 
         # Z operators x direction.
         operator: Operator = dict()
-        for x in range(0, 4*Lx, 2):
+        for x in range(0, 12*Lx+4, 2):
             if self.is_qubit((x, 0)):
                 operator[(x, 0)] = 'Z'
         logicals.append(operator)
@@ -138,7 +138,7 @@ class Color666Code(StabilizerCode):
         if y == 2*x:
             rep["params"]["vertices"] = [[-1, -2], [1, -2], [2, 0], [1, 2]]
 
-        if y == 4*(Lx - 1) - 2*x:
+        if y == 12*Lx - 2*x:
             rep["params"]["vertices"] = [[-1, -2], [1, -2], [-1, 2], [-2, 0]]
 
         if y == 0:

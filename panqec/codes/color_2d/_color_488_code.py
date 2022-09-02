@@ -10,7 +10,7 @@ class Color488Code(StabilizerCode):
 
     @property
     def label(self) -> str:
-        return 'Planar {}x{}'.format(*self.size)
+        return 'Color 4.8.8 {}x{}'.format(*self.size)
 
     def get_qubit_coordinates(self) -> Coordinates:
         coordinates: Coordinates = []
@@ -32,8 +32,8 @@ class Color488Code(StabilizerCode):
         coordinates: Coordinates = []
         Lx, Ly = self.size
 
-        for x in range(0, 4*Lx, 4):
-            for y in range(0, 4*Ly, 4):
+        for x in range(0, 8*Lx+4, 4):
+            for y in range(0, 8*Ly+4, 4):
                 coordinates.append((x, y, 0))
                 coordinates.append((x, y, 1))
 
@@ -81,11 +81,10 @@ class Color488Code(StabilizerCode):
 
         operator: Operator = dict()
         for d in delta:
-            qubit_location = ((location[0] + d[0]) % (4*Lx - 4),
-                              (location[1] + d[1]) % (4*Ly - 4))
+            qubit_location = ((location[0] + d[0]) % (8*Lx),
+                              (location[1] + d[1]) % (8*Ly))
             x, y = qubit_location
 
-            # if 0 <= x < 4*Lx - 3 and 0 <= y < 4*Ly - 3:
             is_deformed = (
                 self.qubit_axis(qubit_location) == deformed_axis
             )
@@ -104,25 +103,25 @@ class Color488Code(StabilizerCode):
         logicals: List[Operator] = []
 
         operator: Operator = dict()
-        for y in range(3, 4*Ly-3, 2):
+        for y in range(3, 8*Ly+1, 2):
             if self.is_qubit((3, y)):
                 operator[(3, y)] = 'X'
         logicals.append(operator)
 
         operator: Operator = dict()
-        for y in range(1, 4*Lx, 2):
+        for y in range(1, 8*Lx+4, 2):
             if self.is_qubit((7, y)):
                 operator[(7, y)] = 'X'
         logicals.append(operator)
 
         operator: Operator = dict()
-        for x in range(3, 4*Lx-3, 2):
+        for x in range(3, 8*Lx+1, 2):
             if self.is_qubit((x, 5)):
                 operator[(x, 5)] = 'X'
         logicals.append(operator)
 
         operator: Operator = dict()
-        for x in range(1, 4*Ly, 2):
+        for x in range(1, 8*Ly+4, 2):
             if self.is_qubit((x, 1)):
                 operator[(x, 1)] = 'X'
         logicals.append(operator)
@@ -134,25 +133,25 @@ class Color488Code(StabilizerCode):
         logicals: List[Operator] = []
 
         operator: Operator = dict()
-        for x in range(3, 4*Lx-3, 2):
+        for x in range(3, 8*Lx+1, 2):
             if self.is_qubit((x, 5)):
                 operator[(x, 5)] = 'Z'
         logicals.append(operator)
 
         operator: Operator = dict()
-        for x in range(1, 4*Ly, 2):
+        for x in range(1, 8*Ly+4, 2):
             if self.is_qubit((x, 1)):
                 operator[(x, 1)] = 'Z'
         logicals.append(operator)
 
         operator: Operator = dict()
-        for y in range(3, 4*Ly-3, 2):
+        for y in range(3, 8*Ly+1, 2):
             if self.is_qubit((3, y)):
                 operator[(3, y)] = 'Z'
         logicals.append(operator)
 
         operator: Operator = dict()
-        for y in range(1, 4*Lx, 2):
+        for y in range(1, 8*Lx+4, 2):
             if self.is_qubit((7, y)):
                 operator[(7, y)] = 'Z'
         logicals.append(operator)
@@ -174,13 +173,13 @@ class Color488Code(StabilizerCode):
             if x == 0:
                 rep['params']['vertices'] = [[0, -3], [1, -3], [3, -1],
                                              [3, 1], [1, 3], [0, 3]]
-            elif x == 4*(Lx-1):
+            elif x == 8*Lx:
                 rep['params']['vertices'] = [[0, -3], [0, 3], [-1, 3],
                                              [-3, 1], [-3, -1], [-1, -3]]
             elif y == 0:
                 rep['params']['vertices'] = [[3, 0], [3, 1], [1, 3],
                                              [-1, 3], [-3, 1], [-3, 0]]
-            elif y == 4*(Ly-1):
+            elif y == 8*Ly:
                 rep['params']['vertices'] = [[1, -3], [3, -1], [3, 0],
                                              [-3, 0], [-3, -1], [-1, -3]]
         else:
@@ -188,17 +187,17 @@ class Color488Code(StabilizerCode):
                 if y == 0:
                     rep['params']['vertices'] = [[0, 0], [1, 0],
                                                  [1, 1], [0, 1]]
-                elif y == 4*(Ly - 1):
+                elif y == 8*Ly:
                     rep['params']['vertices'] = [[0, 0], [1, 0],
                                                  [1, -1], [0, -1]]
                 else:
                     rep['params']['vertices'] = [[0, 1], [1, 1],
                                                  [1, -1], [0, -1]]
-            elif x == 4*(Lx - 1):
+            elif x == 8*Lx:
                 if y == 0:
                     rep['params']['vertices'] = [[0, 0], [0, 1],
                                                  [-1, 1], [-1, 0]]
-                elif y == 4*(Ly - 1):
+                elif y == 8*Ly:
                     rep['params']['vertices'] = [[0, 0], [0, -1],
                                                  [-1, -1], [-1, 0]]
                 else:
@@ -208,7 +207,7 @@ class Color488Code(StabilizerCode):
                 rep['params']['vertices'] = [[-1, 0], [1, 0],
                                              [1, 1], [-1, 1]]
 
-            elif y == 4*(Ly - 1):
+            elif y == 8*Ly:
                 rep['params']['vertices'] = [[-1, 0], [1, 0],
                                              [1, -1], [-1, -1]]
 
