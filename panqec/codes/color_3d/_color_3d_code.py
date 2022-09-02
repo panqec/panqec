@@ -132,7 +132,8 @@ class Color3DCode(StabilizerCode):
             permutations = np.vstack([signs * [1, 2], signs * [2, 1]])
             delta = np.vstack([np.insert(permutations, 0, 0, axis=1),
                                np.insert(permutations, 1, 0, axis=1),
-                               np.insert(permutations, 2, 0, axis=1)])
+                               np.insert(permutations, 2, 0, axis=1)]
+                              ).tolist()
 
         elif self.stabilizer_type(location) == 'face-square':
             if x % 4 == z % 4:  # xz square
@@ -187,13 +188,22 @@ class Color3DCode(StabilizerCode):
 
         logicals = []
 
-        operator = dict()
+        operator: Operator = dict()
         for x in range(2, 4*Lx, 4):
             for z in range(2, 4*Lz, 4):
-                operator[((x + 1) % (4 * Lx), 0, z % 16)] = 'Z'
-                operator[((x - 1) % (4 * Lx), 0, z % 16)] = 'Z'
-                operator[(x % 16, 0, (z + 1) % (4 * Lz))] = 'Z'
-                operator[(x % 16, 0, (z - 1) % (4 * Lz))] = 'Z'
+                operator[((x + 1) % (4 * Lx), 0, z)] = 'Z'
+                operator[((x - 1) % (4 * Lx), 0, z)] = 'Z'
+                operator[(x, 0, (z + 1) % (4 * Lz))] = 'Z'
+                operator[(x, 0, (z - 1) % (4 * Lz))] = 'Z'
+        logicals.append(operator)
+
+        operator = dict()
+        for x in range(0, 4*Lx, 4):
+            for z in range(0, 4*Lz, 4):
+                operator[((x + 1) % (4 * Lx), 2, z)] = 'Z'
+                operator[((x - 1) % (4 * Lx), 2, z)] = 'Z'
+                operator[(x, 2, (z + 1) % (4 * Lz))] = 'Z'
+                operator[(x, 2, (z - 1) % (4 * Lz))] = 'Z'
         logicals.append(operator)
 
         # operator = dict()
@@ -221,12 +231,20 @@ class Color3DCode(StabilizerCode):
         Lx, Ly, Lz = self.size
         logicals = []
 
-        operator = dict()
+        operator: Operator = dict()
         for y in range(2, 4*Ly-2, 8):
             operator[(6, y-2, 1)] = 'X'
             operator[(6, y-1, 0)] = 'X'
             operator[(6, y+1, 0)] = 'X'
             operator[(6, y+2, 1)] = 'X'
+        logicals.append(operator)
+
+        operator = dict()
+        for y in range(4, 4*Ly-2, 8):
+            operator[(0, y-2, 1)] = 'X'
+            operator[(0, y-1, 2)] = 'X'
+            operator[(0, y+1, 2)] = 'X'
+            operator[(0, y+2, 1)] = 'X'
         logicals.append(operator)
 
         # operator = dict()
