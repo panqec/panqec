@@ -31,14 +31,6 @@ class StabilizerCodeTest(metaclass=ABCMeta):
             n_faces = len(code.type_index('face'))
             assert n_faces == code.Hx.shape[0]
 
-    def test_qubit_index(self, code):
-        assert all(len(index) == code.dimension for index in code.qubit_index)
-
-    def test_stabilizer_index(self, code):
-        assert all(
-            len(index) == code.dimension for index in code.stabilizer_index
-        )
-
     def test_qubit_stabilizer_indices_no_overlap(self, code):
         qubits = set(code.qubit_index.keys())
         stabilizers = set(code.stabilizer_index.keys())
