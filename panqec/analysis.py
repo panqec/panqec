@@ -26,6 +26,25 @@ from .bpauli import int_to_bvector, bvector_to_pauli_string
 Numerical = Union[Iterable, float, int]
 
 
+def get_standard_error(estimator, n_samples):
+    """Get the standard error of mean estimator.
+
+    Parameters
+    ----------
+    estimator : float
+        Number of hits divided by number of samples.
+    n_samples : int
+        Number of samples.
+
+    Returns
+    -------
+    standard_error : float
+        The standard error taken as the standard deviation of a Beta
+        distribution.
+    """
+    return np.sqrt(estimator*(1 - estimator)/(n_samples + 1))
+
+
 def get_results_df_from_batch(batch_sim, batch_label):
     batch_results = batch_sim.get_results()
     # print(
@@ -46,16 +65,14 @@ def get_results_df_from_batch(batch_sim, batch_label):
             batch_result['p_x'] = np.array(
                 sim.results['effective_error']
             )[:, :n_logicals].any(axis=1).mean()
-            batch_result['p_x_se'] = np.sqrt(
-                batch_result['p_x']*(1 - batch_result['p_x'])
-                / (sim.n_results + 1)
+            batch_result['p_x_se'] = get_standard_error(
+                batch_result['p_x'], sim.n_results
             )
             batch_result['p_z'] = np.array(
                 sim.results['effective_error']
             )[:, n_logicals:].any(axis=1).mean()
-            batch_result['p_z_se'] = np.sqrt(
-                batch_result['p_z']*(1 - batch_result['p_z'])
-                / (sim.n_results + 1)
+            batch_result['p_z_se'] = get_standard_error(
+                batch_result['p_z'], sim.n_results
             )
         else:
             batch_result['p_x'] = np.nan
@@ -157,18 +174,16 @@ def get_results_df(
                     sim.results['effective_error']
                 )[:, :n_logicals].any(axis=1)
                 batch_result['p_x'] = x_errors.mean()
-                batch_result['p_x_se'] = np.sqrt(
-                    batch_result['p_x']*(1 - batch_result['p_x'])
-                    / (sim.n_results + 1)
+                batch_result['p_x_se'] = get_standard_error(
+                    batch_result['p_x'], sim.n_results
                 )
 
                 z_errors = np.array(
                     sim.results['effective_error']
                 )[:, n_logicals:].any(axis=1)
                 batch_result['p_z'] = z_errors.mean()
-                batch_result['p_z_se'] = np.sqrt(
-                    batch_result['p_z']*(1 - batch_result['p_z'])
-                    / (sim.n_results + 1)
+                batch_result['p_z_se'] = get_standard_error(
+                    batch_result['p_z'], sim.n_results
                 )
                 batch_result['p_undecodable'] = (~codespace).mean()
 
@@ -183,15 +198,9 @@ def get_results_df(
                         np.array(sim.results['effective_error']) == [0, 1]
                     ).all(axis=1).mean()
 
-                    p_pure_x_se = np.sqrt(
-                        p_pure_x * (1-p_pure_x) / (sim.n_results + 1)
-                    )
-                    p_pure_y_se = np.sqrt(
-                        p_pure_y * (1-p_pure_y) / (sim.n_results + 1)
-                    )
-                    p_pure_z_se = np.sqrt(
-                        p_pure_z * (1-p_pure_z) / (sim.n_results + 1)
-                    )
+                    p_pure_x_se = get_standard_error(p_pure_x, sim.n_results)
+                    p_pure_y_se = get_standard_error(p_pure_y, sim.n_results)
+                    p_pure_z_se = get_standard_error(p_pure_z, sim.n_results)
 
                     batch_result['p_pure_x'] = p_pure_x
                     batch_result['p_pure_y'] = p_pure_y
@@ -293,9 +302,7 @@ def get_single_qubit_error_rate(
         p_est = (qubit_errors == [0, 1]).all(axis=1).mean()
 
     # Beta distribution assumed.
-    p_se = np.sqrt(
-        p_est*(1 - p_est) / (n_results + 1)
-    )
+    p_se = get_standard_error(p_est, n_results)
 
     return p_est, p_se
 
@@ -394,9 +401,8 @@ def extract_logical_rates(input_file, output_dir):
                 == logical_error
             ).all(axis=1).mean()
             entry[p_est_label] = p_est_logical
-            entry[p_se_label] = np.sqrt(
-                p_est_logical*(1 - p_est_logical)
-                / (sim.n_results + 1)
+            entry[p_se_label] = get_standard_error(
+                p_est_logical, sim.n_results
             )
         data.append(entry)
     return data
