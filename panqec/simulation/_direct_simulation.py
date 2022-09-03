@@ -85,7 +85,7 @@ class DirectSimulation(BaseSimulation):
         code: StabilizerCode,
         error_model: BaseErrorModel,
         decoder: BaseDecoder,
-        error_rate: float, 
+        error_rate: float,
         verbose=True,
         rng=None
     ):

@@ -108,19 +108,19 @@ class Color488Code(StabilizerCode):
                 operator[(3, y)] = 'X'
         logicals.append(operator)
 
-        operator: Operator = dict()
+        operator = dict()
         for y in range(1, 8*Lx+4, 2):
             if self.is_qubit((7, y)):
                 operator[(7, y)] = 'X'
         logicals.append(operator)
 
-        operator: Operator = dict()
+        operator = dict()
         for x in range(3, 8*Lx+1, 2):
             if self.is_qubit((x, 5)):
                 operator[(x, 5)] = 'X'
         logicals.append(operator)
 
-        operator: Operator = dict()
+        operator = dict()
         for x in range(1, 8*Ly+4, 2):
             if self.is_qubit((x, 1)):
                 operator[(x, 1)] = 'X'
@@ -138,19 +138,19 @@ class Color488Code(StabilizerCode):
                 operator[(x, 5)] = 'Z'
         logicals.append(operator)
 
-        operator: Operator = dict()
+        operator = dict()
         for x in range(1, 8*Ly+4, 2):
             if self.is_qubit((x, 1)):
                 operator[(x, 1)] = 'Z'
         logicals.append(operator)
 
-        operator: Operator = dict()
+        operator = dict()
         for y in range(3, 8*Ly+1, 2):
             if self.is_qubit((3, y)):
                 operator[(3, y)] = 'Z'
         logicals.append(operator)
 
-        operator: Operator = dict()
+        operator = dict()
         for y in range(1, 8*Lx+4, 2):
             if self.is_qubit((7, y)):
                 operator[(7, y)] = 'Z'

@@ -198,7 +198,7 @@ class StabilizerCode(metaclass=ABCMeta):
 
     @property
     def logicals_x(self) -> np.ndarray:
-        """Logical X operator, as a k x 2n sparse matrix in the binary
+        """Logical X operator, as a k x 2n matrix in the binary
         symplectic format, where k is the number of logical X operators,
         and n the number of qubits.
         """
@@ -214,9 +214,9 @@ class StabilizerCode(metaclass=ABCMeta):
 
     @property
     def logicals_z(self) -> np.ndarray:
-        """Logical Z operators in the binary symplectic format.
-        It is a sparse matrix of dimension k x 2n, where k is the number
-        of Z logicals and n the number of qubits.
+        """Logical Z operator, as a k x 2n matrix in the binary
+        symplectic format, where k is the number of logical Z operators,
+        and n the number of qubits.
         """
         if self._logicals_z is None:
             logical_ops = self.get_logicals_z()

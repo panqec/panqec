@@ -3,7 +3,7 @@ API for running simulations.
 """
 import numpy as np
 import datetime
-from typing import List
+from typing import List, Tuple
 from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
 from panqec.error_models import BaseErrorModel
@@ -24,7 +24,8 @@ class SplittingSimulation(BaseSimulation):
     code: StabilizerCode
     error_model: BaseErrorModel
     decoder: BaseDecoder
-    error_rates: float
+    error_rates: np.ndarray
+    current_error: List[np.ndarray]  # error vector for each error rate
     label: str
     _results: dict = {}
     rng = None
@@ -49,7 +50,7 @@ class SplittingSimulation(BaseSimulation):
             code.label, error_model.label, decoders[0].label
         ])
 
-        self.current_error = None
+        self.current_error = []
         self.initial_logical_p = None
         self.start_run = start_run
 
@@ -70,20 +71,20 @@ class SplittingSimulation(BaseSimulation):
         """Run assuming perfect measurement."""
         # Find an error that leads to a decoding failure
 
-        if self.current_error is None:
-            # Only works for deformed 3D rotated toric code
-            # TODO; remove that (or replace it)
-            initial_error = np.concatenate([np.zeros(self.code.n),
-                                            np.ones(self.code.n)])
-            deformation_indices = self.error_model.get_deformation_indices(
-                self.code
-            )
-            initial_error[self.code.n:][deformation_indices] = 0
-            initial_error[:self.code.n][deformation_indices] = 1
-            """if (self.error_model.error_probability(
+        if len(self.current_error) == 0:
+            # # Only works for deformed 3D rotated toric code
+            # # TODO; remove that (or replace it)
+            # initial_error = np.concatenate([np.zeros(self.code.n),
+            #                                 np.ones(self.code.n)])
+            # deformation_indices = self.error_model.get_deformation_indices(
+            #     self.code
+            # )
+            # initial_error[self.code.n:][deformation_indices] = 0
+            # initial_error[:self.code.n][deformation_indices] = 1
+            if (self.error_model.error_probability(
                 self.code.logicals_x[0], self.code, 0.5
             ) != 0):
-                initial_error = self.code.logicals_x[0]
+                initial_error: np.ndarray = self.code.logicals_x[0]
             elif (self.error_model.error_probability(
                 self.code.logicals_z[0], self.code, 0.5
             ) != 0):
@@ -94,7 +95,6 @@ class SplittingSimulation(BaseSimulation):
                     "probability. Please specify another error that fails"
                     "when decoded"
                 )
-            """
 
             # Check that the chosen error indeed fails
             syndrome = self.code.measure_syndrome(initial_error)
@@ -153,7 +153,7 @@ class SplittingSimulation(BaseSimulation):
         decoder: BaseDecoder,
         error_rate: float,
         previous_error: np.ndarray
-    ) -> dict:
+    ) -> Tuple[np.ndarray, np.ndarray]:
         if not (0 <= error_rate <= 1):
             raise ValueError('Error rate must be in [0, 1].')
 

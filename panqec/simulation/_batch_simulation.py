@@ -13,7 +13,7 @@ from panqec.error_models import BaseErrorModel
 from panqec.config import (
     CODES, ERROR_MODELS, DECODERS, PANQEC_DIR
 )
-from panqec.utils import identity, NumpyEncoder
+from panqec.utils import identity
 from . import BaseSimulation, DirectSimulation, SplittingSimulation
 
 
@@ -70,13 +70,14 @@ def run_file(
         for simulation in batch_sim._simulations:
             code = simulation.code.label
             noise = simulation.error_model.label
-            if type(simulation).__name__ == "SplittingSimulation":
+            if isinstance(simulation, SplittingSimulation):
                 decoder = simulation.decoders[0].label
-                error_rate = simulation.error_rates
-            else:
+                error_rates = simulation.error_rates
+                print(f'{code}, {noise}, {decoder}, {error_rates}')
+            elif isinstance(simulation, DirectSimulation):
                 decoder = simulation.decoder.label
                 error_rate = simulation.error_rate
-            print(f'    {code}, {noise}, {decoder}, {error_rate}')
+                print(f'{code}, {noise}, {decoder}, {error_rate}')
     batch_sim.run(n_trials, progress=progress)
 
 
@@ -370,19 +371,6 @@ def _parse_decoder_dict(
     return decoder
 
 
-def parse_run(run: Dict[str, Any]) -> BaseSimulation:
-    """Parse a single dict describing the run."""
-    code = _parse_code_dict(run['code'])
-    error_model = _parse_error_model_dict(run['noise'])
-    error_rate = run['probability']
-    decoder = _parse_decoder_dict(
-        run['decoder'], code, error_model, error_rate
-    )
-
-    simulation = BaseSimulation(code, error_model, decoder, error_rate)
-    return simulation
-
-
 def read_input_json(file_path: str, *args, **kwargs) -> BatchSimulation:
     """Read json input file."""
     try:
@@ -429,12 +417,12 @@ def count_runs(file_path: str) -> Optional[int]:
 
 def get_simulations(
     data: dict, start: Optional[int] = None, n_runs: Optional[int] = None,
-    verbose: Optional[bool] = True
-) -> List[dict]:
-    simulations = []
+    verbose: bool = True
+) -> List[BaseSimulation]:
+    simulations: List[BaseSimulation] = []
 
     method = 'direct'
-    
+
     method_params = {}
 
     if 'ranges' in data:
@@ -501,7 +489,7 @@ def read_input_dict(
     data: dict,
     start: Optional[int] = None,
     n_runs: Optional[int] = None,
-    verbose: Optional[bool] = True,
+    verbose: bool = True,
     *args, **kwargs
 ) -> BatchSimulation:
     """Return BatchSimulation from input dict."""
@@ -538,7 +526,7 @@ def merge_results_dicts(results_dicts: List[Dict]) -> Dict:
     # If splitting method
     if 'log_p_errors' in results_dicts[0]['results'].keys():
         error_rates = results_dicts[0]['results']['error_rates']
-        results = {
+        results: Dict[str, Any] = {
             'log_p_errors': [[] for _ in error_rates],
             'n_runs': 0,
             'wall_time': 0.0
@@ -552,7 +540,7 @@ def merge_results_dicts(results_dicts: List[Dict]) -> Dict:
             results['wall_time'] += results_dict['results']['wall_time']
 
             for i, p in enumerate(results_dict['results']['log_p_errors']):
-                results['log_p_errors'][i] += p
+                results['log_p_errors'][i].append(p)
 
         results['error_rates'] = error_rates
 

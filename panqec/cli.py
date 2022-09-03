@@ -136,7 +136,7 @@ def read_range_input(specification: str) -> List[float]:
 @click.option(
     '--decoder_class', default='BeliefPropagationOSDDecoder',
     show_default=True,
-    type=click.Choice(DECODERS.keys()),
+    type=click.Choice(list(DECODERS.keys())),
     help='Decoder class name'
 )
 @click.option(
