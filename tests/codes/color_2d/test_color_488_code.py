@@ -5,6 +5,6 @@ from tests.codes.stabilizer_code_test import StabilizerCodeTest
 
 class TestColor488Code(StabilizerCodeTest):
 
-    @pytest.fixture
-    def code(self):
-        return Color488Code(5, 5, 5)
+    @pytest.fixture(params=[1, 2, 3])
+    def code(self, request):
+        return Color488Code(request.param)

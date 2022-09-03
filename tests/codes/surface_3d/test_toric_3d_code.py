@@ -3,20 +3,15 @@ import pytest
 from panqec.bpauli import bs_prod, bsf_wt
 from panqec.codes import Toric3DCode
 import panqec.bsparse as bsparse
+from tests.codes.stabilizer_code_test import StabilizerCodeTest
+from pymatching import Matching
 
 
-class TestToric3DCode:
+class TestToric3DCode(StabilizerCodeTest):
 
-    @pytest.fixture()
-    def code(self):
-        """Example code with non-uniform dimensions."""
-        L_x, L_y, L_z = 5, 6, 7
-        new_code = Toric3DCode(L_x, L_y, L_z)
-        return new_code
-
-    def test_cubic_code(self):
-        code = Toric3DCode(5)
-        assert code.size == (5, 5, 5)
+    @pytest.fixture(params=[(2, 2, 2), (3, 3, 3), (2, 3, 4)])
+    def code(self, request):
+        return Toric3DCode(*request.param)
 
     def test_get_vertex_stabilizers(self, code):
         n = code.n
@@ -79,7 +74,7 @@ class TestToric3DCode:
         )
         stabilizers = code.stabilizer_matrix[face_index, :]
 
-        # Weight of every stabilizer should be 6.
+        # Weight of every stabilizer should be 4.
         assert np.all(stabilizers.sum(axis=1) == 4)
         assert stabilizers.dtype == 'uint8'
 
@@ -128,36 +123,3 @@ class TestToric3DCode:
         logicals = code.logicals_x
         assert logicals.shape[0] == 3
         assert logicals.shape[1] == 2*n
-
-
-class TestCommutationRelationsToric3DCode:
-
-    @pytest.fixture()
-    def code(self):
-        """Example code with non-uniform dimensions."""
-        L_x, L_y, L_z = 3, 4, 5
-        new_code = Toric3DCode(L_x, L_y, L_z)
-        return new_code
-
-    def test_stabilizers_commute_with_each_other(self, code):
-        assert np.all(
-            code.measure_syndrome(code.stabilizer_matrix) == 0
-        )
-
-    def test_Z_logicals_commute_with_each_other(self, code):
-        assert np.all(bs_prod(code.logicals_z, code.logicals_z) == 0)
-
-    def test_X_logicals_commute_with_each_other(self, code):
-        assert np.all(bs_prod(code.logicals_x, code.logicals_x) == 0)
-
-    def test_stabilizers_commute_with_logicals(self, code):
-        if isinstance(code.logicals_x, np.ndarray):
-            logicals = np.concatenate([code.logicals_x, code.logicals_z])
-        else:
-            logicals = bsparse.vstack([code.logicals_x, code.logicals_z])
-        assert np.all(bs_prod(logicals, code.stabilizer_matrix) == 0)
-
-    def test_logicals_anticommute_correctly(self, code):
-        assert np.all(
-            bs_prod(code.logicals_x, code.logicals_z) == np.eye(code.k)
-        )
