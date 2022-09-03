@@ -550,9 +550,11 @@ def merge_results_dicts(results_dicts: List[Dict]) -> Dict:
             'effective_error': [],
             'success': [],
             'codespace': [],
-            'n_runs': 0,
             'wall_time': 0.0
         }
+        # For backward compatibilities (when n_runs was not in results)
+        if 'n_runs' in results_dicts[0]['results'].keys():
+            results['n_runs'] = 0
         inputs = results_dicts[0]['inputs']
         for results_dict in results_dicts:
             for key in results.keys():
