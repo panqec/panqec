@@ -235,6 +235,71 @@ def get_results_df(
     return results_df
 
 
+def get_single_qubit_error_rate(
+    effective_error_list: Union[List[List[int]], np.ndarray],
+    i: int = 0,
+    error_type: Optional[str] = None,
+) -> Tuple[float, float]:
+    """Estimate single-qubit error rate of i-th qubit and its standard error.
+
+    This is the probability of getting an error on the i-th logical qubit,
+    marginalized over the other logical qubits.
+
+    Parameters
+    ----------
+    effective_error_list :
+        List of many logical effective errors produced by simulation,
+        each of which is given in bsf format.
+    n : int
+        The index of the logical qubit on which estimation is to be done.
+    error_type :
+        Type of Pauli error to calculate error for, i.e. 'X', 'Y' or 'Z'
+        If None is given, then rate for any error is estimated.
+
+    Returns
+    -------
+    p_i_est : float
+        Single-qubit error rate estimator.
+    p_i_se : float
+        Standard error for the estimator.
+    """
+    p_est = np.nan
+    p_se = np.nan
+
+    # Convert to numpy array.
+    effective_errors = np.array(effective_error_list)
+
+    # Return nan if wrong shape given.
+    if len(effective_errors.shape) != 2:
+        return p_est, p_se
+
+    # Number of logical qubits and sample size.
+    k = int(effective_errors.shape[1]/2)
+    n_results = effective_errors.shape[0]
+
+    # Errors on the single logical qubit of interest.
+    qubit_errors = np.array(
+        [effective_errors[:, i], effective_errors[:, k + i]]
+    ).T
+
+    # Calculate error rate based on error type.
+    if error_type is None:
+        p_est = qubit_errors.any(axis=1).mean()
+    elif error_type == 'X':
+        p_est = (qubit_errors == [1, 0]).all(axis=1).mean()
+    elif error_type == 'Y':
+        p_est = (qubit_errors == [1, 1]).all(axis=1).mean()
+    elif error_type == 'Z':
+        p_est = (qubit_errors == [0, 1]).all(axis=1).mean()
+
+    # Beta distribution assumed.
+    p_se = np.sqrt(
+        p_est*(1 - p_est) / (n_results + 1)
+    )
+
+    return p_est, p_se
+
+
 def get_word_error_rate(p_est, p_se, k) -> Tuple:
     """Calculate the word error rate and its standard error.
 
