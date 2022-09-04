@@ -220,7 +220,7 @@ def detailed_plot(
 def xyz_sector_plot(
     plt, results_df, error_model, x_limits=None, save_folder=None,
     yscale=None, eta_key='eta_x', min_y_axis=1e-3,
-    thresholds_df=None
+    thresholds_df=None, y_limits=None, logical_type='total'
 ):
     """Plot the different sectors (pure X, pure Y, pure Z) crossover plots
 
@@ -243,16 +243,43 @@ def xyz_sector_plot(
         Minimum value in the yscale (relevant in logarithmic scale)
     thresholds_df : Optional[pd.DataFrame]
         Plot the estimated threshold if given.
+    y_limits : Optional[Union[List[Tuple[float, float]], str]]
+        Will set y limits as given, otherwise default with potentially
+        different limits on each plot.
+    logical_type : Optional[int]
+        The type of logical error rate to plot on the y axis.
+        Choose from 'total', 'single' or 'word'.
     """
     df = results_df.copy()
     df.sort_values('probability', inplace=True)
     fig, axes = plt.subplots(ncols=4, figsize=(16, 4))
-    plot_labels = [
-        (0, 'p_est', 'p_se', 'Full threshold'),
-        (1, 'p_pure_x', 'p_pure_x_se', '$X_L$ sector'),
-        (2, 'p_pure_y', 'p_pure_y_se', '$Y_L$ sector'),
-        (3, 'p_pure_z', 'p_pure_z_se', '$Z_L$ sector'),
-    ]
+
+
+    # The index of the logical qubit to plot information for.
+    if logical_type == 'total':
+        plot_labels = [
+            (0, 'p_est', 'p_se', 'All errors'),
+        ]
+        y_label = 'Logical error rate'
+    elif logical_type == 'single':
+        i_logical = 0
+        plot_labels = [
+            (0, f'p_{i_logical}_est', f'p_{i_logical}_se', 'All errors'),
+        ] + [
+            (
+                i_ax + 1,
+                f'p_{i_logical}_{pauli}_est',
+                f'p_{i_logical}_{pauli}_se',
+                f'${pauli}_L$ errors'
+            )
+            for i_ax, pauli in enumerate('XYZ')
+        ]
+        y_label = f'Logical qubit {i_logical} error rate'
+    elif logical_type == 'word':
+        plot_labels = [
+            (0, 'p_word_est', 'p_word_se', 'All errors'),
+        ]
+
     if x_limits is None:
         x_limits = [(0, 0.5), (0, 0.5), (0, 0.5), (0, 0.5)]
 
@@ -312,7 +339,9 @@ def xyz_sector_plot(
             ax.legend(loc='best', title=legend_title)
         else:
             ax.legend(loc='best')
-    axes[0].set_ylabel('Logical Error Rate')
+        if y_limits is not None:
+            ax.set_ylim(y_limits)
+    axes[0].set_ylabel(y_label)
 
     # fig.suptitle(f"$\\eta={eta:.1f}$")
 

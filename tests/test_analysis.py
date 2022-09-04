@@ -42,23 +42,23 @@ class TestGetSingleQubitErrorRates:
 
         # Rate of any error occuring should be 3/4.
         p_est, p_se = get_single_qubit_error_rate(effective_error_list, i=0)
-        assert p_est == (n_results - 1)/n_results
+        assert np.isclose(p_est, (n_results - 1)/n_results)
 
         # Probability of each error type occuring should be based on count.
         p_x, p_x_se = get_single_qubit_error_rate(
             effective_error_list, i=0, error_type='X'
         )
-        assert p_x == 1/n_results
+        assert np.isclose(p_x, 1/n_results)
 
         p_y, p_y_se = get_single_qubit_error_rate(
             effective_error_list, i=0, error_type='Y'
         )
-        assert p_y == 2/n_results
+        assert np.isclose(p_y, 2/n_results)
 
         p_z, p_z_se = get_single_qubit_error_rate(
             effective_error_list, i=0, error_type='Z'
         )
-        assert p_z == 3/n_results
+        assert np.isclose(p_z, 3/n_results)
 
     def test_simple_example_on_2nd_qubit(self):
         effective_error_list = [
@@ -73,22 +73,22 @@ class TestGetSingleQubitErrorRates:
 
         # Rate of any error occuring should be 3/4.
         p_est, p_se = get_single_qubit_error_rate(effective_error_list, i=1)
-        assert p_est == 6/7
-        assert p_se == np.sqrt((6/7)*(1 - (6/7))/(7 + 1))
+        assert np.isclose(p_est, 6/7)
+        assert np.isclose(p_se, np.sqrt((6/7)*(1 - (6/7))/(7 + 1)))
 
         # Probability of each error type occuring should be based on count.
         p_x, p_x_se = get_single_qubit_error_rate(
             effective_error_list, i=1, error_type='X'
         )
-        assert p_x == 1/7
-        assert p_x_se == np.sqrt(p_x*(1 - p_x)/(7 + 1))
+        assert np.isclose(p_x, 1/7)
+        assert np.isclose(p_x_se, np.sqrt(p_x*(1 - p_x)/(7 + 1)))
 
         p_y, p_y_se = get_single_qubit_error_rate(
             effective_error_list, i=1, error_type='Y'
         )
-        assert p_y == 2/7
+        assert np.isclose(p_y, 2/7)
 
         p_z, p_z_se = get_single_qubit_error_rate(
             effective_error_list, i=1, error_type='Z'
         )
-        assert p_z == 3/7
+        assert np.isclose(p_z, 3/7)

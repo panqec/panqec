@@ -91,7 +91,7 @@ def get_results_df(
     output_dir: str,
     input_dir: str = None,
 ) -> pd.DataFrame:
-    """Get raw results in DataFrame."""
+    """Get raw results in DataFrame from list of jobs in output dir."""
 
     if input_dir is None:
         input_dir = os.path.join(SLURM_DIR, 'inputs')
@@ -187,36 +187,34 @@ def get_results_df(
                 )
                 batch_result['p_undecodable'] = (~codespace).mean()
 
-                if n_logicals == 1:
-                    p_pure_x = (
-                        np.array(sim.results['effective_error']) == [1, 0]
-                    ).all(axis=1).mean()
-                    p_pure_y = (
-                        np.array(sim.results['effective_error']) == [1, 1]
-                    ).all(axis=1).mean()
-                    p_pure_z = (
-                        np.array(sim.results['effective_error']) == [0, 1]
-                    ).all(axis=1).mean()
+                i_logical = 0
 
-                    p_pure_x_se = get_standard_error(p_pure_x, sim.n_results)
-                    p_pure_y_se = get_standard_error(p_pure_y, sim.n_results)
-                    p_pure_z_se = get_standard_error(p_pure_z, sim.n_results)
-
-                    batch_result['p_pure_x'] = p_pure_x
-                    batch_result['p_pure_y'] = p_pure_y
-                    batch_result['p_pure_z'] = p_pure_z
-
-                    batch_result['p_pure_x_se'] = p_pure_x_se
-                    batch_result['p_pure_y_se'] = p_pure_y_se
-                    batch_result['p_pure_z_se'] = p_pure_z_se
-                else:
-                    batch_result['p_pure_x'] = np.nan
-                    batch_result['p_pure_y'] = np.nan
-                    batch_result['p_pure_z'] = np.nan
-
-                    batch_result['p_pure_x_se'] = np.nan
-                    batch_result['p_pure_y_se'] = np.nan
-                    batch_result['p_pure_z_se'] = np.nan
+                # Single-qubit rate estimates and uncertainties.
+                single_qubit_results = dict()
+                p_est, p_se = get_single_qubit_error_rate(
+                    sim.results['effective_error'], i=i_logical,
+                    error_type=None
+                )
+                single_qubit_results.update({
+                    f'p_{i_logical}_est': p_est,
+                    f'p_{i_logical}_se': p_se,
+                })
+                for pauli in 'XYZ':
+                    p_pauli_est, p_pauli_se = get_single_qubit_error_rate(
+                        sim.results['effective_error'], i=i_logical,
+                        error_type=pauli
+                    )
+                    single_qubit_results.update({
+                        f'p_{i_logical}_{pauli}_est': p_pauli_est,
+                        f'p_{i_logical}_{pauli}_se': p_pauli_se,
+                    })
+                batch_result.update(single_qubit_results)
+                assert np.isclose(
+                    single_qubit_results[f'p_{i_logical}_X_est']
+                    + single_qubit_results[f'p_{i_logical}_Y_est']
+                    + single_qubit_results[f'p_{i_logical}_Z_est'],
+                    single_qubit_results[f'p_{i_logical}_est']
+                )
 
             else:
                 batch_result['p_x'] = np.nan
@@ -293,7 +291,7 @@ def get_single_qubit_error_rate(
 
     # Calculate error rate based on error type.
     if error_type is None:
-        p_est = qubit_errors.any(axis=1).mean()
+        p_est = 1 - (qubit_errors == [0, 0]).all(axis=1).mean()
     elif error_type == 'X':
         p_est = (qubit_errors == [1, 0]).all(axis=1).mean()
     elif error_type == 'Y':
