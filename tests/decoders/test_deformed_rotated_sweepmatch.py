@@ -2,7 +2,7 @@ from typing import Tuple
 import numpy as np
 import pytest
 from panqec.codes import RotatedPlanar3DCode
-from panqec.decoders import DeformedRotatedSweepMatchDecoder
+from panqec.decoders import RotatedSweepMatchDecoder
 from panqec.error_models import DeformedXZZXErrorModel
 
 
@@ -22,8 +22,8 @@ class TestDeformedRotatedPlanarMatchingDecoder:
 
     @pytest.fixture
     def decoder(self, code, error_model):
-        return DeformedRotatedSweepMatchDecoder(code, error_model,
-                                                self.error_rate)
+        return RotatedSweepMatchDecoder(code, error_model,
+                                        self.error_rate)
 
     def test_decode(self, code, error_model, decoder):
         rng = np.random.default_rng(seed=0)

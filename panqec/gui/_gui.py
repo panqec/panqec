@@ -8,7 +8,7 @@ from panqec.codes import (
     Color3DCode, Color666Code, Color488Code
 )
 from panqec.decoders import (
-    Toric2DMatchingDecoder, RotatedSweepMatchDecoder,
+    MatchingDecoder, RotatedSweepMatchDecoder,
     ZMatchingDecoder, SweepMatchDecoder,
     BeliefPropagationOSDDecoder, MemoryBeliefPropagationDecoder,
 
@@ -51,7 +51,7 @@ decoders = {'BP-OSD': BeliefPropagationOSDDecoder,
             'MBP': MemoryBeliefPropagationDecoder,
             'SweepMatch': SweepMatchDecoder,
             'RotatedSweepMatch': RotatedSweepMatchDecoder,
-            'Matching': Toric2DMatchingDecoder,
+            'Matching': MatchingDecoder,
             'Optimal ∞ bias': ZMatchingDecoder}
 
 
@@ -128,14 +128,26 @@ class GUI():
         def send_js(path):
             return send_from_directory('js', path)
 
-        @self.app.route('/model-names', methods=['POST'])
-        def send_model_names():
-            models = {}
+        @self.app.route('/code-names', methods=['POST'])
+        def send_code_names():
             dim = request.json['dimension']
-            models['codes'] = self.code_names[f'{dim}d']
-            models['decoders'] = self.decoder_names
+            code_names = self.code_names[f'{dim}d']
 
-            return json.dumps(models)
+            return json.dumps(code_names)
+
+        @self.app.route('/decoder-names', methods=['POST'])
+        def send_decoder_names():
+            code_name = request.json['code_name']
+            code_id = codes[code_name].__name__
+
+            decoder_names = []
+
+            for decoder_name, decoder_class in decoders.items():
+                if (decoder_class.allowed_codes is None
+                   or code_id in decoder_class.allowed_codes):
+                    decoder_names.append(decoder_name)
+
+            return json.dumps(decoder_names)
 
         @self.app.route('/code-data', methods=['POST'])
         def send_code_data():
@@ -180,8 +192,9 @@ class GUI():
             kwargs = {}
             if decoder_name in ['BP-OSD', 'MBP']:
                 kwargs['max_bp_iter'] = max_bp_iter
+            if decoder_name == 'BP-OSD':
                 kwargs['osd_order'] = 0
-            if decoder_name in ['MBP', 'MBP by Joschka']:
+            if decoder_name == 'MBP':
                 kwargs['alpha'] = alpha
                 kwargs['beta'] = beta
 

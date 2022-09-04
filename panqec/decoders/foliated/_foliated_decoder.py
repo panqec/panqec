@@ -21,6 +21,8 @@ class FoliatedMatchingDecoder(BaseDecoder):
     """
 
     label: str = 'Foliated Matching'
+    allowed_codes: List[str] = []
+
     matcher_lists: Dict[str, List[Matching]] = dict()
 
     def __init__(self, code: StabilizerCode,

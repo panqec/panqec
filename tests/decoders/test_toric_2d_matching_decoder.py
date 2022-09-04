@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
-from panqec.codes import Toric2DCode
+from panqec.codes import Toric2DCode, Toric3DCode
 from panqec.bpauli import bsf_wt
-from panqec.decoders import Toric2DMatchingDecoder
+from panqec.decoders import MatchingDecoder
 from panqec.error_models import PauliErrorModel
 
 
@@ -27,7 +27,7 @@ class TestToric2DMatchingDecoder:
     def test_decode_single_error(self, code, operator, location):
         error_model = PauliErrorModel(1/3, 1/3, 1/3)
         error_rate = 0.5
-        decoder = Toric2DMatchingDecoder(code, error_model, error_rate)
+        decoder = MatchingDecoder(code, error_model, error_rate)
         error = code.to_bsf({
             location: operator
         })
@@ -43,3 +43,12 @@ class TestToric2DMatchingDecoder:
         assert np.all(code.measure_syndrome(total_error) == 0), (
             'Total error should be in code space'
         )
+
+    def test_exception_when_wrong_code(self, code):
+        error_model = PauliErrorModel(1/3, 1/3, 1/3)
+        error_rate = 0.5
+        MatchingDecoder(code, error_model, error_rate)
+
+        code_3d = Toric3DCode(3)
+        with pytest.raises(Exception):
+            MatchingDecoder(code_3d, error_model, error_rate)

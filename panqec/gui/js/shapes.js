@@ -302,8 +302,6 @@ function polygon(location, params) {
     // A polygon is defined by many triangles
     var verticesTriangle = [];
 
-    console.log('test')
-    console.log(vertices)
     for (var i = 0; i < vertices.length; i++) {
         verticesTriangle.push(
             0, 0, 0,

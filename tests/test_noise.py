@@ -3,7 +3,7 @@ import pytest
 from panqec.bpauli import bsf_to_pauli, bsf_wt
 from panqec.error_models import PauliErrorModel, DeformedXZZXErrorModel
 from panqec.codes import Toric3DCode
-from panqec.decoders import DeformedToric3DMatchingDecoder
+from panqec.decoders import MatchingDecoder
 from panqec.bsparse import to_array
 from panqec.utils import get_direction_from_bias_ratio
 
@@ -148,7 +148,7 @@ class TestGeneratePauliNoise:
 
 class TestDeformedMatchingWeights:
 
-    def get_deformed_weights(self, p_X, p_Y, p_Z, L):
+    def get_weights(self, p_X, p_Y, p_Z, L):
         code = Toric3DCode(L, L, L)
         error_rate = p_X + p_Y + p_Z
         if error_rate != 0:
@@ -156,43 +156,49 @@ class TestDeformedMatchingWeights:
         else:
             r_x, r_y, r_z = 1/3, 1/3, 1/3
         error_model = DeformedXZZXErrorModel(r_x, r_y, r_z)
-        decoder = DeformedToric3DMatchingDecoder(code, error_model, error_rate)
-        weights = decoder.get_deformed_weights()
-        return weights
+        decoder = MatchingDecoder(code, error_model, error_rate, 'X')
+        weights_x, weight_z = decoder.get_weights()
+        return weights_x, weight_z
 
     def test_if_equal_rates_then_equal_weights(self):
         L = 10
         p_X, p_Y, p_Z = 0.1, 0.1, 0.1
-        weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
-        assert np.all(weights != 0)
-        assert np.all(weights == weights[0])
+        wx, wz = self.get_weights(p_X, p_Y, p_Z, L)
+        assert np.all(wx != 0)
+        assert np.all(wx == wx[0])
+
+        assert np.all(wz != 0)
+        assert np.all(wz == wz[0])
 
     def test_zero_error_rate_no_nan(self):
         L = 10
         p_X, p_Y, p_Z = 0, 0, 0
-        weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
-        assert np.all(weights != 0)
-        assert np.all(~np.isnan(weights))
+        wx, wz = self.get_weights(p_X, p_Y, p_Z, L)
+        assert np.all(wx != 0)
+        assert np.all(~np.isnan(wx))
+
+        assert np.all(wz != 0)
+        assert np.all(~np.isnan(wz))
 
     def test_one_error_rate_no_nan(self):
         L = 10
         p_X, p_Y, p_Z = 0.45, 0, 0
-        weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
-        assert np.all(weights != 0)
-        assert np.all(~np.isnan(weights))
+        wx, wz = self.get_weights(p_X, p_Y, p_Z, L)
+        assert np.all(wx != 0)
+        assert np.all(~np.isnan(wx))
 
     def test_biased_Z_noise_different_weights(self):
         L = 10
         p_X, p_Y, p_Z = 0, 0, 0.4
-        weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
-        assert np.any(weights != 0)
-        assert np.any(weights != weights[0])
+        wx, wz = self.get_weights(p_X, p_Y, p_Z, L)
+        assert np.any(wx != 0)
+        assert np.any(wx != wx[0])
 
-    def test_only_x_edges_different_weights(self):
+    def test_only_x_edges_different_wx(self):
         L = 10
         p_X, p_Y, p_Z = 0.3, 0.1, 0
-        weights = self.get_deformed_weights(p_X, p_Y, p_Z, L)
-        assert np.any(weights != weights[0])
+        wx, wz = self.get_weights(p_X, p_Y, p_Z, L)
+        assert np.any(wx != wx[0])
         code = Toric3DCode(L, L, L)
         x_edge_indices = [
             index for index, edge in enumerate(code.qubit_index)
@@ -208,15 +214,15 @@ class TestDeformedMatchingWeights:
         ]
 
         # Weights for the same wedge type should be equal.
-        assert np.all(weights[x_edge_indices] == weights[x_edge_indices[0]])
-        assert np.all(weights[y_edge_indices] == weights[y_edge_indices[0]])
-        assert np.all(weights[z_edge_indices] == weights[z_edge_indices[0]])
+        assert np.all(wx[x_edge_indices] == wx[x_edge_indices[0]])
+        assert np.all(wx[y_edge_indices] == wx[y_edge_indices[0]])
+        assert np.all(wx[z_edge_indices] == wx[z_edge_indices[0]])
 
         # Weights for y-edges and z-edges should be equal.
-        assert np.all(weights[x_edge_indices] == weights[y_edge_indices])
+        assert np.all(wx[x_edge_indices] == wx[y_edge_indices])
 
         # Weights for x-edges and z-edges should not be equal.
-        assert np.any(weights[x_edge_indices] != weights[z_edge_indices])
+        assert np.any(wx[x_edge_indices] != wx[z_edge_indices])
 
 
 @pytest.mark.parametrize('pauli,bias,expected', [

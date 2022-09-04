@@ -7,6 +7,7 @@ from panqec.decoders import BaseDecoder
 
 class BeliefPropagationOSDDecoder(BaseDecoder):
     label = 'BP-OSD decoder'
+    allowed_codes = None  # all codes allowed
 
     def __init__(self,
                  code: StabilizerCode,

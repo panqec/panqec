@@ -65,6 +65,7 @@ def log_exp_bias(pauli, gamma, eps=1e-12) -> Sequence:
 
 class MemoryBeliefPropagationDecoder(BaseDecoder):
     label = 'MBP decoder'
+    allowed_codes = None  # all codes allowed
 
     def __init__(self,
                  code: StabilizerCode,

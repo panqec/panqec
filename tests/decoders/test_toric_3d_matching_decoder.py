@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 from panqec.bpauli import bsf_wt
 from panqec.codes import Toric3DCode
-from panqec.decoders import Toric3DMatchingDecoder
+from panqec.decoders import MatchingDecoder
 from panqec.error_models import PauliErrorModel
 
 
@@ -17,7 +17,7 @@ class TestToric3DMatchingDecoder:
     def decoder(self, code):
         error_model = PauliErrorModel(1/3, 1/3, 1/3)
         error_rate = 0.1
-        return Toric3DMatchingDecoder(code, error_model, error_rate)
+        return MatchingDecoder(code, error_model, error_rate, 'X')
 
     def test_decoder_has_required_attributes(self, decoder):
         assert decoder.label is not None
@@ -98,7 +98,7 @@ class TestToric3DMatchingDecoder:
         error_rate = 0.1
 
         for code, site in itertools.product(codes, sites):
-            decoder = Toric3DMatchingDecoder(code, error_model, error_rate)
+            decoder = MatchingDecoder(code, error_model, error_rate, 'X')
             error = code.to_bsf({
                 site: 'X',
             })
