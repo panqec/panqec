@@ -5,168 +5,119 @@ mkdir -p "$sbatch_dir"
 mkdir -p temp/paper/share
 qos=dpart
 
-name=rough_rhombic_xzzx_xbias
+# =============== Test Run ================
+name=test_run
 rm -rf $paper_dir/$name/inputs
 rm -rf $paper_dir/$name/logs
-# sizes="9,13,17,21"
-sizes="7,9,11,13"
-wall_time="0:45:00"
+sizes="3,4,5"
+wall_time="0:02:00"
 memory="20G"
 
-# estimated p_th unknown
 panqec generate-input -i "$paper_dir/$name/inputs" \
-    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
+    --code_class Toric2DCode --noise_class DeformedXZZXErrorModel \
     --ratio equal \
     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "0.5" --prob "0.03:0.50:0.03"
+    --eta "10,30" --prob "0.0:0.5:0.07"
 
-# estimated p_th unknown
-panqec generate-input -i "$paper_dir/$name/inputs" \
-    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-    --ratio equal \
-    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "3" --prob "0.03:0.50:0.03"
-
-# estimated p_th unknown
-panqec generate-input -i "$paper_dir/$name/inputs" \
-    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-    --ratio equal \
-    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "10" --prob "0.03:0.50:0.03"
-
-# estimated p_th unknown
-panqec generate-input -i "$paper_dir/$name/inputs" \
-    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-    --ratio equal \
-    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "30" --prob "0.03:0.50:0.03"
-
-# estimated p_th unknown
-panqec generate-input -i "$paper_dir/$name/inputs" \
-    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-    --ratio equal \
-    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "100" --prob "0.03:0.50:0.03"
-
-# estimated p_th unknown
-panqec generate-input -i "$paper_dir/$name/inputs" \
-    --code_class RhombicCode --noise_class DeformedRhombicErrorModel \
-    --ratio equal \
-    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
-    --eta "inf" --prob "0.03:0.50:0.03"
-
-panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 102 \
+nfiles=$(ls $paper_dir/$name/inputs | wc -l)
+echo "$nfiles input files created"
+panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 3 \
     --memory "$memory" --qos "$qos" \
-    --wall_time "$wall_time" --trials 10000 --split 16 $sbatch_dir/$name.sbatch
+    --wall_time "$wall_time" --trials 300 --split auto $sbatch_dir/$name.sbatch
 
-# # ============== Undeformed ==============
-# 
-# name=rough_xcube_bposd_undef_zbias
-# rm -rf $paper_dir/$name/inputs
-# rm -rf $paper_dir/$name/logs
-# sizes="9,13,17,21"
-# # sizes="7,9,11,13"
-# wall_time="0:10:00"
-# memory="20G"
-# 
-# # estimated p_th = 0.051
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "0.5" --prob "0.03:0.07:0.005"
-# 
-# # estimated p_th unknown
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "3" --prob "0.10:0.18:0.01"
-# 
-# # estimated p_th = 0.1022
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "10" --prob "0.08:0.12:0.005"
-# 
-# # estimated p_th = 0.0988
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "30" --prob "0.08:0.12:0.005"
-# 
-# # estimated p_th = 0.0975
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "100" --prob "0.08:0.12:0.005"
-# 
-# # estimated p_th = 0.0973
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class PauliErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "inf" --prob "0.08:0.12:0.005"
-# 
-# panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 55 \
-#     --memory "$memory" --qos "$qos" \
-#     --wall_time "$wall_time" --trials 10000 --split 16 $sbatch_dir/$name.sbatch
-# 
-# 
-# # ============== Deformed ==============
-# 
-# name=rough_xcube_bposd_xzzx_zbias
-# rm -rf $paper_dir/$name/inputs
-# rm -rf $paper_dir/$name/logs
-# sizes="9,13,17,21"
-# # sizes="7,9,11,13"
-# wall_time="0:10:00" memory="20G"
-# 
-# # estimated p_th = 0.0477
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "0.5" --prob "0.03:0.07:0.005"
-# 
-# # estimated p_th = 0.0743
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "3" --prob "0.05:0.09:0.005"
-# 
-# # estimated p_th = 0.1121
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "10" --prob "0.09:0.13:0.005"
-# 
-# # estimated p_th = 12.82
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "30" --prob "0.11:0.15:0.005"
-# 
-# # estimated p_th unknown but point sector p_th = 0.14
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "100" --prob "0.12:0.16:0.005"
-# 
-# # estimated p_th unknown but point sector 0.14
-# panqec generate-input -i "$paper_dir/$name/inputs" \
-#     --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
-#     --ratio equal \
-#     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
-#     --eta "inf" --prob "0.12:0.16:0.03"
-# 
-# panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 51 \
-#     --memory "$memory" --qos "$qos" \
-#     --wall_time "$wall_time" --trials 10000 --split 16 $sbatch_dir/$name.sbatch
+# =============== Rhombic Undeformed ================
+name=umiacs_rhombic_bposd_undef_xbias
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="10,14,18,22"
+# sizes="8,10,12,14"
+wall_time="24:00:00"
+memory="20G"
+
+source scripts/rhombic_undef.sh
+
+nfiles=$(ls $paper_dir/$name/inputs | wc -l)
+echo "$nfiles input files created"
+panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles \
+    --memory "$memory" --qos "$qos" \
+    --wall_time "$wall_time" --trials 10000 --split auto $sbatch_dir/$name.sbatch
+
+# =============== Rhombic Deformed ================
+name=umiacs_rhombic_bposd_xzzx_xbias
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="10,14,18,20"
+# sizes="8,10,12,14"
+wall_time="24:00:00"
+memory="20G"
+
+source scripts/rhombic_xzzx.sh
+
+nfiles=$(ls $paper_dir/$name/inputs | wc -l)
+echo "$nfiles input files created"
+panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array 8 \
+    --memory "$memory" --qos "$qos" \
+    --wall_time "$wall_time" --trials 250 --split auto $sbatch_dir/$name.sbatch
+
+# ============== XCube Undeformed ==============
+name=umiacs_xcube_bposd_undef_zbias
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="9,13,17,21"
+# sizes="7,9,11,13"
+wall_time="24:00:00"
+memory="20G"
+
+source scripts/xcube_undef.sh
+
+nfiles=$(ls $paper_dir/$name/inputs | wc -l)
+echo "$nfiles input files created"
+panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles \
+    --memory "$memory" --qos "$qos" \
+    --wall_time "$wall_time" --trials 10000 --split auto $sbatch_dir/$name.sbatch
+
+# ============== XCube Deformed ==============
+name=umiacs_xcube_bposd_xzzx_zbias
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="9,13,17,21"
+# sizes="7,9,11,13"
+wall_time="24:00:00"
+memory="20G"
+
+source scripts/xcube_xzzx.sh
+
+nfiles=$(ls $paper_dir/$name/inputs | wc -l)
+echo "$nfiles input files created"
+panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles \
+    --memory "$memory" --qos "$qos" \
+    --wall_time "$wall_time" --trials 10000 --split auto $sbatch_dir/$name.sbatch
+
+# ============== XCube Deformed Inf Only ==============
+common_name=umiacs_xcube_bposd_xzzx_zbias_inf
+name=${common_name}_temp
+rm -rf $paper_dir/$name/inputs
+rm -rf $paper_dir/$name/logs
+sizes="7,9,11,13"
+
+panqec generate-input -i "$paper_dir/$name/inputs" \
+    --code_class XCubeCode --noise_class DeformedXZZXErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
+    --eta "inf" --prob "0.10:0.20:0.02"
+
+nfiles=$(ls $paper_dir/$name/inputs | wc -l)
+echo "$nfiles input files created"
+
+for repeat in $(seq 1 8); do
+    name=${common_name}_${repeat}
+    mkdir -p $paper_dir/$name
+    rm -rf $paper_dir/$name/inputs
+    rm -rf $paper_dir/$name/logs
+    cp -R $paper_dir/${common_name}_temp/inputs $paper_dir/$name/inputs
+    panqec umiacs-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles \
+        --memory "$memory" --qos "$qos" \
+        --wall_time "$wall_time" --trials 125 --split auto $sbatch_dir/$name.sbatch
+done
+
+rm -rf $paper_dir/${common_name}_temp

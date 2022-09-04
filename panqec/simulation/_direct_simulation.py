@@ -86,10 +86,13 @@ class DirectSimulation(BaseSimulation):
         error_model: BaseErrorModel,
         decoder: BaseDecoder,
         error_rate: float,
+        compress: bool = True,
         verbose=True,
         rng=None
     ):
-        super().__init__(code, error_model, verbose=verbose, rng=rng)
+        super().__init__(
+            code, error_model, compress=compress, verbose=verbose, rng=rng
+        )
 
         self.decoder = decoder
         self.error_rate = error_rate

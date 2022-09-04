@@ -102,6 +102,7 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
                 osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
                 osd_order=self._osd_order
             )
+        self._initialized = True
 
     def decode(self, syndrome: np.ndarray, **kwargs) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""

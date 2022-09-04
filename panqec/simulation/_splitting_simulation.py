@@ -38,10 +38,13 @@ class SplittingSimulation(BaseSimulation):
         error_rates: List[float],
         n_init_runs: int,
         start_run: int = 0,
+        compress: bool = True,
         verbose: bool = True,
         rng=None
     ):
-        super().__init__(code, error_model, verbose=verbose, rng=rng)
+        super().__init__(
+            code, error_model, compress=compress, verbose=verbose, rng=rng
+        )
 
         self.decoders = decoders
         self.error_rates = np.sort(error_rates)[::-1]
