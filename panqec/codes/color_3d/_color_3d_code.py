@@ -265,6 +265,33 @@ class Color3DCode(StabilizerCode):
                 operator[(x, (y + 1) % (4 * Ly), 2)] = 'Z'
                 operator[(x, (y - 1) % (4 * Ly), 2)] = 'Z'
         logicals.append(operator)
+        
+        operator: Operator = dict()
+        for x in range(0, 4*Lx, 4):
+            for y in range(0, 4*Ly, 4):
+                operator[((x + 1) % (4 * Lx), y, 2)] = 'Z'
+                operator[((x - 1) % (4 * Lx), y, 2)] = 'Z'
+                operator[(x, (y + 1) % (4 * Ly), 2)] = 'Z'
+                operator[(x, (y - 1) % (4 * Ly), 2)] = 'Z'
+        logicals.append(operator)
+        
+        operator: Operator = dict()
+        for x in range(0, 4*Lx, 4):
+            for y in range(0, 4*Ly, 4):
+                operator[((x + 1) % (4 * Lx), y, 2)] = 'Z'
+                operator[((x - 1) % (4 * Lx), y, 2)] = 'Z'
+                operator[(x, (y + 1) % (4 * Ly), 2)] = 'Z'
+                operator[(x, (y - 1) % (4 * Ly), 2)] = 'Z'
+        logicals.append(operator)
+        
+        operator: Operator = dict()
+        for x in range(0, 4*Lx, 4):
+            for y in range(0, 4*Ly, 4):
+                operator[((x + 1) % (4 * Lx), y, 2)] = 'Z'
+                operator[((x - 1) % (4 * Lx), y, 2)] = 'Z'
+                operator[(x, (y + 1) % (4 * Ly), 2)] = 'Z'
+                operator[(x, (y - 1) % (4 * Ly), 2)] = 'Z'
+        logicals.append(operator)
 
         # operator: Operator = dict()
         # operator[(2, 0, 5)] = 'Z'

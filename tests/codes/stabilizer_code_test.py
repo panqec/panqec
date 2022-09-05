@@ -46,6 +46,9 @@ class StabilizerCodeTest(metaclass=ABCMeta):
         # There should be no non-commuting pairs of stabilizers.
         assert np.all(commutators == 0)
 
+    def test_logicals_same_size(self, code):
+        assert len(code.logicals_x) == len(code.logicals_z)
+
     def test_logical_operators_anticommute_pairwise(self, code):
         k = code.k
         assert np.all(bs_prod(code.logicals_x, code.logicals_x) == 0)
