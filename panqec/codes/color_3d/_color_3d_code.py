@@ -189,6 +189,30 @@ class Color3DCode(StabilizerCode):
         logicals = []
 
         operator: Operator = dict()
+        for y in range(0, 4*Ly, 1):
+            for x in range(0, 4*Lx, 1):
+                z = (x + 1 - y) % (4*Lz)
+                if self.is_qubit((x, y, z)):
+                    operator[(x, y, z)] = 'Z'
+        # logicals.append(operator)
+
+        # operator: Operator = dict()
+        # for x in range(0, 4*Lx, 1):
+        #     for z in range(0, 4*Lz, 1):
+        #         y = (z + 1 - x) % (4*Ly)
+        #         if self.is_qubit((x, y, z)):
+        #             operator[(x, y, z)] = 'Z'
+        # logicals.append(operator)
+
+        # operator: Operator = dict()
+        # for y in range(0, 4*Ly, 1):
+        #     for x in range(0, 4*Lx, 1):
+        #         z = (x + 1 - y) % (4*Lz)
+        #         if self.is_qubit((x, y, z)):
+        #             operator[(x, y, z)] = 'Z'
+        # logicals.append(operator)
+
+        operator: Operator = dict()
         for x in range(2, 4*Lx, 4):
             for z in range(2, 4*Lz, 4):
                 operator[((x + 1) % (4 * Lx), 0, z)] = 'Z'
@@ -206,22 +230,73 @@ class Color3DCode(StabilizerCode):
                 operator[(x, 2, (z - 1) % (4 * Lz))] = 'Z'
         logicals.append(operator)
 
-        # operator = dict()
-        # for x in range(4, 4*Lx+1, 4):
-        #     for y in range(4, 4*Ly+1, 4):
-        #         operator[((x + 1) % (4 * Lx), y % 16, 2)] = 'Z'
-        #         operator[((x - 1) % (4 * Lx), y % 16, 2)] = 'Z'
-        #         operator[(x % 16, (y + 1) % (4 * Ly), 2)] = 'Z'
-        #         operator[(x % 16, (y - 1) % (4 * Ly), 2)] = 'Z'
-        # logicals.append(operator)
+        operator: Operator = dict()
+        for y in range(2, 4*Ly, 4):
+            for z in range(2, 4*Lz, 4):
+                operator[(0, (y + 1) % (4 * Ly), z)] = 'Z'
+                operator[(0, (y - 1) % (4 * Ly), z)] = 'Z'
+                operator[(0, y, (z + 1) % (4 * Lz))] = 'Z'
+                operator[(0, y, (z - 1) % (4 * Lz))] = 'Z'
+        logicals.append(operator)
 
-        # operator = dict()
-        # for x in range(4, 4*Lx+1, 4):
-        #     for z in range(4, 4*Ly+1, 4):
-        #         operator[((x + 1) % (4 * Lx), 2, z % 16)] = 'Z'
-        #         operator[((x - 1) % (4 * Lx), 2, z % 16)] = 'Z'
-        #         operator[(x % 16, 2, (z + 1) % (4 * Lz))] = 'Z'
-        #         operator[(x % 16, 2, (z - 1) % (4 * Lz))] = 'Z'
+        operator = dict()
+        for y in range(0, 4*Ly, 4):
+            for z in range(0, 4*Lz, 4):
+                operator[(2, (y + 1) % (4 * Ly), z)] = 'Z'
+                operator[(2, (y - 1) % (4 * Ly), z)] = 'Z'
+                operator[(2, y, (z + 1) % (4 * Lz))] = 'Z'
+                operator[(2, y, (z - 1) % (4 * Lz))] = 'Z'
+        logicals.append(operator)
+
+        operator: Operator = dict()
+        for x in range(2, 4*Lx, 4):
+            for y in range(2, 4*Ly, 4):
+                operator[((x + 1) % (4 * Lx), y, 0)] = 'Z'
+                operator[((x - 1) % (4 * Lx), y, 0)] = 'Z'
+                operator[(x, (y + 1) % (4 * Ly), 0)] = 'Z'
+                operator[(x, (y - 1) % (4 * Ly), 0)] = 'Z'
+        logicals.append(operator)
+
+        operator: Operator = dict()
+        for x in range(0, 4*Lx, 4):
+            for y in range(0, 4*Ly, 4):
+                operator[((x + 1) % (4 * Lx), y, 2)] = 'Z'
+                operator[((x - 1) % (4 * Lx), y, 2)] = 'Z'
+                operator[(x, (y + 1) % (4 * Ly), 2)] = 'Z'
+                operator[(x, (y - 1) % (4 * Ly), 2)] = 'Z'
+        logicals.append(operator)
+
+        # operator: Operator = dict()
+        # operator[(2, 0, 5)] = 'Z'
+        # operator[(3, 0, 6)] = 'Z'
+        # operator[(6, 0, 1)] = 'Z'
+        # operator[(7, 0, 2)] = 'Z'
+
+        # operator[(0, 1, 2)] = 'Z'
+        # operator[(2, 1, 4)] = 'Z'
+        # operator[(4, 1, 6)] = 'Z'
+        # operator[(6, 1, 0)] = 'Z'
+
+        # operator[(0, 2, 1)] = 'Z'
+        # operator[(3, 2, 4)] = 'Z'
+        # operator[(4, 2, 5)] = 'Z'
+        # operator[(7, 2, 0)] = 'Z'
+
+        # operator[(2, 4, 1)] = 'Z'
+        # operator[(3, 4, 2)] = 'Z'
+        # operator[(6, 4, 5)] = 'Z'
+        # operator[(7, 4, 6)] = 'Z'
+
+        # operator[(0, 5, 6)] = 'Z'
+        # operator[(2, 5, 0)] = 'Z'
+        # operator[(4, 5, 2)] = 'Z'
+        # operator[(6, 5, 4)] = 'Z'
+
+        # operator[(0, 6, 5)] = 'Z'
+        # operator[(3, 6, 0)] = 'Z'
+        # operator[(4, 6, 1)] = 'Z'
+        # operator[(7, 6, 4)] = 'Z'
+
         # logicals.append(operator)
 
         return logicals
@@ -245,6 +320,53 @@ class Color3DCode(StabilizerCode):
             operator[(0, y-1, 2)] = 'X'
             operator[(0, y+1, 2)] = 'X'
             operator[(0, y+2, 1)] = 'X'
+        logicals.append(operator)
+
+        operator = dict()
+        for y in range(1, 4*Ly, 2):
+            operator[(2, y, 0)] = 'X'
+        logicals.append(operator)
+
+        operator: Operator = dict()
+        for x in range(2, 4*Lx-2, 8):
+            operator[(x-2, 6, 1)] = 'X'
+            operator[(x-1, 6, 0)] = 'X'
+            operator[(x+1, 6, 0)] = 'X'
+            operator[(x+2, 6, 1)] = 'X'
+        logicals.append(operator)
+
+        operator = dict()
+        for x in range(4, 4*Lx-2, 8):
+            operator[(x-2, 0, 1)] = 'X'
+            operator[(x-1, 0, 2)] = 'X'
+            operator[(x+1, 0, 2)] = 'X'
+            operator[(x+2, 0, 1)] = 'X'
+        logicals.append(operator)
+
+        operator = dict()
+        for x in range(1, 4*Lx, 2):
+            operator[(x, 2, 0)] = 'X'
+        logicals.append(operator)
+
+        operator: Operator = dict()
+        for z in range(2, 4*Lz-2, 8):
+            operator[(6, 1, z-2)] = 'X'
+            operator[(6, 0, z-1)] = 'X'
+            operator[(6, 0, z+1)] = 'X'
+            operator[(6, 1, z+2)] = 'X'
+        logicals.append(operator)
+
+        operator = dict()
+        for z in range(4, 4*Lz-2, 8):
+            operator[(0, 1, z-2)] = 'X'
+            operator[(0, 2, z-1)] = 'X'
+            operator[(0, 2, z+1)] = 'X'
+            operator[(0, 1, z+2)] = 'X'
+        logicals.append(operator)
+
+        operator = dict()
+        for z in range(1, 4*Lz, 2):
+            operator[(2, 0, z)] = 'X'
         logicals.append(operator)
 
         # operator = dict()
