@@ -30,25 +30,23 @@ def clustering(syndrome: np.ndarray, code_size):
     """  
     support = Support(syndrome, code_size)
     
-    (smallest_cluster, odd_clusters) = \
-        _smallest_odd_cluster(support.get_all_clusters())
+    (smallest_cluster, invalid_clusters) = \
+        _smallest_invalid_cluster(support.get_all_clusters())
 
     while smallest_cluster: # while exists not valid cluster
-        old_root = smallest_cluster.get_root()
         fusion_set = smallest_cluster.grow(support) 
-        
-        # TODO improve: only grow one edge at a time -- overhead
-        # result: no fusion list, only fusion edge
+
         for q in fusion_set:
             Hr = support.H[:, q] - support._H_to_grow[:, q]
             ss = np.where(Hr[:,q] != 0)
             support.union(ss)
 
-        root = old_root.find_root() # the root of cluster after union
-        support.get_cluster(root).update_boundary(support)
+            # We don't waste time to check boundary list here, 
+            # since it's trivial and it doesn't hurt to have them checked 
+            # during runtime
 
-        (smallest_cluster, odd_clusters) = \
-        _smallest_odd_cluster(odd_clusters)
+        (smallest_cluster, invalid_clusters) = \
+        _smallest_invalid_cluster(support.get_all_clusters())
 
     return #grwon supprt and syndrome
 
@@ -60,7 +58,11 @@ class Cluster_Tree():
         self._root: int = root
         self._boundary_list: set[int] = [root]
     
-    def is_odd(self) -> Boolean:
+    def is_invalid(self) -> bool:
+        # is_odd is invalid for 2d toric code
+        return self._odd
+
+    def is_odd(self) -> bool:
         return self._odd
     
     def get_size(self):
@@ -117,15 +119,8 @@ class Cluster_Tree():
             rt = c.get_root()
             support._parents[rt] = self._root
             self._boundary_list = self._boundary_list.union(c.get_boundary())
-        
-    def update_boundary(self, support: Support):
-        #TODO check boundary
-        """ Eliminate the non-boundary vertx in the list"""
-        self._boundary_list = set(filter(lambda b : support.vertex_is_boundary(b),
-                                     self._boundary_list))
 
-
-def _smallest_odd_cluster(clts: list[Cluster_Tree]) \
+def _smallest_invalid_cluster(clts: list[Cluster_Tree]) \
                             -> tuple[Cluster_Tree, list[Cluster_Tree]]:
     """Given a list of cluster tree, 
     reutrns a tuple of the smallest cluster tree and a list of odd cluster trees.
@@ -138,37 +133,28 @@ def _smallest_odd_cluster(clts: list[Cluster_Tree]) \
     Returns
     -------
     smallest_cluster_tree : Cluster_Tree
-        The smallest odd cluster tree
+        The smallest invalid cluster tree
     
-    odd_trees : list[Cluster_Tree]
-        A list of all odd clutser trees.
+    invalid_trees : list[Cluster_Tree]
+        A list of all invalid clutser trees.
 
     """ 
     sml = None
-    odds = []
+    invalids = []
     minSize = sys.maxsize
     for c in clts:
-        if c.is_odd():
-            odds += c
+        if c.is_invalid():
+            invalids += c
             if c.get_size < minSize:
                 sml = c
                 minSize = c.get_size
-    return (sml, odds)
+    return (sml, invalids)
 
 def _hash_s_index(i: int):
     return -i-1
 
 class Support():
     """ Storage Class of status and information of the code."""
-    # edges(qubits) status
-    UNOCCUPIED = 0
-    HALF_GROWN = 1
-    GROWN      = 2
-
-    # vertex(stabilizer) status
-    DARK_POINT = 0
-    VERTEX     = 1
-    SYNDROME   = 2
 
     def __init__(self, syndrome: np.ndarray, H: csr_matrix):
         self._num_qubit = H.shape[1]
@@ -211,13 +197,6 @@ class Support():
         """returns all clusters at the current stage."""
         return list(self._cluster_forest.values())
 
-    def vertex_is_boundary(self, s: int):
-        """Given a stabilizer index, returns true if it is a boundary vertex"""
-        # A vertex is boundary if all edges surrounded are grown.
-        return [] == \
-            filter(lambda s : s != Support.GROWN, \
-                self._status[self._get_surrond_edges(s)])
-
     def find_root(self, v:int) -> int:
         """Given a vertex index, returns the root of the cluster it belongs to."""
         p = self._parents[v]
@@ -253,7 +232,9 @@ class Support():
             if size > max:
                 max = size
                 biggest = c
+
         clusters.remove(biggest)
+        biggest.merge(clusters, self)
         forest[biggest.get_root()] = biggest
 
     def grow_stabilizer(self, s: int) -> tuple[np.array, np.array]:
@@ -265,102 +246,3 @@ class Support():
         new_boundary = np.where(self._H_to_grow[:, q] != 0)
         self._H_to_grow[:, q] = 0
         return (new_boundary, [q])
-
-    def grow_vertex(self, vertex: Vertex) -> tuple:
-        """Given a vertex to grow, returns a list of potential fusion edges and
-        a list of potential new boundary vertices
-
-        Parameters
-        ----------
-        vertex : Vertex
-            The vertex to be grown
-
-        Returns
-        -------
-        fusion_list : list[Edge]
-            The list of new potential fusion edges.
-
-        new_boundary : list[Vertex]
-            The list of new potential boundary vertices.
-        """
-        new_boundary: list[Vertex] =[]
-        fusion_list: list[Edge] = []
-        surround_edges_loc: list[tuple] = self._get_surround_edges(vertex)
-        for e in surround_edges_loc:
-            edge = self._edge_newly_grown(e)
-            if edge: # if edge is growing to be grown
-                if vertex is edge.fst:
-                    # append new vertex, but check if it has been approached 
-                    # from the otehr end
-                    loc_u = self._get_other_vertex_loc(vertex, edge)
-                    if self._status[loc_u] == Support.DARK_POINT:
-                        vertex_u = self._light_up_vertex(loc_u, vertex)#11
-                        new_boundary.append(vertex_u)
-                        edge.add_vertex(snd = vertex_u) #11
-                    else:
-                        # but probably the same cluster
-                        vertex_u = self._loc_vertex_map[loc_u]#11
-                        edge.add_vertex(snd = vertex_u) #11
-                        fusion_list.append(edge)
-                else:
-                    # but probably the same cluster
-                    edge.add_vertex(snd = vertex)
-                    fusion_list.append(edge)
-
-        return (fusion_list, new_boundary)
-    
-    def _edge_newly_grown(self, loc: tuple, v: Vertex) -> Edge:
-        """Given the coordinate of an edge, return the edge instance if the edge 
-        becomes grown from half-grown, returns None otherwise.
-
-        Parameters
-        ----------
-        loc : tuple
-            The coordinates of the edge to be grown.
-        
-        v : Vertex
-            The vertex that the edge grows from.
-
-        Returns
-        -------
-        edge : Edge
-            The edge instance if the edge becomes grown from half-grown, 
-            None otherwise.
-        """
-        status = self._status[loc]
-
-        if status == Support.HALF_GROWN:
-            edge = self._loc_edge_map[loc]
-            self._status[loc] = Support.GROWN
-            return edge
-        elif status == Support.UNOCCUPIED:
-            edge = Edge(loc)
-            edge.add_vertex(fst=v)
-            self._loc_edge_map[loc] = edge
-            self._status[loc] = Support.HALF_GROWN
-        
-        return None
-
-    def _light_up_vertex(self, loc: tuple, parent: Vertex):
-        """Given the coordinate and parent vertex of the new vertex, returns 
-        the new Vertex instance of the given coordinates.
-
-        Parameters
-        ----------
-        loc : tuple
-            The coordinates of the vertex to be lit
-
-        parent : Vertex
-            The parent of the new vertex
-
-        Returns
-        -------
-        vertex : Vertex
-            The vertex instance of the newly created vertex.
-        """
-        vertex = Vertex(loc, parent=parent)
-        self._status[loc] = Support.VERTEX
-        self._loc_vertex_map[loc] = vertex
-        root = parent.add_child(vertex)
-        self._cluster_forest[root.get_location()].size_increment()
-        return vertex  
