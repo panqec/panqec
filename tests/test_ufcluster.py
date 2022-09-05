@@ -6,19 +6,34 @@ class TestClusterTree:
     pass
 
 class TestSupport:
+    syndrome = np.zeros(5)
+    syndrome[[1,3]] = 1
+    Hz = np.zeros([5,10])
+    sp = Support(syndrome, Hz)
 
     def test_support(self):
-        syndrome = np.zeros(5)
-        syndrome[[1,3]] = 1
-        Hz = np.zeros([5,10])
-        sp = Support(syndrome, Hz)
+        sp = self.sp
+        Hz = self.Hz
         assert sp._num_stabilizer == 5
         assert sp._num_qubit == 10
         assert np.array_equal(sp._H_to_grow, Hz)
         check = {1: Cluster_Tree(1), 3: Cluster_Tree(3)}
         for k, v in sp._cluster_forest.items():
             assert v == check[k]
-            
+    
+    def test_find_root(self):
+        sp = self.sp
+        sp._parents[0] = 1
+        sp._parents[1] = 2
+        sp._parents[2] = 3
+        sp._parents[3] = 3
+        assert sp.find_root(2) == 3
+        assert sp.find_root(1) == 3
+        assert sp._parents[1] == 3
+        assert sp._parents[0] == 1
+        assert sp.find_root(0) == 3
+        assert sp._parents[0] == 3 # compressed
+
 
 def test_hash_index():
     assert _hash_s_index(5) == -6

@@ -73,9 +73,6 @@ class Cluster_Tree():
 
     def get_boundary(self):
         return self._boundary_list
-
-    def size_increment(self, inc = 1):
-        self._size += inc
     
     def grow(self, support: Support) -> set[int]:
         """Given a support, grow every vertex in the boundary list,
@@ -120,15 +117,23 @@ class Cluster_Tree():
             support._parents[rt] = self._root
             self._boundary_list = self._boundary_list.union(c.get_boundary())
 
-def _smallest_invalid_cluster(clts: list[Cluster_Tree]) \
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, Cluster_Tree):
+            return False
+        return __o.get_root() == self._root
+    
+    def __hash__(self) -> int:
+        return hash(self._root)
+
+def _smallest_invalid_cluster(clts: set[Cluster_Tree]) \
                             -> tuple[Cluster_Tree, list[Cluster_Tree]]:
     """Given a list of cluster tree, 
     reutrns a tuple of the smallest cluster tree and a list of odd cluster trees.
 
     Parameters
     ----------
-    clts: list[Cluster_Tree]
-        A list of all cluster trees.
+    clts: set[Cluster_Tree]
+        A set of all cluster trees.
 
     Returns
     -------
@@ -144,10 +149,10 @@ def _smallest_invalid_cluster(clts: list[Cluster_Tree]) \
     minSize = sys.maxsize
     for c in clts:
         if c.is_invalid():
-            invalids += c
-            if c.get_size < minSize:
+            invalids.append(c)
+            if c.get_size() < minSize:
                 sml = c
-                minSize = c.get_size
+                minSize = c.get_size()
     return (sml, invalids)
 
 def _hash_s_index(i: int):
@@ -157,21 +162,21 @@ class Support():
     """ Storage Class of status and information of the code."""
 
     def __init__(self, syndrome: np.ndarray, H: csr_matrix):
-        self._num_qubit = H.shape[1]
         self._num_stabilizer = H.shape[0]
+        self._num_qubit = H.shape[1]
         self.H = H
         self._H_to_grow = H.copy() # connected only if qubit/stabilizer is not grown 
-        self._s_status = syndrome
-        self._q_status = np.zeros(self._num_qubit, dtype='uint8') # eraser
-        self._parents  = np.full(self._num_qubit, -1, dtype='unit8') # -1 means no parents/it's root
-        self._cluster_forest = self._init_cluster_forest(self._syndrome_loc) # stabilizer to cluster
+        # UNUSE self._s_status = syndrome
+        # UNUSE self._q_status = np.zeros(self._num_qubit, dtype='uint8') # eraser
+        self._parents  = np.full(self._num_qubit, -1, dtype='uint8') # -1 means no parents/it's root
+        self._cluster_forest = self._init_cluster_forest(syndrome) # stabilizer to cluster
     
     def _init_cluster_forest(self, syndrome: np.ndarray) -> dict[int, Cluster_Tree]:
         """Given an array of syndrome, returns a mapping to its cluster tree.
 
         Parameters
         ----------
-        syndrome: np.array
+        syndrome: np.ndarray
             ndarray of syndromes
 
         Returns
@@ -180,7 +185,7 @@ class Support():
             The index of a syndrome is mapped to a cluster tree
         """
         forest = {}
-        indices = np.where(syndrome != 0)
+        indices = list(np.where(syndrome != 0)[0])
         for i in indices:
             self._parents[i] = i
             forest[i] = Cluster_Tree(i)
@@ -199,13 +204,14 @@ class Support():
 
     def find_root(self, v:int) -> int:
         """Given a vertex index, returns the root of the cluster it belongs to."""
-        p = self._parents[v]
-        seen = [v]
-        while p != p:
-            v = p
+        parents = self._parents
+        p = parents[v]
+        seen = []
+        while v != p:
             seen.append(v)
-            p = self._parents[v]
-        self._parents[seen] = v
+            v = p
+            p = parents[v]
+        parents[seen] = v
         return v
 
     def union(self, s_l: list[int]):
