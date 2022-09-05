@@ -40,7 +40,8 @@ def clustering(syndrome: np.ndarray, code_size):
         # TODO improve: only grow one edge at a time -- overhead
         # result: no fusion list, only fusion edge
         for q in fusion_set:
-            ss = np.where(support.H[:,q] != 0)
+            Hr = support.H[:, q] - support._H_to_grow[:, q]
+            ss = np.where(Hr[:,q] != 0)
             support.union(ss)
 
         root = old_root.find_root() # the root of cluster after union
@@ -118,7 +119,7 @@ class Cluster_Tree():
             self._boundary_list = self._boundary_list.union(c.get_boundary())
         
     def update_boundary(self, support: Support):
-        #TODO
+        #TODO check boundary
         """ Eliminate the non-boundary vertx in the list"""
         self._boundary_list = set(filter(lambda b : support.vertex_is_boundary(b),
                                      self._boundary_list))
