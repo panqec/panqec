@@ -1,7 +1,7 @@
 from copy import deepcopy
 import pytest
 import numpy as np
-from panqec.decoders.union_find.clustering import Cluster_Tree, Support, _hash_s_index, _smallest_invalid_cluster
+from panqec.decoders.union_find.clustering import Cluster_Tree, Support, _hash_s_index, _smallest_invalid_cluster, clustering
 
 syndrome = np.zeros(5)
 syndrome[[1,3]] = 1 #[0, 1, 0, 1, 0]
@@ -112,12 +112,29 @@ class TestSupport:
         sp._update_parents(sp._s_parents)
         assert list(sp._s_parents) == [-1, 1, 1, 3, 1]
         assert np.array_equal(sp._q_parents, np.full(10, -1))
-        sp._q_parents[1] = 1
-        sp._q_parents[2] = 1
+        sp._q_parents[1] = 3
         sp._q_parents[3] = 3
         sp._q_parents[4] = 2
         sp._update_parents(sp._q_parents)
-        assert list(sp._q_parents) == [-1, 1, 1, 3, 1, -1, -1, -1, -1, -1]
+        assert list(sp._q_parents) == [-1, 3, -1, 3, 1, -1, -1, -1, -1, -1]
+
+    def test_to_peeling(self):
+        sp = deepcopy(sp_global)
+        tp = sp.to_peeling()
+        assert np.array_equal(tp[0][0], np.array([1]))
+        assert np.array_equal(tp[0][1], np.array([],'int'))
+        assert np.array_equal(tp[1][0], np.array([3]))
+        assert np.array_equal(tp[1][1], np.array([],'int'))
+        sp._s_parents[2] = 1
+        sp._s_parents[4] = 2
+        sp._q_parents[1] = 3
+        sp._q_parents[3] = 3
+        sp._q_parents[4] = 2
+        tp = sp.to_peeling()
+        assert np.array_equal(tp[0][0], np.array([1, 2, 4]))
+        assert np.array_equal(tp[0][1], np.array([4]))
+        assert np.array_equal(tp[1][0], np.array([3]))
+        assert np.array_equal(tp[1][1], np.array([1, 3]))
 
 def test_hash_index():
     assert _hash_s_index(5) == -6
@@ -168,8 +185,10 @@ def test_smallest_invalid_cluster():
     }
     sml, forest = _smallest_invalid_cluster(clts)
     assert sml == d
-    assert set(forest) == set([c,d])   
+    assert set(forest) == set([c,d]) 
 
-
-    
-
+def test_clusterung():
+    tp = clustering(syndrome, Hz)
+    assert len(tp) == 1
+    assert np.array_equal(tp[0][0], np.array([1, 3]))
+    assert np.array_equal(tp[0][1], np.array([2, 3, 6, 7]))

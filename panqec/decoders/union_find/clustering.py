@@ -38,7 +38,7 @@ def clustering(syndrome: np.ndarray, H: csr_matrix):
 
         for q in fusion_set:
             Hr = support.H[:, q] - support._H_to_grow[:, q]
-            ss = np.where(Hr[:,q] != 0)
+            ss = list(np.where(Hr != 0)[0])
             support._q_parents[q] = support.union(ss)
 
             # We don't waste time to check boundary list here, 
@@ -48,8 +48,7 @@ def clustering(syndrome: np.ndarray, H: csr_matrix):
         (smallest_cluster, invalid_clusters) = \
         _smallest_invalid_cluster(support.get_all_clusters())
 
-    return support._s_parents
-    #return [1:(q[0,1,0,1],s[1,0]),2:(q[],s[])]
+    return support.to_peeling()
 
 class Cluster_Tree():
     """Cluster representation"""
@@ -247,10 +246,13 @@ class Support():
         clusters = []    
         max = 0
         forest = self._cluster_forest
+        keys = self.get_all_clusters_roots()
         for s in s_l:
             rt = self.find_root(s)
             if rt == -1:
                 clusters.append(Cluster_Tree(s, odd=False))
+                continue
+            elif rt not in keys: # have popped
                 continue
             c = forest.pop(rt)
             size = c.get_size()
@@ -277,6 +279,12 @@ class Support():
         roots = self.get_all_clusters_roots()
         s_parents = self._s_parents
         q_parents = self._q_parents
+        self._update_parents(s_parents)
+        self._update_parents(q_parents)
+        ret = []
         for r in roots:
-            s = np.array(np.where(s_parents == r)[0])
-            q = np.array(np.where(q_parents == r))
+            # indices not [0,1] array atm
+            s = np.where(s_parents == r)[0]
+            q = np.where(q_parents == r)[0] 
+            ret.append((s, q))
+        return ret
