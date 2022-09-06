@@ -103,6 +103,22 @@ class TestSupport:
         assert c.get_size() == 3
         assert not c.is_odd()
 
+    def test_update_parents(self):
+        sp = deepcopy(sp_global)
+        sp._update_parents(sp._s_parents)
+        assert list(sp._s_parents) == [-1, 1, -1, 3, -1]
+        sp._s_parents[2] = 1
+        sp._s_parents[4] = 2
+        sp._update_parents(sp._s_parents)
+        assert list(sp._s_parents) == [-1, 1, 1, 3, 1]
+        assert np.array_equal(sp._q_parents, np.full(10, -1))
+        sp._q_parents[1] = 1
+        sp._q_parents[2] = 1
+        sp._q_parents[3] = 3
+        sp._q_parents[4] = 2
+        sp._update_parents(sp._q_parents)
+        assert list(sp._q_parents) == [-1, 1, 1, 3, 1, -1, -1, -1, -1, -1]
+
 def test_hash_index():
     assert _hash_s_index(5) == -6
     assert _hash_s_index(_hash_s_index(5)) == 5

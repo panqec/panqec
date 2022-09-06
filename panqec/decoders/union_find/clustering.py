@@ -7,7 +7,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 import sys
 
-def clustering(syndrome: np.ndarray, code_size):
+def clustering(syndrome: np.ndarray, H: csr_matrix):
     """Given a syndrome and the code size, returns a correction to apply
     to the qubits
 
@@ -28,7 +28,7 @@ def clustering(syndrome: np.ndarray, code_size):
         Correction as an array of size 2n (with n the number of qubits)
         in the binary symplectic format.
     """  
-    support = Support(syndrome, code_size)
+    support = Support(syndrome, H)
     
     (smallest_cluster, invalid_clusters) = \
         _smallest_invalid_cluster(support.get_all_clusters())
@@ -39,7 +39,7 @@ def clustering(syndrome: np.ndarray, code_size):
         for q in fusion_set:
             Hr = support.H[:, q] - support._H_to_grow[:, q]
             ss = np.where(Hr[:,q] != 0)
-            support.union(ss)
+            support._q_parents[q] = support.union(ss)
 
             # We don't waste time to check boundary list here, 
             # since it's trivial and it doesn't hurt to have them checked 
@@ -48,13 +48,14 @@ def clustering(syndrome: np.ndarray, code_size):
         (smallest_cluster, invalid_clusters) = \
         _smallest_invalid_cluster(support.get_all_clusters())
 
-    return #grwon supprt and syndrome
+    return support._s_parents
+    #return [1:(q[0,1,0,1],s[1,0]),2:(q[],s[])]
 
 class Cluster_Tree():
     """Cluster representation"""
-    def __init__(self, root):
+    def __init__(self, root, odd=True):
         self._size = 1
-        self._odd = True
+        self._odd = odd
         self._root: int = root
         self._boundary_list: set[int] = set([_hash_s_index(root)])
     
@@ -71,7 +72,7 @@ class Cluster_Tree():
     def get_root(self):
         return self._root
 
-    def get_boundary(self):
+    def get_boundary(self) -> set[int]:
         return self._boundary_list
     
     def merge(self, clusters: list[Cluster_Tree], support: Support):
@@ -86,7 +87,7 @@ class Cluster_Tree():
             self._size += c.get_size()
             self._odd = xor(self._odd, c.is_odd())
             rt = c.get_root()
-            support._parents[rt] = self._root
+            support._s_parents[rt] = self._root
             self._boundary_list = self._boundary_list.union(c.get_boundary())    
     
     def grow(self, support: Support) -> set[int]:
@@ -168,7 +169,8 @@ class Support():
         self._H_to_grow = H.copy() # connected only if qubit/stabilizer is not grown 
         # UNUSE self._s_status = syndrome
         # UNUSE self._q_status = np.zeros(self._num_qubit, dtype='uint8') # eraser
-        self._parents  = np.full(self._num_qubit, -1, dtype='uint8') # -1 means no parents/it's root
+        self._q_parents = np.full(self._num_qubit, -1, dtype='int8') # -1 means no parents/it's root
+        self._s_parents = np.full(self._num_stabilizer, -1, dtype='int8') # -1 means no parents/it's root
         self._cluster_forest = self._init_cluster_forest(syndrome) # stabilizer to cluster
     
     def _init_cluster_forest(self, syndrome: np.ndarray) -> dict[int, Cluster_Tree]:
@@ -187,7 +189,7 @@ class Support():
         forest = {}
         indices = list(np.where(syndrome != 0)[0])
         for i in indices:
-            self._parents[i] = i
+            self._s_parents[i] = i
             forest[i] = Cluster_Tree(i)
         return forest
 
@@ -198,13 +200,16 @@ class Support():
         except KeyError:
             print("The input is not a root vertex!")
 
+    def get_all_clusters_roots(self) -> list[int]:
+        return self._cluster_forest.keys()
+
     def get_all_clusters(self) -> list:
         """returns all clusters at the current stage."""
         return list(self._cluster_forest.values())
 
     def find_root(self, v:int) -> int:
         """Given a vertex index, returns the root of the cluster it belongs to."""
-        parents = self._parents
+        parents = self._s_parents
         p = parents[v]
         seen = []
         while v != p:
@@ -224,13 +229,18 @@ class Support():
         self._H_to_grow[:, q] = 0
         return (new_boundary, [q])
     
-    def union(self, s_l: list[int]):
+    def union(self, s_l: list[int]) -> int:
         """Given a list of indeices of stabilizers, union their cluster.
 
         Parameters
         ----------
         s_l: 
             List of indicies of stabilizers.
+        
+        Returns
+        --------
+        root:
+            Index of the root of the cluster
 
         """
         biggest = None
@@ -240,7 +250,7 @@ class Support():
         for s in s_l:
             rt = self.find_root(s)
             if rt == -1:
-                clusters.append(Cluster_Tree(s))
+                clusters.append(Cluster_Tree(s, odd=False))
                 continue
             c = forest.pop(rt)
             size = c.get_size()
@@ -251,4 +261,22 @@ class Support():
 
         clusters.remove(biggest)
         biggest.merge(clusters, self)
-        forest[biggest.get_root()] = biggest
+        root = biggest.get_root()
+        forest[root] = biggest
+        return root
+
+    def _update_parents(self, parents: list[int]):
+        l = len(parents)
+        rs = self.get_all_clusters_roots()
+        for i in range(l):
+            p = parents[i]
+            if p not in rs and p != -1:
+                parents[i] = self.find_root(p)
+
+    def to_peeling(self) -> list[tuple[np.ndarray, np.ndarray]]:
+        roots = self.get_all_clusters_roots()
+        s_parents = self._s_parents
+        q_parents = self._q_parents
+        for r in roots:
+            s = np.array(np.where(s_parents == r)[0])
+            q = np.array(np.where(q_parents == r))
