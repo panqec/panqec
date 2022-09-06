@@ -32,15 +32,26 @@ class TestClusterTree:
         c.merge([sp.get_cluster(3)], sp)
         assert c._size == 2
         assert c._odd == False
-        assert sp._parents[3] == 1
+        assert sp._s_parents[3] == 1
         assert c._boundary_list == {-2, -4}
 
     def test_grow(self):
         sp = deepcopy(sp_global)
         c = sp.get_cluster(1)
         assert c.grow(sp) == {2, 3, 7}
-        #TODO so many thinking assert c.grow(sp) == {}
-
+        assert c.get_boundary() == {2, 3, 7}
+        assert c.grow(sp) == {2, 3, 7}
+        assert c.get_boundary() == {-3, -4}
+        assert c.grow(sp) == {4, 5, 6}
+        assert c.get_boundary() == {4, 5, 6}
+        assert c.grow(sp) == {4, 5, 6}
+        assert c.get_boundary() == {-1, -5}
+        assert c.grow(sp) == {0, 1, 8, 9}
+        assert c.get_boundary() == {0, 1, 8, 9}
+        assert c.grow(sp) == {0, 1, 8, 9}
+        assert c.get_boundary() == set()
+        assert c.grow(sp) == set()
+        assert c.get_boundary() == set()
 
 class TestSupport:
     def test_support(self):
@@ -56,16 +67,16 @@ class TestSupport:
     
     def test_find_root(self):
         sp = deepcopy(sp_global)
-        sp._parents[0] = 1
-        sp._parents[1] = 2
-        sp._parents[2] = 3
-        sp._parents[3] = 3
+        sp._s_parents[0] = 1
+        sp._s_parents[1] = 2
+        sp._s_parents[2] = 3
+        sp._s_parents[3] = 3
         assert sp.find_root(2) == 3
         assert sp.find_root(1) == 3
-        assert sp._parents[1] == 3
-        assert sp._parents[0] == 1
+        assert sp._s_parents[1] == 3
+        assert sp._s_parents[0] == 1
         assert sp.find_root(0) == 3
-        assert sp._parents[0] == 3 # compressed
+        assert sp._s_parents[0] == 3 # compressed
     
     def test_grow_stabilizer(self):
         sp = deepcopy(sp_global)
@@ -83,10 +94,14 @@ class TestSupport:
     
     def test_union(self):
         sp = deepcopy(sp_global)
-        return # test merge first
-        sp.union([0,1])
-
-
+        assert sp.union([1, 2]) == 1
+        c = sp.get_cluster(1)
+        assert c.get_size() == 2
+        assert c.is_odd()
+        assert sp.union([2, 3]) == 1
+        c = sp.get_cluster(1)
+        assert c.get_size() == 3
+        assert not c.is_odd()
 
 def test_hash_index():
     assert _hash_s_index(5) == -6
