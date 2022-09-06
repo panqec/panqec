@@ -749,7 +749,7 @@ def get_thresholds_df(
     ftol_est: float = 1e-5,
     ftol_std: float = 1e-5,
     maxfev: int = 2000,
-    p_est: str = 'p_est',
+    logical_type: str = 'total',
     n_fail_label: str = 'n_fail',
 ):
     thresholds_df = get_error_model_df(results_df)
@@ -764,6 +764,13 @@ def get_thresholds_df(
     p_th_fss_se = []
     df_trunc_list = []
     params_bs_list = []
+
+    p_est = 'p_est'
+    if logical_type == 'single':
+        p_est = 'p_0_est'
+    elif logical_type == 'word':
+        p_est = 'p_est_word'
+
     for error_model in thresholds_df['error_model']:
         df_filt = results_df[results_df['error_model'] == error_model]
 

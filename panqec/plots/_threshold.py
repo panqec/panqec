@@ -254,14 +254,14 @@ def xyz_sector_plot(
     df.sort_values('probability', inplace=True)
     fig, axes = plt.subplots(ncols=4, figsize=(16, 4))
 
+    # Default labels and columns.
+    plot_labels = [
+        (0, 'p_est', 'p_se', 'All errors'),
+    ]
+    y_label = 'Logical error rate'
 
-    # The index of the logical qubit to plot information for.
-    if logical_type == 'total':
-        plot_labels = [
-            (0, 'p_est', 'p_se', 'All errors'),
-        ]
-        y_label = 'Logical error rate'
-    elif logical_type == 'single':
+    if logical_type == 'single':
+        # The index of the logical qubit to plot information for.
         i_logical = 0
         plot_labels = [
             (0, f'p_{i_logical}_est', f'p_{i_logical}_se', 'All errors'),
@@ -275,10 +275,11 @@ def xyz_sector_plot(
             for i_ax, pauli in enumerate('XYZ')
         ]
         y_label = f'Logical qubit {i_logical} error rate'
-    elif logical_type == 'word':
+    if logical_type == 'word':
         plot_labels = [
-            (0, 'p_word_est', 'p_word_se', 'All errors'),
+            (0, 'p_est_word', 'p_se_word', 'All errors'),
         ]
+        y_label = 'Logical word error rate'
 
     if x_limits is None:
         x_limits = [(0, 0.5), (0, 0.5), (0, 0.5), (0, 0.5)]
