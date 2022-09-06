@@ -56,7 +56,7 @@ class Cluster_Tree():
         self._size = 1
         self._odd = True
         self._root: int = root
-        self._boundary_list: set[int] = [_hash_s_index(root)]
+        self._boundary_list: set[int] = set([_hash_s_index(root)])
     
     def is_invalid(self) -> bool:
         # is_odd is invalid for 2d toric code
@@ -73,6 +73,21 @@ class Cluster_Tree():
 
     def get_boundary(self):
         return self._boundary_list
+    
+    def merge(self, clusters: list[Cluster_Tree], support: Support):
+        """Given a cluster tree, merge it with the current instance of cluster.
+
+        Parameters
+        ----------
+        clusters: list[Cluster_Tree]
+            A list of cluster tree representation
+        """ 
+        for c in clusters:
+            self._size += c.get_size()
+            self._odd = xor(self._odd, c.is_odd())
+            rt = c.get_root()
+            support._parents[rt] = self._root
+            self._boundary_list = self._boundary_list.union(c.get_boundary())    
     
     def grow(self, support: Support) -> set[int]:
         """Given a support, grow every vertex in the boundary list,
@@ -101,21 +116,6 @@ class Cluster_Tree():
         
         self._boundary_list = new_boundary # check if correct after fusion
         return fusion_set
-
-    def merge(self, clusters: list[Cluster_Tree], support: Support):
-        """Given a cluster tree, merge it with the current instance of cluster.
-
-        Parameters
-        ----------
-        clusters: list[Cluster_Tree]
-            A list of cluster tree representation
-        """ 
-        for c in clusters:
-            self._size += c.get_size()
-            self._odd = xor(self._odd, c.is_odd())
-            rt = c.get_root()
-            support._parents[rt] = self._root
-            self._boundary_list = self._boundary_list.union(c.get_boundary())
 
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, Cluster_Tree):

@@ -26,6 +26,15 @@ class TestClusterTree:
         cs = sp.get_all_clusters()
         assert set(cs) == {Cluster_Tree(1), Cluster_Tree(3)}
     
+    def test_merge(self):
+        sp = deepcopy(sp_global)
+        c = sp.get_cluster(1)
+        c.merge([sp.get_cluster(3)], sp)
+        assert c._size == 2
+        assert c._odd == False
+        assert sp._parents[3] == 1
+        assert c._boundary_list == {-2, -4}
+
     def test_grow(self):
         sp = deepcopy(sp_global)
         c = sp.get_cluster(1)
