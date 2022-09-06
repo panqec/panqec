@@ -15,7 +15,23 @@ Hz = np.array([
 sp_global = Support(syndrome, Hz)
 
 class TestClusterTree:
-    pass
+
+    def test_get_cluster(self):
+        sp = deepcopy(sp_global)
+        c = sp.get_cluster(1)
+        assert c == Cluster_Tree(1)
+
+    def test_get_clusters(self):
+        sp = deepcopy(sp_global)
+        cs = sp.get_all_clusters()
+        assert set(cs) == {Cluster_Tree(1), Cluster_Tree(3)}
+    
+    def test_grow(self):
+        sp = deepcopy(sp_global)
+        c = sp.get_cluster(1)
+        assert c.grow(sp) == {2, 3, 7}
+        #TODO so many thinking assert c.grow(sp) == {}
+
 
 class TestSupport:
     def test_support(self):

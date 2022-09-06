@@ -56,7 +56,7 @@ class Cluster_Tree():
         self._size = 1
         self._odd = True
         self._root: int = root
-        self._boundary_list: set[int] = [root]
+        self._boundary_list: set[int] = [_hash_s_index(root)]
     
     def is_invalid(self) -> bool:
         # is_odd is invalid for 2d toric code
@@ -88,8 +88,8 @@ class Cluster_Tree():
         fusion set : set[int]
             fusion set as a set of indices of qubits
         """ 
-        new_boundary: set = {}
-        fusion_set: set = {}
+        new_boundary: set = set()
+        fusion_set: set = set()
         for b in self._boundary_list:
             if b < 0: # Stabilizer
                 nb, fs = support.grow_stabilizer(_hash_s_index(b))               
