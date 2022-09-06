@@ -1,28 +1,36 @@
+from copy import deepcopy
 import pytest
 import numpy as np
 from panqec.decoders.union_find.clustering import Cluster_Tree, Support, _hash_s_index, _smallest_invalid_cluster
+
+syndrome = np.zeros(5)
+syndrome[[1,3]] = 1 #[0, 1, 0, 1, 0]
+Hz = np.array([
+        [1, 1, 0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 0, 1, 1, 0, 0, 0, 1, 0, 0],
+        [0, 0, 1, 0, 1, 1, 0, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0, 1, 1, 0, 0],
+        [0, 0, 0, 0, 0, 1, 0, 0, 1, 1]
+    ]) # random parity matrix
+sp_global = Support(syndrome, Hz)
 
 class TestClusterTree:
     pass
 
 class TestSupport:
-    syndrome = np.zeros(5)
-    syndrome[[1,3]] = 1
-    Hz = np.zeros([5,10])
-    sp = Support(syndrome, Hz)
-
     def test_support(self):
-        sp = self.sp
-        Hz = self.Hz
+        sp = deepcopy(sp_global)
         assert sp._num_stabilizer == 5
         assert sp._num_qubit == 10
         assert np.array_equal(sp._H_to_grow, Hz)
+        Hz[0][0] = 0
+        assert not np.array_equal(sp._H_to_grow, Hz)
         check = {1: Cluster_Tree(1), 3: Cluster_Tree(3)}
         for k, v in sp._cluster_forest.items():
             assert v == check[k]
     
     def test_find_root(self):
-        sp = self.sp
+        sp = deepcopy(sp_global)
         sp._parents[0] = 1
         sp._parents[1] = 2
         sp._parents[2] = 3
@@ -33,6 +41,26 @@ class TestSupport:
         assert sp._parents[0] == 1
         assert sp.find_root(0) == 3
         assert sp._parents[0] == 3 # compressed
+    
+    def test_grow_stabilizer(self):
+        sp = deepcopy(sp_global)
+        nb, fl = sp.grow_stabilizer(0)
+        assert nb == [0, 1, 5]
+        assert fl == [0, 1, 5]
+        assert np.array_equal(sp._H_to_grow[0], np.zeros(10))
+
+    def test_grow_qubit(self):
+        sp = deepcopy(sp_global)
+        nb, fl = sp.grow_qubit(2)
+        assert nb == [1, 2]
+        assert fl == [2]
+        assert np.array_equal(sp._H_to_grow[:, 2], np.zeros(5))
+    
+    def test_union(self):
+        sp = deepcopy(sp_global)
+        return # test merge first
+        sp.union([0,1])
+
 
 
 def test_hash_index():

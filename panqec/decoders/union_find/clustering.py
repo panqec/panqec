@@ -214,6 +214,16 @@ class Support():
         parents[seen] = v
         return v
 
+    def grow_stabilizer(self, s: int) -> tuple[list[int], list[int]]:
+        new_boundary = fusion_list = list(np.where(self._H_to_grow[s] != 0)[0])
+        self._H_to_grow[s] = 0
+        return (new_boundary, fusion_list)
+        
+    def grow_qubit(self, q: int) -> tuple[list[int], list[int]]:
+        new_boundary = list(np.where(self._H_to_grow[:, q] != 0)[0])
+        self._H_to_grow[:, q] = 0
+        return (new_boundary, [q])
+    
     def union(self, s_l: list[int]):
         """Given a list of indeices of stabilizers, union their cluster.
 
@@ -242,13 +252,3 @@ class Support():
         clusters.remove(biggest)
         biggest.merge(clusters, self)
         forest[biggest.get_root()] = biggest
-
-    def grow_stabilizer(self, s: int) -> tuple[np.array, np.array]:
-        new_boundary, fusion_list = np.where(self._H_to_grow[s] != 0)
-        self._H_to_grow[s] = 0
-        return (new_boundary, fusion_list)
-        
-    def grow_qubit(self, q: int) -> tuple[np.ndarray, np.ndarray]:
-        new_boundary = np.where(self._H_to_grow[:, q] != 0)
-        self._H_to_grow[:, q] = 0
-        return (new_boundary, [q])
