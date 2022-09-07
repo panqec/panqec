@@ -7,23 +7,33 @@ Routines for analysing output data.
 
 import os
 import warnings
-from typing import List, Optional, Tuple, Union, Callable, Iterable
+from typing import List, Optional, Tuple, Union, Callable, Iterable, Any, Dict
 import json
+import re
 import gzip
+from zipfile import ZipFile
 import itertools
 from multiprocessing import Pool, cpu_count
+from pathlib import Path
 import numpy as np
 from numpy.polynomial.polynomial import polyfit
 import pandas as pd
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
 from scipy.signal import argrelextrema
+from tqdm import tqdm
 from .config import SLURM_DIR
 from .simulation import read_input_json
 from .utils import fmt_uncertainty, NumpyEncoder
 from .bpauli import int_to_bvector, bvector_to_pauli_string
 
 Numerical = Union[Iterable, float, int]
+
+
+class Analysis:
+
+    def __init__(self, results_path: str):
+        pass
 
 
 def get_standard_error(estimator, n_samples):
@@ -1057,3 +1067,153 @@ def get_subthreshold_fit_function(order=3, ansatz='poly'):
         return simple_sts_fit_function
     else:
         return sts_fit_function
+
+
+# TODO make this replace the original get_results_df because it's so much
+# better.
+def get_results_df_zipped(results_path: str) -> pd.DataFrame:
+    """Results table from reccursively looking for zipped results.
+
+    Parameters
+    ----------
+    results_path : str
+        The path to the results directory or .zip file.
+
+    Returns
+    -------
+    results_df : pd.DataFrame
+        The results table.
+    """
+    zip_files: List[Any] = []
+
+    if os.path.isdir(results_path):
+        results_dir = results_path
+        for path in Path(results_dir).rglob('*.zip'):
+            zip_files.append(path)
+    elif '.zip' in results_path:
+        zip_files.append(results_path)
+
+    entries = []
+
+    for zip_file in tqdm(zip_files):
+        zf = ZipFile(zip_file)
+        results_files = [
+            zip_path.filename for zip_path in zf.filelist
+            if '.json' in zip_path.filename
+        ]
+        for results_file in results_files:
+            if '.json.gz' in results_file:
+                with zf.open(results_file) as f:
+                    with gzip.open(f, 'rb') as g:
+                        data = json.loads(g.read().decode('utf-8'))
+            else:
+                with zf.open(results_file) as f:
+                    data = json.load(f)
+            entries += read_entry(data)
+    df = pd.DataFrame(entries)
+
+    df['size'] = df['size'].apply(tuple)
+
+    group_keys = [
+        'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder', 'probability',
+        'bias'
+    ]
+    grouped_df = df.groupby(group_keys)[['n_samp']].sum()
+    grouped_df['split'] = df.groupby(group_keys)[['n_samp']].count()
+    df = grouped_df.reset_index()
+    return df
+
+
+def read_entry(
+    data: Union[List, Dict], results_file: Optional[str] = None
+) -> List[Dict]:
+    """List of entries from data in list or dict format.
+
+    Parameters
+    ----------
+    data : Union[List, Dict]
+        The data that is parsed raw from a results file.
+    results_path : str
+        The path to the results directory or .zip file.
+
+    Returns
+    -------
+    entries : List[Dict]
+        The list of entries, each of which corresponds to a results file.
+    """
+    entries = []
+    if isinstance(data, list):
+        for sub_data in data:
+            entries += read_entry(sub_data)
+
+    elif isinstance(data, dict):
+
+        # If requires keys are not there, return empty list.
+        if 'inputs' not in data or 'results' not in data:
+            return []
+
+        entry = data['inputs']
+        entry['n_samp'] = len(data['results']['effective_error'])
+        if 'n_k_d' in entry:
+            n_k_d = entry.pop('n_k_d')
+            entry['n'], entry['k'], entry['d'] = n_k_d
+        if 'error_probability' in entry:
+            entry['probability'] = entry.pop('error_probability')
+
+        entry['bias'] = deduce_bias(entry['error_model'])
+        entries.append(entry)
+    return entries
+
+
+def deduce_bias(
+    error_model: str, rtol: float = 0.1,
+    results_path: Optional[str] = None
+) -> Union[str, float, int]:
+    """Deduce the eta ratio from the noise model label.
+
+    Parameters
+    ----------
+    noise_model : str
+        The noise model.
+    rtol : float
+        Relative tolearnce to consider rounding eta value to int.
+
+    Returns
+    -------
+    eta : Union[str, float, int]
+        The eta value. If it's infinite then the string 'inf' is returned.
+    """
+    eta: Union[str, float, int] = 0
+
+    # Infer the bias from the file path if possible.
+    file_path_match = None
+    if results_path:
+        file_path_match = re.search(r'bias-([\d\.]+|inf)-', results_path)
+
+    if file_path_match:
+        if file_path_match.group(1) == 'inf':
+            eta = 'inf'
+        else:
+            eta = float(file_path_match.group(1))
+            if np.isclose(eta % 1, 0):
+                eta = int(np.round(eta))
+        return eta
+
+    error_model_match = re.search(
+        r'Pauli X([\d\.]+)Y([\d\.]+)Z([\d\.]+)', error_model
+    )
+    if error_model_match:
+        direction = np.array([
+            float(error_model_match.group(i))
+            for i in [1, 2, 3]
+        ])
+        r_max = np.max(direction)
+        if r_max == 1:
+            eta = 'inf'
+        else:
+            eta = r_max/(1 - r_max)
+            if np.isclose(eta, np.round(eta), rtol=rtol):
+                eta = int(np.round(eta))
+            else:
+                eta = np.round(r_max/(1 - r_max), 3)
+    return eta
