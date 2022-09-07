@@ -14,8 +14,9 @@ from .codes import (
     RhombicCode, XCubeCode, Quasi2DCode
 )
 from .decoders import (
-    SweepMatchDecoder,
-    RotatedSweepMatchDecoder, RotatedInfiniteZBiasDecoder
+    SweepMatchDecoder, XCubeMatchingDecoder,
+    RotatedSweepMatchDecoder, RotatedInfiniteZBiasDecoder,
+    FoliatedMatchingDecoder
 )
 from .decoders.bposd.bposd_decoder import BeliefPropagationOSDDecoder
 from .decoders.bposd.mbp_decoder import MemoryBeliefPropagationDecoder
@@ -24,9 +25,6 @@ from .error_models import (
     DeformedXZZXErrorModel, DeformedXYErrorModel,
     DeformedRhombicErrorModel, DeformedRandomErrorModel,
     DeformedColorErrorModel
-)
-from .decoders import (
-    FoliatedMatchingDecoder
 )
 from .error_models import PauliErrorModel
 
@@ -88,7 +86,8 @@ DECODERS: Dict[str, Any] = {
     'FoliatedMatchingDecoder': FoliatedMatchingDecoder,
     'BeliefPropagationOSDDecoder': BeliefPropagationOSDDecoder,
     'MemoryBeliefPropagationDecoder': MemoryBeliefPropagationDecoder,
-    'RotatedInfiniteZBiasDecoder': RotatedInfiniteZBiasDecoder
+    'RotatedInfiniteZBiasDecoder': RotatedInfiniteZBiasDecoder,
+    'XCubeMatchingDecoder': XCubeMatchingDecoder
 }
 
 # Slurm automation config.
