@@ -27,46 +27,78 @@ class UnionFindDecoder(BaseDecoder):
 
         print("We are decoding with union find!!!")
 
-        # TODO
+        # TODO 
 
         ### clustering/syndrome validation stage. Outputs cluster trees and support -- Lynna
 
 
         #assume the output is output = [1:(s[0,1,2], q[3,4,5]), 2:(s[22,33,44], q[34,46,57]), ...]
         # and syndrome = [2,3,4] which is a list of all vertix indices that are syndromes
+        # and we have Hz as the parity matrix for z stabilizers (a 2D numpy array)
 
         ### Peeler decoder -- Z error ###
 
-        ## first we construct lattice/grid graphs  for each cluster ##
-        # these graphs are stored as an adjacency list that repeats the edges (since it stores the neighbours of each node)
-        # note that if the edges are note repeated this will affect the edge removal in the tree finding function below (then need to add an
-        # extra if function). Note that in each graph the nodes (lattice vertices) are represented by their panqec integer indices 
-        # in the keys of the dictionary, ie Adjacency list format used: {0:[1,2], 1:[0,2], 2:[0,1]} ; 0,1,2 are the indices of the nodes
+        ## constructing the graphs and the syndromes of each cluster ##
+
+        # Note that is is very expensive when it comes to the complexity
+
+        # These graphs are stored as an adjacency list that repeats the edges (since it stores the neighbours of each node), ie the
+        # adjacency list format used: {0:[1,2], 1:[0,2], 2:[0,1]} ; 0,1,2 are the indices of the nodes.        
+        # Note 1) if the edges are not repeated this will affect the edge removal in the tree finding function below (then need to add an
+        # extra if function).
+        # Note 2) in each graph the nodes (lattice vertices) are represented by their panqec integer indices. 
 
 
-        # constructing the graphs --> Lynna
+        graphs = [] # list of all graphs organized per cluster in the form of a list of dictionaries
+        sig = [] # list of all syndromes organized per cluster in the form of a list of lists
 
-        graphs = # the final output which is a list of dictionaries
+        for cluster in output:           
+            graph_i = {} # initialize the graph dictionary of the ith cluster
+            sig_i = [] # initializing the list of syndromes of the ith cluster
 
-        # the syndromes of each graph as a list of lists called "sig"
-        sig = [] # list of all syndromes organised by cluster
-        for graph in output:
-            vertices_i = graph[0]
-            sig_i = []
-            for vertix in vertices_i:
-                if vertix in syndrome:
-                    sig_i.append(vertix)
+            ## creating the graphs:
+
+            vertices_i = cluster[0] # list of vertices (nodes) in the ith cluster
+            edges_i = cluster[1]  # list of qubits (edges) in the ith cluster            
+
+            # looping through all the nodes in the cluster to find their neighbouring nodes and create an adjaceny list
+            # for the graph representing the cluster. The problem here is we double the search as neighbours are recorded
+            # twice in the adjacency list.
+            for vertex in vertices_i: 
+                
+                # finding list of qubits/edges in the cluster attached to the node "vertex" using the parity check matrix
+                qubits_list = [] # can have a size of 1-4
+                for edge in edges_i:
+                    if Hz[vertex,edge] == 1:
+                        qubits_list.append(edge)
+
+                # for each such qubit/edge, we find which other node from the cluster is attached to it. These
+                # other nodes are the neighbours of the node "vertex"
+                neighbours = []
+                for qubit in qubits_list:
+                    # we don't want to consider the node "vertex" as its own neighbour, but instead of using an if statement
+                    # it is faster to just remove "vertex" from the vertices_i
+                    vertices_list = vertices_i[:] # making a duplicate of the list of vertices in the cluster
+                    vertices_list.remove(vertex) # removing "vertex"
+                    for vertex_ in vertices_list: # we look at only the nodes already in the cluster discluding "vertex"                        
+                        if Hz[vertex_, qubit] == 1:
+                            neighbours.append(vertex_)                              
+                
+                graph_i[vertex] = neighbours
+
+                ## organizing the syndromes per graph
+                if vertex in syndrome:
+                    sig_i.append(vertex)
+
             sig.append(sig_i)
+            graphs.append(graph_i)
 
 
 
+        ## Now we find spanning forest ##
 
+        ## Functions that find the spanning tree of a graph:
 
-
-
-
-
-        ## now assuming we have the cluster graphs we find spanning forest ##
         def nu_nodes(g):
             """Getting the number of nodes of a graph from its adjacency list
 
@@ -133,9 +165,9 @@ class UnionFindDecoder(BaseDecoder):
 
                 return tree
 
-
+           
                 
-        ## Assuming graphs is a list/array of the individual cluster graphs (ie list/array of dictionaries), we find the forest:
+        ## Finding the forest:
 
         forest = [] # initialise the forest list
         for graph in graphs:
@@ -143,17 +175,12 @@ class UnionFindDecoder(BaseDecoder):
             forest.append(tree)            
             
 
-        ## Now peeling the forest ##
+        ## Now peeling the forest and finding the correction ##
 
-        ## we assume that we  have a list of syndromes within each cluster with the vertices named 0 to n, called sig_i such that we have all
-        ## syndromes as sig = list of all sig_i. Alternatively fix the indexing of the cluster graphs to be 0 to N, where N is the number of 
-        ## nodes in all clusters. If you adopt this indexing, then (maybe) change the way the nodes are indexed in the dictionaries to become 
-        ## the key name ++ other changes needed!.
 
         ## performing the peeler
 
-
-        A = []  # list of edges to be corrected
+        A_ = []  # list of edges to be corrected in the form of a tuple of the bounding vertices of that edge
         for i,tree in enumerate(forest):
             sig_i = sig[i] # pick the syndromes list for the appropriate cluster
             leaves = [] # list of leaf nodes, the pendant vertices
@@ -165,20 +192,19 @@ class UnionFindDecoder(BaseDecoder):
                 v = leaves[0] # choose pendant vertex to work with randomly (first element of "leaves")
                 u = tree[v][0] # neighbour of the pendant vertix, which is the vertix connecting the leaf edge to the forest
 
-                ## remove leaf edge from "leaves" and from the tree.
+                # removing leaf edge from "leaves" and from the tree.
                 leaves.remove(v) # remove v from leaves
                 tree.pop(v) # remove v from the tree
                 tree[u].remove(v) # remove v from the neighbours list of u
 
-                ## check if u is a pendant vertex now, and if so add to leaves
+                # checking if u is a pendant vertex now, and if so add to leaves
                 if len(tree[u])==1:
                     leaves.append(u)
 
-                ## peeler algorithm
-                # this requires sig_i to have the cluster indices of the syndrome vertics
+                # peeler algorithm            
                 if u in sig_i: 
-                    e = (u,v) # edge to be corrected
-                    A.append(e)  
+                    e = (u,v) # edge "e" to be corrected stored as a tuple e = (v1,v2) where v1 and v2 are the vertices bounding "e"
+                    A_.append(e)  
                     sig_i.remove(u) 
                     if v in sig_i:
                         sig_i.remove(v)
@@ -186,12 +212,35 @@ class UnionFindDecoder(BaseDecoder):
                         sig_i.append(v)
 
 
-        ## now proccess A to extract the edge indices in panqec
-        ### Matching the Panqec syntax ###
+
+
+        ## Now proccess A_ to find Ex of the bsf ##
+
+        ## Processing A_ to extract the edge/qubit indices in panqec
+
+        # note that is is very expensive when it comes to the complexity
+        
+        A = [] # list of indices for the qubits to be corrected
+        # for each edge in A_, we loop through all the edges in Hz to see which edge is attached to the two vertices v1 and v2
+        # in the tuple e = (v1,v2). Attached means we have a 1 in the Hz matrix.   
+        for edge in A_:
+            v1 = edge[0]
+            v2 = edge[1]
+            N =  len(Hz[0]) # total number of qubits in the code
+            for qubit in range(N): 
+                if (Hz[v1,qubit]==1) and (Hz[v2,qubit]==1): # if "qubit" attached to both v1 and v2
+                    A.append(qubit)
+
+
+
+        ## Finding Ex
+        correction_x= [0]*N
+        for qubit in A: # we find Ex by having 1 for the qubits that are to be corrected and 0 for the other qubits
+            Ex[qubit] = 1
 
         
-        # Load it into the X block of the full bsf.
-        # correction[:self.code.n] = correction_x
+        ### Load the correction into the X block of the full bsf ###
+        correction[:self.code.n] = correction_x
         # correction[self.code.n:] = correction_z
 
         return correction
