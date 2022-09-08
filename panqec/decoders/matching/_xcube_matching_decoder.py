@@ -7,6 +7,39 @@ from panqec.decoders.bposd.bposd_decoder import BeliefPropagationOSDDecoder
 from panqec.error_models import BaseErrorModel
 
 
+def modular_average(numbers, weights, n):
+    if isinstance(numbers, list):
+        numbers = np.array(numbers)
+    if isinstance(weights, list):
+        weights = np.array(weights)
+
+    weights = weights.reshape(-1, 1)
+
+    circle_points = np.vstack([np.cos(2 * np.pi * numbers / n),
+                               np.sin(2 * np.pi * numbers / n)]).T
+
+    mass_center = np.mean(weights * circle_points, axis=0)
+    if np.all(np.isclose(mass_center, 0)):
+        avg = np.dot(numbers, weights)
+    else:
+        circle_avg = mass_center / np.linalg.norm(mass_center)
+        avg = np.arccos(circle_avg[0]) * n / (2 * np.pi)
+
+        if circle_avg[1] < 0:
+            avg *= -1
+
+    if avg < 0:
+        avg += n
+
+    return avg
+
+
+if __name__ == "__main__":
+    avg = modular_average([1, 3, 5, 7], [0.5, 0.0, 0.5, 0.0], 8)
+
+    print(avg)
+
+
 class XCubeMatchingDecoder(BaseDecoder):
     """Matching decoder for 2D Toric Code, based on PyMatching"""
 
@@ -99,18 +132,42 @@ class XCubeMatchingDecoder(BaseDecoder):
                         elif axis == 'y':
                             xcube_matching_xy.append((x, plane_id, y))
 
-        if Lz % 2 == 0:
-            z_proj = Lz - 1
-        else:
-            z_proj = Lz
+        n_excitations = np.sum(syndrome)
+        n_excitations_plane = {z: np.sum(plane_syndrome['z'][z])
+                               for z in plane_syndrome['z'].keys()}
+
+        average_z = 0
+
+        if n_excitations != 0:
+            weights = [n_excitations_plane[z] / n_excitations
+                       for z in n_excitations_plane.keys()]
+            plane_z = list(n_excitations_plane.keys())
+
+            average_z = modular_average(plane_z, weights, 2*Lz)
+
+        z_proj = int(2 * np.floor(average_z/2) + 1)
+        # print("Z proj", z_proj)
 
         for (x, y, z) in xcube_matching_z:
-            if z < z_proj:
-                for z_op in range(z + 1, z_proj + 1, 2):
-                    idx = self.code.qubit_index[(x, y, z_op)]
+            # print("Matching", (x, y, z))
+            if 0 < z - z_proj <= Lz or 2*Lz + z - z_proj <= Lz:
+                # print("test 1")
+                if z_proj < z:
+                    z_stop = z + 1
+                else:
+                    z_stop = 2*Lz + z + 1
+
+                for z_op in range(z_proj+1, z_stop, 2):
+                    idx = self.code.qubit_index[(x, y, z_op % (2*Lz))]
                     correction[idx] += 1
-            elif z > z_proj:
-                for z_op in range(z_proj+1, z + 1, 2):
+            elif z != z_proj:
+                # print("test 2")
+                if z < z_proj:
+                    z_stop = z_proj + 1
+                else:
+                    z_stop = 2*Lz + z_proj + 1
+
+                for z_op in range(z + 1, z_stop, 2):
                     idx = self.code.qubit_index[(x, y, z_op % (2*Lz))]
                     correction[idx] += 1
 
@@ -125,22 +182,40 @@ class XCubeMatchingDecoder(BaseDecoder):
         toric_loop = [coord for coord in toric_loop_dict.keys()
                       if toric_loop_dict[coord] % 2 == 1]
 
-        # print(toric_loop)
+        # print("Toric loop", toric_loop)
 
         # - Distinguish the two sides of the loops
         state = {}
         for x in range(0, 2*Lx, 2):
             current_state = 0
             for y in range(0, 2*Ly, 2):
-                if y == 0 and (x - 1, y) in toric_loop:
-                    current_state = 1 - state[(x - 2, y)]
+                if y == 0:
+                    if (x - 1, y) in toric_loop:
+                        current_state = 1 - state[(x - 2, y)]
+                    elif x >= 2:
+                        current_state = state[(x - 2, y)]
                 if (x, y - 1) in toric_loop:
                     current_state = 1 - current_state
 
                 # print((x, y), current_state)
                 state[(x, y)] = current_state
                 idx = self.code.qubit_index[(x, y, z_proj)]
-                correction[idx] = current_state
+
+        # - Correct the minority vote
+        count = np.unique(list(state.values()), return_counts=True)
+
+        if len(count[0]) == 1:
+            minority_state = 1 - count[0]
+        else:
+            minority_state = count[0][np.argmin(count[1])]
+
+        # print(minority_state)
+
+        for x in range(0, 2*Lx, 2):
+            for y in range(0, 2*Ly, 2):
+                if state[(x, y)] == minority_state:
+                    idx = self.code.qubit_index[(x, y, z_proj)]
+                    correction[idx] = 1
 
         # Decode z part
         syndrome[self.code.z_indices] = 0
