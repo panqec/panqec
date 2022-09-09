@@ -1,8 +1,10 @@
+import imp
 import numpy as np
 from pymatching import Matching
 from panqec.decoders import BaseDecoder
 from panqec.codes import Toric2DCode
 from panqec.error_models import BaseErrorModel
+from panqec.decoders.union_find.clustering import clustering
 
 
 class UnionFindDecoder(BaseDecoder):
@@ -25,9 +27,15 @@ class UnionFindDecoder(BaseDecoder):
         syndromes_z = self.code.extract_z_syndrome(syndrome)
         syndromes_x = self.code.extract_x_syndrome(syndrome)
 
+        print(syndromes_z)
         print("We are decoding with union find!!!")
-
-        # TODO
+        l = clustering(syndromes_z, self.code.Hz)
+        q =[]
+        for e in l:
+            q += list(e[1])
+        q = list(set(q))
+        for i in q:
+            correction[i] = 1       
 
         # Load it into the X block of the full bsf.
         # correction[:self.code.n] = correction_x
