@@ -1,4 +1,5 @@
 import imp
+from operator import concat
 import numpy as np
 from pymatching import Matching
 from panqec.decoders import BaseDecoder
@@ -36,6 +37,14 @@ class UnionFindDecoder(BaseDecoder):
         q = list(set(q))
         for i in q:
             correction[i] = 1       
+        
+        l = clustering(syndromes_x, self.code.Hx)
+        q =[]
+        for e in l:
+            q += list(e[1])
+        q = list(set(q))
+        for i in q:
+            correction[self.code.n + i] = 1    
 
         # Load it into the X block of the full bsf.
         # correction[:self.code.n] = correction_x
