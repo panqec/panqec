@@ -68,7 +68,7 @@ class UnionFindDecoder(BaseDecoder):
                 
                 # finding list of qubits/edges in the cluster attached to the node "vertex" using the parity check matrix
                 qubits_list = [] # can have a size of 1-4
-                for edge in edges_i:
+                for edge in edges_i: #--> np.where can be used
                     if Hz[vertex,edge] == 1:
                         qubits_list.append(edge)
 
@@ -77,10 +77,10 @@ class UnionFindDecoder(BaseDecoder):
                 neighbours = []
                 for qubit in qubits_list:
                     # we don't want to consider the node "vertex" as its own neighbour, but instead of using an if statement
-                    # it is faster to just remove "vertex" from the vertices_i
-                    vertices_list = vertices_i[:] # making a duplicate of the list of vertices in the cluster
-                    vertices_list.remove(vertex) # removing "vertex"
-                    for vertex_ in vertices_list: # we look at only the nodes already in the cluster discluding "vertex"                        
+                    # it is faster to just remove "vertex" from the vertices_i --> if is better!!!
+                    vertices_list = vertices_i[:] # making a duplicate of the list of vertices in the cluster --> not needed if u use "if"
+                    vertices_list.remove(vertex) # removing "vertex" 
+                    for vertex_ in vertices_list: # we look at only the nodes already in the cluster discluding "vertex"--> np.where can be used                      
                         if Hz[vertex_, qubit] == 1:
                             neighbours.append(vertex_)                              
                 
@@ -141,7 +141,7 @@ class UnionFindDecoder(BaseDecoder):
                 # creating "visited" and "parent" dictionaries which are both initialised as False for all the nodes
                 values = [False]*n                 
                 visited = {nodes[i]:values[i] for i in range (n)} # a dictionary to check if a node has been visited
-                parent = visited # a dictionary to check if a node is a parent node
+                parent = visited # a dictionary to check if a node is a parent node --> make sure to duplicate
                 visited[s]= True # mark start node as being visited
                 
                 while len(q): # while the que is not empty
@@ -160,8 +160,8 @@ class UnionFindDecoder(BaseDecoder):
                                 
                             else: # if node is visited
                                 # remove the edge between "next" and "current_node" entirely from the tree graph
-                                tree[current_node].remove(next)
-                                tree[next].remove(current_node)
+                                tree[current_node].remove(next) #--> maybe find another way but it is only upto 4 so ok
+                                tree[next].remove(current_node) # --> find another way but only 4 so ok
 
                 return tree
 
@@ -193,9 +193,9 @@ class UnionFindDecoder(BaseDecoder):
                 u = tree[v][0] # neighbour of the pendant vertix, which is the vertix connecting the leaf edge to the forest
 
                 # removing leaf edge from "leaves" and from the tree.
-                leaves.remove(v) # remove v from leaves
-                tree.pop(v) # remove v from the tree
-                tree[u].remove(v) # remove v from the neighbours list of u
+                leaves.pop(0) # remove v from leaves --> v is leaf node 0 so we can use pop
+                tree.pop(v) # remove v from the tree --> not good for complexity? for dictionary it is of order of one access time so ok
+                tree[u].remove(v) # remove v from the neighbours list of u --> upto 4 elements in the list
 
                 # checking if u is a pendant vertex now, and if so add to leaves
                 if len(tree[u])==1:
@@ -216,9 +216,9 @@ class UnionFindDecoder(BaseDecoder):
 
         ## Now proccess A_ to find Ex of the bsf ##
 
-        ## Processing A_ to extract the edge/qubit indices in panqec
+        ## Processing A_ to extract the edge/qubit indices in panqec --> Hz * Hz^T  or use panqec coordinates ( the average of the coordinates of v1 & v2, this can be a function) 
 
-        # note that is is very expensive when it comes to the complexity
+        # note that is could be expensive when it comes to the complexity
         
         A = [] # list of indices for the qubits to be corrected
         # for each edge in A_, we loop through all the edges in Hz to see which edge is attached to the two vertices v1 and v2
@@ -227,14 +227,14 @@ class UnionFindDecoder(BaseDecoder):
             v1 = edge[0]
             v2 = edge[1]
             N =  len(Hz[0]) # total number of qubits in the code
-            for qubit in range(N): 
+            for qubit in range(N): # --> 
                 if (Hz[v1,qubit]==1) and (Hz[v2,qubit]==1): # if "qubit" attached to both v1 and v2
                     A.append(qubit)
 
 
 
         ## Finding Ex
-        correction_x= [0]*N
+        correction_x= [0]*N # np.zeros(N)
         for qubit in A: # we find Ex by having 1 for the qubits that are to be corrected and 0 for the other qubits
             Ex[qubit] = 1
 
@@ -244,3 +244,5 @@ class UnionFindDecoder(BaseDecoder):
         # correction[self.code.n:] = correction_z
 
         return correction
+
+
