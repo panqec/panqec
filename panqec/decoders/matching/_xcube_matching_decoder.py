@@ -34,6 +34,44 @@ def modular_average(numbers, weights, n):
     return avg
 
 
+def decode_plane(loops, size):
+    Lx, Ly = size
+
+    # Distinguish the two sides of the loops
+    state = {}
+    for x in range(0, 2*Lx, 2):
+        current_state = 0
+        for y in range(0, 2*Ly, 2):
+            if y == 0:
+                if (x - 1, y) in loops:
+                    current_state = 1 - state[(x - 2, y)]
+                elif x >= 2:
+                    current_state = state[(x - 2, y)]
+            if (x, y - 1) in loops:
+                current_state = 1 - current_state
+
+            # print((x, y), current_state)
+            state[(x, y)] = current_state
+
+    # Correct the minority vote
+    count = np.unique(list(state.values()), return_counts=True)
+
+    if len(count[0]) == 1:
+        minority_state = 1 - count[0]
+    else:
+        minority_state = count[0][np.argmin(count[1])]
+
+    # print(minority_state)
+
+    correction_coordinates = []
+    for x in range(0, 2*Lx, 2):
+        for y in range(0, 2*Ly, 2):
+            if state[(x, y)] == minority_state:
+                correction_coordinates.append((x, y))
+
+    return correction_coordinates
+
+
 if __name__ == "__main__":
     avg = modular_average([1, 3, 5, 7], [0.5, 0.0, 0.5, 0.0], 8)
 
@@ -151,93 +189,70 @@ class XCubeMatchingDecoder(BaseDecoder):
                         elif axis == 'y':
                             xcube_matching_xy.append((x, plane_id, y))
 
-        # Find the optimal projection plane
-        n_excitations = np.sum(syndrome)
-        n_excitations_plane = {z: np.sum(plane_syndrome['z'][z])
-                               for z in plane_syndrome['z'].keys()}
+        # Find all the projection planes
+        planes_connected = {z: set([z]) for z in plane_syndrome['z'].keys()}
 
-        average_z = 0
-
-        if n_excitations != 0:
-            weights = [n_excitations_plane[z] / n_excitations
-                       for z in n_excitations_plane.keys()]
-            plane_z = list(n_excitations_plane.keys())
-
-            average_z = modular_average(plane_z, weights, 2*Lz)
-
-        z_proj = int(2 * np.floor(average_z/2) + 1)
-        # print("Z proj", z_proj)
-
-        # Perform the projection
-        for (x, y, z) in xcube_matching_z:
-            # print("Matching", (x, y, z))
-            if 0 < z - z_proj <= Lz or 2*Lz + z - z_proj <= Lz:
-                # print("test 1")
-                if z_proj < z:
-                    z_stop = z + 1
-                else:
-                    z_stop = 2*Lz + z + 1
-
-                for z_op in range(z_proj+1, z_stop, 2):
-                    idx = self.code.qubit_index[(x, y, z_op % (2*Lz))]
-                    correction[idx] += 1
-            elif z != z_proj:
-                # print("test 2")
-                if z < z_proj:
-                    z_stop = z_proj + 1
-                else:
-                    z_stop = 2*Lz + z_proj + 1
-
-                for z_op in range(z + 1, z_stop, 2):
-                    idx = self.code.qubit_index[(x, y, z_op % (2*Lz))]
-                    correction[idx] += 1
-
-        # Find the loops
-        toric_loop_dict = {}
         for (x, y, z) in xcube_matching_xy:
-            # print("xy matching", (x, y, z))
-            if (x, y) in toric_loop_dict.keys():
-                toric_loop_dict[(x, y)] += 1
-            else:
-                toric_loop_dict[(x, y)] = 1
+            # print("xy Matching", (x, y, z))
+            if z % 2 == 0:
+                planes_connected[(z - 1) % (2*Lz)].add((z + 1) % (2*Lz))
+                planes_connected[(z + 1) % (2*Lz)].add((z - 1) % (2*Lz))
 
-        toric_loop = [coord for coord in toric_loop_dict.keys()
-                      if toric_loop_dict[coord] % 2 == 1]
+        # print(planes_connected)
 
-        # print("Toric loop", toric_loop)
+        # Warning: does not work (need to merge connections)
+        planes_seen = set([])
+        list_z_proj = []
+        for z_proj in planes_connected.keys():
+            if z_proj not in planes_seen:
+                list_z_proj.append(z_proj)
+                planes_seen.update(planes_connected[z_proj])
 
-        # Distinguish the two sides of the loops
-        state = {}
-        for x in range(0, 2*Lx, 2):
-            current_state = 0
-            for y in range(0, 2*Ly, 2):
-                if y == 0:
-                    if (x - 1, y) in toric_loop:
-                        current_state = 1 - state[(x - 2, y)]
-                    elif x >= 2:
-                        current_state = state[(x - 2, y)]
-                if (x, y - 1) in toric_loop:
-                    current_state = 1 - current_state
+                # Perform the projection
+                for (x, y, z) in xcube_matching_z:
+                    if z in planes_connected[z_proj]:
+                        if 0 < z - z_proj <= Lz or 2*Lz + z - z_proj <= Lz:
+                            if z_proj < z:
+                                z_stop = z + 1
+                            else:
+                                z_stop = 2*Lz + z + 1
 
-                # print((x, y), current_state)
-                state[(x, y)] = current_state
+                            for z_op in range(z_proj+1, z_stop, 2):
+                                loc = (x, y, z_op % (2*Lz))
+                                idx = self.code.qubit_index[loc]
+                                correction[idx] += 1
+                        elif z != z_proj:
+                            if z < z_proj:
+                                z_stop = z_proj + 1
+                            else:
+                                z_stop = 2*Lz + z_proj + 1
+
+                            for z_op in range(z + 1, z_stop, 2):
+                                loc = (x, y, z_op % (2*Lz))
+                                idx = self.code.qubit_index[loc]
+                                correction[idx] += 1
+
+        for z_proj in list_z_proj:
+            # Find the loops
+            toric_loop_dict = {}
+            for (x, y, z) in xcube_matching_xy:
+                if z in planes_connected[z_proj]:
+                    # print("xy matching", (x, y, z))
+                    if (x, y) in toric_loop_dict.keys():
+                        toric_loop_dict[(x, y)] += 1
+                    else:
+                        toric_loop_dict[(x, y)] = 1
+
+            toric_loop = [coord for coord in toric_loop_dict.keys()
+                          if toric_loop_dict[coord] % 2 == 1]
+
+            # print("Toric loop", toric_loop)
+
+            correction_coordinates = decode_plane(toric_loop, (Lx, Ly))
+
+            for (x, y) in correction_coordinates:
                 idx = self.code.qubit_index[(x, y, z_proj)]
-
-        # Correct the minority vote
-        count = np.unique(list(state.values()), return_counts=True)
-
-        if len(count[0]) == 1:
-            minority_state = 1 - count[0]
-        else:
-            minority_state = count[0][np.argmin(count[1])]
-
-        # print(minority_state)
-
-        for x in range(0, 2*Lx, 2):
-            for y in range(0, 2*Ly, 2):
-                if state[(x, y)] == minority_state:
-                    idx = self.code.qubit_index[(x, y, z_proj)]
-                    correction[idx] = 1
+                correction[idx] = 1
 
         # Decode z part
         syndrome[self.code.z_indices] = 0
