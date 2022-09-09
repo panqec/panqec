@@ -21,7 +21,6 @@ import pandas as pd
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
 from scipy.signal import argrelextrema
-from tqdm import tqdm
 from .config import SLURM_DIR
 from .simulation import read_input_json
 from .utils import fmt_uncertainty, NumpyEncoder
@@ -30,10 +29,227 @@ from .bpauli import int_to_bvector, bvector_to_pauli_string
 Numerical = Union[Iterable, float, int]
 
 
+# TODO make this the legit way of doing things.
 class Analysis:
+    """Analysis on large collections of results files.
 
-    def __init__(self, results_path: str):
-        pass
+    Parameters
+    ----------
+    results : Union[str, List[str]]
+        Path to directory or .zip containing .json.gz or .json results.
+        Can also accept list of paths.
+    """
+
+    # List of paths where results are to be analyzed.
+    results_paths: List[str] = []
+
+    # Locations of individual results files.
+    file_locations: List[Union[str, Tuple[str, str]]] = []
+
+    # Raw data extracted from files.
+    raw: List[Dict[str, Any]]
+
+    # Results of each set of parameters.
+    results: pd.DataFrame
+
+    # Set of parameters that are unique to each input.
+    INPUT_KEYS: List[str] = [
+        'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
+        'probability'
+    ]
+
+    def __init__(self, results: Union[str, List[str]] = []):
+        self.results_paths = []
+        if isinstance(results, list):
+            self.results_paths += results
+        else:
+            self.results_paths.append(results)
+
+    def analyze(self, progress: Optional[Callable] = None):
+        """Perform the full analysis.
+
+        Parameters
+        ----------
+        progress : Optional[Callable]
+            Progress bar indicator such as tqdm or its notebook variant.
+        """
+        self.find_files()
+        self.count_files()
+        self.read_files(progress=progress)
+        self.aggregate()
+        self.calculate_total_error_rates()
+        self.calculate_word_error_rates()
+        self.calculate_single_qubit_error_rates()
+
+    def find_files(self):
+        """Find where the results files are."""
+
+        # List of paths to json files or tuples of zip file and json.
+        file_locations: List[str, Tuple[str, str]] = []
+
+        for results_path in self.results_paths:
+
+            # Look for .zip files that may contain .json.gz or .json files
+            # inside.
+            zip_files: List[Any] = []
+
+            # Also look for standalone .json or .json.gz results files.
+            json_files: List[Any] = []
+
+            # Recursively look for .zip, .json.gz and .json files.
+            if os.path.isdir(results_path):
+                results_dir = results_path
+                for path in Path(results_dir).rglob('*.zip'):
+                    zip_files.append(path)
+                for path in Path(results_dir).rglob('*.json.gz'):
+                    json_files.append(path)
+                for path in Path(results_dir).rglob('*.json'):
+                    json_files.append(path)
+
+            # results_path may also be a results file or .zip.
+            elif '.zip' in results_path:
+                zip_files.append(results_path)
+            elif '.json' in results_path:
+                json_files.append(results_path)
+
+            # Look for .json and .json.gz files inside .zip archives.
+            for zip_file in zip_files:
+                zf = ZipFile(zip_file)
+                for zip_path in zf.filelist:
+                    if '.json' in zip_path.filename:
+                        file_locations.append((zip_file, zip_path.filename))
+
+            # Add json paths directly.
+            file_locations += json_files
+
+        self.file_locations = file_locations
+        return self.file_locations
+
+    def count_files(self):
+        """Count how many files were found."""
+        return len(self.file_locations)
+
+    def read_files(self, progress=None):
+        """Read raw data from the files that were found."""
+
+        if progress is None:
+            def progress(x):
+                return x
+
+        entries = []
+        for file_location in progress(self.file_locations):
+            if isinstance(file_location, tuple):
+                zip_file, results_file = file_location
+                nominal_path = os.path.join(
+                    os.path.abspath(zip_file), results_file
+                )
+                zf = ZipFile(zip_file)
+                if '.json.gz' in results_file:
+                    with zf.open(results_file) as f:
+                        with gzip.open(f, 'rb') as g:
+                            data = json.loads(g.read().decode('utf-8'))
+                else:
+                    with zf.open(results_file) as f:
+                        data = json.load(f)
+            elif '.json.gz' in str(file_location):
+                nominal_path = os.path.abspath(file_location)
+                with gzip.open(file_location, 'rb') as g:
+                    data = json.loads(g.read().decode('utf-8'))
+            else:
+                nominal_path = os.path.abspath(file_location)
+                with open(file_location) as jf:
+                    data = json.load(jf)
+            entries += read_entry(data, results_file=nominal_path)
+        self.raw = entries
+
+    def aggregate(self):
+        """Aggregate the raw data into results attribute."""
+        df = pd.DataFrame(self.raw)
+
+        # Input keys by which data is to be grouped.
+        grouped_df = df.groupby(self.INPUT_KEYS)
+
+        # Columns for which grouped values are to be summed.
+        added_columns = grouped_df[[
+            'wall_time', 'n_samp'
+        ]].sum()
+
+        # Columns for which grouped entries are to be concantenated np arrays.
+        concat_columns = grouped_df[[
+            'effective_error', 'success', 'codespace'
+        ]].aggregate(lambda x: np.concatenate(x.values))
+
+        # Columns for which the any value out of the grouped values can be
+        # taken.
+        take_first_columns = grouped_df[['bias']].first()
+
+        # Columns to be grouped and turned into lists.
+        list_columns = grouped_df[['results_file']].aggregate(list)
+
+        # Stack the columns together side by side to form a big table.
+        self.results = pd.concat([
+            added_columns, concat_columns, take_first_columns, list_columns
+        ], axis=1).reset_index()
+
+    def calculate_total_error_rates(self):
+        """Calculate the total error rate.
+
+        And add it as a column to the results attribute of this class.
+        """
+        estimates_list = []
+        uncertainties_list = []
+        for i_entry, entry in self.results.iterrows():
+            estimator = 1 - entry['success'].mean()
+            uncertainty = get_standard_error(estimator, entry['n_samp'])
+            estimates_list.append(estimator)
+            uncertainties_list.append(uncertainty)
+        self.results['p_est'] = estimates_list
+        self.results['p_se'] = uncertainties_list
+
+    def calculate_word_error_rates(self):
+        """Calculate the word error rate using the formula.
+
+        The formula assumes a uniform error rate across all logical qubits.
+        """
+        p_est = self.results['p_est']
+        p_se = self.results['p_se']
+        k = self.results['k']
+        p_word_est, p_word_se = get_word_error_rate(p_est, p_se, k)
+        self.results['p_word_est'] = p_word_est
+        self.results['p_word_se'] = p_word_se
+
+    def calculate_single_qubit_error_rates(self):
+        """Add single error rate estimates and uncertainties to results.
+
+        Adds 'single_qubit_p_est' and 'single_qubit_p_se' as array-valued
+        columns to the results attribute of this class.
+
+        Each entry is an array of shape (k, 4),
+        with the i-th row corresponding to the value for i-th logical qubit
+        and the column 0 containing values for the total error rate,
+        column 1 for X, column 2 for Y, and column 3 for Y errors.
+
+        Note that it is not checked whether or not the code is in the code
+        space.
+        """
+
+        # Calculate single-qubit error rates.
+        estimates_list = []
+        uncertainties_list = []
+        for i_entry, entry in self.results.iterrows():
+            estimates = np.zeros((entry['k'], 4))
+            uncertainties = np.zeros((entry['k'], 4))
+            for i in range(entry['k']):
+                for i_pauli, pauli in enumerate([None, 'X', 'Y', 'Z']):
+                    estimate, uncertainty = get_single_qubit_error_rate(
+                        entry['effective_error'], i=i, error_type=pauli,
+                    )
+                    estimates[i, i_pauli] = estimate
+                    uncertainties[i, i_pauli] = uncertainty
+            estimates_list.append(estimates)
+            uncertainties_list.append(estimates)
+        self.results['single_qubit_p_est'] = estimates_list
+        self.results['single_qubit_p_se'] = uncertainties_list
 
 
 def get_standard_error(estimator, n_samples):
@@ -1071,7 +1287,9 @@ def get_subthreshold_fit_function(order=3, ansatz='poly'):
 
 # TODO make this replace the original get_results_df because it's so much
 # better.
-def get_results_df_zipped(results_path: str) -> pd.DataFrame:
+def get_results_df_zipped(
+    results_path: str, progress=Optional[Callable]
+) -> pd.DataFrame:
     """Results table from reccursively looking for zipped results.
 
     Parameters
@@ -1084,18 +1302,36 @@ def get_results_df_zipped(results_path: str) -> pd.DataFrame:
     results_df : pd.DataFrame
         The results table.
     """
+    if progress is None:
+        def progress(x):
+            return x
+
+    entries = []
+
+    # Look for .zip files that may contain .json.gz or .json files inside.
     zip_files: List[Any] = []
 
+    # Also look for standalone .json or .json.gz results files.
+    json_files: List[Any] = []
+
+    # Recursively look for .zip, .json.gz and .json files.
     if os.path.isdir(results_path):
         results_dir = results_path
         for path in Path(results_dir).rglob('*.zip'):
             zip_files.append(path)
+        for path in Path(results_dir).rglob('*.json.gz'):
+            json_files.append(path)
+        for path in Path(results_dir).rglob('*.json'):
+            json_files.append(path)
+
+    # results_path may also be a results file or .zip.
     elif '.zip' in results_path:
         zip_files.append(results_path)
+    elif '.json' in results_path:
+        json_files.append(results_path)
 
-    entries = []
-
-    for zip_file in tqdm(zip_files):
+    # Read the .json or .json.gz inside .zip archives.
+    for zip_file in progress(zip_files):
         zf = ZipFile(zip_file)
         results_files = [
             zip_path.filename for zip_path in zf.filelist
@@ -1110,13 +1346,26 @@ def get_results_df_zipped(results_path: str) -> pd.DataFrame:
                 with zf.open(results_file) as f:
                     data = json.load(f)
             entries += read_entry(data)
+
+    # Read the standalone .json or .json.gz files.
+    for json_file in progress(json_files):
+        if '.json.gz' in str(json_file):
+            with gzip.open(json_file, 'rb') as g:
+                data = json.loads(g.read().decode('utf-8'))
+        else:
+            with open(json_file) as jf:
+                data = json.load(jf)
+        entries += read_entry(data)
+
     df = pd.DataFrame(entries)
 
+    # Convert size list to tuple so it is hashable.
     df['size'] = df['size'].apply(tuple)
 
+    # Group rows by unique inputs.
     group_keys = [
-        'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder', 'probability',
-        'bias'
+        'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
+        'probability', 'bias'
     ]
     grouped_df = df.groupby(group_keys)[['n_samp']].sum()
     grouped_df['split'] = df.groupby(group_keys)[['n_samp']].count()
@@ -1128,6 +1377,8 @@ def read_entry(
     data: Union[List, Dict], results_file: Optional[str] = None
 ) -> List[Dict]:
     """List of entries from data in list or dict format.
+
+    Returns an empty list if it is not a valid results dict.
 
     Parameters
     ----------
@@ -1144,7 +1395,7 @@ def read_entry(
     entries = []
     if isinstance(data, list):
         for sub_data in data:
-            entries += read_entry(sub_data)
+            entries += read_entry(sub_data, results_file=results_file)
 
     elif isinstance(data, dict):
 
@@ -1152,8 +1403,27 @@ def read_entry(
         if 'inputs' not in data or 'results' not in data:
             return []
 
+        # Add the inputs.
         entry = data['inputs']
-        entry['n_samp'] = len(data['results']['effective_error'])
+        entry['size'] = tuple(entry['size'])
+
+        # Add the results, converting to np arrays where possible.
+        entry.update(data['results'])
+        for key in ['codespace', 'success']:
+            if key in entry:
+                entry[key] = np.array(entry[key], dtype=bool)
+        entry['effective_error'] = np.array(
+            entry['effective_error'], dtype=np.uint
+        )
+
+        # Record the path of the results file if given.
+        if results_file:
+            entry['results_file'] = results_file
+
+        # Count the number of samples
+        entry['n_samp'] = len(entry['effective_error'])
+
+        # Deal with legacy names for things.
         if 'n_k_d' in entry:
             n_k_d = entry.pop('n_k_d')
             entry['n'], entry['k'], entry['d'] = n_k_d
