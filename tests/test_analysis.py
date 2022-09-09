@@ -1,7 +1,9 @@
+import os
 import numpy as np
 from panqec.analysis import (
-    get_subthreshold_fit_function, get_single_qubit_error_rate
+    get_subthreshold_fit_function, get_single_qubit_error_rate, Analysis
 )
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 
 def test_subthreshold_cubic_fit_function():
@@ -92,3 +94,19 @@ class TestGetSingleQubitErrorRates:
             effective_error_list, i=1, error_type='Z'
         )
         assert np.isclose(p_z, 3/7)
+
+
+class TestAnalysis:
+
+    def test_analyse_toric_2d_results(self):
+        results_path = os.path.join(DATA_DIR, 'toric')
+        assert os.path.exists(results_path)
+        analysis = Analysis(results_path)
+        analysis.analyze()
+        assert analysis.results.shape == (30, 21)
+        assert set(analysis.results.columns) == set([
+            'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
+            'probability', 'wall_time', 'n_samp', 'effective_error', 'success',
+            'codespace', 'bias', 'results_file', 'p_est', 'p_se', 'p_word_est',
+            'p_word_se', 'single_qubit_p_est', 'single_qubit_p_se'
+        ])
