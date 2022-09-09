@@ -81,3 +81,24 @@ class BaseErrorModel(metaclass=ABCMeta):
             prob = np.prod(prob_vector)
 
         return prob
+
+    def get_weights(
+        self, code: StabilizerCode, error_rate: float, eps=1e-20
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Get MWPM weights for deformed Pauli noise."""
+
+        pi, px, py, pz = self.probability_distribution(
+            code, error_rate
+        )
+
+        total_p_x = px + py
+        total_p_z = pz + py
+
+        weights_x = -np.log(
+            (total_p_x + eps) / (1 - total_p_x + eps)
+        )
+        weights_z = -np.log(
+            (total_p_z + eps) / (1 - total_p_z + eps)
+        )
+
+        return weights_x, weights_z

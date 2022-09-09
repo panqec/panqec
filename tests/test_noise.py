@@ -156,8 +156,7 @@ class TestDeformedMatchingWeights:
         else:
             r_x, r_y, r_z = 1/3, 1/3, 1/3
         error_model = DeformedXZZXErrorModel(r_x, r_y, r_z)
-        decoder = MatchingDecoder(code, error_model, error_rate, 'X')
-        weights_x, weight_z = decoder.get_weights()
+        weights_x, weight_z = error_model.get_weights(code, error_rate)
         return weights_x, weight_z
 
     def test_if_equal_rates_then_equal_weights(self):

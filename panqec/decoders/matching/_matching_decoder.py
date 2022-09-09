@@ -16,7 +16,8 @@ class MatchingDecoder(BaseDecoder):
                  code: StabilizerCode,
                  error_model: BaseErrorModel,
                  error_rate: float,
-                 error_type: Optional[str] = None):
+                 error_type: Optional[str] = None,
+                 weights: Optional[Tuple[np.ndarray]] = None):
         """Constructor for the MatchingDecoder class
 
         Parameters
@@ -39,7 +40,11 @@ class MatchingDecoder(BaseDecoder):
                              f"or None, not {error_type}")
 
         self.error_type = error_type
-        wx, wz = self.get_weights()
+
+        if weights is not None:
+            wx, wz = weights
+        else:
+            wx, wz = error_model.get_weights(code, error_rate)
 
         if error_type is None or error_type == "X":
             self.matcher_x = Matching(self.code.Hz, spacelike_weights=wx)
@@ -65,22 +70,3 @@ class MatchingDecoder(BaseDecoder):
             correction[self.code.n:] = correction_z
 
         return correction
-
-    def get_weights(self, eps=1e-10) -> Tuple[np.ndarray, np.ndarray]:
-        """Get MWPM weights for deformed Pauli noise."""
-
-        pi, px, py, pz = self.error_model.probability_distribution(
-            self.code, self.error_rate
-        )
-
-        total_p_x = px + py
-        total_p_z = pz + py
-
-        weights_x = -np.log(
-            (total_p_x + eps) / (1 - total_p_x + eps)
-        )
-        weights_z = -np.log(
-            (total_p_z + eps) / (1 - total_p_z + eps)
-        )
-
-        return weights_x, weights_z

@@ -4,7 +4,7 @@ from pymatching import Matching
 from panqec.decoders import BaseDecoder, MatchingDecoder
 from panqec.codes import StabilizerCode, Toric2DCode
 from panqec.decoders.bposd.bposd_decoder import BeliefPropagationOSDDecoder
-from panqec.error_models import BaseErrorModel
+from panqec.error_models import PauliErrorModel
 
 
 def modular_average(numbers, weights, n):
@@ -48,7 +48,7 @@ class XCubeMatchingDecoder(BaseDecoder):
 
     def __init__(self,
                  code: StabilizerCode,
-                 error_model: BaseErrorModel,
+                 error_model: PauliErrorModel,
                  error_rate: float):
         """Constructor for the MatchingDecoder class
 
@@ -56,7 +56,7 @@ class XCubeMatchingDecoder(BaseDecoder):
         ----------
         code : StabilizerCode
             Code used by the decoder
-        error_model: BaseErrorModel
+        error_model: PauliErrorModel
             Error model used by the decoder (to find the weights)
         error_rate: int, optional
             Error rate used by the decoder (to find the weights)
@@ -84,9 +84,27 @@ class XCubeMatchingDecoder(BaseDecoder):
                       'z': Toric2DCode(Lx, Ly)
                       }
 
+        rx, ry, rz = self.error_model.direction
+
+        # Weight the 2D toric code matching decoders
+        # Only works for Z biased noise and z-axis deformation
+        weights_X, _ = self.error_model.get_weights(self.code,
+                                                    self.error_rate)
+
+        wz = weights_X[self.code.qubit_index[(0, 0, 1)]]
+        wxy = weights_X[self.code.qubit_index[(1, 0, 0)]]
+
+        weights = {'x': [wxy if toric_code['x'].qubit_axis(loc) == 'x' else wz
+                         for loc in toric_code['x'].qubit_coordinates],
+                   'y': [wxy if toric_code['y'].qubit_axis(loc) == 'x' else wz
+                         for loc in toric_code['y'].qubit_coordinates],
+                   'z': [wxy for _ in toric_code['z'].qubit_coordinates]}
+
         decoder = {axis: MatchingDecoder(toric_code[axis],
                                          self.error_model,
-                                         self.error_rate)
+                                         self.error_rate,
+                                         weights=(weights[axis],
+                                                  weights[axis]))
                    for axis in ['x', 'y', 'z']}
 
         plane_syndrome = {'x': {x: np.zeros(toric_code['x'].n_stabilizers)
@@ -114,6 +132,7 @@ class XCubeMatchingDecoder(BaseDecoder):
                 idx_face_toric = toric_code['z'].stabilizer_index[(x, y)]
                 plane_syndrome['z'][z][idx_face_toric] = 1
 
+        # Decode all the 2D toric codes
         xcube_matching_z = []
         xcube_matching_xy = []
         for axis in ['x', 'y', 'z']:
@@ -132,6 +151,7 @@ class XCubeMatchingDecoder(BaseDecoder):
                         elif axis == 'y':
                             xcube_matching_xy.append((x, plane_id, y))
 
+        # Find the optimal projection plane
         n_excitations = np.sum(syndrome)
         n_excitations_plane = {z: np.sum(plane_syndrome['z'][z])
                                for z in plane_syndrome['z'].keys()}
@@ -148,6 +168,7 @@ class XCubeMatchingDecoder(BaseDecoder):
         z_proj = int(2 * np.floor(average_z/2) + 1)
         # print("Z proj", z_proj)
 
+        # Perform the projection
         for (x, y, z) in xcube_matching_z:
             # print("Matching", (x, y, z))
             if 0 < z - z_proj <= Lz or 2*Lz + z - z_proj <= Lz:
@@ -171,9 +192,10 @@ class XCubeMatchingDecoder(BaseDecoder):
                     idx = self.code.qubit_index[(x, y, z_op % (2*Lz))]
                     correction[idx] += 1
 
-        # - Find the loop
+        # Find the loops
         toric_loop_dict = {}
         for (x, y, z) in xcube_matching_xy:
+            # print("xy matching", (x, y, z))
             if (x, y) in toric_loop_dict.keys():
                 toric_loop_dict[(x, y)] += 1
             else:
@@ -184,7 +206,7 @@ class XCubeMatchingDecoder(BaseDecoder):
 
         # print("Toric loop", toric_loop)
 
-        # - Distinguish the two sides of the loops
+        # Distinguish the two sides of the loops
         state = {}
         for x in range(0, 2*Lx, 2):
             current_state = 0
@@ -201,7 +223,7 @@ class XCubeMatchingDecoder(BaseDecoder):
                 state[(x, y)] = current_state
                 idx = self.code.qubit_index[(x, y, z_proj)]
 
-        # - Correct the minority vote
+        # Correct the minority vote
         count = np.unique(list(state.values()), return_counts=True)
 
         if len(count[0]) == 1:
@@ -226,22 +248,3 @@ class XCubeMatchingDecoder(BaseDecoder):
         correction += z_correction
 
         return correction % 2
-
-    def get_weights(self, eps=1e-10) -> Tuple[np.ndarray, np.ndarray]:
-        """Get MWPM weights for deformed Pauli noise."""
-
-        pi, px, py, pz = self.error_model.probability_distribution(
-            self.code, self.error_rate
-        )
-
-        total_p_x = px + py
-        total_p_z = pz + py
-
-        weights_x = -np.log(
-            (total_p_x + eps) / (1 - total_p_x + eps)
-        )
-        weights_z = -np.log(
-            (total_p_z + eps) / (1 - total_p_z + eps)
-        )
-
-        return weights_x, weights_z

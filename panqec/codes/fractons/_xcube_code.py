@@ -134,12 +134,11 @@ class XCubeCode(StabilizerCode):
         #         operator[(1, y, z)] = 'X'
         #     logicals.append(operator)
 
-        z = 0
-        # for z in range(2, 2*Lz, 2):
-        operator = dict()
-        for y in range(0, 2*Ly, 2):
-            operator[(1, y, z)] = 'X'
-        logicals.append(operator)
+        for z in range(2, 2*Lz, 2):
+            operator = dict()
+            for y in range(0, 2*Ly, 2):
+                operator[(1, y, z)] = 'X'
+            logicals.append(operator)
 
         # Line of parallel Z operators along the y direction
         # for x in range(0, 2*Lx, 2):
@@ -148,24 +147,24 @@ class XCubeCode(StabilizerCode):
         #         operator[(x, 1, z)] = 'X'
         #     logicals.append(operator)
 
-        # for z in range(2, 2*Lz, 2):
-        #     operator = dict()
-        #     for x in range(0, 2*Lx, 2):
-        #         operator[(x, 1, z)] = 'X'
-        #     logicals.append(operator)
+        for z in range(2, 2*Lz, 2):
+            operator = dict()
+            for x in range(0, 2*Lx, 2):
+                operator[(x, 1, z)] = 'X'
+            logicals.append(operator)
 
         # Line of parallel Z operators along the z direction
-        # for x in range(0, 2*Lx, 2):
-        #     operator = dict()
-        #     for y in range(0, 2*Ly, 2):
-        #         operator[(x, y, 1)] = 'X'
-        #     logicals.append(operator)
+        for x in range(0, 2*Lx, 2):
+            operator = dict()
+            for y in range(0, 2*Ly, 2):
+                operator[(x, y, 1)] = 'X'
+            logicals.append(operator)
 
-        # for y in range(2, 2*Ly, 2):
-        #     operator = dict()
-        #     for x in range(0, 2*Lx, 2):
-        #         operator[(x, y, 1)] = 'X'
-        #     logicals.append(operator)
+        for y in range(2, 2*Ly, 2):
+            operator = dict()
+            for x in range(0, 2*Lx, 2):
+                operator[(x, y, 1)] = 'X'
+            logicals.append(operator)
 
         return logicals
 
@@ -180,14 +179,13 @@ class XCubeCode(StabilizerCode):
         #         operator[(x, y, 0)] = 'Z'
         #     logicals.append(operator)
 
-        z = 2
-        # for z in range(2, 2*Lz, 2):
-        operator = dict()
-        for x in range(1, 2*Lx, 2):
-            operator[(x, 0, 0)] = 'Z'
-        for x in range(1, 2*Lx, 2):
-            operator[(x, 0, z)] = 'Z'
-        logicals.append(operator)
+        for z in range(2, 2*Lz, 2):
+            operator = dict()
+            for x in range(1, 2*Lx, 2):
+                operator[(x, 0, 0)] = 'Z'
+            for x in range(1, 2*Lx, 2):
+                operator[(x, 0, z)] = 'Z'
+            logicals.append(operator)
 
         # Line of Z operators along the y direction
         # for x in range(0, 2*Lx, 2):
@@ -196,28 +194,28 @@ class XCubeCode(StabilizerCode):
         #         operator[(x, y, 0)] = 'Z'
         #     logicals.append(operator)
 
-        # for z in range(2, 2*Lz, 2):
-        #     operator = dict()
-        #     for y in range(1, 2*Ly, 2):
-        #         operator[(0, y, 0)] = 'Z'
-        #     for y in range(1, 2*Ly, 2):
-        #         operator[(0, y, z)] = 'Z'
-        #     logicals.append(operator)
+        for z in range(2, 2*Lz, 2):
+            operator = dict()
+            for y in range(1, 2*Ly, 2):
+                operator[(0, y, 0)] = 'Z'
+            for y in range(1, 2*Ly, 2):
+                operator[(0, y, z)] = 'Z'
+            logicals.append(operator)
 
         # Line of Z operators along the z direction
-        # for x in range(0, 2*Lx, 2):
-        #     operator = dict()
-        #     for z in range(1, 2*Lz, 2):
-        #         operator[(x, 0, z)] = 'Z'
-        #     logicals.append(operator)
+        for x in range(0, 2*Lx, 2):
+            operator = dict()
+            for z in range(1, 2*Lz, 2):
+                operator[(x, 0, z)] = 'Z'
+            logicals.append(operator)
 
-        # for y in range(2, 2*Ly, 2):
-        #     operator = dict()
-        #     for z in range(1, 2*Lz, 2):
-        #         operator[(0, 0, z)] = 'Z'
-        #     for z in range(1, 2*Lz, 2):
-        #         operator[(0, y, z)] = 'Z'
-        #     logicals.append(operator)
+        for y in range(2, 2*Ly, 2):
+            operator = dict()
+            for z in range(1, 2*Lz, 2):
+                operator[(0, 0, z)] = 'Z'
+            for z in range(1, 2*Lz, 2):
+                operator[(0, y, z)] = 'Z'
+            logicals.append(operator)
 
         return logicals
 
