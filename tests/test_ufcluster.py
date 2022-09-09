@@ -1,11 +1,12 @@
 from copy import deepcopy
 import pytest
+from scipy.sparse import csr_matrix
 import numpy as np
 from panqec.decoders.union_find.clustering import Cluster_Tree, Support, _hash_s_index, _smallest_invalid_cluster, clustering
 
 syndrome = np.zeros(5)
 syndrome[[1,3]] = 1 #[0, 1, 0, 1, 0]
-Hz = np.array([
+Hz = csr_matrix([
         [1, 1, 0, 0, 0, 1, 0, 0, 0, 0],
         [0, 0, 1, 1, 0, 0, 0, 1, 0, 0],
         [0, 0, 1, 0, 1, 1, 0, 0, 0, 0],
@@ -58,7 +59,7 @@ class TestSupport:
         sp = deepcopy(sp_global)
         assert sp._num_stabilizer == 5
         assert sp._num_qubit == 10
-        assert np.array_equal(sp._H_to_grow, Hz)
+        assert np.array_equal(sp._H_to_grow.toarray(), Hz.toarray())
         Hz[0][0] = 0
         assert not np.array_equal(sp._H_to_grow, Hz)
         check = {1: Cluster_Tree(1), 3: Cluster_Tree(3)}
@@ -83,14 +84,14 @@ class TestSupport:
         nb, fl = sp.grow_stabilizer(0)
         assert nb == [0, 1, 5]
         assert fl == [0, 1, 5]
-        assert np.array_equal(sp._H_to_grow[0], np.zeros(10))
+        assert np.array_equal(sp._H_to_grow[0].toarray()[0], np.zeros(10))
 
     def test_grow_qubit(self):
         sp = deepcopy(sp_global)
         nb, fl = sp.grow_qubit(2)
         assert nb == [1, 2]
         assert fl == [2]
-        assert np.array_equal(sp._H_to_grow[:, 2], np.zeros(5))
+        assert np.array_equal(sp._H_to_grow.toarray()[:, 2], np.zeros(5))
     
     def test_union(self):
         sp = deepcopy(sp_global)

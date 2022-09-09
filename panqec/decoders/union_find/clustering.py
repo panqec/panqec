@@ -38,7 +38,7 @@ def clustering(syndrome: np.ndarray, H: csr_matrix):
 
         for q in fusion_set:
             Hr = support.H[:, q] - support._H_to_grow[:, q]
-            ss = list(np.where(Hr != 0)[0])
+            ss = list(Hr.nonzero()[0])
             support._q_parents[q] = support.union(ss)
 
             # We don't waste time to check boundary list here, 
@@ -219,12 +219,12 @@ class Support():
         return v
 
     def grow_stabilizer(self, s: int) -> tuple[list[int], list[int]]:
-        new_boundary = fusion_list = list(np.where(self._H_to_grow[s] != 0)[0])
+        new_boundary = fusion_list = list(self._H_to_grow.getrow(s).nonzero()[1]) # 1 due to get column index
         self._H_to_grow[s] = 0
         return (new_boundary, fusion_list)
         
     def grow_qubit(self, q: int) -> tuple[list[int], list[int]]:
-        new_boundary = list(np.where(self._H_to_grow[:, q] != 0)[0])
+        new_boundary = list(self._H_to_grow.getcol(q).nonzero()[0]) # 0 due to get row index
         self._H_to_grow[:, q] = 0
         return (new_boundary, [q])
     
