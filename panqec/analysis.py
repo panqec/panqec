@@ -80,6 +80,7 @@ class Analysis:
         self.calculate_total_error_rates()
         self.calculate_word_error_rates()
         self.calculate_single_qubit_error_rates()
+        self.calculate_total_thresholds()
 
     def find_files(self):
         """Find where the results files are."""
@@ -171,7 +172,7 @@ class Analysis:
 
         # Columns for which grouped values are to be summed.
         added_columns = grouped_df[[
-            'wall_time', 'n_samp'
+            'wall_time', 'n_trials'
         ]].sum()
 
         # Columns for which grouped entries are to be concantenated np arrays.
@@ -191,6 +192,8 @@ class Analysis:
             added_columns, concat_columns, take_first_columns, list_columns
         ], axis=1).reset_index()
 
+        self.results['n_fail'] = self.results['success'].apply(sum)
+
     def calculate_total_error_rates(self):
         """Calculate the total error rate.
 
@@ -200,7 +203,7 @@ class Analysis:
         uncertainties_list = []
         for i_entry, entry in self.results.iterrows():
             estimator = 1 - entry['success'].mean()
-            uncertainty = get_standard_error(estimator, entry['n_samp'])
+            uncertainty = get_standard_error(estimator, entry['n_trials'])
             estimates_list.append(estimator)
             uncertainties_list.append(uncertainty)
         self.results['p_est'] = estimates_list
@@ -250,6 +253,15 @@ class Analysis:
             uncertainties_list.append(estimates)
         self.results['single_qubit_p_est'] = estimates_list
         self.results['single_qubit_p_se'] = uncertainties_list
+
+    def calculate_total_thresholds(self, **kwargs):
+        """Calculate thresholds for total error rate."""
+        thresholds_df, trunc_results_df, params_bs_list = get_thresholds_df(
+            self.results, **kwargs
+        )
+        self.thresholds_df = thresholds_df
+        self.trunc_results_df = trunc_results_df
+        self.params_bs_list = params_bs_list
 
 
 def get_standard_error(estimator, n_samples):
@@ -755,6 +767,7 @@ def longest_sequence(arr, char):
 
 def get_p_th_nearest(df_filt: pd.DataFrame, p_est: str = 'p_est') -> float:
     code_df = get_code_df(df_filt)
+
     # Estimate the threshold by where the order of the lines change.
     p_est_df = pd.DataFrame({
         code: dict(df_filt[df_filt['code'] == code][[
@@ -942,11 +955,45 @@ def get_bias_ratios(noise_direction):
     return eta_x, eta_y, eta_z
 
 
+def deduce_noise_direction(error_model: str) -> Tuple[float, float, float]:
+    """Deduce the noise direction given the error model label.
+
+    Parameters
+    ----------
+    error_model : str
+        Label of the error model.
+
+    Returns
+    -------
+    r_x : float
+        The component in the Pauli X direction.
+    r_y : float
+        The component in the Pauli Y direction.
+    r_z : float
+        The component in the Pauli Z direction.
+    """
+    direction = (0.0, 0.0, 0.0)
+    match = re.search(r'Pauli X([\d\.]+)Y([\d\.]+)Z([\d\.]+)', error_model)
+    if match:
+        direction = (
+            float(match.group(1)), float(match.group(2)), float(match.group(3))
+        )
+    return direction
+
+
 def get_error_model_df(results_df):
     """Get error models."""
+    if 'noise_direction' not in results_df.columns:
+        results_df['noise_direction'] = results_df['error_model'].apply(
+            deduce_noise_direction
+        )
     error_model_df = results_df[[
-        'error_model', 'noise_direction'
-    ]].drop_duplicates().sort_values(by='noise_direction')
+        'error_model'
+    ]].drop_duplicates()
+    error_model_df['noise_direction'] = error_model_df['error_model'].apply(
+        deduce_noise_direction
+    )
+    error_model_df = error_model_df.sort_values(by='noise_direction')
 
     r_xyz = pd.DataFrame(
         error_model_df['noise_direction'].tolist(),
@@ -978,7 +1025,11 @@ def get_thresholds_df(
     logical_type: str = 'total',
     n_fail_label: str = 'n_fail',
 ):
+
+    # Initialize with unique error models and their parameters.
     thresholds_df = get_error_model_df(results_df)
+
+    # Intialize the lists.
     p_th_sd = []
     p_th_nearest = []
     p_left = []
@@ -1029,7 +1080,7 @@ def get_thresholds_df(
         # Standard error.
         p_th_fss_se.append(params_bs[:, 0].std())
 
-        # Estimator
+        # Use the median as the estimator.
         p_th_fss.append(np.median(params_bs[:, 0]))
 
         # Trucated data.
@@ -1285,94 +1336,6 @@ def get_subthreshold_fit_function(order=3, ansatz='poly'):
         return sts_fit_function
 
 
-# TODO make this replace the original get_results_df because it's so much
-# better.
-def get_results_df_zipped(
-    results_path: str, progress=Optional[Callable]
-) -> pd.DataFrame:
-    """Results table from reccursively looking for zipped results.
-
-    Parameters
-    ----------
-    results_path : str
-        The path to the results directory or .zip file.
-
-    Returns
-    -------
-    results_df : pd.DataFrame
-        The results table.
-    """
-    if progress is None:
-        def progress(x):
-            return x
-
-    entries = []
-
-    # Look for .zip files that may contain .json.gz or .json files inside.
-    zip_files: List[Any] = []
-
-    # Also look for standalone .json or .json.gz results files.
-    json_files: List[Any] = []
-
-    # Recursively look for .zip, .json.gz and .json files.
-    if os.path.isdir(results_path):
-        results_dir = results_path
-        for path in Path(results_dir).rglob('*.zip'):
-            zip_files.append(path)
-        for path in Path(results_dir).rglob('*.json.gz'):
-            json_files.append(path)
-        for path in Path(results_dir).rglob('*.json'):
-            json_files.append(path)
-
-    # results_path may also be a results file or .zip.
-    elif '.zip' in results_path:
-        zip_files.append(results_path)
-    elif '.json' in results_path:
-        json_files.append(results_path)
-
-    # Read the .json or .json.gz inside .zip archives.
-    for zip_file in progress(zip_files):
-        zf = ZipFile(zip_file)
-        results_files = [
-            zip_path.filename for zip_path in zf.filelist
-            if '.json' in zip_path.filename
-        ]
-        for results_file in results_files:
-            if '.json.gz' in results_file:
-                with zf.open(results_file) as f:
-                    with gzip.open(f, 'rb') as g:
-                        data = json.loads(g.read().decode('utf-8'))
-            else:
-                with zf.open(results_file) as f:
-                    data = json.load(f)
-            entries += read_entry(data)
-
-    # Read the standalone .json or .json.gz files.
-    for json_file in progress(json_files):
-        if '.json.gz' in str(json_file):
-            with gzip.open(json_file, 'rb') as g:
-                data = json.loads(g.read().decode('utf-8'))
-        else:
-            with open(json_file) as jf:
-                data = json.load(jf)
-        entries += read_entry(data)
-
-    df = pd.DataFrame(entries)
-
-    # Convert size list to tuple so it is hashable.
-    df['size'] = df['size'].apply(tuple)
-
-    # Group rows by unique inputs.
-    group_keys = [
-        'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
-        'probability', 'bias'
-    ]
-    grouped_df = df.groupby(group_keys)[['n_samp']].sum()
-    grouped_df['split'] = df.groupby(group_keys)[['n_samp']].count()
-    df = grouped_df.reset_index()
-    return df
-
-
 def read_entry(
     data: Union[List, Dict], results_file: Optional[str] = None
 ) -> List[Dict]:
@@ -1421,7 +1384,7 @@ def read_entry(
             entry['results_file'] = results_file
 
         # Count the number of samples
-        entry['n_samp'] = len(entry['effective_error'])
+        entry['n_trials'] = len(entry['effective_error'])
 
         # Deal with legacy names for things.
         if 'n_k_d' in entry:
