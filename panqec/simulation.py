@@ -632,6 +632,15 @@ def get_simulations(
 ) -> List[Simulation]:
     simulations = []
 
+    # The case if the ranges attribute is a list of dicts.
+    # This allows everything to be jammed into one input file.
+    if 'ranges' in data and isinstance(data['ranges'], list):
+        for sub_ranges in data['ranges']:
+            sub_data = dict(data)
+            sub_data['ranges'] = sub_ranges
+            simulations += get_simulations(sub_data)
+        return simulations
+
     if 'ranges' in data:
         (
             code_range, noise_range, decoder_range, probability_range

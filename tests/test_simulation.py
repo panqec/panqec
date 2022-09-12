@@ -287,3 +287,11 @@ def test_filter_legacy_params():
     }
     filtered_params = filter_legacy_params(old_params)
     assert 'joschka' not in filtered_params
+
+
+class TestReadInputJson:
+
+    def test_multiple_ranges(self):
+        json_file = os.path.join(DATA_DIR, 'toric_input.json')
+        batch_sim = read_input_json(json_file)
+        assert len(batch_sim) == 66
