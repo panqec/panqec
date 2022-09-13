@@ -694,7 +694,7 @@ def read_input_dict(
         if isinstance(data['ranges'], list):
             label = 'combined'
             labels = []
-            for subdata in data:
+            for subdata in data['ranges']:
                 if 'ranges' in subdata:
                     if 'label' in subdata['ranges']:
                         labels.append(subdata['ranges']['label'])

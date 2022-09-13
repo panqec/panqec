@@ -38,6 +38,13 @@ class Analysis:
     results : Union[str, List[str]]
         Path to directory or .zip containing .json.gz or .json results.
         Can also accept list of paths.
+
+    Attributes
+    ----------
+    results : pd.DataFrame
+        Results for each set of (code, error model and decoder).
+    thresholds : pd.DataFrame
+        Thresholds for each (code family, error_model and decoder).
     """
 
     # List of paths where results are to be analyzed.
@@ -49,8 +56,11 @@ class Analysis:
     # Raw data extracted from files.
     raw: List[Dict[str, Any]]
 
-    # Results of each set of parameters.
+    # Results of each code, error_modle and decoder.
     results: pd.DataFrame
+
+    # Thresholds for each code family, error modle and decoder.
+    thresholds: pd.DataFrame
 
     # Set of parameters that are unique to each input.
     INPUT_KEYS: List[str] = [
