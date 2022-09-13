@@ -688,7 +688,21 @@ def read_input_dict(
     """Return BatchSimulation from input dict."""
     label = 'unlabelled'
     if 'ranges' in data:
-        if 'label' in data['ranges']:
+
+        # If may ranges are given, label it combined, but if there is only one
+        # unique label, then we can just use that label.
+        if isinstance(data['ranges'], list):
+            label = 'combined'
+            labels = []
+            for subdata in data:
+                if 'ranges' in subdata:
+                    if 'label' in subdata['ranges']:
+                        labels.append(subdata['ranges']['label'])
+            if labels:
+                unique_labels = list(set(labels))
+                if len(unique_labels) == 1:
+                    label = unique_labels[0]
+        elif 'label' in data['ranges']:
             label = data['ranges']['label']
     kwargs['label'] = label
 
