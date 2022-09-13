@@ -23,7 +23,7 @@ from scipy.optimize import curve_fit
 from scipy.signal import argrelextrema
 from .config import SLURM_DIR
 from .simulation import read_input_json
-from .utils import fmt_uncertainty, NumpyEncoder
+from .utils import fmt_uncertainty, NumpyEncoder, identity
 from .bpauli import int_to_bvector, bvector_to_pauli_string
 
 Numerical = Union[Iterable, float, int]
@@ -144,8 +144,7 @@ class Analysis:
         """Read raw data from the files that were found."""
 
         if progress is None:
-            def progress(x):
-                return x
+            progress = identity
 
         entries = []
         for file_location in progress(self.file_locations):

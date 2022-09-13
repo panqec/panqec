@@ -25,7 +25,25 @@ def run_once(
     error_rate: float,
     rng=None
 ) -> dict:
-    """Run a simulation once and return the results as a dictionary."""
+    """Run a simulation once and return the results as a dictionary.
+
+    Parameters
+    ----------
+    code : StabilizerCode
+        The QEC code object to be run.
+    error_model : BaseErrorModel
+        The error model from which to sample errors from.
+    decoder : BaseDecoder
+        The decoder to use for correct the errors.
+    rng :
+        Numpy random number generator, used for deterministic seeding.
+
+    Returns
+    -------
+    results : idct
+        Results containing the following keys: error, syndrome, correction,
+        effective_error, success, codespace
+    """
 
     if not (0 <= error_rate <= 1):
         raise ValueError('Error rate must be in [0, 1].')
@@ -66,6 +84,18 @@ def run_file(
 
     Parameters
     ----------
+    file_name : str
+        Path to the input json file.
+    n_trials : int
+        The number of MCMC trials to do.
+    start : Optional[int]
+        If given, then instead of running all simulations in the sense of
+        `simulations` only run `simulations[start:start + n_runs]`.
+    n_runs : Optional[int]
+        If given, then instead of running all simulations in the sense of
+        `simulations` only run `simulations[start:start + n_runs]`.
+    progress : Callable
+        Callable function
     onefile : bool
         If set to True, then all outputs get written to one file.
 
@@ -90,7 +120,24 @@ def run_file(
 
 
 class Simulation:
-    """Quantum Error Correction Simulation."""
+    """Quantum Error Correction Simulation.
+
+    Parameters
+    ----------
+    code : StabilizerCode
+        The QEC code object to be run.
+    error_model : BaseErrorModel
+        The error model from which to sample errors from.
+    decoder : BaseDecoder
+        The decoder to use for correct the errors.
+    error_rate : float
+        The error probability that denotes severity of noise.
+    rng :
+        Numpy random number generator, used for deterministic seeding.
+    compress : bool
+        Will compress results in .json.gz files if True.
+        True by default.
+    """
 
     start_time: datetime.datetime
     code: StabilizerCode
@@ -128,10 +175,17 @@ class Simulation:
 
     @property
     def wall_time(self):
+        """total amount of time spent on this simulation."""
         return self._results['wall_time']
 
     def run(self, repeats: int):
-        """Run assuming perfect measurement."""
+        """Run assuming perfect measurement.
+
+        Parameters
+        ----------
+        repeats : int
+            Number of times to run.
+        """
         self.start_time = datetime.datetime.now()
         for i_trial in range(repeats):
             shot = run_once(
@@ -147,15 +201,20 @@ class Simulation:
 
     @property
     def n_results(self):
+        """Number of runs with results simulated already."""
         return len(self._results['success'])
 
     @property
     def results(self):
+        """Raw results."""
         res = self._results
         return res
 
     @property
     def file_name(self) -> str:
+        """Name of results file to save to.
+        Not the full path.
+        """
         if self.compress:
             extension = '.json.gz'
         else:
@@ -164,11 +223,19 @@ class Simulation:
         return file_name
 
     def get_file_path(self, output_dir: str) -> str:
+        """Get the file path to save to."""
         file_path = os.path.join(output_dir, self.file_name)
         return file_path
 
     def load_results(self, output_dir: str):
-        """Load previously written results from directory."""
+        """Load previously written results from directory.
+
+        Parameters
+        ----------
+        output_dir : str
+            Path to the output directory where previous output files were
+            saved.
+        """
         file_path = self.get_file_path(output_dir)
 
         # Find the alternative compressed file path if it doesn't exist.
@@ -195,6 +262,14 @@ class Simulation:
             print(err)
 
     def load_results_from_dict(self, data):
+        """Directly load results from a parsed output file.
+
+        Parameters
+        ----------
+        data : Dict
+            The results that have been parsed from a previously saved output
+            file.
+        """
         for key in self._results.keys():
             if key in data['results'].keys():
                 self._results[key] = data['results'][key]
@@ -209,7 +284,10 @@ class Simulation:
                     ]
 
     def get_results_to_save(self) -> dict:
-        """Get the results to save as a dict."""
+        """Get the results to save as a dict.
+
+        Processed in a way to have a consistent format.
+        """
         data = {
             'results': self._results,
             'inputs': {
@@ -226,7 +304,13 @@ class Simulation:
         return data
 
     def save_results(self, output_dir: str):
-        """Save results to directory."""
+        """Save results to directory.
+
+        Parameters
+        ----------
+        output_dir : str
+            The directory to save output files to.
+        """
         data = self.get_results_to_save()
         if self.compress:
             with gzip.open(self.get_file_path(output_dir), 'wb') as gz:
@@ -236,7 +320,14 @@ class Simulation:
                 json.dump(data, json_file, indent=4, cls=NumpyEncoder)
 
     def get_results(self):
-        """Return results as dictionary."""
+        """Return results as dictionary that might be useful for later
+        analysis.
+
+        Returns
+        -------
+        simulation_data : Dict[str, Any]
+            Data including both inputs and results.
+        """
 
         success = np.array(self.results['success'])
         if len(success) > 0:
@@ -274,6 +365,24 @@ class Simulation:
 
 
 class BatchSimulation():
+    """Holds and controls many simulations.
+
+    Parameters
+    ----------
+    label : str
+        The label of the files.
+    on_update : Callable
+        Function that gets called on every update.
+    update_frequency : int
+        Frequency at which to update results.
+    save_frequency : int
+        Frequency at which to write results to file on disk.
+    output_dir : Optional[str]
+        The directory to output to.
+    onefile : bool
+        Saves to one combined file if True, as opposed to a lot of smaller
+        files.
+    """
 
     _simulations: List[Simulation]
     update_frequency: int
@@ -316,17 +425,32 @@ class BatchSimulation():
         return self._simulations.__len__()
 
     def append(self, simulation: Simulation):
+        """Append a simulation to the current BatchSimulation.
+
+        Parameters
+        ----------
+        simulation: Simulation
+            The simulation to append.
+        """
         self._simulations.append(simulation)
 
     def load_results(self):
+        """Load results from disk."""
         for simulation in self._simulations:
             simulation.load_results(self._output_dir)
 
     def on_update(self):
+        """Function that gets called on every update."""
         pass
 
     def estimate_remaining_time(self, n_trials: int):
-        """Estimate remaining time given target n_trials."""
+        """Estimate remaining time given target n_trials.
+
+        Parameters
+        ----------
+        n_trials : int
+            The target total number of trials.
+        """
         return sum(
             (n_trials - sim.n_results)*sim.wall_time/sim.n_results
             for sim in self._simulations
@@ -335,9 +459,19 @@ class BatchSimulation():
 
     @property
     def wall_time(self):
+        """Total time run so far."""
         return sum(sim.wall_time for sim in self._simulations)
 
     def run(self, n_trials, progress: Callable = identity):
+        """Perform the running.
+
+        Parameters
+        ----------
+        n_trials : int
+            Number of trials to run.
+        progress : Callable
+            The progress bar, such as tqdm.
+        """
         try:
             self._run(n_trials, progress=progress)
         except KeyboardInterrupt:
@@ -685,7 +819,25 @@ def read_input_dict(
     n_runs: Optional[int] = None,
     *args, **kwargs
 ) -> BatchSimulation:
-    """Return BatchSimulation from input dict."""
+    """Return BatchSimulation from input dict.
+
+    Parameters
+    ----------
+    data : dict
+        Data that has been parsed from an input json file.
+    start : Optional[int]
+        Restrict the BatchSimulation skip this number of simulations.
+        This is useful if you want a batch simulation with
+        `simulations[start:start + n_runs]`.
+    n_runs : Optional[int]
+        Return this many simulations in the returned BatchSimulation.
+
+    Returns
+    -------
+    batch_simulation : BatchSimulation
+        BatchSimulation object populated with the simulations specified in the
+        input data.
+    """
     label = 'unlabelled'
     if 'ranges' in data:
 
@@ -718,7 +870,21 @@ def read_input_dict(
 
 
 def merge_results_dicts(results_dicts: List[Dict]) -> Dict:
-    """Merge results dicts into one dict."""
+    """Merge results dicts into one dict.
+
+    The input attribute must be the same for each dict in the list.
+
+    Parameters
+    ----------
+    results_dicts : List[Dict]
+        List of data dicts to merge into one.
+
+    Returns
+    -------
+    merged_dict : Dict
+        Dictionary that contains the merged data.
+
+    """
     results = {
         'effective_error': [],
         'success': [],
@@ -743,7 +909,21 @@ def merge_results_dicts(results_dicts: List[Dict]) -> Dict:
 def merge_lists_of_results_dicts(
     results_dicts: List[Union[dict, list]]
 ) -> List[dict]:
-    """List of results lists of dicts produced by BatchSimulation onefile."""
+    """List of results lists of dicts produced by BatchSimulation onefile.
+
+    A more general version of `merge_results_dicts()` that can allow merging
+    lists of results dicts that may not necessarily have the same inputs.
+
+    Parameters
+    ----------
+    results_dicts : List[Union[dict, list]]
+        List of dicts or list of lists of dicts that are to be merge.
+
+    Returns
+    -------
+    combined_results : List[dict]
+        The combined results as a list of dicts.
+    """
     flattened_results_dicts = []
     for element in results_dicts:
         if isinstance(element, dict):
