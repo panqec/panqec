@@ -197,6 +197,10 @@ class Analysis:
             entries += read_entry(data, results_file=nominal_path)
         self.raw = pd.DataFrame(entries)
 
+        # Round probability to six digits, because anything smaller than that
+        # is likely numerical error.
+        self.raw['probability'] = self.raw['probability'].round(6)
+
     def aggregate(self):
         """Aggregate the raw data into results attribute."""
         self.log('Aggregating data')
@@ -828,8 +832,11 @@ def get_p_th_sd_interp(
                 fill_value="extrapolate"
             )
             curves[code] = interpolator(p_interp)
+
+        # Use a straight horizontal line if only one point available.
         else:
-            curves[code] = np.array([df_filt_code[p_est].iloc[0]]*2)
+            curves[code] = np.ones_like(p_interp)*df_filt_code[p_est].iloc[0]
+
     interp_df = pd.DataFrame(curves)
     interp_df.index = p_interp
 
@@ -1198,7 +1205,6 @@ def fit_fss_params(
                 )
             )
         except (RuntimeError, TypeError):
-            print('bootstrap fitting failed')
             params_bs_list.append(np.array([np.nan]*5))
     params_bs = np.array(params_bs_list)
     return params_opt, params_bs, df_trunc
@@ -1769,6 +1775,8 @@ def deduce_bias(
                 eta = int(np.round(eta))
         return eta
 
+    # Commonly occuring eta values to snap to.
+    common_eta_values = [0.5, 3, 10, 30, 100, 300, 1000]
     error_model_match = re.search(
         r'Pauli X([\d\.]+)Y([\d\.]+)Z([\d\.]+)', error_model
     )
@@ -1782,7 +1790,10 @@ def deduce_bias(
             eta = 'inf'
         else:
             eta = r_max/(1 - r_max)
-            if np.isclose(eta, np.round(eta), rtol=rtol):
+            common_matches = np.isclose(eta, common_eta_values, rtol=rtol)
+            if any(common_matches):
+                eta = common_eta_values[np.argwhere(common_matches).flat[0]]
+            elif np.isclose(eta, np.round(eta), rtol=rtol):
                 eta = int(np.round(eta))
             else:
                 eta = np.round(r_max/(1 - r_max), 3)
