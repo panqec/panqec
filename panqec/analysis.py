@@ -22,7 +22,7 @@ from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
 from scipy.signal import argrelextrema
 from .config import SLURM_DIR
-from .simulation import read_input_json
+from .simulation import read_input_json, BatchSimulation
 from .utils import fmt_uncertainty, NumpyEncoder, identity
 from .bpauli import int_to_bvector, bvector_to_pauli_string
 
@@ -32,6 +32,11 @@ Numerical = Union[Iterable, float, int]
 # TODO make this the legit way of doing things.
 class Analysis:
     """Analysis on large collections of results files.
+
+    This is the preferred method because it does not require reading the input
+    files since the input parameters are saved to the results files anwyay.
+    It also does not create Simulation objects for every data point, which
+    could be slow.
 
     Parameters
     ----------
@@ -54,7 +59,7 @@ class Analysis:
     file_locations: List[Union[str, Tuple[str, str]]] = []
 
     # Raw data extracted from files.
-    raw: List[Dict[str, Any]]
+    raw: pd.DataFrame
 
     # Results of each code, error_modle and decoder.
     results: pd.DataFrame
@@ -62,20 +67,36 @@ class Analysis:
     # Thresholds for each code family, error modle and decoder.
     thresholds: pd.DataFrame
 
+    # Prints more details if true.
+    verbose: bool = True
+
     # Set of parameters that are unique to each input.
     INPUT_KEYS: List[str] = [
         'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
         'probability'
     ]
 
-    def __init__(self, results: Union[str, List[str]] = []):
+    def __init__(
+        self, results: Union[str, List[str]] = [], verbose: bool = True
+    ):
         self.results_paths = []
         if isinstance(results, list):
             self.results_paths += results
         else:
             self.results_paths.append(results)
 
-    def analyze(self, progress: Optional[Callable] = None):
+    def log(self, message: str):
+        """Display a message.
+
+        Parameters
+        ----------
+        message : str
+            Message to be displayed.
+        """
+        if self.verbose:
+            print(message)
+
+    def analyze(self, progress: Optional[Callable] = identity):
         """Perform the full analysis.
 
         Parameters
@@ -91,9 +112,12 @@ class Analysis:
         self.calculate_word_error_rates()
         self.calculate_single_qubit_error_rates()
         self.calculate_total_thresholds()
+        self.calculate_single_qubit_sector_thresholds()
 
     def find_files(self):
         """Find where the results files are."""
+
+        self.log('Finding files')
 
         # List of paths to json files or tuples of zip file and json.
         file_locations: List[str, Tuple[str, str]] = []
@@ -134,18 +158,19 @@ class Analysis:
             file_locations += json_files
 
         self.file_locations = file_locations
+
+        self.log(f'Found {len(file_locations)} files')
+
         return self.file_locations
 
     def count_files(self):
         """Count how many files were found."""
         return len(self.file_locations)
 
-    def read_files(self, progress=None):
+    def read_files(self, progress=identity):
         """Read raw data from the files that were found."""
 
-        if progress is None:
-            progress = identity
-
+        self.log('Reading files')
         entries = []
         for file_location in progress(self.file_locations):
             if isinstance(file_location, tuple):
@@ -170,14 +195,14 @@ class Analysis:
                 with open(file_location) as jf:
                     data = json.load(jf)
             entries += read_entry(data, results_file=nominal_path)
-        self.raw = entries
+        self.raw = pd.DataFrame(entries)
 
     def aggregate(self):
         """Aggregate the raw data into results attribute."""
-        df = pd.DataFrame(self.raw)
+        self.log('Aggregating data')
 
         # Input keys by which data is to be grouped.
-        grouped_df = df.groupby(self.INPUT_KEYS)
+        grouped_df = self.raw.groupby(self.INPUT_KEYS)
 
         # Columns for which grouped values are to be summed.
         added_columns = grouped_df[[
@@ -202,12 +227,16 @@ class Analysis:
         ], axis=1).reset_index()
 
         self.results['n_fail'] = self.results['success'].apply(sum)
+        self.results['code_family'] = self.results['code'].apply(
+            infer_code_family
+        )
 
     def calculate_total_error_rates(self):
         """Calculate the total error rate.
 
         And add it as a column to the results attribute of this class.
         """
+        self.log('Calculating total error rates')
         estimates_list = []
         uncertainties_list = []
         for i_entry, entry in self.results.iterrows():
@@ -223,6 +252,7 @@ class Analysis:
 
         The formula assumes a uniform error rate across all logical qubits.
         """
+        self.log('Calculating word error rates')
         p_est = self.results['p_est']
         p_se = self.results['p_se']
         k = self.results['k']
@@ -244,6 +274,7 @@ class Analysis:
         Note that it is not checked whether or not the code is in the code
         space.
         """
+        self.log('Calculating single qubit error rates')
 
         # Calculate single-qubit error rates.
         estimates_list = []
@@ -265,12 +296,46 @@ class Analysis:
 
     def calculate_total_thresholds(self, **kwargs):
         """Calculate thresholds for total error rate."""
+        self.log('Calculating total thresholds')
         thresholds_df, trunc_results_df, params_bs_list = get_thresholds_df(
             self.results, **kwargs
         )
         self.thresholds_df = thresholds_df
         self.trunc_results_df = trunc_results_df
         self.params_bs_list = params_bs_list
+
+    def calculate_single_qubit_sector_thresholds(self, **kwargs):
+        """Calculate single-qubit thresholds for each sector."""
+        self.log('Calculating single-qubit sector thresholds thresholds')
+        pass
+
+
+def infer_code_family(label: str) -> str:
+    """Infer the code family from the code label.
+
+    Parameters
+    ----------
+    label : str
+        The code label.
+
+    Returns
+    -------
+    family : str
+        The code family.
+        If the code family cannot be inferred,
+        the original code label is returned.
+
+    Examples
+    --------
+    >>> infer_code_family('Toric 4x4')
+    'Toric'
+    >>> infer_code_family('Rhombic 10x10x10')
+    'Rhombic'
+    """
+    family = label
+    dimension_pattern = r'\d+x\d+(x\d+)?'
+    family = re.sub(dimension_pattern, '', family).strip()
+    return family
 
 
 def get_standard_error(estimator, n_samples):
@@ -292,7 +357,24 @@ def get_standard_error(estimator, n_samples):
     return np.sqrt(estimator*(1 - estimator)/(n_samples + 1))
 
 
-def get_results_df_from_batch(batch_sim, batch_label):
+def get_results_df_from_batch(
+    batch_sim: BatchSimulation, batch_label: str
+) -> pd.DataFrame:
+    """Get results DataFrame directly from a BatchSimulation.
+    (As opposed to from a file saved to disk.)
+
+    Parameters
+    ----------
+    batch_sim : BatchSimulation
+        The object to extract data from.
+    batch_label : str
+        The label to put in the table.
+
+    Returns
+    ------
+    results_df : pd.DataFrame
+        The results for each (code, error_model, decoder).
+    """
     batch_results = batch_sim.get_results()
     # print(
     #     'wall_time =',
@@ -338,7 +420,22 @@ def get_results_df(
     output_dir: str,
     input_dir: str = None,
 ) -> pd.DataFrame:
-    """Get raw results in DataFrame from list of jobs in output dir."""
+    """Get raw results in DataFrame from list of jobs in output dir.
+
+    This is an old legacy way of doing things,
+    because it requires the input files as well.
+    Use the Analysis object instead if possible.
+
+    Parameters
+    ----------
+    job_list : List[str]
+        List of folder names in output_dir to extract results from.
+    output_dir : str
+        The path to the output directory containing the directories with names
+        as listed in job_list.
+    input_dir : str
+        The directory where the input json files are stored.
+    """
 
     if input_dir is None:
         input_dir = os.path.join(SLURM_DIR, 'inputs')
@@ -579,7 +676,10 @@ def get_word_error_rate(p_est, p_se, k) -> Tuple:
 def get_logical_rates_df(
     job_list, input_dir, output_dir, progress: Optional[Callable] = None
 ):
-    """Get DataFrame of logical error rates for each logical error."""
+    """Get DataFrame of logical error rates for each logical error.
+
+    This is superseded by the Analysis class.
+    """
     if progress is None:
         def progress_func(x, total: int = 0):
             return x
@@ -609,6 +709,9 @@ def get_logical_rates_df(
 
 
 def extract_logical_rates(input_file, output_dir):
+    """Extract logical error rates from results.
+    Superseded by Analysis class.
+    """
     batch_sim = read_input_json(input_file)
 
     data = []
@@ -658,7 +761,47 @@ def get_p_th_sd_interp(
     p_nearest: Optional[float] = None,
     p_est: str = 'p_est',
 ) -> Tuple[float, float, float]:
-    """Estimate threshold by where SD of p_est is local min."""
+    """Estimate threshold by where SD of p_est is local min.
+
+    This is a very coarse heuristic to estimate roughly where the crossover
+    point is, if there is one and the left and right limits where one should
+    truncate the data.
+    This can be used as a starting point for something more precise,
+    finite-size scaling.
+    The rationale is that away from the crossing point,
+    the lines of p_est vs p should get wider and wider vertically,
+    but if they start getting narrower again,
+    then that's a sign that we're moving to a different regime and finite-size
+    scaling is not likely to work, so we should throw away those data points.
+
+    Parameters
+    ----------
+    df_filt : pd.DataFrame
+        Results with columns: 'probability', 'code', `p_est`.
+        The 'probability' column is the physical error rate p.
+        The 'code' column is the code label.
+        The `p_est` column is the logical error rate.
+    p_nearest : Optional[float]
+        A hint for the nearest 'probability' value that is close to the
+        threshold, to be used as a starting point for searching.
+    p_est : str
+        The column in the `df_filt` DataFrame that is to be used as the logical
+        error rate to estimate the threshold.
+
+    Returns
+    -------
+    p_crossover : float
+        The apparent crossover point where the plot of p_est vs p for each code
+        becomes narrowest vertically.
+    p_left : float
+        The left limit where when moving left from p_crossover,
+        the spread of the p_est vs p for all the codes becomes widest.
+        Data to the left of this point is recommended to be truncated out.
+    p_right : float
+        The right limit where when moving right from p_crossover,
+        the spread of the p_est vs p for all the codes becomes widest.
+        Data to the right of this point is recommended to be truncated out.
+    """
 
     # Points to interpolate at.
     interp_res = 0.001
@@ -751,7 +894,20 @@ def get_p_th_sd_interp(
 
 
 def get_code_df(results_df: pd.DataFrame) -> pd.DataFrame:
-    """DataFrame of codes available."""
+    """DataFrame of all codes available.
+
+    Parameters
+    ----------
+    results_df : pd.DataFrame
+        Results table with columns 'code', 'n', 'k', 'd',
+        plus possibly other columns.
+
+    Returns
+    -------
+    code_df : pd.DataFrame
+        DataFrame with only only ['code', 'n', 'k', 'd'] as columns,
+        with no duplicates.
+    """
     code_df = results_df[['code', 'n', 'k', 'd']].copy()
     code_df = code_df.drop_duplicates().reset_index(drop=True)
     code_df = code_df.sort_values(by='n').reset_index(drop=True)
@@ -759,6 +915,22 @@ def get_code_df(results_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def longest_sequence(arr, char):
+    """Find longest continuous sequence of chars in an array.
+
+    Parameters
+    ----------
+    arr : Iterable
+        An array possibly containing `char`.
+    char : Any
+        We are looking for sequences of this char.
+
+    Returns
+    -------
+    best_seq_start : int
+        Where the longest sequence of `char` starts.
+    best_seq_end : int
+        Where the longest sequence of `char` ends.
+    """
     curr_seq_start = 0
     curr_seq_stop = 0
     best_seq = (curr_seq_start, curr_seq_stop)
@@ -775,6 +947,32 @@ def longest_sequence(arr, char):
 
 
 def get_p_th_nearest(df_filt: pd.DataFrame, p_est: str = 'p_est') -> float:
+    """Estimate which p in the results is nearest to the threshold.
+
+    This is very very rough heuristic by going along each value of the physical
+    error rate p in the plots of p_est vs p for different code sizes and seeing
+    when the order of the lines changes.
+    The point where it starts to change is deemed p_th_nearest.
+    This is super rough, so a more refined method such as finite-sized scaling
+    will be required to make it more precise and put uncertainties around it.
+
+    Parameters
+    ----------
+    df_filt : pd.DataFrame
+        Results with columns: 'probability', 'code', `p_est`.
+        The 'probability' column is the physical error rate p.
+        The 'code' column is the code label.
+        The `p_est` column is the logical error rate.
+    p_est : str
+        The column in the `df_filt` DataFrame that is to be used as the logical
+        error rate to estimate the threshold.
+
+    Returns
+    -------
+    p_th_nearest : float
+        The value in the `probability` that is apparently the closes to the
+        threshold.
+    """
     code_df = get_code_df(df_filt)
 
     # Estimate the threshold by where the order of the lines change.
@@ -800,6 +998,7 @@ def get_p_th_nearest(df_filt: pd.DataFrame, p_est: str = 'p_est') -> float:
 
 
 def fit_function(x_data, *params):
+    """Quadratic fit function for finite-size scaling. """
     p, d = x_data
     p_th, nu, A, B, C = params
     x = (p - p_th)*d**nu
@@ -828,6 +1027,7 @@ def quadratic(x, *params):
 
 
 def rescale_prob(x_data, *params):
+    """Rescaled physical error rate."""
     p, d = x_data
     p_th, nu, A, B, C = params
     x = (p - p_th)*d**nu
@@ -839,7 +1039,29 @@ def get_fit_params(
     params_0: Optional[Union[np.ndarray, List]] = None,
     ftol: float = 1e-5, maxfev: int = 2000
 ) -> np.ndarray:
-    """Get fitting params."""
+    """Get fitting params.
+
+    Parameters
+    ----------
+    p_list : np.ndarray
+        List of physical error rates.
+    d_list : np.ndarray
+        List of code distances.
+    f_list : np.ndarray
+        List of logical error rates.
+    params_0 : Optional[Union[np.ndarray, List]]
+        Hint parameters for the optimizer about where to start minimizing cost
+        function.
+    ftol : float
+        Tolerance for the optimizer.
+    maxfev : int
+        Maximum number of iterations for the optimizer.
+
+    Returns
+    -------
+    params_opt : Tuple[float]
+        The optimized parameters that fits the data best.
+    """
 
     # Curve fitting inputs.
     x_data = np.array([
@@ -879,7 +1101,46 @@ def fit_fss_params(
     p_est: str = 'p_est',
     n_fail_label: str = 'n_fail',
 ) -> Tuple[np.ndarray, np.ndarray, pd.DataFrame]:
-    """Get optimized parameters and data table."""
+    """Get optimized parameters and data table tweaked with heuristics.
+
+    Parameters
+    ----------
+    df_filt : pd.DataFrame
+        Results with columns: 'probability', 'code', `p_est`, 'n_trials',
+        `n_fail_label`.
+        The 'probability' column is the physical error rate p.
+        The 'code' column is the code label.
+        The `p_est` column is the logical error rate.
+    p_left_val : float
+        The left left value of 'probability' to truncate.
+    p_right_val : float
+        The left right value of 'probability' to truncate.
+    p_nearest : float
+        The nearest value of 'probability' to what was previously roughly
+        estimated to be the threshold.
+    n_bs : int
+        The number of bootstrap samples to take.
+    ftol_est : float
+        Tolerance for the best fit.
+    ftol_std : float
+        Tolerance for the bootstrapped fits.
+    maxfev : int
+        Maximum iterations for curve fitting optimizer.
+    p_est : str
+        Label for the logical error rate to use.
+    n_fail_label : str
+        Label for the number of logical fails to use.
+
+    Returns
+    -------
+    params_opt : np.ndarray
+        Array of optimized parameters
+    params_bs : np.ndarray
+        Array with each row being arrays of optimized parameters for each
+        bootstrap resample.
+    df_trunc : pd.DataFrame
+        The truncated DataFrame used for performing the curve fitting.
+    """
     # Truncate error probability between values.
     df_trunc = df_filt[
         (p_left_val <= df_filt['probability'])
@@ -944,6 +1205,22 @@ def fit_fss_params(
 
 
 def get_bias_ratios(noise_direction):
+    """Get the bias ratios in each direction given the noise direction.
+
+    Parameters
+    ----------
+    noise_direction : (float, float, float)
+        The (r_x, r_y, r_z) parameters of the Pauli channel.
+
+    Returns
+    -------
+    eta_x : float
+        The X bias ratio.
+    eta_y : float
+        The Y bias ratio.
+    eta_z : float
+        The Z bias ratio.
+    """
     r_x, r_y, r_z = noise_direction
 
     if r_y + r_z != 0:
@@ -991,13 +1268,28 @@ def deduce_noise_direction(error_model: str) -> Tuple[float, float, float]:
 
 
 def get_error_model_df(results_df):
-    """Get error models."""
+    """Get DataFrame error models and noise parameters.
+
+    Parameters
+    ----------
+    results_df : pd.DataFrame
+        Results with columns 'error_model'
+
+    Returns
+    -------
+    error_model_df : pd.DataFrame
+        DataFrame with columns:
+        'code_family', 'error_model', 'decoder',
+        'noise_direction',
+        'r_x', 'r_y', 'r_z',
+        'eta_x', 'eta_y', 'eta_z'
+    """
     if 'noise_direction' not in results_df.columns:
         results_df['noise_direction'] = results_df['error_model'].apply(
             deduce_noise_direction
         )
     error_model_df = results_df[[
-        'error_model'
+        'code_family', 'error_model', 'decoder'
     ]].drop_duplicates()
     error_model_df['noise_direction'] = error_model_df['error_model'].apply(
         deduce_noise_direction
@@ -1034,6 +1326,32 @@ def get_thresholds_df(
     logical_type: str = 'total',
     n_fail_label: str = 'n_fail',
 ):
+    """Extract thresholds from table of results using heuristics.
+
+    Parameters
+    ----------
+    results_df : pd.DataFrame
+        The results for each (code, error_model, decoder).
+        Should have at least the columns:
+        'code', 'error_model', 'decoder', 'n', 'k', 'd',
+        'n_fail', 'n_trials'.
+        If the `logical_type` keyword argument is given,
+        then then either 'p_0_est' and 'p_est_word' should be columns too.
+    ftol_est : float
+        Tolerance for the best fit.
+    ftol_std : float
+        Tolerance for the bootstrap fits.
+    maxfev : int
+        Maximum number of iterations for the curve fitting.
+    logical_type : str
+        Pick from 'total', 'single', or 'word',
+        which will take `p_est` to be 'p_est', 'p_0_est', 'p_est_word'
+        respectively.
+        This is used to adjust which error rate is used as 'the' logical error
+        rate for purposes of extracting thresholds with finite-size scaling.
+    n_fail_label : str
+        The column that is 'n_fail'.
+    """
 
     # Initialize with unique error models and their parameters.
     thresholds_df = get_error_model_df(results_df)
@@ -1057,8 +1375,15 @@ def get_thresholds_df(
     elif logical_type == 'word':
         p_est = 'p_est_word'
 
-    for error_model in thresholds_df['error_model']:
-        df_filt = results_df[results_df['error_model'] == error_model]
+    parameter_sets = thresholds_df[[
+        'code_family', 'error_model', 'decoder'
+    ]].values
+    for code_family, error_model, decoder in parameter_sets:
+        df_filt = results_df[
+            (results_df['code_family'] == code_family)
+            & (results_df['error_model'] == error_model)
+            & (results_df['decoder'] == decoder)
+        ]
 
         # Find nearest value where crossover changes.
         p_th_nearest_val = get_p_th_nearest(df_filt, p_est=p_est)
@@ -1190,7 +1515,10 @@ def export_summary_tables(thresholds_df, table_dir=None, verbose=True):
 
 
 def subthreshold_scaling(results_df, chosen_probabilities=None):
-    """Do subthreshold scaling analysis."""
+    """Do subthreshold scaling analysis.
+
+    This was a legacy method where we tried many different fitting ansatzs.
+    """
     if chosen_probabilities is None:
         chosen_probabilities = np.sort(results_df['probability'].unique())
     sts_properties = []
@@ -1385,7 +1713,7 @@ def read_entry(
             if key in entry:
                 entry[key] = np.array(entry[key], dtype=bool)
         entry['effective_error'] = np.array(
-            entry['effective_error'], dtype=np.uint
+            entry['effective_error'], dtype=np.uint8
         )
 
         # Record the path of the results file if given.

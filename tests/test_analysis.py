@@ -103,11 +103,11 @@ class TestAnalysis:
         assert os.path.exists(results_path)
         analysis = Analysis(results_path)
         analysis.analyze()
-        assert analysis.results.shape == (30, 23)
+        assert analysis.results.shape == (30, 24)
         assert set(analysis.results.columns) == set([
             'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
             'probability', 'wall_time', 'n_trials', 'n_fail',
             'effective_error', 'success', 'codespace', 'bias', 'results_file',
             'p_est', 'p_se', 'p_word_est', 'p_word_se', 'single_qubit_p_est',
-            'single_qubit_p_se', 'noise_direction'
+            'single_qubit_p_se', 'noise_direction', 'code_family'
         ])
