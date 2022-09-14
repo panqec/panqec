@@ -1,7 +1,9 @@
 import os
+import pytest
 import numpy as np
 from panqec.analysis import (
-    get_subthreshold_fit_function, get_single_qubit_error_rate, Analysis
+    get_subthreshold_fit_function, get_single_qubit_error_rate, Analysis,
+    deduce_bias
 )
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
@@ -111,3 +113,15 @@ class TestAnalysis:
             'p_est', 'p_se', 'p_word_est', 'p_word_se', 'single_qubit_p_est',
             'single_qubit_p_se', 'noise_direction', 'code_family'
         ])
+
+
+@pytest.mark.parametrize('error_model,bias', [
+    ('Deformed XZZX Pauli X0.0005Y0.0005Z0.9990', 1000),
+    ('Deformed XZZX Pauli X0.0050Y0.0050Z0.9901', 100),
+    ('Pauli X0.0000Y0.0000Z1.0000', 'inf'),
+    ('Pauli X0.0455Y0.0455Z0.9091', 10),
+    ('Deformed XZZX Pauli X0.1250Y0.1250Z0.7500', 3),
+    ('Pauli X0.3333Y0.3333Z0.3333', 0.5),
+])
+def test_deduce_bias(error_model, bias):
+    assert bias == deduce_bias(error_model)
