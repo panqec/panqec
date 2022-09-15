@@ -405,6 +405,7 @@ class XCubeMatchingDecoder(BaseDecoder):
                 toric_loop = get_toric_loop(
                     xcube_matching_ortho, component, proj_axis_int
                 )
+                # print("Toric loop", toric_loop)
                 correction_coordinates = decode_plane(toric_loop, (Lx, Ly))
 
                 plane_proj = component[0]
@@ -420,12 +421,15 @@ class XCubeMatchingDecoder(BaseDecoder):
 
         correction = possible_correction[{0: 'x', 1: 'y', 2: 'z'}[index_min_weight]]
 
+        # correction = possible_correction['z']
+
         # print(weight)
         # print(np.sum(correction))
         # print("Done")
+
         # Decode z part
-        # syndrome[self.code.z_indices] = 0
-        # syndrome[self.code.x_indices] = x_syndrome
+        syndrome[self.code.z_indices] = 0
+        syndrome[self.code.x_indices] = x_syndrome
 
         # # z_correction = self.z_decoder.decode(syndrome).astype('uint8')
 
