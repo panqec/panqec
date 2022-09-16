@@ -1,10 +1,8 @@
-from tkinter import E
 import numpy as np
-from typing import Optional, Tuple
-from pymatching import Matching
+from typing import List, Dict
 from panqec.decoders import BaseDecoder, MatchingDecoder
 from panqec.codes import StabilizerCode, Toric2DCode
-from panqec.decoders.bposd.bposd_decoder import BeliefPropagationOSDDecoder
+from panqec.decoders import BeliefPropagationOSDDecoder
 from panqec.error_models import PauliErrorModel
 
 
@@ -196,30 +194,32 @@ class XCubeMatchingDecoder(BaseDecoder):
 
         Lx, Ly, Lz = code.size
 
-        # print("Initialize toric codes")
         self.toric_code = {'x': Toric2DCode(Ly, Lz),
                            'y': Toric2DCode(Lx, Lz),
                            'z': Toric2DCode(Lx, Ly)
                            }
 
-        rx, ry, rz = self.error_model.direction
-
         # Weight the 2D toric code matching decoders
         # Only works for Z biased noise and z-axis deformation
-        # print("Get weights")
         weights_X, _ = self.error_model.get_weights(self.code,
                                                     self.error_rate)
 
         wz = weights_X[self.code.qubit_index[(0, 0, 1)]]
         wxy = weights_X[self.code.qubit_index[(1, 0, 0)]]
 
-        weights = {'x': [wxy if self.toric_code['x'].qubit_axis(loc) == 'x' else wz
-                         for loc in self.toric_code['x'].qubit_coordinates],
-                   'y': [wxy if self.toric_code['y'].qubit_axis(loc) == 'x' else wz
-                         for loc in self.toric_code['y'].qubit_coordinates],
-                   'z': [wxy for _ in self.toric_code['z'].qubit_coordinates]}
+        weights = {
+            'x': np.array([wxy if self.toric_code['x'].qubit_axis(loc) == 'x'
+                           else wz
+                           for loc in self.toric_code['x'].qubit_coordinates]
+                          ),
+            'y': np.array([wxy if self.toric_code['y'].qubit_axis(loc) == 'x'
+                           else wz
+                           for loc in self.toric_code['y'].qubit_coordinates]
+                          ),
+            'z': np.array([wxy
+                           for _ in self.toric_code['z'].qubit_coordinates]
+                          )}
 
-        # print("Initialize matching decoders")
         self.matching_decoder = {axis: MatchingDecoder(self.toric_code[axis],
                                                        self.error_model,
                                                        self.error_rate,
@@ -235,8 +235,6 @@ class XCubeMatchingDecoder(BaseDecoder):
         """Get X corrections given code and measured syndrome."""
 
         # Initialize correction as full bsf.
-        correction = np.zeros(2*self.code.n, dtype=np.uint)
-
         possible_correction = {'x': np.zeros(2*self.code.n, dtype=np.uint),
                                'y': np.zeros(2*self.code.n, dtype=np.uint),
                                'z': np.zeros(2*self.code.n, dtype=np.uint)}
@@ -244,18 +242,18 @@ class XCubeMatchingDecoder(BaseDecoder):
         Lx, Ly, Lz = self.code.size
 
         # print("Initialize plane syndrome")
-        plane_syndrome = {'x': {x: np.zeros(self.toric_code['x'].n_stabilizers)
-                                for x in range(1, 2*Lx, 2)},
-                          'y': {y: np.zeros(self.toric_code['y'].n_stabilizers)
-                                for y in range(1, 2*Ly, 2)},
-                          'z': {z: np.zeros(self.toric_code['z'].n_stabilizers)
-                                for z in range(1, 2*Lz, 2)}
-                          }
+        plane_syndrome = {
+            'x': {x: np.zeros(self.toric_code['x'].n_stabilizers)
+                  for x in range(1, 2*Lx, 2)},
+            'y': {y: np.zeros(self.toric_code['y'].n_stabilizers)
+                  for y in range(1, 2*Ly, 2)},
+            'z': {z: np.zeros(self.toric_code['z'].n_stabilizers)
+                  for z in range(1, 2*Lz, 2)}
+        }
 
         # Remove X stabilizer syndrome and keep it for later
         x_syndrome = self.code.extract_x_syndrome(syndrome)
         syndrome[self.code.x_indices] = 0
-        n_excitations = np.sum(syndrome)
         axis_to_int = {'x': 0, 'y': 1, 'z': 2}
 
         for proj_axis in ['x', 'y', 'z']:
@@ -265,29 +263,31 @@ class XCubeMatchingDecoder(BaseDecoder):
 
             L_proj = [Lx, Ly, Lz][proj_axis_int]
 
-            # print("Determine plane syndrome")
             for i_stab in range(len(self.code.stabilizer_index)):
                 if syndrome[i_stab]:
                     loc = self.code.stabilizer_coordinates[i_stab]
 
                     for axis in ['x', 'y', 'z']:
                         loc_2d = tuple_remove(loc, axis_to_int[axis])
-                        idx_face = self.toric_code[axis].stabilizer_index[loc_2d]
+                        idx_face = self.toric_code[axis].stabilizer_index[
+                            loc_2d
+                        ]
                         plane = loc[axis_to_int[axis]]
                         plane_syndrome[axis][plane][idx_face] = 1
 
-
             # Decode all the 2D toric codes
-            # print("Decode all the 2D codes")
-            xcube_matching = {'x': [], 'y': [], 'z': []}
-            connected_planes = {plane: set()
-                                for plane in plane_syndrome[proj_axis].keys()}
+            xcube_matching: Dict[str, List] = {'x': [], 'y': [], 'z': []}
+            connected_planes: Dict[int, set] = {
+                plane: set() for plane in plane_syndrome[proj_axis].keys()
+            }
 
             for axis in ['x', 'y', 'z']:
                 for plane in plane_syndrome[axis].keys():
                     current_syndrome = plane_syndrome[axis][plane]
 
-                    toric_X_syndrome = self.toric_code[axis].extract_x_syndrome(
+                    toric_X_syndrome = self.toric_code[
+                        axis
+                    ].extract_x_syndrome(
                         current_syndrome
                     )
 
@@ -297,7 +297,8 @@ class XCubeMatchingDecoder(BaseDecoder):
                     toric_matching = self.matching_decoder[axis].decode(
                         current_syndrome
                     )
-                    toric_Z_correction = toric_matching[self.toric_code[axis].n:]
+                    n = self.toric_code[axis].n
+                    toric_Z_correction = toric_matching[n:]
 
                     toric_pairs = get_matched_pairs(
                         self.toric_code[axis].Hx.todense(),
@@ -320,9 +321,9 @@ class XCubeMatchingDecoder(BaseDecoder):
                             # print("Pair", loc1, loc2)
 
                             proj_component = {'x': {'y': 0, 'z': 0},
-                                            'y': {'x': 0, 'z': 1},
-                                            'z': {'x': 1, 'y': 1}
-                                            }[proj_axis][axis]
+                                              'y': {'x': 0, 'z': 1},
+                                              'z': {'x': 1, 'y': 1}
+                                              }[proj_axis][axis]
                             plane1 = loc1[proj_component]
                             plane2 = loc2[proj_component]
 
@@ -338,30 +339,10 @@ class XCubeMatchingDecoder(BaseDecoder):
             xcube_matching_ortho = set((xcube_matching[ortho_axes[0]]
                                         + xcube_matching[ortho_axes[1]]))
 
-            # print("XCube matching", xcube_matching)
-            # print("Connected planes", connected_planes)
-
-            # print("Connected components", connected_planes)
-
             connected_components = find_connected_components(connected_planes)
 
-            # print("Find and perform projections")
             list_plane_proj = []
             for component in list(connected_components):
-                # Find the optimal projection plane
-                # n_excitations_plane = {z: np.sum(plane_syndrome['z'][z])
-                #                        for z in plane_syndrome['z'].keys()}
-
-                # average_z = 0
-
-                # if n_excitations != 0:
-                #     weights = [n_excitations_plane[z] / n_excitations
-                #                for z in component]
-
-                #     average_z = modular_average(component, weights, 2*Lz)
-
-                # plane_proj = int(2 * np.floor(average_z/2) + 1)
-
                 plane_proj = component[0]
                 list_plane_proj.append(plane_proj)
 
@@ -380,8 +361,8 @@ class XCubeMatchingDecoder(BaseDecoder):
 
                             for plane_op in range(plane_proj+1, plane_stop, 2):
                                 loc = tuple_insert(ortho_components,
-                                                proj_axis_int,
-                                                plane_op % (2*L_proj))
+                                                   proj_axis_int,
+                                                   plane_op % (2*L_proj))
 
                                 idx = self.code.qubit_index[loc]
                                 possible_correction[proj_axis][idx] += 1
@@ -393,19 +374,17 @@ class XCubeMatchingDecoder(BaseDecoder):
 
                             for plane_op in range(plane + 1, plane_stop, 2):
                                 loc = tuple_insert(ortho_components,
-                                                proj_axis_int,
-                                                plane_op % (2*L_proj))
+                                                   proj_axis_int,
+                                                   plane_op % (2*L_proj))
 
                                 idx = self.code.qubit_index[loc]
                                 possible_correction[proj_axis][idx] += 1
 
-            # print("Find loops")
             # Find the loops
             for component in connected_components:
                 toric_loop = get_toric_loop(
                     xcube_matching_ortho, component, proj_axis_int
                 )
-                # print("Toric loop", toric_loop)
                 correction_coordinates = decode_plane(toric_loop, (Lx, Ly))
 
                 plane_proj = component[0]
@@ -417,22 +396,17 @@ class XCubeMatchingDecoder(BaseDecoder):
                     possible_correction[proj_axis][idx] = 1
 
         weight = [np.sum(c) for c in possible_correction.values()]
-        index_min_weight = np.argmin(weight)
+        index_min_weight = int(np.argmin(weight))
 
-        correction = possible_correction[{0: 'x', 1: 'y', 2: 'z'}[index_min_weight]]
+        axis_min_weight = {0: 'x', 1: 'y', 2: 'z'}[index_min_weight]
+        correction = possible_correction[axis_min_weight]
 
-        # correction = possible_correction['z']
-
-        # print(weight)
-        # print(np.sum(correction))
-        # print("Done")
-
-        # Decode z part
+        # Decode Z part with BP-OSD
         syndrome[self.code.z_indices] = 0
         syndrome[self.code.x_indices] = x_syndrome
 
-        # # z_correction = self.z_decoder.decode(syndrome).astype('uint8')
+        z_correction = self.z_decoder.decode(syndrome).astype('uint8')
 
-        # correction += z_correction
+        correction += z_correction
 
         return correction % 2

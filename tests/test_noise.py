@@ -3,7 +3,6 @@ import pytest
 from panqec.bpauli import bsf_to_pauli, bsf_wt
 from panqec.error_models import PauliErrorModel, DeformedXZZXErrorModel
 from panqec.codes import Toric3DCode
-from panqec.decoders import MatchingDecoder
 from panqec.bsparse import to_array
 from panqec.utils import get_direction_from_bias_ratio
 

@@ -17,7 +17,7 @@ class MatchingDecoder(BaseDecoder):
                  error_model: BaseErrorModel,
                  error_rate: float,
                  error_type: Optional[str] = None,
-                 weights: Optional[Tuple[np.ndarray]] = None):
+                 weights: Optional[Tuple[np.ndarray, np.ndarray]] = None):
         """Constructor for the MatchingDecoder class
 
         Parameters
@@ -32,6 +32,8 @@ class MatchingDecoder(BaseDecoder):
             Determines which type of errors (X or Z) to decode.
             Can take the values "X", "Z", or None if we want to
             decode all errors
+        weights: Tuple[np.ndarray, np.ndarray], optional
+            Matching weights for X and Z errors
         """
         super().__init__(code, error_model, error_rate)
 

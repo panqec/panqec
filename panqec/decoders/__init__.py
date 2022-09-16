@@ -1,7 +1,7 @@
 from .base._base_decoder import BaseDecoder  # noqa
 
-from .bposd.bposd_decoder import BeliefPropagationOSDDecoder  # noqa
-from .bposd.mbp_decoder import MemoryBeliefPropagationDecoder  # noqa
+from .belief_propagation.bposd_decoder import BeliefPropagationOSDDecoder  # noqa
+from .belief_propagation.mbp_decoder import MemoryBeliefPropagationDecoder  # noqa
 
 from .matching._matching_decoder import MatchingDecoder  # noqa
 from .xcube._xcube_matching_decoder import XCubeMatchingDecoder  # noqa

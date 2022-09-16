@@ -18,8 +18,8 @@ from .decoders import (
     RotatedSweepMatchDecoder, RotatedInfiniteZBiasDecoder,
     FoliatedMatchingDecoder
 )
-from .decoders.bposd.bposd_decoder import BeliefPropagationOSDDecoder
-from .decoders.bposd.mbp_decoder import MemoryBeliefPropagationDecoder
+from .decoders import BeliefPropagationOSDDecoder
+from .decoders import MemoryBeliefPropagationDecoder
 from .decoders.matching._matching_decoder import MatchingDecoder
 from .error_models import (
     DeformedXZZXErrorModel, DeformedXYErrorModel,

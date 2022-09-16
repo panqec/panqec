@@ -212,7 +212,7 @@ class Color3DCode(StabilizerCode):
 
         # Red-green membrane yz plane
         x = 3
-        operator: Operator = dict()
+        operator = dict()
         for y in range(1, 4*Ly+2, 2):
             for z in range(1, 4*Lz+2, 2):
                 cell_loc_1 = ((x-1) % (4*Lx), (y-1) % (4 * Ly), (z+1) % (4*Lz))
@@ -227,7 +227,7 @@ class Color3DCode(StabilizerCode):
 
         # Yellow-red membrane xz plane
         y = 0
-        operator: Operator = dict()
+        operator = dict()
         for x in range(2, 4*Lx, 4):
             for z in range(2, 4*Lz, 4):
                 operator[((x + 1) % (4 * Lx), y, z)] = 'Z'
@@ -249,7 +249,7 @@ class Color3DCode(StabilizerCode):
 
         # Red and green membrane xz plane
         y = 3
-        operator: Operator = dict()
+        operator = dict()
         for x in range(1, 4*Lx+2, 2):
             for z in range(1, 4*Lz+2, 2):
                 cell_loc_1 = ((x-1) % (4*Lx), (y-1) % (4 * Ly), (z+1) % (4*Lz))
@@ -264,7 +264,7 @@ class Color3DCode(StabilizerCode):
 
         # Yellow-red membrane xy plane
         z = 0
-        operator: Operator = dict()
+        operator = dict()
         for x in range(2, 4*Lx, 4):
             for y in range(2, 4*Ly, 4):
                 operator[((x + 1) % (4 * Lx), y, z)] = 'Z'
@@ -275,7 +275,7 @@ class Color3DCode(StabilizerCode):
 
         # Green-blue membrane xy plane
         z = 2
-        operator: Operator = dict()
+        operator = dict()
         for x in range(0, 4*Lx, 4):
             for y in range(0, 4*Ly, 4):
                 operator[((x + 1) % (4 * Lx), y, z)] = 'Z'
@@ -286,7 +286,7 @@ class Color3DCode(StabilizerCode):
 
         # Red and green membrane xy plane
         z = 3
-        operator: Operator = dict()
+        operator = dict()
         for x in range(1, 4*Lx+2, 2):
             for y in range(1, 4*Ly+2, 2):
                 cell_loc_1 = ((x-1) % (4*Lx), (y+1) % (4 * Ly), (z-1) % (4*Lz))
@@ -327,7 +327,7 @@ class Color3DCode(StabilizerCode):
             operator[(x, 2, 0)] = 'X'
         logicals.append(operator)
 
-        operator: Operator = dict()
+        operator = dict()
         for y in range(2, 4*Ly-2, 8):
             operator[(6, y-2, 1)] = 'X'
             operator[(6, y-1, 0)] = 'X'
@@ -348,7 +348,7 @@ class Color3DCode(StabilizerCode):
             operator[(2, y, 0)] = 'X'
         logicals.append(operator)
 
-        operator: Operator = dict()
+        operator = dict()
         for z in range(2, 4*Lz-2, 8):
             operator[(6, 1, z-2)] = 'X'
             operator[(6, 0, z-1)] = 'X'
