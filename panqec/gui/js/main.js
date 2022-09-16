@@ -5,8 +5,8 @@ import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat
 
 import { TopologicalCode } from './topologicalCode.js';
 
-var defaultCode = codeDimension == 2 ? '6.6.6 Color Code' : 'XCube';
-var defaultSize = codeDimension == 2 ? 7 : 4;
+var defaultCode = codeDimension == 2 ? '2D Toric Code' : '3D Toric Code';
+var defaultSize = codeDimension == 2 ? 4 : 4;
 
 const params = {
     errorProbability: 0.01,
