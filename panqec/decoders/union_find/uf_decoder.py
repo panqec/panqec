@@ -1,8 +1,12 @@
+import imp
+from operator import concat
 import numpy as np
 from pymatching import Matching
 from panqec.decoders import BaseDecoder
 from panqec.codes import Toric2DCode
 from panqec.error_models import BaseErrorModel
+from panqec.decoders.union_find.clustering import clustering
+import copy
 
 
 class UnionFindDecoder(BaseDecoder):
@@ -25,9 +29,10 @@ class UnionFindDecoder(BaseDecoder):
         syndromes_z = self.code.extract_z_syndrome(syndrome)
         syndromes_x = self.code.extract_x_syndrome(syndrome)
 
+        print(syndromes_z)
         print("We are decoding with union find!!!")
-
-        # TODO 
+        Hz = self.code.Hz
+        output = clustering(syndromes_z, Hz)
 
         ### clustering/syndrome validation stage. Outputs cluster trees and support -- Lynna
 
@@ -79,10 +84,10 @@ class UnionFindDecoder(BaseDecoder):
                     # we don't want to consider the node "vertex" as its own neighbour, but instead of using an if statement
                     # it is faster to just remove "vertex" from the vertices_i --> if is better!!!
                     vertices_list = vertices_i[:] # making a duplicate of the list of vertices in the cluster --> not needed if u use "if"
-                    vertices_list.remove(vertex) # removing "vertex" 
                     for vertex_ in vertices_list: # we look at only the nodes already in the cluster discluding "vertex"--> np.where can be used                      
-                        if Hz[vertex_, qubit] == 1:
-                            neighbours.append(vertex_)                              
+                        if vertex_ != vertex:
+                            if Hz[vertex_, qubit] == 1:
+                                neighbours.append(vertex_)                              
                 
                 graph_i[vertex] = neighbours
 
@@ -141,7 +146,7 @@ class UnionFindDecoder(BaseDecoder):
                 # creating "visited" and "parent" dictionaries which are both initialised as False for all the nodes
                 values = [False]*n                 
                 visited = {nodes[i]:values[i] for i in range (n)} # a dictionary to check if a node has been visited
-                parent = visited # a dictionary to check if a node is a parent node --> make sure to duplicate
+                parent = copy.copy(visited) # a dictionary to check if a node is a parent node --> make sure to duplicate
                 visited[s]= True # mark start node as being visited
                 
                 while len(q): # while the que is not empty
@@ -187,16 +192,22 @@ class UnionFindDecoder(BaseDecoder):
             for node in tree.keys(): # append node to "leaves" if it has one neighbour
                 if len(tree[node])==1: 
                     leaves.append(node)                     
-
-            while len(tree.keys()): # while tree is not empty 
+            i = 0
+            while len(tree.keys())>1: # while tree is not empty 
                 v = leaves[0] # choose pendant vertex to work with randomly (first element of "leaves")
+                print(f"in iteration{i} v= {v}")
+                print(f"in iteration{i} tree [v] = {tree[v]}")
+                print(f"tree before= {tree}")
+
                 u = tree[v][0] # neighbour of the pendant vertix, which is the vertix connecting the leaf edge to the forest
 
                 # removing leaf edge from "leaves" and from the tree.
                 leaves.pop(0) # remove v from leaves --> v is leaf node 0 so we can use pop
                 tree.pop(v) # remove v from the tree --> not good for complexity? for dictionary it is of order of one access time so ok
                 tree[u].remove(v) # remove v from the neighbours list of u --> upto 4 elements in the list
-
+                #if len(tree[u])==0:
+                    #tree.pop(u)
+                print(f"tree after= {tree}")
                 # checking if u is a pendant vertex now, and if so add to leaves
                 if len(tree[u])==1:
                     leaves.append(u)
@@ -211,6 +222,8 @@ class UnionFindDecoder(BaseDecoder):
                     else:
                         sig_i.append(v)
 
+                i+=1
+
 
 
 
@@ -223,10 +236,12 @@ class UnionFindDecoder(BaseDecoder):
         A = [] # list of indices for the qubits to be corrected
         # for each edge in A_, we loop through all the edges in Hz to see which edge is attached to the two vertices v1 and v2
         # in the tuple e = (v1,v2). Attached means we have a 1 in the Hz matrix.   
+        N =  Hz[0].shape[1] # total number of qubits in the code
+        print(f"N is ={N}")
         for edge in A_:
             v1 = edge[0]
             v2 = edge[1]
-            N =  len(Hz[0]) # total number of qubits in the code
+            
             for qubit in range(N): # --> 
                 if (Hz[v1,qubit]==1) and (Hz[v2,qubit]==1): # if "qubit" attached to both v1 and v2
                     A.append(qubit)
@@ -234,11 +249,11 @@ class UnionFindDecoder(BaseDecoder):
 
 
         ## Finding Ex
-        correction_x= [0]*N # np.zeros(N)
+        correction_x= np.zeros(N) # np.zeros(N)
         for qubit in A: # we find Ex by having 1 for the qubits that are to be corrected and 0 for the other qubits
-            Ex[qubit] = 1
+            correction_x[qubit] = 1
 
-        
+        print(f"correction_xis ={correction_x}")
         ### Load the correction into the X block of the full bsf ###
         correction[:self.code.n] = correction_x
         # correction[self.code.n:] = correction_z
