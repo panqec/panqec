@@ -2,7 +2,7 @@ from typing import Tuple, Dict, List
 import numpy as np
 from panqec.codes import StabilizerCode
 
-Operator = Dict[Tuple, str]  # Location to pauli ('X', 'Y' or 'Z')
+Operator = Dict[Tuple, str]  # Location to pauli ('X','Y','Z')
 Coordinates = List[Tuple]  # List of locations
 
 
@@ -81,7 +81,7 @@ class Quasi2DCode(StabilizerCode):
 
         return coordinates
 
-    def stabilizer_type(self, location: tuple) -> str:
+    def stabilizer_type(self, location: Tuple) -> str:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location}"
                              "for a stabilizer")
