@@ -7,6 +7,7 @@ from ..sweepmatch._rotated_sweep_decoder import RotatedSweepDecoder3D
 
 class ZMatchingDecoder(RotatedSweepDecoder3D):
     label = 'Rotated Infinite Z Bias Loop Sector Decoder'
+    allowed_codes: List[str] = []
 
     def get_edges_xy(self):
         xy = [
@@ -136,6 +137,7 @@ class ZMatchingDecoder(RotatedSweepDecoder3D):
 class XLineDecoder(BaseDecoder):
 
     label = 'Rotated Infinite Z Bias Point Sector Decoder'
+    allowed_codes: List[str] = []
 
     def decode_line(
         self, syndrome: np.ndarray, xy: Tuple[int, int]
@@ -208,6 +210,8 @@ class RotatedInfiniteZBiasDecoder(BaseDecoder):
     """An optimal decoder for infinite Z bias on deformed noise."""
 
     label = 'Rotated Infinite Z Bias Decoder'
+    allowed_codes: List[str] = []
+
     matcher: XLineDecoder
     sweeper: ZMatchingDecoder
 

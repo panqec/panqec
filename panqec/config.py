@@ -8,25 +8,23 @@ import os
 from typing import Dict, Any
 from dotenv import load_dotenv
 from .codes import (
-    Toric3DCode, Toric2DCode,
-    RotatedPlanar3DCode, XCubeCode,
-    RotatedToric3DCode, RhombicCode,
-    Quasi2DCode
+    Toric2DCode, Planar2DCode, RotatedPlanar2DCode,
+    Toric3DCode, RotatedPlanar3DCode, RotatedToric3DCode,
+    Color666Code, Color488Code, Color3DCode,
+    RhombicCode, XCubeCode, Quasi2DCode
 )
 from .decoders import (
-    Toric3DMatchingDecoder, SweepMatchDecoder,
-    RotatedSweepMatchDecoder, RotatedInfiniteZBiasDecoder
+    SweepMatchDecoder, XCubeMatchingDecoder,
+    RotatedSweepMatchDecoder, RotatedInfiniteZBiasDecoder,
+    FoliatedMatchingDecoder
 )
-from .decoders.bposd.bposd_decoder import BeliefPropagationOSDDecoder
-from .decoders.bposd.mbp_decoder import MemoryBeliefPropagationDecoder
-from .decoders.sweepmatch._toric_2d_match_decoder import Toric2DMatchingDecoder
+from .decoders import BeliefPropagationOSDDecoder
+from .decoders import MemoryBeliefPropagationDecoder
+from .decoders.matching._matching_decoder import MatchingDecoder
 from .error_models import (
     DeformedXZZXErrorModel, DeformedXYErrorModel,
-    DeformedRhombicErrorModel, DeformedRandomErrorModel
-)
-from .decoders import (
-    DeformedSweepMatchDecoder, FoliatedMatchingDecoder,
-    DeformedRotatedSweepMatchDecoder
+    DeformedRhombicErrorModel, DeformedRandomErrorModel,
+    DeformedColorErrorModel
 )
 from .error_models import PauliErrorModel
 
@@ -60,10 +58,16 @@ else:
 # Register your models here.
 CODES = {
     'Toric2DCode': Toric2DCode,
+    'Planar2DCode': Planar2DCode,
+    'RotatedPlanar2DCode': RotatedPlanar2DCode,
+    'Color666Code': Color666Code,
+    'Color488Code': Color488Code,
+    'Color3DCode': Color3DCode,
     'Toric3DCode': Toric3DCode,
-    'RhombicCode': RhombicCode,
+    'Planar3DCode': RotatedPlanar3DCode,
     'RotatedPlanar3DCode': RotatedPlanar3DCode,
     'RotatedToric3DCode': RotatedToric3DCode,
+    'RhombicCode': RhombicCode,
     'XCubeCode': XCubeCode,
     'Quasi2DCode': Quasi2DCode
 }
@@ -73,18 +77,17 @@ ERROR_MODELS = {
     'DeformedRandomErrorModel': DeformedRandomErrorModel,
     'DeformedXYErrorModel': DeformedXYErrorModel,
     'DeformedRhombicErrorModel': DeformedRhombicErrorModel,
+    'DeformedColorErrorModel': DeformedColorErrorModel,
 }
 DECODERS: Dict[str, Any] = {
-    'Toric2DMatchingDecoder': Toric2DMatchingDecoder,
-    'Toric3DMatchingDecoder': Toric3DMatchingDecoder,
+    'MatchingDecoder': MatchingDecoder,
     'SweepMatchDecoder': SweepMatchDecoder,
     'RotatedSweepMatchDecoder': RotatedSweepMatchDecoder,
-    'DeformedSweepMatchDecoder': DeformedSweepMatchDecoder,
     'FoliatedMatchingDecoder': FoliatedMatchingDecoder,
-    'DeformedRotatedSweepMatchDecoder': DeformedRotatedSweepMatchDecoder,
     'BeliefPropagationOSDDecoder': BeliefPropagationOSDDecoder,
     'MemoryBeliefPropagationDecoder': MemoryBeliefPropagationDecoder,
-    'RotatedInfiniteZBiasDecoder': RotatedInfiniteZBiasDecoder
+    'RotatedInfiniteZBiasDecoder': RotatedInfiniteZBiasDecoder,
+    'XCubeMatchingDecoder': XCubeMatchingDecoder
 }
 
 # Slurm automation config.

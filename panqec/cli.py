@@ -6,15 +6,20 @@ from tqdm import tqdm
 import numpy as np
 import json
 from json.decoder import JSONDecodeError
-from .simulation import run_file, merge_results_dicts
+import gzip
+from .simulation import (
+    run_file, merge_results_dicts, merge_lists_of_results_dicts
+)
 from .config import CODES, ERROR_MODELS, DECODERS, PANQEC_DIR, BASE_DIR
 from .slurm import (
     generate_sbatch, get_status, generate_sbatch_nist, count_input_runs,
     clear_out_folder, clear_sbatch_folder
 )
 from .utils import get_direction_from_bias_ratio
+
 from panqec.gui import GUI
 from glob import glob
+from .usage import summarize_usage
 
 
 @click.group(invoke_without_command=True)
@@ -130,32 +135,14 @@ def read_range_input(specification: str) -> List[float]:
     help='Directory to save input .json files'
 )
 @click.option(
-    '-l', '--lattice', default='kitaev',
-    show_default=True,
-    type=click.Choice(['rotated', 'kitaev']),
-    help='Lattice rotation'
-)
-@click.option(
-    '-b', '--boundary', default='toric',
-    show_default=True,
-    type=click.Choice(['toric', 'planar']),
-    help='Boundary conditions'
-)
-@click.option(
-    '-d', '--deformation', default='none',
-    show_default=True,
-    type=click.Choice(['none', 'xzzx', 'xy']),
-    help='Deformation'
-)
-@click.option(
     '-r', '--ratio', default='equal', type=click.Choice(['equal', 'coprime']),
     show_default=True, help='Lattice aspect ratio spec'
 )
 @click.option(
-    '--decoder', default='BeliefPropagationOSDDecoder',
+    '--decoder_class', default='BeliefPropagationOSDDecoder',
     show_default=True,
     type=click.Choice(list(DECODERS.keys())),
-    help='Decoder name'
+    help='Decoder class name'
 )
 @click.option(
     '-s', '--sizes', default='5,9,7,13', type=str,
@@ -180,124 +167,116 @@ def read_range_input(specification: str) -> List[float]:
 @click.option(
     '--code_class', default=None, type=str,
     show_default=True,
-    help='Explicitly specify the code class, e.g. Toric3DCode'
+    help='Code class name, e.g. Toric3DCode'
 )
 @click.option(
     '--noise_class', default=None, type=str,
     show_default=True,
-    help='Explicitly specify the noise class, e.g. DeformedXZZXErrorModel'
+    help='Error model class name, e.g. DeformedXZZXErrorModel'
+)
+@click.option(
+    '-m', '--method', default='direct',
+    show_default=True,
+    type=click.Choice(['direct', 'splitting']),
+    help='Simulation method, between "direct" (simple Monte-Carlo simulation)'
+         'and "splitting" (Metropolis-Hastings for low error rates)'
+)
+@click.option(
+    '-l', '--label', default=None,
+    show_default=True,
+    type=str,
+    help='Label for the inputs'
 )
 def generate_input(
-    input_dir, lattice, boundary, deformation, ratio, sizes, decoder, bias,
-    eta, prob, code_class, noise_class
+    input_dir, ratio, sizes, decoder_class, bias,
+    eta, prob, code_class, noise_class, method, label
 ):
     """Generate the json files of every experiment.
 
     \b
     Example:
     panqec generate-input -i /path/to/inputdir \\
-            -l rotated -b planar -d xzzx -r equal \\
+            --code_class Toric3DCode \\
+            --noise_class Toric3D
+            -r equal \\
             -s 2,4,6,8 --decoder BeliefPropagationOSDDecoder \\
             --bias Z --eta '10,100,1000,inf' \\
             --prob 0:0.5:0.005
     """
-    if lattice == 'kitaev' and boundary == 'planar':
-        raise NotImplementedError("Kitaev planar lattice not implemented")
-
     os.makedirs(input_dir, exist_ok=True)
 
-    delta = 0.005
-    probabilities = np.arange(0, 0.5+delta, delta).tolist()
     probabilities = read_range_input(prob)
     bias_ratios = read_bias_ratios(eta)
 
     for eta in bias_ratios:
         direction = get_direction_from_bias_ratio(bias, eta)
-        for p in probabilities:
-            label = "regular" if deformation == "none" else deformation
-            label += f"-{lattice}"
-            label += f"-{boundary}"
-            if eta == np.inf:
-                label += "-bias-inf"
-            else:
-                label += f"-bias-{eta:.2f}"
-            label += f"-p-{p:.3f}"
 
-            code_model = ''
-            if lattice == 'rotated':
-                code_model += 'Rotated'
-            if boundary == 'toric':
-                code_model += 'Toric'
-            else:
-                code_model += 'Planar'
-            code_model += '3DCode'
+        L_list = [int(s) for s in sizes.split(',')]
+        if ratio == 'coprime':
+            code_parameters = [
+                {"L_x": L, "L_y": L + 1, "L_z": L}
+                for L in L_list
+            ]
+        else:
+            code_parameters = [
+                {"L_x": L, "L_y": L, "L_z": L}
+                for L in L_list
+            ]
 
-            # Explicit override.
-            if code_class is not None:
-                code_model = code_class
+        code_dict = {
+            "model": code_class,
+            "parameters": code_parameters
+        }
 
-            L_list = [int(s) for s in sizes.split(',')]
-            if ratio == 'coprime':
-                code_parameters = [
-                    {"L_x": L, "L_y": L + 1, "L_z": L}
-                    for L in L_list
-                ]
-            else:
-                if code_model == 'RotatedPlanar3DCode':
-                    code_parameters = [
-                        {"L_x": L, "L_y": L, "L_z": L}
-                        for L in L_list
-                    ]
-                else:
-                    code_parameters = [
-                        {"L_x": L, "L_y": L, "L_z": L}
-                        for L in L_list
-                    ]
-            code_dict = {
-                "model": code_model,
-                "parameters": code_parameters
-            }
+        noise_parameters = direction
+        noise_dict = {
+            "model": noise_class,
+            "parameters": noise_parameters
+        }
 
-            if deformation == "none":
-                noise_model = "PauliErrorModel"
-            elif deformation == "xzzx":
-                noise_model = 'DeformedXZZXErrorModel'
-            elif deformation == "xy":
-                noise_model = 'DeformedXYErrorModel'
+        if decoder_class == "BeliefPropagationOSDDecoder":
+            decoder_parameters = {'max_bp_iter': 1000,
+                                  'osd_order': 0}
+        else:
+            decoder_parameters = {}
 
-            # Explicit override option for noise model.
-            if noise_class is not None:
-                noise_model = noise_class
+        method_parameters = {}
+        if method == 'splitting':
+            method_parameters['n_init_runs'] = 20000
 
-            noise_parameters = direction
-            noise_dict = {
-                "model": noise_model,
-                "parameters": noise_parameters
-            }
+        method_dict = {
+            'name': method,
+            'parameters': method_parameters
+        }
 
-            if decoder == "BeliefPropagationOSDDecoder":
-                decoder_model = "BeliefPropagationOSDDecoder"
-                decoder_parameters = {'max_bp_iter': 1000,
-                                      'osd_order': 0}
-            else:
-                decoder_model = decoder
-                decoder_parameters = {}
+        decoder_dict = {"model": decoder_class,
+                        "parameters": decoder_parameters}
 
-            decoder_dict = {"model": decoder_model,
-                            "parameters": decoder_parameters}
+        if label is None:
+            label = 'input'
 
-            ranges_dict = {"label": label,
-                           "code": code_dict,
-                           "noise": noise_dict,
-                           "decoder": decoder_dict,
-                           "probability": [p]}
+        label = label + f'_bias_{eta}'
 
-            json_dict = {"comments": "",
-                         "ranges": ranges_dict}
+        ranges_dict = {"label": label,
+                       "method": method_dict,
+                       "code": code_dict,
+                       "noise": noise_dict,
+                       "decoder": decoder_dict,
+                       "probability": probabilities}
 
-            filename = os.path.join(input_dir, f'{label}.json')
-            with open(filename, 'w') as json_file:
-                json.dump(json_dict, json_file, indent=4)
+        json_dict = {"comments": "",
+                     "ranges": ranges_dict}
+
+        proposed_filename = os.path.join(input_dir, f'{label}.json')
+
+        filename = proposed_filename
+        i = 0
+        while os.path.exists(filename):
+            filename = proposed_filename + f'_{i:02d}'
+            i += 1
+
+        with open(filename, 'w') as json_file:
+            json.dump(json_dict, json_file, indent=4)
 
 
 @click.group(invoke_without_command=True)
@@ -325,7 +304,9 @@ def merge_dirs(outdir, dirs):
     file_lists: Dict[Tuple[str, str], List[str]] = dict()
     for sep_dir in results_dirs:
         for sub_dir in os.listdir(sep_dir):
-            for file_path in glob(os.path.join(sep_dir, sub_dir, '*.json')):
+            file_list = glob(os.path.join(sep_dir, sub_dir, '*.json'))
+            file_list += glob(os.path.join(sep_dir, sub_dir, '*.json.gz'))
+            for file_path in file_list:
                 base_name = os.path.basename(file_path)
                 key = (sub_dir, base_name)
                 if key not in file_lists:
@@ -341,15 +322,31 @@ def merge_dirs(outdir, dirs):
         results_dicts = []
         for file_path in file_list:
             try:
-                with open(file_path) as f:
-                    results_dicts.append(json.load(f))
+                if os.path.splitext(file_path)[-1] == '.json':
+                    with open(file_path) as f:
+                        results_dicts.append(json.load(f))
+                else:
+                    with gzip.open(file_path, 'rb') as gz:
+                        results_dicts.append(
+                            json.loads(gz.read().decode('utf-8'))
+                        )
             except JSONDecodeError:
                 print(f'Error reading {file_path}, skipping')
 
-        combined_results = merge_results_dicts(results_dicts)
+        # If any combined files, flatten the lists of dicts into dicts.
+        if any(isinstance(element, list) for element in results_dicts):
+            combined_results = merge_lists_of_results_dicts(results_dicts)
 
-        with open(combined_file, 'w') as f:
-            json.dump(combined_results, f)
+        # Otherwise deal with it the old way.
+        else:
+            combined_results = merge_results_dicts(results_dicts)
+
+        if os.path.splitext(file_path)[-1] == '.json':
+            with open(combined_file, 'w') as f:
+                json.dump(combined_results, f)
+        else:
+            with gzip.open(combined_file, 'wb') as gz:
+                gz.write(json.dumps(combined_results).encode('utf-8'))
 
 
 @click.command()
@@ -416,7 +413,7 @@ def pi_sbatch(sbatch_file, data_dir, n_array, queue, wall_time, trials, split):
     '-t', '--trials', default=1000, type=click.INT, show_default=True
 )
 @click.option(
-    '-s', '--split', default=1, type=click.INT, show_default=True
+    '-s', '--split', default='auto', type=str, show_default=True
 )
 def cc_sbatch(
     sbatch_file, data_dir, n_array, account, email, wall_time, memory, trials,
@@ -467,7 +464,7 @@ def cc_sbatch(
     '-t', '--trials', default=1000, type=click.INT, show_default=True
 )
 @click.option(
-    '-s', '--split', default=1, type=click.INT, show_default=True
+    '-s', '--split', default='auto', type=str, show_default=True
 )
 @click.option('-p', '--partition', default='pml', type=str, show_default=True)
 @click.option(
@@ -525,11 +522,11 @@ def nist_sbatch(
     '-t', '--trials', default=1000, type=click.INT, show_default=True
 )
 @click.option(
-    '-s', '--split', default=1, type=click.INT, show_default=True
+    '-c', '--cores', default=1, type=click.INT, show_default=True
 )
 @click.option('-p', '--partition', default='pml', type=str, show_default=True)
 def generate_qsub(
-    qsub_file, data_dir, n_array, wall_time, memory, trials, split, partition
+    qsub_file, data_dir, n_array, wall_time, memory, trials, cores, partition
 ):
     """Generate qsub (PBS) file with parallel array jobs."""
     template_file = os.path.join(
@@ -550,7 +547,7 @@ def generate_qsub(
         '${NARRAY}': str(n_array),
         '${DATADIR}': os.path.abspath(data_dir),
         '${TRIALS}': str(trials),
-        '${SPLIT}': str(split),
+        '${CORES}': str(cores),
         '${QUEUE}': partition,
     }
     for template_string, value in replace_map.items():
@@ -575,7 +572,8 @@ def generate_qsub(
     '-t', '--trials', default=1000, type=click.INT, show_default=True
 )
 @click.option(
-    '-s', '--split', default=1, type=click.INT, show_default=True
+    '-s', '--split', default='auto', type=str,
+    show_default=True
 )
 @click.option(
     '-p', '--partition', default='dpart', type=str, show_default=True
@@ -680,6 +678,25 @@ def status():
     get_status()
 
 
+@click.command
+@click.argument(
+    'data_dirs', default=None, type=click.Path(exists=True), nargs=-1
+)
+def check_usage(data_dirs=None):
+    """Check usage of resources."""
+    log_dirs = []
+    if data_dirs:
+        for data_dir in data_dirs:
+            log_dir = os.path.join(data_dir, 'logs')
+            if not os.path.isdir(log_dir):
+                print(f'{log_dir} not a directory')
+            else:
+                log_dirs.append(log_dir)
+    else:
+        log_dirs = glob(os.path.join(PANQEC_DIR, 'paper', '*', 'logs'))
+    summarize_usage(log_dirs)
+
+
 slurm.add_command(gen)
 slurm.add_command(gennist)
 slurm.add_command(status)
@@ -696,3 +713,4 @@ cli.add_command(merge_dirs)
 cli.add_command(nist_sbatch)
 cli.add_command(generate_qsub)
 cli.add_command(umiacs_sbatch)
+cli.add_command(check_usage)

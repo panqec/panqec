@@ -1,7 +1,7 @@
 import numpy as np
 from panqec.codes import StabilizerCode
 from panqec.decoders import (
-    BaseDecoder, SweepDecoder3D, Toric3DMatchingDecoder
+    BaseDecoder, SweepDecoder3D, MatchingDecoder
 )
 from panqec.error_models import BaseErrorModel
 
@@ -9,6 +9,8 @@ from panqec.error_models import BaseErrorModel
 class SweepMatchDecoder(BaseDecoder):
 
     label = 'Toric 3D Sweep + Matching Decoder'
+    allowed_codes = ["Toric3DCode", "Planar3DCode"]
+
     sweeper: BaseDecoder
     matcher: BaseDecoder
 
@@ -17,7 +19,8 @@ class SweepMatchDecoder(BaseDecoder):
                  error_rate: float):
         super().__init__(code, error_model, error_rate)
         self.sweeper = SweepDecoder3D(code, error_model, error_rate)
-        self.matcher = Toric3DMatchingDecoder(code, error_model, error_rate)
+        self.matcher = MatchingDecoder(code, error_model, error_rate,
+                                       error_type='X')
 
     def decode(self, syndrome: np.ndarray, **kwargs) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""

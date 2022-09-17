@@ -6,10 +6,10 @@ import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat
 import { TopologicalCode } from './topologicalCode.js';
 
 var defaultCode = codeDimension == 2 ? 'Toric 2D' : 'Toric 3D';
-var defaultSize = codeDimension == 2 ? 6 : 4;
+var defaultSize = codeDimension == 2 ? 4 : 4;
 
 const params = {
-    errorProbability: 0.3,
+    errorProbability: 0.01,
     L: defaultSize,
     noise_deformation: 'None',
     decoder: 'BP-OSD',
@@ -37,7 +37,7 @@ const COLORS = {
 
 const KEY_CODE = {'d': 68, 'r': 82, 'backspace': 8, 'o': 79, 'x': 88, 'z': 90}
 
-let camera, controls, scene, renderer, effect, mouse, raycaster, intersects, gui;
+let camera, controls, scene, renderer, effect, mouse, raycaster, intersects, menu;
 let code;
 
 init();
@@ -53,7 +53,7 @@ function init() {
     else {
         buildScene3D();
     }
-    buildGUI();
+    buildMenu();
     buildCode();
 
     if (codeDimension == 3) {
@@ -186,6 +186,7 @@ function changeLatticeSize() {
         scene.remove(s);
     });
 
+    updateMenu();
     buildCode();
 }
 
@@ -210,8 +211,8 @@ async function getCodeData() {
     return data;
 }
 
-async function getModelNames() {
-    let response = await fetch('/model-names', {
+async function getCodeNames() {
+    let response = await fetch('/code-names', {
         headers: {
             'Content-Type': 'application/json'
           },
@@ -224,18 +225,31 @@ async function getModelNames() {
     return data;
 }
 
-async function buildGUI() {
-    gui = new GUI({width: 300});
-    const codeFolder = gui.addFolder('Code')
+async function getDecoderNames() {
+    let response = await fetch('/decoder-names', {
+        headers: {
+            'Content-Type': 'application/json'
+          },
+        method: 'POST',
+        body: JSON.stringify({'code_name': params.codeName})
+    });
 
-    var models = await getModelNames();
-    var codes = models['codes'];
-    var decoders = models['decoders'];
+    let data  = await response.json();
+
+    return data;
+}
+
+async function buildMenu() {
+    menu = new GUI({width: 300});
+    const codeFolder = menu.addFolder('Code')
+
+    var codes = await getCodeNames();
 
     codeFolder.add(params, 'codeName', codes).name('Code type').onChange(changeLatticeSize);
     codeFolder.add(params, 'rotated').name('Rotated picture').onChange(changeLatticeSize);
     codeFolder.add(params, 'coprime').name('Coprime dimensions').onChange(changeLatticeSize);
-    codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
+    codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8,
+                                 '8': 8, '9': 9, '10':10, '11':11, '12': 12}).name('Lattice size').onChange(changeLatticeSize);
 
     let deformedOptions = {'None': 'None', 'x axis': 'x', 'y axis': 'y'};
     if (codeDimension == 3)
@@ -244,14 +258,29 @@ async function buildGUI() {
     codeFolder.add(params, 'deformed_axis', deformedOptions).name('Deformation').onChange(changeLatticeSize);
     codeFolder.open();
 
-    const errorModelFolder = gui.addFolder('Error Model')
-    errorModelFolder.add(params, 'errorModel', {'Pure X': 'Pure X', 'Pure Y': 'Pure Y', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}).name('Model');
+    const errorModelFolder = menu.addFolder('Error Model')
+    errorModelFolder.add(params, 'errorModel',
+        {'Pure X': 'Pure X', 'Pure Y': 'Pure Y', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}
+    ).name('Model');
     errorModelFolder.add(params, 'errorProbability', 0, 0.5).name('Probability');
-    errorModelFolder.add(params, 'noise_deformation', {'None': 'None', 'XZZX': 'XZZX', 'XY': 'XY', 'Rhombic': 'Rhombic'}).name('Deformation');
+    errorModelFolder.add(params, 'noise_deformation',
+        {'None': 'None', 'XZZX': 'XZZX', 'XY': 'XY', 'Rhombic': 'Rhombic', 'Color': 'Color'}
+    ).name('Deformation');
     errorModelFolder.add(buttons, 'addErrors').name('▶ Add errors (r)');
     errorModelFolder.open();
 
-    const decoderFolder = gui.addFolder('Decoder')
+    updateMenu();
+}
+
+async function updateMenu() {
+    if ('Decoder' in menu.__folders) {
+        menu.removeFolder(menu.__folders['Decoder']);
+    }
+
+    var decoders = await getDecoderNames();
+    params.decoder = decoders[0];
+
+    const decoderFolder = menu.addFolder('Decoder');
 
     decoderFolder.add(params, 'decoder', decoders).name('Decoder');
     decoderFolder.add(params, 'max_bp_iter', 1, 1000, 1).name('Max iterations (BP)');

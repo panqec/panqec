@@ -6,9 +6,13 @@ var create_shape = {'sphere': sphere,
                     'rectangle': rectangle,
                     'cylinder': cylinder,
                     'octahedron': octahedron,
+                    'box': box,
                     'cube': cube,
                     'triangle': triangle,
-                    'cuboctahedron': cuboctahedron}
+                    'hexagon': hexagon,
+                    'polygon': polygon,
+                    'cuboctahedron': cuboctahedron,
+                    'truncated_octahedron': truncated_octahedron}
 
 function sphere(location, params) {
     var x = location[0];
@@ -153,29 +157,39 @@ function cuboctahedron(location, params) {
     return cuboctahedron;
 }
 
-function cube(location, params) {
+function box(location, params) {
     var x = location[0];
     var y = location[1];
-    var z = (location.length == 3) ? location[2] : 0;
+    var z = location[2];
 
-    var L = params['length']
-    const geometry = new THREE.BoxBufferGeometry(L, L, L);
+    var Lx = params['Lx'];
+    var Ly = params['Ly'];
+    var Lz = params['Lz'];
+    const geometry = new THREE.BoxBufferGeometry(Lx, Ly, Lz);
     const material = new THREE.MeshToonMaterial({transparent: true});
-    const cube = new THREE.Mesh(geometry, material);
+    const box = new THREE.Mesh(geometry, material);
 
-    var geo = new THREE.EdgesGeometry( cube.geometry );
+    var geo = new THREE.EdgesGeometry( box.geometry );
     var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 2,
                                            opacity: 0, transparent: true });
     var wireframe = new THREE.LineSegments(geo, mat);
     wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
 
-    cube.add(wireframe);
+    box.add(wireframe);
 
-    cube.position.x = x;
-    cube.position.y = y;
-    cube.position.z = z;
+    box.position.x = x;
+    box.position.y = y;
+    box.position.z = z;
 
-    return cube;
+    return box;
+}
+
+function cube(location, params) {
+    params['Lx'] = params['length'];
+    params['Ly'] = params['length'];
+    params['Lz'] = params['length'];
+
+    return box(location, params)
 }
 
 function triangle(location, params) {
@@ -205,9 +219,201 @@ function triangle(location, params) {
     wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
     triangle.add(wireframe);
 
-    // triangle.position.x = x;
-    // triangle.position.y = y;
-    // triangle.position.z = z;
-
     return triangle;
+}
+
+function hexagon(location, params) {
+    var x = location[0];
+    var y = location[1];
+    var z = (location.length == 3) ? location[2] : 0;
+    var r = params['radius']
+
+    const geometry = new THREE.BufferGeometry();
+
+    var vertices = new Float32Array([
+        0, 0, 0,
+        0 + r * Math.cos(Math.PI/3), 0 + r * Math.sin(Math.PI/3), 0,
+        0 + r * Math.cos(2*Math.PI/3), 0 + r * Math.sin(2*Math.PI/3), 0,
+
+        0, 0, 0,
+        0 + r * Math.cos(2*Math.PI/3), 0 + r * Math.sin(2*Math.PI/3), 0,
+        0 + r * Math.cos(3*Math.PI/3), 0 + r * Math.sin(3*Math.PI/3), 0,
+
+        0, 0, 0,
+        0 + r * Math.cos(3*Math.PI/3), 0 + r * Math.sin(3*Math.PI/3), 0,
+        0 + r * Math.cos(4*Math.PI/3), 0 + r * Math.sin(4*Math.PI/3), 0,
+
+        0, 0, 0,
+        0 + r * Math.cos(4*Math.PI/3), 0 + r * Math.sin(4*Math.PI/3), 0,
+        0 + r * Math.cos(5*Math.PI/3), 0 + r * Math.sin(5*Math.PI/3), 0,
+
+        0, 0, 0,
+        0 + r * Math.cos(5*Math.PI/3), 0 + r * Math.sin(5*Math.PI/3), 0,
+        0 + r * Math.cos(6*Math.PI/3), 0 + r * Math.sin(6*Math.PI/3), 0,
+
+        0, 0, 0,
+        0 + r * Math.cos(6*Math.PI/3), 0 + r * Math.sin(6*Math.PI/3), 0,
+        0 + r * Math.cos(Math.PI/3), 0 + r * Math.sin(Math.PI/3), 0,
+    ]);
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+
+    const material = new THREE.MeshBasicMaterial({transparent: true,
+                                                  side: THREE.DoubleSide});
+    const hexagon = new THREE.Mesh(geometry, material);
+
+    var normal = {'x': params['normal'][0], 'y': params['normal'][1], 'z': params['normal'][2]};
+    var norm = Math.sqrt(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
+    var norm_xz = Math.sqrt(normal.x*normal.x + normal.z*normal.z);
+    var norm_xy = Math.sqrt(normal.x*normal.x + normal.y*normal.y);
+
+    var theta = (norm_xz == 0) ? Math.PI / 2 : Math.acos(normal.z / norm_xz);
+    theta = (normal.x >= 0) ? theta : -theta;
+    var alpha = (norm_xy == 0) ? 0 : Math.acos(normal.x / norm_xy);
+    alpha = (normal.y > 0) ? alpha : -alpha;
+
+    hexagon.geometry.rotateZ(params['angle']);
+
+    hexagon.geometry.rotateY(theta);
+    hexagon.geometry.rotateZ(alpha);
+
+    hexagon.geometry.translate(x, y, z);
+
+    var geo = new THREE.EdgesGeometry(hexagon.geometry);
+    var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1,
+                                           transparent: true});
+
+    var wireframe = new THREE.LineSegments(geo, mat);
+    wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
+    hexagon.add(wireframe);
+
+    return hexagon;
+}
+
+function polygon(location, params) {
+    var x = location[0];
+    var y = location[1];
+    var z = (location.length == 3) ? location[2] : 0;
+
+    const geometry = new THREE.BufferGeometry();
+
+    var vertices = params['vertices'];
+
+    // A polygon is defined by many triangles
+    var verticesTriangle = [];
+
+    for (var i = 0; i < vertices.length; i++) {
+        verticesTriangle.push(
+            0, 0, 0,
+            vertices[i][0], vertices[i][1], 0,
+            vertices[(i + 1) % vertices.length][0], vertices[(i + 1) % vertices.length][1], 0
+        )
+    }
+
+    var verticesTriangle = new Float32Array(verticesTriangle);
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(verticesTriangle, 3));
+
+    const material = new THREE.MeshBasicMaterial({transparent: true,
+                                                  side: THREE.DoubleSide});
+    const polygon = new THREE.Mesh(geometry, material);
+
+    var normal = {'x': params['normal'][0], 'y': params['normal'][1], 'z': params['normal'][2]};
+    var norm = Math.sqrt(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
+    var norm_xz = Math.sqrt(normal.x*normal.x + normal.z*normal.z);
+    var norm_xy = Math.sqrt(normal.x*normal.x + normal.y*normal.y);
+
+    var theta = (norm_xz == 0) ? Math.PI / 2 : Math.acos(normal.z / norm_xz);
+    theta = (normal.x >= 0) ? theta : -theta;
+    var alpha = (norm_xy == 0) ? 0 : Math.acos(normal.x / norm_xy);
+    alpha = (normal.y > 0) ? alpha : -alpha;
+
+    polygon.geometry.rotateZ(params['angle']);
+
+    polygon.geometry.rotateY(theta);
+    polygon.geometry.rotateZ(alpha);
+
+    polygon.geometry.translate(x, y, z);
+
+    var geo = new THREE.EdgesGeometry(polygon.geometry);
+    var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1,
+                                           transparent: true});
+
+    var wireframe = new THREE.LineSegments(geo, mat);
+    wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
+    polygon.add(wireframe);
+
+    return polygon;
+}
+
+function faces2triangles(faces) {
+    let acc = [];
+    faces.forEach(function(f1) {
+        for (let i = 1; i < f1.length - 1; i++) {
+        acc = acc.concat([f1[0], f1[i], f1[i+1]]) }
+    })
+
+    return acc
+}
+
+function truncated_octahedron(location, params) {
+    // Thanks Nascif (https://observablehq.com/@nascif/truncated-octahedron-take-1)
+
+    var x = location[0];
+    var y = location[1];
+    var z = location[2];
+
+    const vertices = [
+        0,1,2, 0,1,-2,  0,-1,2, 0,-1,-2,
+        1,0,2, 1,0,-2, -1,0,2, -1,0,-2,
+        1,2,0, 1,-2,0, -1,2,0, -1,-2,0,
+        0,2,1, 0,2,-1,  0,-2,1, 0,-2,-1,
+        2,0,1, 2,0,-1, -2,0,1, -2,0,-1,
+        2,1,0, 2,-1,0, -2,1,0, -2,-1,0
+    ]
+
+    const faces = [
+        [6,2,14,11,23,18],
+        [12,8,20,16,4,0],
+        [2,4,16,21,9,14],
+        [0,6,18,22,10,12],
+        [1,5,17,20,8,13],
+        [15,9,21,17,5,3],
+        [19,7,1,13,10,22],
+        [3,7,19,23,11,15],
+        [0,4,2,6],
+        [1,7,3,5],
+        [8,12,10,13],
+        [15,11,14,9],
+        [23,19,22,18],
+        [21,16,20,17]
+    ]
+
+    const triangles = faces2triangles(faces)
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setIndex(triangles);
+    geometry.computeVertexNormals();
+
+    const material = new THREE.MeshToonMaterial({transparent: true,
+                                                 side: THREE.DoubleSide});
+    const trunc_octahedron = new THREE.Mesh(geometry, material);
+
+    var geo = new THREE.EdgesGeometry( trunc_octahedron.geometry );
+    var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 2,
+                                           opacity: 0, transparent: true });
+    var wireframe = new THREE.LineSegments(geo, mat);
+    // wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
+
+    trunc_octahedron.add(wireframe);
+
+    trunc_octahedron.position.x = x;
+    trunc_octahedron.position.y = y;
+    trunc_octahedron.position.z = z;
+
+    // trunc_octahedron.rotateZ(params['angle'])
+
+    return trunc_octahedron;
+
 }

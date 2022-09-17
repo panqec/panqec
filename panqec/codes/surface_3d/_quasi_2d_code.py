@@ -107,20 +107,23 @@ class Quasi2DCode(StabilizerCode):
         x, y, z = location
 
         if self.stabilizer_type(location) == 'vertex':
-            delta = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1),
-                     (0, 0, -1)]
+            delta: List[Tuple] = [(1, 0, 0), (-1, 0, 0), (0, 1, 0),
+                                  (0, -1, 0), (0, 0, 1), (0, 0, -1)]
         else:
             # Face in xy-plane.
             if z % 2 == 0:
-                delta = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0)]
+                delta = [(-1, 0, 0), (1, 0, 0),
+                         (0, -1, 0), (0, 1, 0)]
             # Face in yz-plane.
             elif (x % 2 == 0):
-                delta = [(0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
+                delta = [(0, -1, 0), (0, 1, 0),
+                         (0, 0, -1), (0, 0, 1)]
             # Face in zx-plane.
             elif (y % 2 == 0):
-                delta = [(-1, 0, 0), (1, 0, 0), (0, 0, -1), (0, 0, 1)]
+                delta = [(-1, 0, 0), (1, 0, 0),
+                         (0, 0, -1), (0, 0, 1)]
 
-        operator = dict()
+        operator: Operator = dict()
         for d in delta:
             qubit_location = tuple(np.add(location, d))
 
@@ -177,7 +180,7 @@ class Quasi2DCode(StabilizerCode):
         return logicals
 
     def stabilizer_representation(
-        self, location, rotated_picture=False, json_file=None
+        self, location: Tuple, rotated_picture=False, json_file=None
     ) -> Dict:
         representation = super().stabilizer_representation(location,
                                                            rotated_picture)
