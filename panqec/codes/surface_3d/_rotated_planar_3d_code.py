@@ -8,6 +8,7 @@ Coordinates = List[Tuple]  # List of locations
 
 class RotatedPlanar3DCode(StabilizerCode):
     dimension = 3
+    deformation_names = ['XZZX']
 
     @property
     def label(self) -> str:
@@ -67,7 +68,7 @@ class RotatedPlanar3DCode(StabilizerCode):
         else:
             return 'face'
 
-    def get_stabilizer(self, location, deformed_axis=None) -> Operator:
+    def get_stabilizer(self, location) -> Operator:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location} for a stabilizer")
 
@@ -75,8 +76,6 @@ class RotatedPlanar3DCode(StabilizerCode):
             pauli = 'Z'
         else:
             pauli = 'X'
-
-        deformed_pauli = {'X': 'Z', 'Z': 'X'}[pauli]
 
         x, y, z = location
 
@@ -101,12 +100,7 @@ class RotatedPlanar3DCode(StabilizerCode):
             qubit_location = tuple(np.add(location, d))
 
             if self.is_qubit(qubit_location):
-                is_deformed = (
-                    self.qubit_axis(qubit_location) == deformed_axis
-                )
-                operator[qubit_location] = (
-                    deformed_pauli if is_deformed else pauli
-                )
+                operator[qubit_location] = pauli
 
         return operator
 
@@ -204,3 +198,28 @@ class RotatedPlanar3DCode(StabilizerCode):
                     representation['params']['normal'] = [-1, 1, 0]
 
         return representation
+
+    def get_deformation(
+        self, location: Tuple,
+        deformation_name: str,
+        deformation_axis: str = 'z',
+        **kwargs
+    ) -> Dict:
+
+        if deformation_axis not in ['x', 'y', 'z']:
+            raise ValueError(f"{deformation_axis} is not a valid"
+                             "deformation axis")
+
+        undeformed_dict = {'X': 'X', 'Y': 'Y', 'Z': 'Z'}
+
+        if deformation_name == 'XZZX':
+            deformed_dict = {'X': 'Z', 'Y': 'Y', 'Z': 'X'}
+
+        else:
+            raise ValueError(f"The deformation {deformation_name}"
+                             "does not exist")
+
+        if self.qubit_axis(location) == deformation_axis:
+            return deformed_dict
+        else:
+            return undeformed_dict

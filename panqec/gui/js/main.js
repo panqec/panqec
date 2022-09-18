@@ -21,7 +21,7 @@ const params = {
     codeName: defaultCode,
     rotated: false,
     coprime: false,
-    deformed_axis: 'None'
+    deformationName: 'None'
 };
 
 let codeSize = {Lx: defaultSize, Ly: defaultSize, Lz: defaultSize};
@@ -164,7 +164,7 @@ async function buildCode() {
     }
 }
 
-function changeLatticeSize() {
+async function changeLatticeSize() {
     codeSize.Lx = parseInt(params.L);
     codeSize.Ly = parseInt(params.L);
     codeSize.Lz = parseInt(params.L);
@@ -186,7 +186,7 @@ function changeLatticeSize() {
         scene.remove(s);
     });
 
-    updateMenu();
+    await updateMenu();
     buildCode();
 }
 
@@ -201,7 +201,7 @@ async function getCodeData() {
             'Ly': codeSize.Ly,
             'Lz': codeSize.Lz,
             'code_name': params.codeName,
-            'deformed_axis': params.deformed_axis,
+            'deformation_name': params.deformationName,
             'rotated_picture': params.rotated
         })
     });
@@ -239,6 +239,20 @@ async function getDecoderNames() {
     return data;
 }
 
+async function getDeformationNames() {
+    let response = await fetch('/deformation-names', {
+        headers: {
+            'Content-Type': 'application/json'
+          },
+        method: 'POST',
+        body: JSON.stringify({'code_name': params.codeName})
+    });
+
+    let data  = await response.json();
+
+    return data;
+}
+
 async function buildMenu() {
     menu = new GUI({width: 300});
     const codeFolder = menu.addFolder('Code')
@@ -250,12 +264,6 @@ async function buildMenu() {
     codeFolder.add(params, 'coprime').name('Coprime dimensions').onChange(changeLatticeSize);
     codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8,
                                  '8': 8, '9': 9, '10':10, '11':11, '12': 12}).name('Lattice size').onChange(changeLatticeSize);
-
-    let deformedOptions = {'None': 'None', 'x axis': 'x', 'y axis': 'y'};
-    if (codeDimension == 3)
-        deformedOptions['z axis'] = 'z';
-
-    codeFolder.add(params, 'deformed_axis', deformedOptions).name('Deformation').onChange(changeLatticeSize);
     codeFolder.open();
 
     const errorModelFolder = menu.addFolder('Error Model')
@@ -273,12 +281,34 @@ async function buildMenu() {
 }
 
 async function updateMenu() {
+    // Clifford-deformation part
+    var codeFolder = menu.__folders['Code'];
+
+    codeFolder.__controllers.forEach(controller => {
+        if (controller.property == 'deformationName') {
+            controller.remove();
+        }
+    });
+
+    var deformationNames = await getDeformationNames();
+    deformationNames = ['None'].concat(deformationNames)
+
+    if (!deformationNames.includes(params.deformationName)) {
+        params.deformationName = 'None';
+    }
+
+    codeFolder.add(params, 'deformationName', deformationNames).name('Deformation').onChange(changeLatticeSize);
+
+    // Decoder part
     if ('Decoder' in menu.__folders) {
         menu.removeFolder(menu.__folders['Decoder']);
     }
 
     var decoders = await getDecoderNames();
-    params.decoder = decoders[0];
+
+    if (!decoders.includes(params.decoder)) {
+        params.decoder = decoders[0];
+    }
 
     const decoderFolder = menu.addFolder('Decoder');
 
@@ -410,7 +440,7 @@ async function getCorrection(syndrome) {
             'decoder': params.decoder,
             'error_model': params.errorModel,
             'code_name': params.codeName,
-            'deformed_axis': params.deformed_axis
+            'deformation_name': params.deformationName
         })
     });
 
@@ -433,7 +463,7 @@ async function getRandomErrors() {
             'noise_deformation': params.noise_deformation,
             'error_model': params.errorModel,
             'code_name': params.codeName,
-            'deformed_axis': params.deformed_axis
+            'deformation_name': params.deformationName
         })
     });
 

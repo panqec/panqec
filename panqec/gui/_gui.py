@@ -93,14 +93,17 @@ class GUI():
         if 'Lz' in data:
             Lz = data['Lz']
         code_name = data['code_name']
-        deformed_axis = data['deformed_axis']
+        deformation_name = data['deformation_name']
 
         if code_name in self.code_names['2d']:
-            code = codes[code_name](Lx, Ly, deformed_axis=deformed_axis)
+            code = codes[code_name](Lx, Ly)
         elif code_name in self.code_names['3d']:
-            code = codes[code_name](Lx, Ly, Lz, deformed_axis=deformed_axis)
+            code = codes[code_name](Lx, Ly, Lz)
         else:
             raise ValueError(f'Code {code_name} not recognized')
+
+        if deformation_name != "None":
+            code.deform(deformation_name)
 
         return code
 
@@ -149,6 +152,13 @@ class GUI():
                     decoder_names.append(decoder_name)
 
             return json.dumps(decoder_names)
+
+        @self.app.route('/deformation-names', methods=['POST'])
+        def send_deformation_names():
+            code_name = request.json['code_name']
+            deformation_names = codes[code_name].deformation_names
+
+            return json.dumps(deformation_names)
 
         @self.app.route('/code-data', methods=['POST'])
         def send_code_data():
