@@ -8,8 +8,8 @@ from scipy.sparse import csr_matrix
 import sys
 
 def clustering(syndrome: np.ndarray, H: csr_matrix):
-    """Given a syndrome and the code size, returns a correction to apply
-    to the qubits
+    """Given a syndrome and the  partial parity check matrix (eg Hz or Hx), returns a list of erasure clusters
+    to be fed into the peeling function to obtain a correction for a particular type of error.
 
     Parameters
     ----------
@@ -18,15 +18,19 @@ def clustering(syndrome: np.ndarray, H: csr_matrix):
         stabilizers. Each element contains 1 if the stabilizer is
         activated and 0 otherwise
 
-    code_size: tuple
-        Code size is a tuple that specify the length and the width of the
-        toric code.
+    H: csr_matrix
+        The partial parity check matrix for 1 type of stabilizers
+        eg: Hz or Hx.
 
     Returns
     -------
-    correction : np.ndarray
-        Correction as an array of size 2n (with n the number of qubits)
-        in the binary symplectic format.
+    output : np.ndarray
+        An array of tuples of the form [([],[]), ([],[]) ..]. Each 
+        tuple holds the information of one of the clusters generated.
+        The tuples are such that the first element is a list of
+        stabilizers (indices) and the second element is a list of 
+        qubits (indices) for that particular cluster.
+
     """  
     support = Support(syndrome, H)
     
