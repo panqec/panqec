@@ -25,33 +25,38 @@ class UnionFindDecoder(BaseDecoder):
 
         # Initialize correction as full bsf.
         correction = np.zeros(2*self.code.n, dtype=np.uint)
-
-        syndromes_z = self.code.extract_z_syndrome(syndrome)
+        # note how we create different variables for x & z syndromes. But to make the code compatible with both errors --> change to 1 variable
+        # OR --> put peeling in a seperate file as a function, and call the clustering + peeling functions twice in this file
+        syndromes_z = self.code.extract_z_syndrome(syndrome) # an array with value 1 if that index (of the stabilizer) is a syndrome
         syndromes_x = self.code.extract_x_syndrome(syndrome)
+        Hz = self.code.Hz # the parity matrix for z stabilizers (a 2D numpy array)
+        syndromes_z_index = np.where(syndromes_z == 1)[0] # this returns an array of indices of stabilizers that are syndromes
+        #syndromes_x_index = np.where(syndromes_x == 1) [0]
 
-        print(syndromes_z)
+        print(f"syndromes_z: {syndromes_z}")
         print("We are decoding with union find!!!")
-        Hz = self.code.Hz
+        print("\n")
+
+        print("~~~ we do clustering now ~~~")
+        ### clustering/syndrome validation stage. Outputs clusters
+        # output = [1:(s[0,1,2], q[3,4,5]), 2:(s[22,33,44], q[34,46,57]), ...], a list of tuples of stabilizers and qubit indices.
+        # each tuple represents a cluster.
         output = clustering(syndromes_z, Hz)
+        print(f"The output of clustering is: {output}")
+        print("\n")       
 
-        ### clustering/syndrome validation stage. Outputs cluster trees and support -- Lynna
 
-
-        #assume the output is output = [1:(s[0,1,2], q[3,4,5]), 2:(s[22,33,44], q[34,46,57]), ...]
-        # and syndrome = [2,3,4] which is a list of all vertix indices that are syndromes
-        # and we have Hz as the parity matrix for z stabilizers (a 2D numpy array)
+        
 
         ### Peeler decoder -- Z error ###
-
+        print("~~~ we make graphs of clusters now ~~~")
         ## constructing the graphs and the syndromes of each cluster ##
-
-        # Note that is is very expensive when it comes to the complexity
-
         # These graphs are stored as an adjacency list that repeats the edges (since it stores the neighbours of each node), ie the
         # adjacency list format used: {0:[1,2], 1:[0,2], 2:[0,1]} ; 0,1,2 are the indices of the nodes.        
         # Note 1) if the edges are not repeated this will affect the edge removal in the tree finding function below (then need to add an
         # extra if function).
-        # Note 2) in each graph the nodes (lattice vertices) are represented by their panqec integer indices. 
+        # Note 2) in each graph the nodes (lattice vertices) are represented by their panqec integer indices.
+        # Note 3) this step could be very expensive when it comes to the complexity 
 
 
         graphs = [] # list of all graphs organized per cluster in the form of a list of dictionaries
@@ -81,27 +86,26 @@ class UnionFindDecoder(BaseDecoder):
                 # other nodes are the neighbours of the node "vertex"
                 neighbours = []
                 for qubit in qubits_list:
-                    # we don't want to consider the node "vertex" as its own neighbour, but instead of using an if statement
-                    # it is faster to just remove "vertex" from the vertices_i --> if is better!!!
-                    vertices_list = vertices_i[:] # making a duplicate of the list of vertices in the cluster --> not needed if u use "if"
-                    for vertex_ in vertices_list: # we look at only the nodes already in the cluster discluding "vertex"--> np.where can be used                      
-                        if vertex_ != vertex:
+                    for vertex_ in vertices_i: # we look at only the nodes already in the cluster discluding "vertex"--> np.where can be used                      
+                        if vertex_ != vertex: # we don't want to consider the node "vertex" as its own neighbour
                             if Hz[vertex_, qubit] == 1:
                                 neighbours.append(vertex_)                              
                 
                 graph_i[vertex] = neighbours
 
-                ## organizing the syndromes per graph
-                if vertex in syndrome:
+                ## organizing the syndromes per graph - for z syndromes
+                if vertex in syndromes_z_index:
                     sig_i.append(vertex)
 
             sig.append(sig_i)
             graphs.append(graph_i)
 
+        print(f"graphs is: {graphs}")
+        print(f"sig is: {sig}")
+        print("\n")
 
 
         ## Now we find spanning forest ##
-
         ## Functions that find the spanning tree of a graph:
 
         def nu_nodes(g):
@@ -134,102 +138,170 @@ class UnionFindDecoder(BaseDecoder):
                 tree   the adjaceny list of the spanning tree of g                
                 
                 """
+                print("~ Inside find_tree ~")
                 tree = g # initialise tree adjacency list
-                nodes = list(tree.keys()) # list of nodes in the tree
-
+                n = nu_nodes(tree) # number of nodes of g
+                nodes = list(tree.keys()) # list of nodes in the tree              
+                s = nodes[0] # the first key (node) of the tree dictionary --> there could be a better way of finding the first key of "tree"!
                 q = [] # empty list representing the que
-                s = nodes[0] # the first key (node) of the tree dictionary
-                q.append(s) # adding s to the que
-
-                n = nu_nodes(g) # number of nodes of g
+                q.append(s) # adding s to the que 
+                print(f"nodes list for original graph {nodes}")
+                print(f"number of nodes: {n}")
+                print(f"s: {s}")
+                print(f"que after adding s: {q}")
 
                 # creating "visited" and "parent" dictionaries which are both initialised as False for all the nodes
                 values = [False]*n                 
                 visited = {nodes[i]:values[i] for i in range (n)} # a dictionary to check if a node has been visited
-                parent = copy.copy(visited) # a dictionary to check if a node is a parent node --> make sure to duplicate
+                parent = copy.copy(visited) # a dictionary to check if a node is a parent node --> make sure to duplicate or create from scratch
+                print(f"initial dictionary visited: {visited}")
+                print(f"initial dictionary parent: {visited}")
                 visited[s]= True # mark start node as being visited
+                print(f"dictionary visited (after changing s): {visited}")
                 
+                print(f"|| *** Now we start bfs (graph {index}) ***") # note that index here is defined below when we create the forest, and is only used in the printed functions for clarity
+                bfs_index = 0 # for printing purposes
                 while len(q): # while the que is not empty
+                    print(f"** For bfs interation no: {bfs_index} **")
+                    print(f"tree: {tree}")
+                    print(f"que (iter {index}): {q}")
+                    print(f"visited (iter {index}): {visited}")
+                    print(f"parent (iter {index}): {parent}")
                     current_node = q[0] # the node at the start of the que
+                    print(f"current node (first in the que): {current_node}")
                     q.pop(0)  # remove "current_node" from the que
                     parent[current_node] = True # "current_node" is now a parent node
-
-                    for next in find_neighbours(tree,current_node): # looping through the neighbours of "current_node" in the tree
-
+                    print(f"que after removing current_node({current_node}) : {q} ")
+                    print(f"parent (true @ current_node({current_node}) ): {parent}")
+                    
+                    
+                    print(f"* Now checking out neighbours of \"current_node\" *")
+                    print(f"neighbours of current_node({current_node}): {find_neighbours(tree,current_node)}")
+                    neighbour_index = 0
+                    neighbours_list = find_neighbours(tree,current_node)[:] # list of neighbours, duplicated so that it doesn't change as tree is modified
+                    for next in neighbours_list: # looping through the neighbours of "current_node" in the tree
+                        print(f"* for neighbour {next}")
+                        print(f"tree (neighbour_iter {neighbour_index}): {tree}")
                         if not parent[next]: # if a parent node we do nothing
-                        
-                            if not visited[next]: # if node was not visited before, add to the que
+                            print(f"^^ neighbour {next} is NOT a parent ^^ ")
+                            if not visited[next]: # if node "next" was not visited before, add to the que
+                                print(f"^ neighbour {next} NOT visited ^ => add to que & make visited ")
                                 q.append(next)
-                                visited[next] = True                       
+                                visited[next] = True
+                                print(f"que (iter {index}, neighbour {next}): {q}")
+                                print(f"visited (iter {index}, true @ neighbour {next}): {visited}")
+
 
                                 
                             else: # if node is visited
+                                print(f"^ neighbour {next} was visited ^ => remove the edge")
                                 # remove the edge between "next" and "current_node" entirely from the tree graph
                                 tree[current_node].remove(next) #--> maybe find another way but it is only upto 4 so ok
                                 tree[next].remove(current_node) # --> find another way but only 4 so ok
-
+                                print(f"tree after removing {current_node}-{next} edge: {tree}")
+                        else: 
+                            print(f"^^ neighbour {next} is a parent ^^ => nothing to do")
+                        neighbour_index +=1
+                    bfs_index += 1
+                    print('\n')
+                print(f"*** BFS Done (graph {index}) *** ||")
                 return tree
 
            
-                
+        print("~~~ we find the spanning forest now ~~~")       
         ## Finding the forest:
 
         forest = [] # initialise the forest list
+        index = 0 # variable to track printed output (to check which graph we are finding the tree for)
         for graph in graphs:
+            print(f"~~ for graph no: {index} ~~ ")
             tree = find_tree(graph)
-            forest.append(tree)            
+            forest.append(tree)   
+            index += 1
+            print('\n')
+        print("\n")
+        print(f"the forest is: {forest}")
+        print("\n")         
             
 
         ## Now peeling the forest and finding the correction ##
 
-
+        print("~~~ we peel the forest now ~~~")
         ## performing the peeler
 
-        A_ = []  # list of edges to be corrected in the form of a tuple of the bounding vertices of that edge
+        A_ = []  # list of edges to be corrected in the form of a tuple of the bounding vertices of that edge        
         for i,tree in enumerate(forest):
+            print(f"~~ for tree no: {i} ~~")
             sig_i = sig[i] # pick the syndromes list for the appropriate cluster
+            print(f"sig_i = {sig_i}")
             leaves = [] # list of leaf nodes, the pendant vertices
             for node in tree.keys(): # append node to "leaves" if it has one neighbour
                 if len(tree[node])==1: 
-                    leaves.append(node)                     
-            i = 0
-            while len(tree.keys())>1: # while tree is not empty 
-                v = leaves[0] # choose pendant vertex to work with randomly (first element of "leaves")
-                print(f"in iteration{i} v= {v}")
-                print(f"in iteration{i} tree [v] = {tree[v]}")
-                print(f"tree before= {tree}")
-
-                u = tree[v][0] # neighbour of the pendant vertix, which is the vertix connecting the leaf edge to the forest
+                    leaves.append(node) 
+            print(f"Initial leaves: {leaves}")
+            print("\n")
+            print(f"|| ~ Now we start peeling (tree no: {i}) ~")                    
+            peel_index = 0 # printing purposes
+            while len(tree.keys())>1: # while tree dictionary is not empty. tree = {0:[]} is considered empty for us!!
+                print(f"** For peeling interation no: {peel_index} **")
+                print(f"tree before: {tree}")
+                print(f"leaves before: {leaves}")
+                u = leaves[0] # choose pendant vertex to work with randomly (first element of "leaves")
+                v = tree[u][0] # neighbour of the pendant vertix, which is the vertix connecting the leaf edge to the forest
+                print(f"pendant vertix, u = {u}")
+                print(f" tree [u] = {tree[u]}")
+                print(f" neighbour of pendant, v = {v}")      
 
                 # removing leaf edge from "leaves" and from the tree.
-                leaves.pop(0) # remove v from leaves --> v is leaf node 0 so we can use pop
-                tree.pop(v) # remove v from the tree --> not good for complexity? for dictionary it is of order of one access time so ok
-                tree[u].remove(v) # remove v from the neighbours list of u --> upto 4 elements in the list
-                #if len(tree[u])==0:
+                leaves.pop(0) # remove u from leaves --> u is leaf node 0 so we can use pop instead of remove
+                tree.pop(u) # remove v from the tree --> not good for complexity? for dictionary it is of order of one access time so ok to lookup an item and remove
+                tree[v].remove(u) # remove u from the neighbours list of v --> upto 4 elements in the list
+                print(f"tree after peel: {tree}")
+                print(f"leaves after peel : {leaves}")
+                
+                # checking if v is a pendant vertex now, and if so add to leaves
+                if len(tree[v])==1:
+                    leaves.append(v)
+                    print("* v is now a leaf *")
+                    print(f"leaves after (adding v): {leaves}")
+                else:
+                    print("v is NOT a leaf")
+                    print(f"leaves (without adding v): {leaves}")
+
+                #if len(tree[u])==0: --> remove if condition of while loop is appropriate
                     #tree.pop(u)
-                print(f"tree after= {tree}")
-                # checking if u is a pendant vertex now, and if so add to leaves
-                if len(tree[u])==1:
-                    leaves.append(u)
+                
 
                 # peeler algorithm            
-                if u in sig_i: 
+                if u in sig_i:
+                    print("* u is in sig_i *") 
                     e = (u,v) # edge "e" to be corrected stored as a tuple e = (v1,v2) where v1 and v2 are the vertices bounding "e"
                     A_.append(e)  
                     sig_i.remove(u) 
                     if v in sig_i:
                         sig_i.remove(v)
+                        print("* v is in sig_i, now removed *") 
+                        print(f"new sig_i (removed v) = {sig_i}")
                     else:
                         sig_i.append(v)
+                        print("* v is NOT in sig_i, now added *") 
+                        print(f"new sig_i (added v)  = {sig_i}")
 
-                i+=1
+                peel_index +=1
+                print("\n")
+            print("~ tree no: {i} fully peeled ~ ||")
+            print("\n")
+        print("\n")
+        print(f"~~ Finally A_: {A_} ~~ ")
+
+        print("\n")
 
 
 
+        print("~~~ We find the correction now ~~~")
+        ## Now proccess A_ to find correction_x of the bsf ##
 
-        ## Now proccess A_ to find Ex of the bsf ##
-
-        ## Processing A_ to extract the edge/qubit indices in panqec --> Hz * Hz^T  or use panqec coordinates ( the average of the coordinates of v1 & v2, this can be a function) 
+        ## Processing A_ to extract the edge/qubit indices in panqec --> better ways: Hz * Hz^T  or use panqec coordinates ( the average of the coordinates of v1 & v2, this can be a function) 
 
         # note that is could be expensive when it comes to the complexity
         
@@ -237,7 +309,7 @@ class UnionFindDecoder(BaseDecoder):
         # for each edge in A_, we loop through all the edges in Hz to see which edge is attached to the two vertices v1 and v2
         # in the tuple e = (v1,v2). Attached means we have a 1 in the Hz matrix.   
         N =  Hz[0].shape[1] # total number of qubits in the code
-        print(f"N is ={N}")
+        print(f"N is: {N}")
         for edge in A_:
             v1 = edge[0]
             v2 = edge[1]
@@ -246,18 +318,19 @@ class UnionFindDecoder(BaseDecoder):
                 if (Hz[v1,qubit]==1) and (Hz[v2,qubit]==1): # if "qubit" attached to both v1 and v2
                     A.append(qubit)
 
+        print(f"Qubit indices, A: {A} ")
 
-
-        ## Finding Ex
+        ## Finding correction_x
         correction_x= np.zeros(N) # np.zeros(N)
         for qubit in A: # we find Ex by having 1 for the qubits that are to be corrected and 0 for the other qubits
             correction_x[qubit] = 1
 
-        print(f"correction_xis ={correction_x}")
+        print(f"correction_x is: {correction_x}")
         ### Load the correction into the X block of the full bsf ###
         correction[:self.code.n] = correction_x
         # correction[self.code.n:] = correction_z
 
+        print("~~~ Decoding Over ~~~")
         return correction
 
 
