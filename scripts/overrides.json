@@ -1,0 +1,59 @@
+{
+  "overrides": [
+    {
+      "filters": {
+        "code_family": "Toric",
+        "error_model_family": "Deformed XZZX Pauli",
+        "bias": 1000,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": [0.18, 0.30]
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Toric",
+        "error_model_family": "Deformed XZZX Pauli",
+        "bias": 100,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": [0.19, 0.24]
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Toric",
+        "error_model_family": "Deformed XZZX Pauli",
+        "bias": 10,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": [0.10, 0.14]
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Toric",
+        "error_model_family": "Deformed XZZX Pauli",
+        "bias": 3,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": [0.07, 0.09]
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Toric",
+        "error_model_family": "Pauli",
+        "bias": "inf",
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": [0.20, 0.23]
+      }
+    }
+  ]
+}

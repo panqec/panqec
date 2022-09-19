@@ -29,7 +29,7 @@ from .bpauli import int_to_bvector, bvector_to_pauli_string
 Numerical = Union[Iterable, float, int]
 
 
-# TODO make this the legit way of doing things.
+# TODO allow for manual truncation
 class Analysis:
     """Analysis on large collections of results files.
 
@@ -43,6 +43,12 @@ class Analysis:
     results : Union[str, List[str]]
         Path to directory or .zip containing .json.gz or .json results.
         Can also accept list of paths.
+    overrides : Optional[str]
+        Path to json file that gives specifications on what to override,
+        for instance when to truncate.
+        See `scripts/overrides.json` for an example.
+    verbose : bool
+        If True, logs will be printed at various steps of the analysis.
 
     Attributes
     ----------
@@ -76,8 +82,15 @@ class Analysis:
         'probability'
     ]
 
+    # Specification of manual overrides such as truncation ranges.
+    overrides_spec: Dict
+
+    # Processed manual overrides.
+    overrides: Dict[Tuple[str, str, str], Any]
+
     def __init__(
-        self, results: Union[str, List[str]] = [], verbose: bool = True
+        self, results: Union[str, List[str]] = [], verbose: bool = True,
+        overrides: Optional[str] = None
     ):
         self.results_paths = []
         if isinstance(results, list):
@@ -85,8 +98,51 @@ class Analysis:
         else:
             self.results_paths.append(results)
 
+        self.overrides_spec = dict()
+        if overrides:
+            self.use_overrides(overrides)
+
+        # Intialized as empty until apply_overrides is called after results are
+        # aggregated.
+        self.overrides = dict()
+
+    def use_overrides(self, overrides_json):
+        """Use override specifications stored in json file."""
+        with open(overrides_json) as f:
+            self.overrides_spec = json.load(f)
+
+    def apply_overrides(self):
+        """Read manual overrides from .json file."""
+
+        # Do nothing is there is no given overrides json.
+        if not self.overrides_spec:
+            return
+
+        # Otherwise find the parameter sets which need to be truncated and save
+        # them to the overrides attribute.
+        data = self.overrides_spec
+        if 'overrides' in data and isinstance(data['overrides'], list):
+            overrides_count = 0
+            n_overrides = len(data['overrides'])
+            for override in data['overrides']:
+                if 'filters' in override and override['filters']:
+                    filter_index = None
+                    for key, value in override['filters'].items():
+                        extra_index = self.results[key] == value
+                        if filter_index is None:
+                            filter_index = extra_index
+                        else:
+                            filter_index = filter_index & extra_index
+                    parameter_sets = self.results[filter_index][[
+                        'code_family', 'error_model', 'decoder'
+                    ]].drop_duplicates().values
+                    for triple in parameter_sets:
+                        self.overrides[tuple(triple)] = override['truncate']
+                    overrides_count += 1
+            self.log(f'Using {overrides_count} out of {n_overrides} filters')
+
     def log(self, message: str):
-        """Display a message.
+        """Display a message, if the verbose attribute is True.
 
         Parameters
         ----------
@@ -108,11 +164,13 @@ class Analysis:
         self.count_files()
         self.read_files(progress=progress)
         self.aggregate()
+        self.apply_overrides()
         self.calculate_total_error_rates()
         self.calculate_word_error_rates()
         self.calculate_single_qubit_error_rates()
         self.calculate_total_thresholds()
         self.calculate_single_qubit_sector_thresholds()
+        self.calculate_thresholds()
 
     def find_files(self):
         """Find where the results files are."""
@@ -195,6 +253,8 @@ class Analysis:
                 with open(file_location) as jf:
                     data = json.load(jf)
             entries += read_entry(data, results_file=nominal_path)
+
+        # Convert to DataFrame to conserve memory.
         self.raw = pd.DataFrame(entries)
 
         # Round probability to six digits, because anything smaller than that
@@ -230,9 +290,17 @@ class Analysis:
             added_columns, concat_columns, take_first_columns, list_columns
         ], axis=1).reset_index()
 
+        # Count the number of fails, later used for error bars.
         self.results['n_fail'] = self.results['success'].apply(sum)
+
+        # Classify codes by code family for threshold analysis.
         self.results['code_family'] = self.results['code'].apply(
             infer_code_family
+        )
+
+        # Classify the error model by family for threshold analysis.
+        self.results['error_model_family'] = self.results['error_model'].apply(
+            infer_error_model_family
         )
 
     def calculate_total_error_rates(self):
@@ -312,6 +380,185 @@ class Analysis:
         """Calculate single-qubit thresholds for each sector."""
         self.log('Calculating single-qubit sector thresholds thresholds')
         pass
+
+    def calculate_thresholds(
+        self,
+        ftol_est: float = 1e-5,
+        ftol_std: float = 1e-5,
+        maxfev: int = 2000,
+        logical_type: str = 'total',
+        n_fail_label: str = 'n_fail',
+    ):
+        """Extract thresholds from table of results using heuristics.
+
+        Parameters
+        ----------
+        results_df : pd.DataFrame
+            The results for each (code, error_model, decoder).
+            Should have at least the columns:
+            'code', 'error_model', 'decoder', 'n', 'k', 'd',
+            'n_fail', 'n_trials'.
+            If the `logical_type` keyword argument is given,
+            then then either 'p_0_est' and 'p_est_word' should be columns too.
+        ftol_est : float
+            Tolerance for the best fit.
+        ftol_std : float
+            Tolerance for the bootstrap fits.
+        maxfev : int
+            Maximum number of iterations for the curve fitting.
+        logical_type : str
+            Pick from 'total', 'single', or 'word',
+            which will take `p_est` to be 'p_est', 'p_0_est', 'p_est_word'
+            respectively.
+            This is used to adjust which error rate is used as 'the' logical
+            error rate for purposes of extracting thresholds with finite-size
+            scaling.
+        n_fail_label : str
+            The column that is 'n_fail'.
+        """
+
+        results_df = self.results
+
+        # Initialize with unique error models and their parameters.
+        thresholds_df = get_error_model_df(results_df)
+
+        # Intialize the lists.
+        p_th_sd = []
+        p_th_nearest = []
+        p_left = []
+        p_right = []
+        fss_params = []
+        p_th_fss = []
+        p_th_fss_left = []
+        p_th_fss_right = []
+        p_th_fss_se = []
+        df_trunc_list = []
+        params_bs_list = []
+
+        p_est = 'p_est'
+        if logical_type == 'single':
+            p_est = 'p_0_est'
+        elif logical_type == 'word':
+            p_est = 'p_est_word'
+
+        parameter_sets = thresholds_df[[
+            'code_family', 'error_model', 'decoder'
+        ]].values
+        for code_family, error_model, decoder in parameter_sets:
+            df_filt = results_df[
+                (results_df['code_family'] == code_family)
+                & (results_df['error_model'] == error_model)
+                & (results_df['decoder'] == decoder)
+            ]
+
+            # Find nearest value where crossover changes.
+            p_th_nearest_val = get_p_th_nearest(df_filt, p_est=p_est)
+            p_th_nearest.append(p_th_nearest_val)
+
+            # Using the manual override to get truncation limits.
+            param_set = (code_family, error_model, decoder)
+            if param_set in self.overrides:
+
+                # Initialize to max limits and reuse crossover.
+                p_left_val = df_filt['probability'].min()
+                p_right_val = df_filt['probability'].max()
+                p_th_sd_val = p_th_nearest_val
+
+                # Use the overrides to refine limits if available.
+                if 'probability' in self.overrides[param_set].keys():
+                    probabilities = self.overrides[param_set]['probability']
+                    if probabilities[0] is not None:
+                        p_left_val = probabilities[0]
+                    if probabilities[1] is not None:
+                        p_right_val = probabilities[1]
+
+                # Just use the crossover point if it's in between the limits.
+                if (
+                    p_left_val < p_th_nearest_val
+                    and p_th_nearest_val < p_right_val
+                ):
+                    p_th_sd_val = p_th_nearest_val
+
+                # Otherwise take the average.
+                else:
+                    p_th_sd_val = (p_left_val + p_right_val)/2
+
+            # Use auto heuristic for getting limits of p to truncate.
+            else:
+                p_th_sd_val, p_left_val, p_right_val = get_p_th_sd_interp(
+                    df_filt, p_nearest=p_th_nearest_val, p_est=p_est
+                )
+            p_th_sd.append(p_th_sd_val)
+
+            # Left and right bounds to truncate.
+            p_left.append(p_left_val)
+            p_right.append(p_right_val)
+
+            # Finite-size scaling fitting.
+            params_opt, params_bs, df_trunc = fit_fss_params(
+                df_filt, p_left_val, p_right_val, p_th_nearest_val,
+                ftol_est=ftol_est, ftol_std=ftol_std, maxfev=maxfev,
+                p_est=p_est, n_fail_label=n_fail_label,
+            )
+            fss_params.append(params_opt)
+
+            # 1-sigma error bar bounds.
+            p_th_fss_left.append(np.quantile(params_bs[:, 0], 0.16))
+            p_th_fss_right.append(np.quantile(params_bs[:, 0], 0.84))
+
+            # Standard error.
+            p_th_fss_se.append(params_bs[:, 0].std())
+
+            # Use the median as the estimator.
+            p_th_fss.append(np.median(params_bs[:, 0]))
+
+            # Trucated data.
+            df_trunc_list.append(df_trunc)
+
+            # Bootstrap parameters sample list.
+            params_bs_list.append(params_bs)
+        thresholds_df['p_th_sd'] = p_th_sd
+        thresholds_df['p_th_nearest'] = p_th_nearest
+        thresholds_df['p_left'] = p_left
+        thresholds_df['p_right'] = p_right
+        # thresholds_df['p_th_fss'] = np.array(fss_params)[:, 0]
+        thresholds_df['p_th_fss'] = p_th_fss
+        thresholds_df['p_th_fss_left'] = p_th_fss_left
+        thresholds_df['p_th_fss_right'] = p_th_fss_right
+
+        thresholds_df['p_th_fss_se'] = p_th_fss_se
+        thresholds_df['fss_params'] = list(map(tuple, fss_params))
+
+        trunc_results_df = pd.concat(df_trunc_list, axis=0)
+        return thresholds_df, trunc_results_df, params_bs_list
+
+
+def infer_error_model_family(label: str) -> str:
+    """Infer the error_model family from the error_model label.
+
+    Parameters
+    ----------
+    label : str
+        The error_model label.
+
+    Returns
+    -------
+    family : str
+        The error_model family.
+        If the family cannot be inferred,
+        the original code label is returned.
+
+    Examples
+    --------
+    >>> infer_error_model_family('Deformed XZZX Pauli X0.0161Y0.0161Z0.9677')
+    'Deformed XZZX Pauli'
+    >>> infer_error_model_family('Pauli X0.0000Y0.0000Z1.0000')
+    'Pauli'
+    """
+    family = label
+    direction_pattern = r'X[\d.]+Y[\d.]+Z[\d.]+'
+    family = re.sub(direction_pattern, '', family).strip()
+    return family
 
 
 def infer_code_family(label: str) -> str:
@@ -1295,7 +1542,7 @@ def get_error_model_df(results_df):
             deduce_noise_direction
         )
     error_model_df = results_df[[
-        'code_family', 'error_model', 'decoder'
+        'code_family', 'error_model_family', 'error_model', 'decoder'
     ]].drop_duplicates()
     error_model_df['noise_direction'] = error_model_df['error_model'].apply(
         deduce_noise_direction

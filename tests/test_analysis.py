@@ -1,6 +1,7 @@
 import os
 import pytest
 import numpy as np
+import pandas as pd
 from panqec.analysis import (
     get_subthreshold_fit_function, get_single_qubit_error_rate, Analysis,
     deduce_bias
@@ -105,14 +106,68 @@ class TestAnalysis:
         assert os.path.exists(results_path)
         analysis = Analysis(results_path)
         analysis.analyze()
-        assert analysis.results.shape == (30, 24)
+        assert analysis.results.shape == (30, 25)
         assert set(analysis.results.columns) == set([
             'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
             'probability', 'wall_time', 'n_trials', 'n_fail',
             'effective_error', 'success', 'codespace', 'bias', 'results_file',
             'p_est', 'p_se', 'p_word_est', 'p_word_se', 'single_qubit_p_est',
-            'single_qubit_p_se', 'noise_direction', 'code_family'
+            'single_qubit_p_se', 'noise_direction', 'code_family',
+            'error_model_family'
         ])
+
+    def test_apply_overrides(self):
+        analysis = Analysis()
+        assert not analysis.overrides
+        analysis.results = pd.DataFrame([
+          {
+            'code_family': 'Toric',
+            'error_model': 'Deformed XZZX Pauli X0.0005Y0.0005Z0.9990',
+            'decoder': 'BP-OSD decoder',
+            'bias': 1000,
+            'code': 'Toric 9x9x9',
+            'probability': 0.18
+          },
+          {
+            'code_family': 'Toric',
+            'error_model': 'Deformed XZZX Pauli X0.0161Y0.0161Z0.9677',
+            'decoder': 'BP-OSD decoder',
+            'bias': 30,
+            'code': 'Toric 9x9x9',
+            'probability': 0.1
+          },
+          {
+            'code_family': 'Toric',
+            'error_model': 'Pauli X0.0000Y0.0000Z1.0000',
+            'decoder': 'BP-OSD decoder',
+            'bias': 'inf',
+            'code': 'Toric 9x9x9',
+            'probability': 0.204
+          }
+        ])
+        analysis.overrides_spec = {
+            'overrides': [
+                {
+                    'filters': {
+                        'code_family': 'Toric',
+                        'bias': 30,
+                        'decoder': 'BP-OSD decoder'
+                    },
+                    'truncate': {
+                        'probability': [0.1, 0.2]
+                    }
+                }
+            ]
+        }
+        analysis.apply_overrides()
+        assert analysis.overrides == {
+            (
+                'Toric', 'Deformed XZZX Pauli X0.0161Y0.0161Z0.9677',
+                'BP-OSD decoder'
+            ): {
+                'probability': [0.1, 0.2]
+            }
+        }
 
 
 @pytest.mark.parametrize('error_model,bias', [
