@@ -29,14 +29,27 @@ class UnionFindDecoder(BaseDecoder):
         syndromes_x = self.code.extract_x_syndrome(syndrome) # an array with value 1 if that index (of the stabilizer) is a syndrome
         Hz = self.code.Hz # the parity matrix for z stabilizers (a 2D numpy array)
         Hx = self.code.Hx # the parity matrix for z stabilizers (a 2D numpy array) --> is it csr or 2d numpy array? Lynna uses it as csr and it works, Osama uses it as a numpy array and it works!!
+        print(f"syndromes_z: {syndromes_z}")
+        print(f"syndromes_x: {syndromes_x}")
+        print("We are decoding with union find!!!")
+        print("\n")
 
         # clustering
+        print("~~~~ we do clustering now ~~~~")
         output_x = clustering(syndromes_z, Hz)
         output_z = clustering(syndromes_x, Hx)
+        print(f"The output_x of clustering is: {output_x}")
+        print(f"The output_z of clustering is: {output_z}")
+        print("\n")  
 
         # peeling
+        print("~~~~ we start peeling for x_correction ~~~~")
         correction_x = peeling(output_x, syndromes_z, Hz)
+        print(f"~~ correction_x is: {correction_x} ~~")
+        print("\n \n")
+        print("~~~~ we start peeling for z_correction ~~~~")
         correction_z = peeling(output_z, syndromes_x, Hx)
+        print(f"~~ correction_z is: {correction_z} ~~")
 
         # Load the correction into the X block of the full bsf ###
         correction[:self.code.n] = correction_x
