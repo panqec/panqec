@@ -2036,12 +2036,13 @@ def deduce_bias(
         if r_max == 1:
             eta = 'inf'
         else:
-            eta = r_max/(1 - r_max)
-            common_matches = np.isclose(eta, common_eta_values, rtol=rtol)
+            eta_f: float = r_max/(1 - r_max)
+            common_matches = np.isclose(eta_f, common_eta_values, rtol=rtol)
             if any(common_matches):
-                eta = common_eta_values[np.argwhere(common_matches).flat[0]]
-            elif np.isclose(float(eta), np.round(float(eta)), rtol=rtol):
-                eta = int(np.round(float(eta)))
+                eta_f = common_eta_values[np.argwhere(common_matches).flat[0]]
+            elif np.isclose(eta_f, np.round(eta_f), rtol=rtol):
+                eta_f = int(np.round(eta_f))
             else:
-                eta = np.round(r_max/(1 - r_max), 3)
+                eta_f = np.round(eta_f, 3)
+            eta = eta_f
     return eta
