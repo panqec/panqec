@@ -8,7 +8,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": [0.18, 0.30]
+        "probability": {"min": 0.18, "max": 0.30}
       }
     },
     {
@@ -19,7 +19,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": [0.19, 0.24]
+        "probability": {"min": 0.19, "max": 0.24}
       }
     },
     {
@@ -30,7 +30,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": [0.10, 0.14]
+        "probability": {"min": 0.10, "max": 0.14}
       }
     },
     {
@@ -41,7 +41,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": [0.07, 0.09]
+        "probability": {"min": 0.07, "max": 0.09}
       }
     },
     {
@@ -52,7 +52,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": [0.20, 0.23]
+        "probability": {"min": 0.20, "max": 0.23}
       }
     }
   ]

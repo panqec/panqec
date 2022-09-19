@@ -466,11 +466,11 @@ class Analysis:
 
                 # Use the overrides to refine limits if available.
                 if 'probability' in self.overrides[param_set].keys():
-                    probabilities = self.overrides[param_set]['probability']
-                    if probabilities[0] is not None:
-                        p_left_val = probabilities[0]
-                    if probabilities[1] is not None:
-                        p_right_val = probabilities[1]
+                    p_trunc = self.overrides[param_set]['probability']
+                    if 'min' in p_trunc and p_trunc['min'] is not None:
+                        p_left_val = p_trunc['min']
+                    if 'max' in p_trunc and p_trunc['max'] is not None:
+                        p_right_val = p_trunc['max']
 
                 # Just use the crossover point if it's in between the limits.
                 if (
