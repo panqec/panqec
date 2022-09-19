@@ -45,26 +45,39 @@ def peeling(output, syndromes, H):
     graphs = [] # list of all graphs organized per cluster in the form of a list of dictionaries
     sig = [] # list of all syndromes organized per cluster in the form of a list of lists
     syndromes_index = np.where(syndromes == 1)[0] # creating an array of indices of syndrome stabilizers
+    print(f"The syndromes index is: {syndromes_index}")
+    #print(f"The matrix H: {H}")
+    print("\n")
 
-    for cluster in output:           
+    print("|| *** Now we create the graphs ***")
+    cluster_index = 0 # printing purposes
+    for cluster in output:  
+        print(f"~~ For cluster no: {cluster_index} ~~")         
         graph_i = {} # initialize the graph dictionary of the ith cluster
         sig_i = [] # initializing the list of syndromes of the ith cluster
 
         ## creating the graphs:
 
         vertices_i = cluster[0] # list of vertices (nodes) in the ith cluster
-        edges_i = cluster[1]  # list of qubits (edges) in the ith cluster            
+        edges_i = cluster[1]  # list of qubits (edges) in the ith cluster
 
+        print(f"vertices_i: {vertices_i}")
+        print(f"edges_i: {edges_i}") 
+
+        print("| ** Now we start checking each cluster vertex **")
         # looping through all the nodes in the cluster to find their neighbouring nodes and create an adjaceny list
         # for the graph representing the cluster. The problem here is we double the search as neighbours are recorded
         # twice in the adjacency list.
         for vertex in vertices_i: 
-            
+            print(f" ~ for vertex: {vertex} ~")
+            #print(f"you can check with H: {H}")
             # finding list of qubits/edges in the cluster attached to the node "vertex" using the parity check matrix
             qubits_list = [] # can have a size of 1-4
             for edge in edges_i: #--> np.where can be used
                 if H[vertex,edge] == 1:
                     qubits_list.append(edge)
+            print(f"list of qubits attached to {vertex} : {qubits_list} ")
+            
 
             # for each such qubit/edge, we find which other node from the cluster is attached to it. These
             # other nodes are the neighbours of the node "vertex"
@@ -74,15 +87,26 @@ def peeling(output, syndromes, H):
                     if vertex_ != vertex: # we don't want to consider the node "vertex" as its own neighbour
                         if H[vertex_, qubit] == 1:
                             neighbours.append(vertex_)                              
-            
+            print(f"List of neighbours of {vertex} : {neighbours}")
             graph_i[vertex] = neighbours
+            print(f"new graph_i(adding {vertex}: \'neighbours\'): {graph_i}")
 
             ## organizing the syndromes per graph
+            print(f"Is {vertex} in syndromes???")
             if vertex in syndromes_index: 
                 sig_i.append(vertex)
+                print(f"vertex {vertex} is in syndromes => add to sig_i") 
+                print(f"sig_i (with {vertex} added): {sig_i}")         
+            
+        print(f"** done checking each cluster vertix for cluster no: {cluster_index} ** |")
+        print(f"final graph_i (cluster {cluster_index}): {graph_i}")
+        print(f"final sig_i (cluster {cluster_index}): {sig_i}")
+        print("\n")
+        cluster_index +=1
 
         sig.append(sig_i)
         graphs.append(graph_i)
+    print("*** Graphs Done  *** ||")    
     print(f"graphs is: {graphs}")
     print(f"sig is: {sig}")
     print("\n")
@@ -284,7 +308,7 @@ def peeling(output, syndromes, H):
     for edge in A_:
         v1 = edge[0]
         v2 = edge[1]        
-        for qubit in range(N): # --> 
+        for qubit in range(N): # --> np.where would be better
             if (H[v1,qubit]==1) and (H[v2,qubit]==1): # if "qubit" attached to both v1 and v2
                 A.append(qubit)
     print(f"Qubit indices, A: {A} ")
