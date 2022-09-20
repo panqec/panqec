@@ -26,6 +26,17 @@
       "filters": {
         "code_family": "Toric",
         "error_model_family": "Deformed XZZX Pauli",
+        "bias": 30,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.15, "max": 0.20}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Toric",
+        "error_model_family": "Deformed XZZX Pauli",
         "bias": 10,
         "decoder": "BP-OSD decoder"
       },
@@ -47,12 +58,34 @@
     {
       "filters": {
         "code_family": "Toric",
+        "error_model_family": "Deformed XZZX Pauli",
+        "bias": 0.5,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.05, "max": 0.075}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Toric",
         "error_model_family": "Pauli",
         "bias": "inf",
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
         "probability": {"min": 0.20, "max": 0.23}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Toric",
+        "error_model_family": "Pauli",
+        "bias": 30,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.20, "max": 0.235}
       }
     }
   ]

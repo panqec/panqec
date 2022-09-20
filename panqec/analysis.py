@@ -1428,25 +1428,30 @@ def fit_fss_params(
     params_bs_list = []
     for i_bs in range(n_bs):
 
-        # Sample from Beta distribution.
+        # Sample from Beta distribution over error bar for each data point.
         f_list_bs = []
         for i in range(df_trunc.shape[0]):
             n_trials = int(df_trunc['n_trials'].iloc[i])
             n_fail = int(df_trunc[n_fail_label].iloc[i])
-            if n_fail == 0:
-                n_fail = 1
-            if n_fail == n_trials:
-                f_list_bs.append(0.5)
-            else:
-                f_list_bs.append(
-                    rng.beta(n_fail, n_trials - n_fail)
-                )
+
+            # Posterior distribution starting from uniform prior.
+            f_list_bs.append(
+                rng.beta(n_trials - n_fail + 1, n_fail + 1)
+            )
         f_bs = np.array(f_list_bs)
+
+        # Resample over set of all data points.
+        resample_index = np.sort(rng.choice(
+            np.arange(len(p_list), dtype=int), size=len(p_list)
+        ))
 
         try:
             params_bs_list.append(
                 get_fit_params(
-                    p_list, d_list, f_bs, params_0=params_opt, ftol=ftol_std,
+                    p_list[resample_index],
+                    d_list[resample_index],
+                    f_bs[resample_index],
+                    params_0=params_opt, ftol=ftol_std,
                     maxfev=maxfev
                 )
             )

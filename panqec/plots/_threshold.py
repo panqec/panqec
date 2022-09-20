@@ -414,7 +414,9 @@ def update_plot(plt, results_df, error_model, xlim=None, ylim=None,
     plt.legend(prop={'size': 12}, loc='best', title=legend_title)
 
 
-def plot_data_collapse(plt, df_trunc, params_opt, params_bs):
+def plot_data_collapse(
+    plt, df_trunc, params_opt, params_bs, title=None
+):
     rescaled_p_fit = np.linspace(
         df_trunc['rescaled_p'].min(), df_trunc['rescaled_p'].max(), 101
     )
@@ -448,13 +450,14 @@ def plot_data_collapse(plt, df_trunc, params_opt, params_bs):
     plt.ylabel(r'Logical failure rate $p_{\mathrm{fail}}$', fontsize=16)
 
     error_model = df_trunc['error_model'].iloc[0]
-    title = get_error_model_format(error_model)
+    if title is None:
+        title = get_error_model_format(error_model)
     plt.title(title)
     plt.legend()
 
 
 def get_error_model_format(error_model: str, eta=None) -> str:
-    if 'deformed' in error_model:
+    if 'deformed' in error_model.lower():
         fmt = 'Deformed'
     else:
         fmt = 'Undeformed'
