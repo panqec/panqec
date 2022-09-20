@@ -19,7 +19,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.19, "max": 0.24}
+        "probability": {"min": 0.19, "max": 0.29}
       }
     },
     {

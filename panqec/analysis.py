@@ -168,9 +168,8 @@ class Analysis:
         self.calculate_total_error_rates()
         self.calculate_word_error_rates()
         self.calculate_single_qubit_error_rates()
-        self.calculate_total_thresholds()
-        self.calculate_single_qubit_sector_thresholds()
         self.calculate_thresholds()
+        self.calculate_sector_thresholds()
 
     def find_files(self):
         """Find where the results files are."""
@@ -366,21 +365,6 @@ class Analysis:
         self.results['single_qubit_p_est'] = estimates_list
         self.results['single_qubit_p_se'] = uncertainties_list
 
-    def calculate_total_thresholds(self, **kwargs):
-        """Calculate thresholds for total error rate."""
-        self.log('Calculating total thresholds')
-        thresholds_df, trunc_results_df, params_bs_list = get_thresholds_df(
-            self.results, **kwargs
-        )
-        self.thresholds_df = thresholds_df
-        self.trunc_results_df = trunc_results_df
-        self.params_bs_list = params_bs_list
-
-    def calculate_single_qubit_sector_thresholds(self, **kwargs):
-        """Calculate single-qubit thresholds for each sector."""
-        self.log('Calculating single-qubit sector thresholds thresholds')
-        pass
-
     def calculate_thresholds(
         self,
         ftol_est: float = 1e-5,
@@ -466,11 +450,12 @@ class Analysis:
 
                 # Use the overrides to refine limits if available.
                 if 'probability' in self.overrides[param_set].keys():
+                    tolerance = 1e-9
                     p_trunc = self.overrides[param_set]['probability']
                     if 'min' in p_trunc and p_trunc['min'] is not None:
-                        p_left_val = p_trunc['min']
+                        p_left_val = p_trunc['min'] - tolerance
                     if 'max' in p_trunc and p_trunc['max'] is not None:
-                        p_right_val = p_trunc['max']
+                        p_right_val = p_trunc['max'] + tolerance
 
                 # Just use the crossover point if it's in between the limits.
                 if (
@@ -529,8 +514,22 @@ class Analysis:
         thresholds_df['p_th_fss_se'] = p_th_fss_se
         thresholds_df['fss_params'] = list(map(tuple, fss_params))
 
+        thresholds_df['params_bs'] = params_bs_list
+
         trunc_results_df = pd.concat(df_trunc_list, axis=0)
-        return thresholds_df, trunc_results_df, params_bs_list
+
+        self.thresholds_df = thresholds_df
+        self.trunc_results_df = trunc_results_df
+
+    # TODO: implement this properly.
+    def calculate_sector_thresholds(self):
+        """Calculate thresholds of each single-qubit logical error type.
+
+        When thresholds cannot be calculated,
+        at least check whether we are above or below threshold
+        by giving upper or lower bounds on the threshold.
+        """
+        self.log('Calculating single-qubit sector thresholds thresholds')
 
 
 def infer_error_model_family(label: str) -> str:
