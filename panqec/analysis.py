@@ -1458,6 +1458,11 @@ def fit_fss_params(
         except (RuntimeError, TypeError):
             params_bs_list.append(np.array([np.nan]*5))
     params_bs = np.array(params_bs_list)
+
+    # If less than 50% of rows has nan, then remove the NaN rows.
+    if pd.isna(params_bs).any(axis=1).mean() < 0.5:
+        params_bs = params_bs[~np.isnan(params_bs).any(axis=1)]
+
     return params_opt, params_bs, df_trunc
 
 
@@ -1546,7 +1551,7 @@ def get_error_model_df(results_df):
             deduce_noise_direction
         )
     error_model_df = results_df[[
-        'code_family', 'error_model_family', 'error_model', 'decoder'
+        'code_family', 'error_model_family', 'error_model', 'decoder', 'bias'
     ]].drop_duplicates()
     error_model_df['noise_direction'] = error_model_df['error_model'].apply(
         deduce_noise_direction

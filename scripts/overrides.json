@@ -87,6 +87,273 @@
       "truncate": {
         "probability": {"min": 0.20, "max": 0.235}
       }
+    },
+    {
+      "filters": {
+        "code_family": "Rhombic",
+        "error_model_family": "Deformed Rhombic Pauli",
+        "bias": 3,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.025, "max": 0.035}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Rhombic",
+        "error_model_family": "Deformed Rhombic Pauli",
+        "bias": 10,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.05, "max": 0.07}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Rhombic",
+        "error_model_family": "Deformed Rhombic Pauli",
+        "bias": 30,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.06, "max": 0.12}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Rhombic",
+        "error_model_family": "Deformed Rhombic Pauli",
+        "bias": 100,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.09, "max": 0.24}
+      },
+      "exclude": {
+        "d": [22]
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Rhombic",
+        "error_model_family": "Deformed Rhombic Pauli",
+        "bias": 1000,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.18, "max": 0.30}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Rhombic",
+        "error_model_family": "Pauli",
+        "bias": 0.5,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.010, "max": 0.020}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Rhombic",
+        "error_model_family": "Pauli",
+        "bias": 3,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.025, "max": 0.050}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Rhombic",
+        "error_model_family": "Pauli",
+        "bias": 10,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.07, "max": 0.13}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Rhombic",
+        "error_model_family": "Pauli",
+        "bias": 15,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.14, "max": 0.17}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Rhombic",
+        "error_model_family": "Pauli",
+        "bias": 20,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.14, "max": 0.23}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Rhombic",
+        "error_model_family": "Pauli",
+        "bias": 30,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.27, "max": 0.31}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Rhombic",
+        "error_model_family": "Pauli",
+        "bias": 100,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.27, "max": 0.31}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Rhombic",
+        "error_model_family": "Pauli",
+        "bias": "inf",
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.27, "max": 0.31}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "XCube",
+        "error_model_family": "Deformed XZZX Pauli",
+        "bias": 100,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.12, "max": 0.18}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "XCube",
+        "error_model_family": "Deformed XZZX Pauli",
+        "bias": 30,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.08, "max": 0.12}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "XCube",
+        "error_model_family": "Deformed XZZX Pauli",
+        "bias": 10,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.06, "max": 0.11}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "XCube",
+        "error_model_family": "Deformed XZZX Pauli",
+        "bias": 3,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.05, "max": 0.09}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "XCube",
+        "error_model_family": "Deformed XZZX Pauli",
+        "bias": 0.5,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.035, "max": 0.055}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "XCube",
+        "error_model_family": "Pauli",
+        "bias": "inf",
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.08, "max": 0.105}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "XCube",
+        "error_model_family": "Pauli",
+        "bias": 100,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.08, "max": 0.105}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "XCube",
+        "error_model_family": "Pauli",
+        "bias": 30,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.08, "max": 0.11}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "XCube",
+        "error_model_family": "Pauli",
+        "bias": 10,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.08, "max": 0.11}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "XCube",
+        "error_model_family": "Pauli",
+        "bias": 3,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.10, "max": 0.12}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "XCube",
+        "error_model_family": "Pauli",
+        "bias": 0.5,
+        "decoder": "BP-OSD decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.03, "max": 0.055}
+      }
     }
   ]
 }
