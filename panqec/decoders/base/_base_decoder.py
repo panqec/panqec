@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+from typing import Optional, List
 from panqec.codes import StabilizerCode
 from panqec.error_models import BaseErrorModel
 import numpy as np
@@ -7,13 +8,23 @@ import numpy as np
 class BaseDecoder(metaclass=ABCMeta):
     """Base class for decoders"""
 
-    def __init__(self,
-                 code: StabilizerCode,
-                 error_model: BaseErrorModel,
-                 error_rate: float):
+    def __init__(
+        self,
+        code: StabilizerCode,
+        error_model: BaseErrorModel,
+        error_rate: float
+    ):
         self.code = code
         self.error_model = error_model
         self.error_rate = error_rate
+
+    @property
+    @abstractmethod
+    def allowed_codes(self) -> Optional[List[str]]:
+        """List of codes concerned by the decoders (by id).
+        Takes the value None if all codes are allowed.
+        Example: ['Toric2DCode', 'Planar2DCode', 'RotatedPlanar2DCode']
+        """
 
     @property
     @abstractmethod

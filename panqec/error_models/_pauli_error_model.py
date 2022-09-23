@@ -4,6 +4,21 @@ import numpy as np
 from panqec.codes import StabilizerCode
 from . import BaseErrorModel
 from panqec.bpauli import pauli_to_bsf
+import random
+
+
+def fast_choice(options, probs, rng=None):
+    """Found on stack overflow to accelerate np.random.choice"""
+    if rng is None:
+        x = random.random()
+    else:
+        x = rng.random()
+    cum = 0
+    for i, p in enumerate(probs):
+        cum += p
+        if x < cum:
+            return options[i]
+    return options[-1]
 
 
 class PauliErrorModel(BaseErrorModel):
@@ -32,7 +47,8 @@ class PauliErrorModel(BaseErrorModel):
 
     @property
     def direction(self) -> Tuple[float, float, float]:
-        """Rate of X, Y and Z errors, as given when initializing the error model
+        """Rate of X, Y and Z errors, as given when initializing the
+        error model
 
         Returns
         -------
@@ -50,9 +66,15 @@ class PauliErrorModel(BaseErrorModel):
 
         p_i, p_x, p_y, p_z = self.probability_distribution(code, error_rate)
 
-        error_pauli = ''.join([rng.choice(
+        # error_pauli = ''.join([rng.choice(
+        #     ('I', 'X', 'Y', 'Z'),
+        #     p=[p_i[i], p_x[i], p_y[i], p_z[i]]
+        # ) for i in range(code.n)])
+
+        error_pauli = ''.join([fast_choice(
             ('I', 'X', 'Y', 'Z'),
-            p=[p_i[i], p_x[i], p_y[i], p_z[i]]
+            [p_i[i], p_x[i], p_y[i], p_z[i]],
+            rng=rng
         ) for i in range(code.n)])
 
         error = pauli_to_bsf(error_pauli)

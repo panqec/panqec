@@ -182,6 +182,8 @@ class XCubeCode(StabilizerCode):
         for z in range(2, 2*Lz, 2):
             operator = dict()
             for x in range(1, 2*Lx, 2):
+                operator[(x, 0, 0)] = 'Z'
+            for x in range(1, 2*Lx, 2):
                 operator[(x, 0, z)] = 'Z'
             logicals.append(operator)
 
@@ -195,6 +197,8 @@ class XCubeCode(StabilizerCode):
         for z in range(2, 2*Lz, 2):
             operator = dict()
             for y in range(1, 2*Ly, 2):
+                operator[(0, y, 0)] = 'Z'
+            for y in range(1, 2*Ly, 2):
                 operator[(0, y, z)] = 'Z'
             logicals.append(operator)
 
@@ -207,6 +211,8 @@ class XCubeCode(StabilizerCode):
 
         for y in range(2, 2*Ly, 2):
             operator = dict()
+            for z in range(1, 2*Lz, 2):
+                operator[(0, 0, z)] = 'Z'
             for z in range(1, 2*Lz, 2):
                 operator[(0, y, z)] = 'Z'
             logicals.append(operator)

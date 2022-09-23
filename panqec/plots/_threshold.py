@@ -107,9 +107,9 @@ def threshold_plot(
 
 
 def detailed_plot(
-    plt, results_df, error_model, x_limits=None, save_folder=None,
+    plt, results_df, error_model, x_limits=None, y_limits=None,
     yscale=None, eta_key='eta_x', min_y_axis=1e-3,
-    thresholds_df=None,
+    thresholds_df=None, save_folder=None
 ):
     """Plot routine on loop.
 
@@ -142,8 +142,11 @@ def detailed_plot(
     if x_limits is None:
         x_limits = [(0, 0.5), (0, 0.5), (0, 0.5)]
 
-    eta = df[(df['error_model'] == error_model)].iloc[0][eta_key]
-    fig.suptitle(f"$\\eta={eta:.1f}$")
+    if eta_key is not None:
+        eta = df[(df['error_model'] == error_model)].iloc[0][eta_key]
+        fig.suptitle(f"$\\eta={eta:.1f}$")
+    else:
+        eta = None
 
     for (i_ax, prob, prob_se, title) in plot_labels:
         ax = axes[i_ax]
@@ -188,7 +191,12 @@ def detailed_plot(
             ax.set_yscale(yscale)
         if x_limits != 'auto':
             ax.set_xlim(x_limits[i_ax])
-            ax.set_ylim(min_y_axis, 1)
+
+        if y_limits != 'auto':
+            ax.set_ylim(y_limits[i_ax])
+
+        if min_y_axis:
+            ax.set_ylim(min_y_axis, y_limits[i_ax][1])
 
         ax.set_title(title)
         ax.locator_params(axis='x', nbins=6)
@@ -200,8 +208,6 @@ def detailed_plot(
             ax.legend(loc='best')
     axes[0].set_ylabel('Logical Error Rate')
 
-    fig.suptitle(f"$\\eta={eta:.1f}$")
-
     if save_folder:
         filename = os.path.join(save_folder, results_df['label'][0])
         plt.savefig(f'{filename}.png')
@@ -210,7 +216,7 @@ def detailed_plot(
 def xyz_sector_plot(
     plt, results_df, error_model, x_limits=None, save_folder=None,
     yscale=None, eta_key='eta_x', min_y_axis=1e-3,
-    thresholds_df=None,
+    thresholds_df=None
 ):
     """Plot the different sectors (pure X, pure Y, pure Z) crossover plots
 
@@ -246,7 +252,7 @@ def xyz_sector_plot(
     if x_limits is None:
         x_limits = [(0, 0.5), (0, 0.5), (0, 0.5), (0, 0.5)]
 
-    eta = df[(df['error_model'] == error_model)].iloc[0][eta_key]
+    # eta = df[(df['error_model'] == error_model)].iloc[0][eta_key]
 
     for (i_ax, prob, prob_se, title) in plot_labels:
         ax = axes[i_ax]
@@ -258,7 +264,7 @@ def xyz_sector_plot(
             ax.errorbar(
                 df_filtered['probability'], df_filtered[prob],
                 yerr=df_filtered[prob_se],
-                label=r'$d={}$'.format(df_filtered['size'].iloc[0][0]),
+                label=r'$L={}$'.format(df_filtered['size'].iloc[0][0]),
                 capsize=1,
                 linestyle='-',
                 marker='.',
@@ -304,7 +310,7 @@ def xyz_sector_plot(
             ax.legend(loc='best')
     axes[0].set_ylabel('Logical Error Rate')
 
-    fig.suptitle(f"$\\eta={eta:.1f}$")
+    # fig.suptitle(f"$\\eta={eta:.1f}$")
 
     if save_folder:
         filename = os.path.join(save_folder, results_df['label'][0])
@@ -313,15 +319,11 @@ def xyz_sector_plot(
 
 def update_plot(plt, results_df, error_model, xlim=None, ylim=None,
                 save_folder=None, yscale=None, eta_key='eta_x',
-                min_y_axis=1e-3):
+                min_y_axis=1e-3, thresholds_df=None,
+                title=None):
     """Plot routine on loop."""
     df = results_df.copy()
     df.sort_values('probability', inplace=True)
-
-    if xlim is None:
-        xlim = (0, 0.5)
-    if ylim is None:
-        ylim = (0, 1.)
 
     for code_size in np.sort(df['size'].unique()):
         df_filtered = df[
@@ -330,23 +332,52 @@ def update_plot(plt, results_df, error_model, xlim=None, ylim=None,
         plt.errorbar(
             df_filtered['probability'], df_filtered['p_est'],
             yerr=df_filtered['p_se'],
-            label=r'$d={}$'.format(df_filtered['size'].iloc[0][0]),
+            label=r'$L={}$'.format(df_filtered['size'].iloc[0][0]),
             capsize=1,
             linestyle='-',
             marker='.'
         )
 
-    if xlim != 'auto':
+    legend_title = None
+    if thresholds_df is not None:
+        thresholds = thresholds_df[
+            thresholds_df['error_model'] == error_model
+        ]
+        if thresholds.shape[0] > 0:
+            p_th_fss_left = thresholds['p_th_fss_left'].iloc[0]
+            p_th_fss_right = thresholds['p_th_fss_right'].iloc[0]
+            p_th_fss = thresholds['p_th_fss'].iloc[0]
+            p_th_fss_se = thresholds['p_th_fss_se'].iloc[0]
+            if not pd.isna(p_th_fss_left) and not pd.isna(p_th_fss_right):
+                plt.axvspan(
+                    p_th_fss_left, p_th_fss_right,
+                    alpha=0.5, color='pink'
+                )
+            if not pd.isna(p_th_fss):
+                plt.axvline(
+                    p_th_fss,
+                    color='red',
+                    linestyle='--',
+                )
+            if p_th_fss_se is not None and p_th_fss is not None:
+                legend_title = r'$p_{\mathrm{th}}=(%.2f\pm %.2f)\%%$' % (
+                    100*p_th_fss, 100*p_th_fss_se,
+                )
+
+    if xlim is not None:
         plt.xlim(xlim)
+    if ylim is not None:
         plt.ylim(ylim)
 
     if yscale is not None:
         plt.yscale(yscale)
 
     # plt.title(error_model)
-    plt.xlabel('Physical Error Rate', fontsize=16)
-    plt.ylabel('Logical Error Rate', fontsize=16)
-    plt.legend(prop={'size': 12})
+    plt.xlabel('$p$', fontsize=16)
+    plt.ylabel('$p_L$', fontsize=16)
+    plt.title(title, fontsize=16)
+
+    plt.legend(prop={'size': 12}, loc='best', title=legend_title)
 
 
 def plot_data_collapse(plt, df_trunc, params_opt, params_bs):
@@ -365,7 +396,7 @@ def plot_data_collapse(plt, df_trunc, params_opt, params_bs):
         plt.errorbar(
             df_trunc_filt['rescaled_p'], df_trunc_filt['p_est'],
             yerr=df_trunc_filt['p_se'], fmt='o', capsize=5,
-            label=r'$d={}$'.format(d_val)
+            label=r'$L={}$'.format(d_val)
         )
     plt.plot(
         rescaled_p_fit, f_fit, color='black', linewidth=1, label='Best fit'
@@ -426,7 +457,7 @@ def plot_threshold_fss(
         plt.errorbar(
             df_trunc_filt['probability'], df_trunc_filt['p_est'],
             yerr=df_trunc_filt['p_se'],
-            fmt='o-', capsize=5, label=r'$d={}$'.format(d_val)
+            fmt='o-', capsize=5, label=r'$L={}$'.format(d_val)
         )
     plt.axvline(
         p_th_fss, color='red', linestyle='-.',

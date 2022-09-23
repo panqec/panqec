@@ -48,7 +48,7 @@ def bs_prod(a, b) -> np.ndarray:
     if b.shape[1] != a.shape[1]:
         raise ValueError(
             f'Length {a.shape[1]} bvector cannot be '
-            'composed with length {b.shape[1]}'
+            f'composed with length {b.shape[1]}'
         )
 
     if bsparse.is_sparse(a) or bsparse.is_sparse(b):

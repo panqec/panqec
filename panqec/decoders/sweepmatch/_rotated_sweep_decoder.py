@@ -10,6 +10,8 @@ Operator = Dict[Tuple, str]
 class RotatedSweepDecoder3D(BaseDecoder):
 
     label = 'Rotated Code 3D Sweep Decoder'
+    allowed_codes = ["RotatedToric3DCode", "RotatedPlanar3DCode"]
+
     _rng: np.random.Generator
     max_rounds: int
 
