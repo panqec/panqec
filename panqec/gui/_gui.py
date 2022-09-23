@@ -191,7 +191,7 @@ class GUI():
 
         for decoder_name, decoder_class in decoders.items():
             if (decoder_class.allowed_codes is None
-                or code_id in decoder_class.allowed_codes):
+                    or code_id in decoder_class.allowed_codes):
                 decoder_names.append(decoder_name)
 
         return json.dumps(decoder_names)
@@ -243,7 +243,7 @@ class GUI():
             kwargs['beta'] = beta
 
         decoder = self.decoders[decoder_name](code, error_model, p,
-                                                **kwargs)
+                                              **kwargs)
 
         correction = decoder.decode(syndrome)
 
@@ -251,7 +251,7 @@ class GUI():
         correction_z = correction[code.n:]
 
         return json.dumps({'x': correction_x.tolist(),
-                            'z': correction_z.tolist()})
+                           'z': correction_z.tolist()})
 
     def send_random_errors(self):
         content = request.json
