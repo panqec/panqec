@@ -29,7 +29,8 @@ from .bpauli import int_to_bvector, bvector_to_pauli_string
 Numerical = Union[Iterable, float, int]
 
 
-# TODO allow for manual truncation
+# TODO add plotting routines.
+# TODO replace inf bias thresholds with values in overrides.json
 class Analysis:
     """Analysis on large collections of results files.
 
@@ -46,6 +47,7 @@ class Analysis:
     overrides : Optional[str]
         Path to json file that gives specifications on what to override,
         for instance when to truncate.
+        As well as replacements values for known analytical threshold values.
         See `scripts/overrides.json` for an example.
     verbose : bool
         If True, logs will be printed at various steps of the analysis.
@@ -86,7 +88,13 @@ class Analysis:
     overrides_spec: Dict
 
     # Processed manual overrides.
-    overrides: Dict[Tuple[str, str, str], Any]
+    overrides: Dict[Tuple, Any]
+
+    # Manual values to be replace parsed from the overrides json file.
+    replaces: Dict[Tuple, Any]
+
+    # Parameter values to be skipped, also from the overrides json file.
+    skips: List[Tuple]
 
     def __init__(
         self, results: Union[str, List[str]] = [], verbose: bool = True,
@@ -102,9 +110,11 @@ class Analysis:
         if overrides:
             self.use_overrides(overrides)
 
-        # Intialized as empty until apply_overrides is called after results are
-        # aggregated.
+        # Manual specifications are intialized as empty until apply_overrides
+        # is called after results are aggregated.
         self.overrides = dict()
+        self.replaces = dict()
+        self.skips = []
 
     def use_overrides(self, overrides_json):
         """Use override specifications stored in json file."""
@@ -122,9 +132,16 @@ class Analysis:
         # them to the overrides attribute.
         data = self.overrides_spec
         if 'overrides' in data and isinstance(data['overrides'], list):
-            overrides_count = 0
-            n_overrides = len(data['overrides'])
-            for override in data['overrides']:
+
+            self.overrides = dict()
+            self.replaces = dict()
+            self.skips = []
+
+            # Keep track of which overrides got used and not used so the user
+            # does not write them in vain in case they make a mistake.
+            overrides_used = np.zeros(len(data['overrides']), dtype=bool)
+
+            for i_override, override in enumerate(data['overrides']):
                 if 'filters' in override and override['filters']:
                     filter_index = None
                     for key, value in override['filters'].items():
@@ -137,9 +154,28 @@ class Analysis:
                         'code_family', 'error_model', 'decoder'
                     ]].drop_duplicates().values
                     for triple in parameter_sets:
-                        self.overrides[tuple(triple)] = override['truncate']
-                    overrides_count += 1
-            self.log(f'Using {overrides_count} out of {n_overrides} filters')
+                        if 'truncate' in override:
+                            self.overrides[tuple(triple)] = \
+                                    override['truncate']
+                            overrides_used[i_override] = True
+                        if 'replace' in override:
+                            self.replaces[tuple(triple)] = override['replace']
+                            overrides_used[i_override] = True
+                        if 'skip' in override and override['skip']:
+                            self.skips.append(tuple(triple))
+                            overrides_used[i_override] = True
+
+            n_overrides = len(data['overrides'])
+            used_overrides = sum(overrides_used)
+            unused_overrides = n_overrides - used_overrides
+            self.log(f'Using {used_overrides} out of {n_overrides} filters')
+
+            # Printout the unused overrides so the user can find them.
+            if unused_overrides > 0:
+                self.log('Unused overrides:')
+                for used, entry in zip(overrides_used, data['overrides']):
+                    if not used:
+                        self.log(json.dumps(entry, indent=2))
 
     def log(self, message: str):
         """Display a message, if the verbose attribute is True.
@@ -277,16 +313,12 @@ class Analysis:
             'effective_error', 'success', 'codespace'
         ]].aggregate(lambda x: np.concatenate(x.values))
 
-        # Columns for which the any value out of the grouped values can be
-        # taken.
-        take_first_columns = grouped_df[['bias']].first()
-
         # Columns to be grouped and turned into lists.
         list_columns = grouped_df[['results_file']].aggregate(list)
 
         # Stack the columns together side by side to form a big table.
         self.results = pd.concat([
-            added_columns, concat_columns, take_first_columns, list_columns
+            added_columns, concat_columns, list_columns
         ], axis=1).reset_index()
 
         # Count the number of fails, later used for error bars.
@@ -301,6 +333,9 @@ class Analysis:
         self.results['error_model_family'] = self.results['error_model'].apply(
             infer_error_model_family
         )
+
+        # Deduce the bias.
+        self.results['bias'] = self.results['error_model'].apply(deduce_bias)
 
     def calculate_total_error_rates(self):
         """Calculate the total error rate.
@@ -370,7 +405,7 @@ class Analysis:
         ftol_est: float = 1e-5,
         ftol_std: float = 1e-5,
         maxfev: int = 2000,
-        logical_type: str = 'total',
+        p_est: str = 'p_est',
         n_fail_label: str = 'n_fail',
     ):
         """Extract thresholds from table of results using heuristics.
@@ -403,123 +438,154 @@ class Analysis:
 
         results_df = self.results
 
-        # Initialize with unique error models and their parameters.
-        thresholds_df = get_error_model_df(results_df)
-
         # Intialize the lists.
-        p_th_sd = []
-        p_th_nearest = []
-        p_left = []
-        p_right = []
-        fss_params = []
-        p_th_fss = []
-        p_th_fss_left = []
-        p_th_fss_right = []
-        p_th_fss_se = []
+        entries = []
         df_trunc_list = []
-        params_bs_list = []
 
-        p_est = 'p_est'
-        if logical_type == 'single':
-            p_est = 'p_0_est'
-        elif logical_type == 'word':
-            p_est = 'p_est_word'
+        # List of triples that identifies each parameter set,
+        param_keys = ['code_family', 'error_model', 'decoder']
+        parameter_sets: List[Tuple] = [
+            tuple(param_set)
+            for param_set in self.results[
+                param_keys
+            ].drop_duplicates().sort_values(by=param_keys).values
+        ]
 
-        parameter_sets = thresholds_df[[
-            'code_family', 'error_model', 'decoder'
-        ]].values
-        for code_family, error_model, decoder in parameter_sets:
+        skipped_param_sets = [
+            param_set for param_set in parameter_sets
+            if param_set in self.skips
+        ]
+        if skipped_param_sets:
+            self.log(f'Skipping {len(skipped_param_sets)} parameter sets')
+            for skipped_param_set in skipped_param_sets:
+                self.log(
+                    json.dumps(
+                        results_df[(
+                            results_df[param_keys] == skipped_param_set
+                        ).all(axis=1)][
+                            param_keys + ['bias']
+                        ].drop_duplicates().iloc[0].to_dict(),
+                        indent=2
+                    )
+                )
+
+        # Skip the parameter sets manually specified to be skipped.
+        parameter_sets = [
+            param_set for param_set in parameter_sets
+            if param_set not in self.skips
+        ]
+
+        for param_set in parameter_sets:
+            code_family, error_model, decoder = param_set
+
+            entry = {
+                'code_family': code_family,
+                'error_model': error_model,
+                'decoder': decoder,
+            }
+
             df_filt = results_df[
-                (results_df['code_family'] == code_family)
-                & (results_df['error_model'] == error_model)
-                & (results_df['decoder'] == decoder)
+                (results_df[param_keys] == param_set).all(axis=1)
             ]
 
+            # Use the replacement values if there are any manually given.
+            if param_set in self.replaces:
+                if 'p_th_fss' in self.replaces[param_set]:
+                    estimate = self.replaces[param_set]['p_th_fss']
+                    uncertainty = 0
+                    if 'p_th_fss_se' in self.replaces[param_set]:
+                        uncertainty = self.replaces[param_set]['p_th_fss_se']
+
+                    self.log('Using given threshold values')
+                    self.log(json.dumps({
+                        **entry,
+                        'p_th_fss': estimate,
+                        'p_th_fss_sd': uncertainty,
+                    }, indent=2))
+
+                    entry.update({
+                        "p_th_sd":  estimate,
+                        "p_th_nearest":  estimate,
+                        "p_th_fss_left":  estimate - uncertainty,
+                        "p_th_fss_right":  estimate + uncertainty,
+                        "p_th_fss":  estimate,
+                    })
+
             # Find nearest value where crossover changes.
-            p_th_nearest_val = get_p_th_nearest(df_filt, p_est=p_est)
-            p_th_nearest.append(p_th_nearest_val)
+            entry['p_th_nearest'] = get_p_th_nearest(df_filt, p_est=p_est)
 
             # Using the manual override to get truncation limits.
-            param_set = (code_family, error_model, decoder)
             if param_set in self.overrides:
 
                 # Initialize to max limits and reuse crossover.
-                p_left_val = df_filt['probability'].min()
-                p_right_val = df_filt['probability'].max()
-                p_th_sd_val = p_th_nearest_val
+                entry.update({
+                    'p_left': df_filt['probability'].min(),
+                    'p_right': df_filt['probability'].max(),
+                    'p_th_sd': entry['p_th_nearest'],
+                })
 
                 # Use the overrides to refine limits if available.
                 if 'probability' in self.overrides[param_set].keys():
                     tolerance = 1e-9
                     p_trunc = self.overrides[param_set]['probability']
                     if 'min' in p_trunc and p_trunc['min'] is not None:
-                        p_left_val = p_trunc['min'] - tolerance
+                        entry['p_left'] = p_trunc['min'] - tolerance
                     if 'max' in p_trunc and p_trunc['max'] is not None:
-                        p_right_val = p_trunc['max'] + tolerance
+                        entry['p_right'] = p_trunc['max'] + tolerance
 
                 # Just use the crossover point if it's in between the limits.
                 if (
-                    p_left_val < p_th_nearest_val
-                    and p_th_nearest_val < p_right_val
+                    entry['p_left'] < entry['p_th_nearest']
+                    and entry['p_th_nearest'] < entry['p_right']
                 ):
-                    p_th_sd_val = p_th_nearest_val
+                    entry['p_th_sd'] = entry['p_th_nearest']
 
                 # Otherwise take the average.
                 else:
-                    p_th_sd_val = (p_left_val + p_right_val)/2
+                    entry['p_th_sd'] = (entry['p_left'] + entry['p_right'])/2
 
             # Use auto heuristic for getting limits of p to truncate.
             else:
-                p_th_sd_val, p_left_val, p_right_val = get_p_th_sd_interp(
-                    df_filt, p_nearest=p_th_nearest_val, p_est=p_est
+                (
+                    entry['p_th_sd'], entry['p_left'], entry['p_right']
+                ) = get_p_th_sd_interp(
+                    df_filt, p_nearest=entry['p_th_nearest'], p_est=p_est
                 )
-            p_th_sd.append(p_th_sd_val)
 
-            # Left and right bounds to truncate.
-            p_left.append(p_left_val)
-            p_right.append(p_right_val)
+            if param_set not in self.replaces:
 
-            # Finite-size scaling fitting.
-            params_opt, params_bs, df_trunc = fit_fss_params(
-                df_filt, p_left_val, p_right_val, p_th_nearest_val,
-                ftol_est=ftol_est, ftol_std=ftol_std, maxfev=maxfev,
-                p_est=p_est, n_fail_label=n_fail_label,
-            )
-            fss_params.append(params_opt)
+                # Finite-size scaling fitting.
+                params_opt, params_bs, df_trunc = fit_fss_params(
+                    df_filt, entry['p_left'], entry['p_right'],
+                    entry['p_th_nearest'],
+                    ftol_est=ftol_est, ftol_std=ftol_std, maxfev=maxfev,
+                    p_est=p_est, n_fail_label=n_fail_label,
+                )
+                df_trunc_list.append(df_trunc)
 
-            # 1-sigma error bar bounds.
-            p_th_fss_left.append(np.quantile(params_bs[:, 0], 0.16))
-            p_th_fss_right.append(np.quantile(params_bs[:, 0], 0.84))
+                # Use the median as the estimator.
+                # and use 1-sigma error bar left and right bounds,
+                # but also record the standard deviation anyway.
+                entry.update({
+                    'fss_params': params_opt,
+                    'params_bs': params_bs,
+                    'p_th_fss': np.median(params_bs[:, 0]),
+                    'p_th_fss_left': np.quantile(params_bs[:, 0], 0.16),
+                    'p_th_fss_right': np.quantile(params_bs[:, 0], 0.84),
+                    'p_th_fss_se': params_bs[:, 0].std(),
+                })
 
-            # Standard error.
-            p_th_fss_se.append(params_bs[:, 0].std())
+            entries.append(entry)
 
-            # Use the median as the estimator.
-            p_th_fss.append(np.median(params_bs[:, 0]))
+        thresholds = pd.DataFrame(entries)
+        thresholds['error_model_family'] = (
+            thresholds['error_model'].apply(infer_error_model_family)
+        )
+        thresholds['bias'] = thresholds['error_model'].apply(deduce_bias)
+        trunc_results = pd.concat(df_trunc_list, axis=0)
 
-            # Trucated data.
-            df_trunc_list.append(df_trunc)
-
-            # Bootstrap parameters sample list.
-            params_bs_list.append(params_bs)
-        thresholds_df['p_th_sd'] = p_th_sd
-        thresholds_df['p_th_nearest'] = p_th_nearest
-        thresholds_df['p_left'] = p_left
-        thresholds_df['p_right'] = p_right
-        # thresholds_df['p_th_fss'] = np.array(fss_params)[:, 0]
-        thresholds_df['p_th_fss'] = p_th_fss
-        thresholds_df['p_th_fss_left'] = p_th_fss_left
-        thresholds_df['p_th_fss_right'] = p_th_fss_right
-
-        thresholds_df['p_th_fss_se'] = p_th_fss_se
-        thresholds_df['fss_params'] = list(map(tuple, fss_params))
-
-        thresholds_df['params_bs'] = params_bs_list
-
-        trunc_results_df = pd.concat(df_trunc_list, axis=0)
-
-        self.thresholds_df = thresholds_df
-        self.trunc_results_df = trunc_results_df
+        self.thresholds = thresholds
+        self.trunc_results = trunc_results
 
     # TODO: implement this properly.
     def calculate_sector_thresholds(self):
@@ -1346,13 +1412,14 @@ def fit_fss_params(
     df_filt: pd.DataFrame,
     p_left_val: float,
     p_right_val: float,
-    p_nearest: float,
+    p_nearest: float = None,
     n_bs: int = 100,
     ftol_est: float = 1e-5,
     ftol_std: float = 1e-5,
     maxfev: int = 2000,
     p_est: str = 'p_est',
     n_fail_label: str = 'n_fail',
+    resample_points: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, pd.DataFrame]:
     """Get optimized parameters and data table tweaked with heuristics.
 
@@ -1394,6 +1461,7 @@ def fit_fss_params(
     df_trunc : pd.DataFrame
         The truncated DataFrame used for performing the curve fitting.
     """
+
     # Truncate error probability between values.
     df_trunc = df_filt[
         (p_left_val <= df_filt['probability'])
@@ -1440,10 +1508,15 @@ def fit_fss_params(
             )
         f_bs = np.array(f_list_bs)
 
-        # Resample over set of all data points.
-        resample_index = np.sort(rng.choice(
-            np.arange(len(p_list), dtype=int), size=len(p_list)
-        ))
+        # Resample over set of all data points if told to do so.
+        if resample_points:
+            resample_index = np.sort(rng.choice(
+                np.arange(len(p_list), dtype=int), size=len(p_list)
+            ))
+
+        # Otherwise don't do it.
+        else:
+            resample_index = np.arange(len(p_list), dtype=int)
 
         try:
             params_bs_list.append(
@@ -1992,7 +2065,6 @@ def read_entry(
         if 'error_probability' in entry:
             entry['probability'] = entry.pop('error_probability')
 
-        entry['bias'] = deduce_bias(entry['error_model'])
         entries.append(entry)
     return entries
 
