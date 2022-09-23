@@ -2082,5 +2082,56 @@
 
             }
         }
+    },
+
+    "ChamonCode": {
+        "qubits": {
+            "kitaev": {
+                "object": "sphere",
+                "color": {
+                    "I": "pink",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.6
+                    }
+                },
+                "params": { "radius": 0.2 }
+            },
+            "rotated": {
+            }
+        },
+        "stabilizers": {
+            "kitaev": {
+                "vertex": {
+                    "object": "sphere",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "gold"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 1,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.3
+                        }
+                    },
+                    "params": {"radius": 0.2}
+                }
+            },
+            "rotated": {
+            }
+        }
     }
 }

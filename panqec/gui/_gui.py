@@ -5,7 +5,7 @@ from panqec.codes import (
     Toric2DCode, RotatedPlanar2DCode, Planar2DCode,
     Toric3DCode, RotatedPlanar3DCode, RhombicCode,
     Planar3DCode, RotatedToric3DCode, XCubeCode, Quasi2DCode,
-    Color3DCode, Color666Code, Color488Code
+    Color3DCode, Color666Code, Color488Code, ChamonCode
 )
 from panqec.decoders import (
     MatchingDecoder, RotatedSweepMatchDecoder,
@@ -34,7 +34,8 @@ codes = {'Toric 2D': Toric2DCode,
          'Planar 3D': Planar3DCode,
          'XCube': XCubeCode,
          'Quasi 2D': Quasi2DCode,
-         '3D Color Code': Color3DCode}
+         '3D Color Code': Color3DCode,
+         'Chamon Code': ChamonCode}
 
 error_models = {'None': PauliErrorModel,
                 'XZZX': DeformedXZZXErrorModel,
@@ -107,7 +108,7 @@ class GUI():
 
         return code
 
-    def run(self, port=5000):
+    def run(self, port=5000, debug=True):
         @self.app.route('/')
         def send_index():
             return render_template('index.html')
@@ -253,7 +254,7 @@ class GUI():
             error_spec = [spec for spec in error_spec if spec[0] != 'I']
             return json.dumps(errors.tolist())
 
-        self.app.run(port=port)
+        self.app.run(port=port, debug=debug)
 
 
 def open_browser(port):
@@ -268,7 +269,8 @@ def run_gui():
     port = args.port
 
     gui = GUI()
-    gui.run(port=port)
+    gui.app.run(host='0.0.0.0')
+    # gui.run(port=port)
 
 
 if __name__ == '__main__':
