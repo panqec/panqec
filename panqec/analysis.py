@@ -96,6 +96,10 @@ class Analysis:
     # Parameter values to be skipped, also from the overrides json file.
     skips: List[Tuple]
 
+    # Extra replace overrides that are not found in the results but get
+    # appended to thresholds DataFrame in the end.
+    extra_thresholds: List[Dict]
+
     def __init__(
         self, results: Union[str, List[str]] = [], verbose: bool = True,
         overrides: Optional[str] = None
@@ -115,6 +119,7 @@ class Analysis:
         self.overrides = dict()
         self.replaces = dict()
         self.skips = []
+        self.extra_thresholds = []
 
     def use_overrides(self, overrides_json):
         """Use override specifications stored in json file."""
@@ -136,6 +141,7 @@ class Analysis:
             self.overrides = dict()
             self.replaces = dict()
             self.skips = []
+            self.extra_thresholds = []
 
             # Keep track of which overrides got used and not used so the user
             # does not write them in vain in case they make a mistake.
@@ -164,6 +170,15 @@ class Analysis:
                         if 'skip' in override and override['skip']:
                             self.skips.append(tuple(triple))
                             overrides_used[i_override] = True
+
+                    # TODO add extra values in self.thresholds when not found.
+                    if len(parameter_sets) == 0 and 'replace' in override:
+                        entry = dict(override['filters'])
+                        entry.update(
+                            self.replace_threshold(override['replace'])
+                        )
+                        self.extra_thresholds.append(entry)
+                        overrides_used[i_override] = True
 
             n_overrides = len(data['overrides'])
             used_overrides = sum(overrides_used)
@@ -491,25 +506,15 @@ class Analysis:
             # Use the replacement values if there are any manually given.
             if param_set in self.replaces:
                 if 'p_th_fss' in self.replaces[param_set]:
-                    estimate = self.replaces[param_set]['p_th_fss']
-                    uncertainty = 0
-                    if 'p_th_fss_se' in self.replaces[param_set]:
-                        uncertainty = self.replaces[param_set]['p_th_fss_se']
 
                     self.log('Using given threshold values')
                     self.log(json.dumps({
                         **entry,
-                        'p_th_fss': estimate,
-                        'p_th_fss_sd': uncertainty,
+                        **self.replaces[param_set]
                     }, indent=2))
-
-                    entry.update({
-                        "p_th_sd":  estimate,
-                        "p_th_nearest":  estimate,
-                        "p_th_fss_left":  estimate - uncertainty,
-                        "p_th_fss_right":  estimate + uncertainty,
-                        "p_th_fss":  estimate,
-                    })
+                    entry.update(
+                        self.replace_threshold(self.replaces[param_set])
+                    )
 
             # Find nearest value where crossover changes.
             entry['p_th_nearest'] = get_p_th_nearest(df_filt, p_est=p_est)
@@ -582,6 +587,11 @@ class Analysis:
             thresholds['error_model'].apply(infer_error_model_family)
         )
         thresholds['bias'] = thresholds['error_model'].apply(deduce_bias)
+        if self.extra_thresholds:
+            thresholds = pd.concat(
+                [thresholds, pd.DataFrame(self.extra_thresholds)]
+            )
+
         trunc_results = pd.concat(df_trunc_list, axis=0)
 
         self.thresholds = thresholds
@@ -596,6 +606,21 @@ class Analysis:
         by giving upper or lower bounds on the threshold.
         """
         self.log('Calculating single-qubit sector thresholds thresholds')
+
+    def replace_threshold(self, replacement):
+        """Format override replace specification for threshold df."""
+        estimate = replacement['p_th_fss']
+        uncertainty = 0
+        if 'p_th_fss_se' in replacement:
+            uncertainty = replacement['p_th_fss_se']
+        return {
+            "p_th_sd":  estimate,
+            "p_th_nearest":  estimate,
+            "p_th_fss_left":  estimate - uncertainty,
+            "p_th_fss_right":  estimate + uncertainty,
+            "p_th_fss":  estimate,
+            'p_th_fss_se': uncertainty,
+        }
 
 
 def infer_error_model_family(label: str) -> str:
