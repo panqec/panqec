@@ -538,6 +538,19 @@ class Analysis:
                     if 'max' in p_trunc and p_trunc['max'] is not None:
                         entry['p_right'] = p_trunc['max'] + tolerance
 
+                # Truncate the sizes if told to do so.
+                if 'd' in self.overrides[param_set].keys():
+                    if 'min' in self.overrides[param_set]['d']:
+                        df_filt = df_filt[
+                            df_filt['d']
+                            >= self.overrides[param_set]['d']['min']
+                        ]
+                    if 'max' in self.overrides[param_set]['d']:
+                        df_filt = df_filt[
+                            df_filt['d']
+                            <= self.overrides[param_set]['d']['max']
+                        ]
+
                 # Just use the crossover point if it's in between the limits.
                 if (
                     entry['p_left'] < entry['p_th_nearest']
