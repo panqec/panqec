@@ -792,6 +792,17 @@ class Analysis:
         ]).max()[['time_per_trial']]
         return times_df
 
+    # TODO get this to work.
+    def generate_missing_inputs(self, outdir: str):
+        """Generate input json files for missing data.
+
+        Parameters
+        ----------
+        outdir : str
+            Path to output dir where input files are to be saved.
+        """
+        pass
+
 
 def infer_error_model_family(label: str) -> str:
     """Infer the error_model family from the error_model label.

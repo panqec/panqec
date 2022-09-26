@@ -10,7 +10,7 @@ import numpy as np
 import json
 import hashlib
 from panqec.bsparse import is_sparse, to_array
-from typing import Callable, Iterable
+from typing import Callable
 
 
 def get_direction_from_bias_ratio(pauli: str, eta) -> dict:
