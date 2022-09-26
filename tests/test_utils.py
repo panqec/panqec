@@ -4,7 +4,7 @@ import numpy as np
 from panqec.bsparse import from_array
 from panqec.utils import (
     sizeof_fmt, identity, NumpyEncoder, list_where_str, list_where, set_where,
-    format_polynomial, simple_print
+    format_polynomial, simple_print, find_nearest
 )
 
 
@@ -131,3 +131,11 @@ class TestSimplePrint:
         simple_print(a)
         captured = capsys.readouterr()
         assert captured.out == '1010\n'
+
+
+class TestFindNearest:
+
+    def test_easy_case(self):
+        array = [1, 2, 3, 4, 5, 6]
+        value = 5.2
+        assert find_nearest(array, value) == 5

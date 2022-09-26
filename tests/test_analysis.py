@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from panqec.analysis import (
     get_subthreshold_fit_function, get_single_qubit_error_rate, Analysis,
-    deduce_bias
+    deduce_bias, fill_between_values
 )
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
@@ -185,3 +185,20 @@ class TestAnalysis:
 ])
 def test_deduce_bias(error_model, bias):
     assert bias == deduce_bias(error_model)
+
+
+class TestFillBetweenValues:
+
+    @pytest.mark.parametrize('old_values,n_target,new_values', [
+        ([1, 2.1, 4], 4, [1, 2.1, 3, 4]),
+        ([1, 2, 4, 5, 7, 8], 8, [1, 2, 3, 4, 5, 6, 7, 8]),
+    ])
+    def test_easy_cases(self, old_values, n_target, new_values):
+        assert new_values == fill_between_values(old_values, n_target)
+        assert set(old_values).issubset(new_values)
+
+    def test_long_array_does_not_change(self):
+        old_values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        n_target = 8
+        new_values = fill_between_values(old_values, n_target)
+        assert new_values == old_values

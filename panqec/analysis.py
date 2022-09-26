@@ -12,9 +12,10 @@ import json
 import re
 import gzip
 from zipfile import ZipFile
-import itertools
+from itertools import product
 from multiprocessing import Pool, cpu_count
 from pathlib import Path
+from pprint import pformat
 import numpy as np
 from numpy.polynomial.polynomial import polyfit
 import pandas as pd
@@ -23,7 +24,7 @@ from scipy.optimize import curve_fit
 from scipy.signal import argrelextrema
 from .config import SLURM_DIR
 from .simulation import read_input_json, BatchSimulation
-from .utils import fmt_uncertainty, NumpyEncoder, identity
+from .utils import fmt_uncertainty, NumpyEncoder, identity, find_nearest
 from .bpauli import int_to_bvector, bvector_to_pauli_string
 
 Numerical = Union[Iterable, float, int]
@@ -83,6 +84,18 @@ class Analysis:
         'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
         'probability'
     ]
+    FAMILY_KEYS: List[str] = [
+        'decoder', 'code_family', 'error_model_family', 'bias'
+    ]
+    POINT_KEYS: List[str] = [
+        'code', 'error_model', 'decoder', 'probability'
+    ]
+
+    # Quality targets that are to be met.
+    targets: Dict[str, Any] = {
+        'n_probability': 8,
+        'n_trials': 10000,
+    }
 
     # Specification of manual overrides such as truncation ranges.
     overrides_spec: Dict
@@ -187,10 +200,18 @@ class Analysis:
 
             # Printout the unused overrides so the user can find them.
             if unused_overrides > 0:
-                self.log('Unused overrides:')
+                self.log(f'{unused_overrides} unused overrides:')
+                counter = 0
                 for used, entry in zip(overrides_used, data['overrides']):
                     if not used:
-                        self.log(json.dumps(entry, indent=2))
+                        self.log(pformat(entry, indent=2))
+                    counter += 1
+
+                    # If more than 3, truncate the logs and just say how many
+                    # more there are that haven't been printed.
+                    if counter > 3:
+                        self.log(f'... and {unused_overrides - 3} more')
+                        break
 
     def log(self, message: str):
         """Display a message, if the verbose attribute is True.
@@ -474,7 +495,7 @@ class Analysis:
             self.log(f'Skipping {len(skipped_param_sets)} parameter sets')
             for skipped_param_set in skipped_param_sets:
                 self.log(
-                    json.dumps(
+                    pformat(
                         results_df[(
                             results_df[param_keys] == skipped_param_set
                         ).all(axis=1)][
@@ -508,7 +529,7 @@ class Analysis:
                 if 'p_th_fss' in self.replaces[param_set]:
 
                     self.log('Using given threshold values')
-                    self.log(json.dumps({
+                    self.log(pformat({
                         **entry,
                         **self.replaces[param_set]
                     }, indent=2))
@@ -634,6 +655,142 @@ class Analysis:
             "p_th_fss":  estimate,
             'p_th_fss_se': uncertainty,
         }
+
+    def get_quality_metrics(self):
+        """Table of quality metrices of data used for analysis.
+
+        Returns
+        -------
+        quality : pd.DataFrame
+            Summary of data quality metric for each input family as index,
+            in particular the minimum number of trials for any data point in
+            the input family and the number of probabilty values for that input
+            family that actually got used in the analysis.
+        """
+
+        # Quality of data as measured by number of trials and number
+        # of unique probability values for this family of inputs.
+        quality = pd.concat([
+            self.trunc_results.groupby(self.FAMILY_KEYS)['n_trials'].min(),
+            self.trunc_results.groupby(self.FAMILY_KEYS)[[
+                'probability'
+            ]].aggregate(pd.Series.nunique).rename(
+                columns={'probability': 'n_probability'}
+            ),
+        ], axis=1)
+
+        # Check whether the quality targets are met for each input.
+        quality['pass'] = (
+            (quality['n_trials'] >= self.targets['n_trials'])
+            & (quality['n_probability'] >= self.targets['n_probability'])
+        )
+        return quality
+
+    def get_missing_points(self, digits: int = 3):
+        """Table with missing data points.
+
+        Parameters
+        ----------
+        digits : int
+            Number of digits to round to for missing values of probability.
+
+        Returns
+        -------
+        missing : pd.DataFrame
+            Index is (code, error_model, decoder, probability),
+            columns are 'code_family', 'error_model_family', 'bias', 'd',
+            'n_trials', 'n_missing'.
+            n_missing is the number of missing trials that must be sampled in
+            order to meet the quality targets.
+        """
+
+        # Start with table of all available data points so far.
+        missing = self.trunc_results[[
+            'code_family', 'error_model_family', 'bias',
+            'code', 'error_model', 'decoder',
+            'probability', 'd', 'n_trials'
+        ]].copy()
+        missing = missing.groupby(self.POINT_KEYS).first()
+
+        # Extra probability values that are missing due to insufficient range.
+        extra_missing_entries = []
+        quality = self.get_quality_metrics()
+        bad_quality_family_keys = quality[
+            quality['n_probability'] < self.targets['n_probability']
+        ].index
+        for index in bad_quality_family_keys:
+            decoder, code_family, error_model_family, bias = index
+            existing_results = self.trunc_results[
+                (self.trunc_results[self.FAMILY_KEYS] == index).all(axis=1)
+            ]
+            d_values = existing_results['d'].unique()
+
+            # Sorted list of existing probability values.
+            probability_values = sorted(
+                existing_results['probability'].unique().tolist()
+            )
+
+            # Fill probability values in between if not enough.
+            new_probability_values = fill_between_values(
+                probability_values, self.targets['n_probability'],
+                digits=digits
+            )
+
+            for d, probability in product(d_values, new_probability_values):
+                code = existing_results[
+                    existing_results['d'] == d
+                ]['code'].iloc[0]
+                error_model = existing_results['error_model'].iloc[0]
+                missing_index = (code, error_model, decoder, probability)
+                if missing_index not in missing.index:
+                    extra_missing_entries.append({
+                        'code': code,
+                        'error_model': error_model,
+                        'decoder': decoder,
+                        'probability': probability,
+                        'code_family': code_family,
+                        'error_model_family': error_model_family,
+                        'bias': bias,
+                        'd': d,
+                        'n_trials': 0,
+                    })
+        extra_missing = pd.DataFrame(extra_missing_entries)
+        extra_missing = extra_missing.groupby(self.POINT_KEYS).first()
+
+        missing = pd.concat([missing, extra_missing], axis=0)
+
+        # Calculate the number of missing trials for each data point.
+        missing['n_missing'] = missing['n_trials'].apply(
+            lambda n: max(self.targets['n_trials'] - n, 0)
+        )
+
+        # Calculate the remaining run times too.
+        times = self.get_run_times()
+        missing['time_per_trial'] = missing.reset_index()[[
+            'code', 'error_model', 'decoder'
+        ]].apply(tuple, axis=1).map(
+            dict(zip(times.index, times.time_per_trial))
+        ).values
+
+        missing['time_remaining'] = pd.to_timedelta(
+            missing['time_per_trial']*missing['n_missing'], unit='s'
+        )
+        return missing
+
+    def get_run_times(self):
+        """Table of run times for each parameter set."""
+        times_group = self.results.groupby([
+            'code', 'error_model', 'decoder', 'probability'
+        ])
+        times_df = pd.concat([
+            times_group['wall_time'].sum(),
+            times_group['n_trials'].sum(),
+        ], axis=1)
+        times_df['time_per_trial'] = times_df['wall_time']/times_df['n_trials']
+        times_df = times_df.reset_index().groupby([
+            'code', 'error_model', 'decoder'
+        ]).max()[['time_per_trial']]
+        return times_df
 
 
 def infer_error_model_family(label: str) -> str:
@@ -1845,7 +2002,7 @@ def export_summary_table_latex(
 def export_summary_tables(thresholds_df, table_dir=None, verbose=True):
     summary_df_list = []
     summary_df_latex = []
-    for bias_direction, deformed in itertools.product(
+    for bias_direction, deformed in product(
         ['x', 'y', 'z'], [True, False]
     ):
         eta_key = f'eta_{bias_direction}'
@@ -2165,3 +2322,47 @@ def deduce_bias(
                 eta_f = np.round(eta_f, 3)
             eta = eta_f
     return eta
+
+
+def fill_between_values(old_values, n_target, digits=3):
+    """List of n_target values filled between the given old values.
+
+    Used for suggesting data points to use when missing data,
+    where we want to reuse the old values as much as possible.
+
+    Parameters
+    ----------
+    old_values : list
+        Old values with len < n_target
+    n_target : int
+        The target number of values
+
+    Returns
+    -------
+    new_values : list
+        List of length at least n_target with old_values reused as much as
+        possible.
+    """
+
+    if len(old_values) >= n_target:
+        new_values = list(old_values)
+
+    else:
+
+        # Equally spaced values.
+        linspace_values = np.linspace(
+            min(old_values), max(old_values), n_target
+        ).round(digits).tolist()
+
+        # Add the old values one by one, removing closest linspace value.
+        new_values = []
+        for old_value in old_values:
+            nearest_linspace_value = find_nearest(linspace_values, old_value)
+            linspace_values.remove(nearest_linspace_value)
+            new_values.append(old_value)
+
+        # Add the remaining linspace values not yet removed.
+        new_values += linspace_values
+        new_values.sort()
+
+    return new_values
