@@ -141,7 +141,7 @@ class TestAnalysis:
 
         # Try to read in the generated file for simulation.
         batch_sim = read_input_json(path)
-        assert len(batch_sim) == 5
+        assert len(batch_sim) == 6
 
     def test_apply_overrides(self):
         analysis = Analysis()

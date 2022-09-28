@@ -82,5 +82,19 @@
     "n_missing": 10000,
     "time_per_trial": 0.6256254108999999,
     "time_remaining": "0 days 01:44:16.254108999"
-  }
+  },
+	{
+		"code": "XCube 9x9x9",
+		"error_model": "Pauli X0.0000Y0.0000Z1.0000",
+		"decoder": "BP-OSD decoder",
+		"probability": 0.098,
+		"code_family": "XCube",
+		"error_model_family": "Pauli",
+		"bias": "inf",
+		"d": 9,
+		"n_trials": 0,
+		"n_missing": 10000,
+		"time_per_trial": 0.3420319075,
+		"time_remaining": "0 days 00:57:00.319075"
+	}
 ]
