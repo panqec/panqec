@@ -6,7 +6,7 @@ import json
 import gzip
 from json import JSONDecodeError
 import itertools
-from typing import List, Dict, Callable, Union, Any, Optional, Tuple
+from typing import List, Dict, Callable, Union, Any, Optional, Tuple, Iterable
 import datetime
 import numpy as np
 from panqec.codes import StabilizerCode
@@ -783,6 +783,9 @@ def get_simulations(
         codes = [_parse_code_dict(code_dict) for code_dict in code_range]
         error_models = [_parse_error_model_dict(noise_dict)
                         for noise_dict in noise_range]
+        instances: Iterable[Tuple] = itertools.product(
+            codes, error_models, decoder_range, probability_range
+        )
 
     elif 'runs' in data:
         codes = [_parse_code_dict(run['code']) for run in data['runs']]
@@ -790,17 +793,13 @@ def get_simulations(
         error_models = [_parse_error_model_dict(run['noise'])
                         for run in data['runs']]
         probability_range = [run['probability'] for run in data['runs']]
+        instances = zip(codes, error_models, decoder_range, probability_range)
 
     else:
         raise ValueError("Invalid data format: does not have 'runs'\
                          or 'ranges' key")
 
-    for (
-        code, error_model, decoder_dict, error_rate
-    ) in itertools.product(codes,
-                           error_models,
-                           decoder_range,
-                           probability_range):
+    for code, error_model, decoder_dict, error_rate in instances:
         decoder = _parse_decoder_dict(decoder_dict, code, error_model,
                                       error_rate)
         simulations.append(Simulation(code, error_model, decoder, error_rate))

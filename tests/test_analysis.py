@@ -1,4 +1,5 @@
 import os
+import json
 import pytest
 import numpy as np
 import pandas as pd
@@ -6,6 +7,7 @@ from panqec.analysis import (
     get_subthreshold_fit_function, get_single_qubit_error_rate, Analysis,
     deduce_bias, fill_between_values
 )
+from panqec.simulation import read_input_json
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 
@@ -121,6 +123,26 @@ class TestAnalysis:
         assert set(analysis.trunc_results).issuperset(analysis.results.columns)
         assert 'rescaled_p' in analysis.trunc_results
 
+    def test_generate_missing_inputs_can_be_read(self, tmpdir):
+
+        class FakeAnalysis(Analysis):
+            """Analysis class with fake get_missing_points() method"""
+            def get_missing_points(self):
+                with open(os.path.join(DATA_DIR, 'fake_missing.json')) as f:
+                    missing = pd.DataFrame(json.load(f))
+                missing = missing.groupby(self.POINT_KEYS).first()
+                return missing
+
+        # Generate the inputs file.
+        path = os.path.join(tmpdir, 'missing.json')
+        analysis = FakeAnalysis(os.path.join(DATA_DIR, 'toric'))
+        analysis.generate_missing_inputs(path)
+        assert os.path.isfile(path)
+
+        # Try to read in the generated file for simulation.
+        batch_sim = read_input_json(path)
+        assert len(batch_sim) == 5
+
     def test_apply_overrides(self):
         analysis = Analysis()
         assert not analysis.overrides
@@ -173,6 +195,50 @@ class TestAnalysis:
                 'probability': [0.1, 0.2]
             }
         }
+
+
+def test_convert_missing_to_input():
+    missing_entry = {
+        'code': 'Rhombic 10x10x10',
+        'error_model': 'Deformed Rhombic Pauli X0.3333Y0.3333Z0.3333',
+        'decoder': 'BP-OSD decoder',
+        'probability': 0.01,
+        'code_family': 'Rhombic',
+        'error_model_family': 'Deformed Rhombic Pauli',
+        'bias': 0.5,
+        'd': 10,
+        'n_trials': 5226,
+        'n_missing': 4774,
+        'time_per_trial': 1.2045530740528128,
+        'time_remaining': pd.Timedelta('0 days 01:35:50.536375528')
+    }
+    expected_entry = {
+        'label': 'unlabelled',
+        'code': {
+            'model': 'RhombicCode',
+            'parameters': {'L_x': 10}
+        },
+        'noise': {
+            'model': 'DeformedRhombicErrorModel',
+            'parameters': {
+                'r_x': 0.3333333333333333,
+                'r_y': 0.33333333333333337,
+                'r_z': 0.33333333333333337,
+            }
+        },
+        'decoder': {
+            'model': 'BeliefPropagationOSDDecoder',
+            'parameters': {
+                'max_bp_iter': 1000,
+                'osd_order': 0
+            }
+        },
+        'probability': 0.01,
+        'trials': 4774,
+    }
+    analysis = Analysis()
+    entry = analysis.convert_missing_to_input(missing_entry)
+    assert entry == expected_entry
 
 
 @pytest.mark.parametrize('error_model,bias', [
