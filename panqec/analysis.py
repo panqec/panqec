@@ -899,8 +899,11 @@ class Analysis:
         most_biased_direction = {
             0: 'X', 1: 'Y', 2: 'Z'
         }[int(np.argmax(rounded_noise_direction))]
+        eta = np.inf
+        if bias != 'inf':
+            eta = float(bias)
         parameters = get_direction_from_bias_ratio(
-            most_biased_direction, bias
+            most_biased_direction, eta
         )
         return {
             'model': error_model_class,
