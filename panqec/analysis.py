@@ -793,17 +793,24 @@ class Analysis:
         ]).max()[['time_per_trial']]
         return times_df
 
-    def generate_missing_inputs(self, path: str):
+    def generate_missing_inputs(
+        self, path: str, missing: Optional[pd.DataFrame] = None
+    ):
         """Generate input json files for missing data.
 
         Parameters
         ----------
         path : str
             Path to input json where missing inputs are to be saved.
+        missing :
+            Filtered DataFrame of missing data points.
+            If not given, input for all missing data points will be generated.
         """
 
+        if missing is None:
+            missing = self.get_missing_points()
+
         # Only generate inputs for the actual missing files.
-        missing = self.get_missing_points()
         missing = missing[missing['n_missing'] > 0]
 
         # Print number of parameter sets with missing data.
