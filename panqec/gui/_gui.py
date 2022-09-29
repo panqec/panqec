@@ -4,17 +4,19 @@ from flask import Flask, send_from_directory, request, json, render_template
 from panqec.codes import (
     Toric2DCode, RotatedPlanar2DCode, Planar2DCode,
     Toric3DCode, RotatedPlanar3DCode, RhombicCode,
-    Planar3DCode, RotatedToric3DCode, XCubeCode, Quasi2DCode
+    Planar3DCode, RotatedToric3DCode, XCubeCode, Quasi2DCode,
+    Color3DCode, Color666Code, Color488Code
 )
 from panqec.decoders import (
-    Toric2DMatchingDecoder, RotatedSweepMatchDecoder,
+    MatchingDecoder, RotatedSweepMatchDecoder,
     ZMatchingDecoder, SweepMatchDecoder,
     BeliefPropagationOSDDecoder, MemoryBeliefPropagationDecoder,
-
+    XCubeMatchingDecoder
 )
 from panqec.error_models import PauliErrorModel
 from panqec.error_models import (
-    DeformedXZZXErrorModel, DeformedXYErrorModel, DeformedRhombicErrorModel
+    DeformedXZZXErrorModel, DeformedXYErrorModel, DeformedRhombicErrorModel,
+    DeformedColorErrorModel
 )
 
 import webbrowser
@@ -23,18 +25,22 @@ import argparse
 codes = {'Toric 2D': Toric2DCode,
          'Planar 2D': Planar2DCode,
          'Rotated Planar 2D': RotatedPlanar2DCode,
+         '6.6.6 Color Code': Color666Code,
+         '4.8.8 Color Code': Color488Code,
          'Toric 3D': Toric3DCode,
          'Rotated Toric 3D': RotatedToric3DCode,
          'Rotated Planar 3D': RotatedPlanar3DCode,
          'Rhombic': RhombicCode,
          'Planar 3D': Planar3DCode,
          'XCube': XCubeCode,
-         'Quasi 2D': Quasi2DCode}
+         'Quasi 2D': Quasi2DCode,
+         '3D Color Code': Color3DCode}
 
 error_models = {'None': PauliErrorModel,
                 'XZZX': DeformedXZZXErrorModel,
                 'XY': DeformedXYErrorModel,
-                'Rhombic': DeformedRhombicErrorModel}
+                'Rhombic': DeformedRhombicErrorModel,
+                'Color': DeformedColorErrorModel}
 
 noise_directions = {'Pure X': (1, 0, 0),
                     'Pure Y': (0, 1, 0),
@@ -45,8 +51,9 @@ decoders = {'BP-OSD': BeliefPropagationOSDDecoder,
             'MBP': MemoryBeliefPropagationDecoder,
             'SweepMatch': SweepMatchDecoder,
             'RotatedSweepMatch': RotatedSweepMatchDecoder,
-            'Matching': Toric2DMatchingDecoder,
-            'Optimal ∞ bias': ZMatchingDecoder}
+            'Matching': MatchingDecoder,
+            'Optimal ∞ bias': ZMatchingDecoder,
+            'XCube Matching': XCubeMatchingDecoder}
 
 
 class GUI():
@@ -122,14 +129,26 @@ class GUI():
         def send_js(path):
             return send_from_directory('js', path)
 
-        @self.app.route('/model-names', methods=['POST'])
-        def send_model_names():
-            models = {}
+        @self.app.route('/code-names', methods=['POST'])
+        def send_code_names():
             dim = request.json['dimension']
-            models['codes'] = self.code_names[f'{dim}d']
-            models['decoders'] = self.decoder_names
+            code_names = self.code_names[f'{dim}d']
 
-            return json.dumps(models)
+            return json.dumps(code_names)
+
+        @self.app.route('/decoder-names', methods=['POST'])
+        def send_decoder_names():
+            code_name = request.json['code_name']
+            code_id = codes[code_name].__name__
+
+            decoder_names = []
+
+            for decoder_name, decoder_class in decoders.items():
+                if (decoder_class.allowed_codes is None
+                   or code_id in decoder_class.allowed_codes):
+                    decoder_names.append(decoder_name)
+
+            return json.dumps(decoder_names)
 
         @self.app.route('/code-data', methods=['POST'])
         def send_code_data():
@@ -145,6 +164,8 @@ class GUI():
 
             logical_z = code.logicals_z
             logical_x = code.logicals_x
+
+            # print(code.stabilizer_matrix.toarray().tolist())
 
             return json.dumps({'H': code.stabilizer_matrix.toarray().tolist(),
                                'qubits': qubits,
@@ -172,7 +193,9 @@ class GUI():
             kwargs = {}
             if decoder_name in ['BP-OSD', 'MBP']:
                 kwargs['max_bp_iter'] = max_bp_iter
-            if decoder_name in ['MBP', 'MBP by Joschka']:
+            if decoder_name == 'BP-OSD':
+                kwargs['osd_order'] = 0
+            if decoder_name == 'MBP':
                 kwargs['alpha'] = alpha
                 kwargs['beta'] = beta
 

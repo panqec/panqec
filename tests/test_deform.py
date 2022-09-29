@@ -6,8 +6,8 @@ from panqec.error_models import (
     DeformedXZZXErrorModel
 )
 from panqec.decoders import (
-    DeformedSweepMatchDecoder, DeformedSweepDecoder3D,
-    DeformedToric3DMatchingDecoder, FoliatedMatchingDecoder
+    SweepDecoder3D, SweepMatchDecoder,
+    MatchingDecoder, FoliatedMatchingDecoder
 )
 
 
@@ -76,13 +76,10 @@ class TestDeformedXZZXErrorModel:
         error_model = DeformedXZZXErrorModel(1, 0, 0)
         assert error_model.label == 'Deformed XZZX Pauli X1.0000Y0.0000Z0.0000'
 
-
-class TestDeformedDecoder:
-
     def test_decode_trivial(self, code):
         error_model = DeformedXZZXErrorModel(0.1, 0.2, 0.7)
         error_rate = 0.1
-        decoder = DeformedSweepMatchDecoder(code, error_model, error_rate)
+        decoder = SweepMatchDecoder(code, error_model, error_rate)
 
         syndrome = np.zeros(code.stabilizer_matrix.shape[0], dtype=np.uint)
         correction = decoder.decode(syndrome)
@@ -92,7 +89,7 @@ class TestDeformedDecoder:
     def test_decode_single_X_on_undeformed_axis(self, code):
         error_model = DeformedXZZXErrorModel(0.1, 0.2, 0.7)
         error_rate = 0.1
-        decoder = DeformedSweepMatchDecoder(code, error_model, error_rate)
+        decoder = SweepMatchDecoder(code, error_model, error_rate)
 
         # Single-qubit X error on undeformed edge.
         error = code.to_bsf({
@@ -129,7 +126,7 @@ class TestDeformedDecoder:
         noise_direction = (0.1, 0.2, 0.7)
         error_model = DeformedXZZXErrorModel(*noise_direction)
         error_rate = 0.1
-        decoder = DeformedSweepMatchDecoder(code, error_model, error_rate)
+        decoder = SweepMatchDecoder(code, error_model, error_rate)
 
         # Single-qubit X error on undeformed edge.
         error = code.to_bsf({
@@ -150,16 +147,12 @@ class TestDeformedDecoder:
     @pytest.mark.skip
     def test_deformed_pymatching_weights_nonuniform(self, code):
         error_model = DeformedXZZXErrorModel(0.1, 0.2, 0.7)
-        probability = 0.1
-        decoder = DeformedSweepMatchDecoder(code, error_model, probability)
+        error_rate = 0.1
+        decoder = SweepMatchDecoder(code, error_model, error_rate)
         assert decoder.matcher.error_model.direction == (0.1, 0.2, 0.7)
-        matching = decoder.matcher.get_matcher()
-        assert matching._matching_graph.distance(0, 0) == 0
-        n_nodes = matching._matching_graph.get_num_nodes()
-        distance_matrix = np.zeros((n_nodes, n_nodes))
-        for i, j, edge in matching._matching_graph.get_edges():
-            distance_matrix[i, j] = edge.weight
-            distance_matrix[j, i] = edge.weight
+        matching = decoder.matcher.matcher_x
+        assert matching.stabiliser_graph.distance(0, 0) == 0
+        distance_matrix = np.array(matching.stabiliser_graph.all_distances)
         n_vertices = int(np.product(code.size))
         assert distance_matrix.shape == (n_vertices, n_vertices)
 
@@ -196,16 +189,12 @@ class TestDeformedDecoder:
     def test_equal_XZ_bias_deformed_pymatching_weights_uniform(self, code):
         error_model = DeformedXZZXErrorModel(0.4, 0.2, 0.4)
         print(f'{error_model.direction=}')
-        probability = 0.1
-        decoder = DeformedSweepMatchDecoder(code, error_model, probability)
+        error_rate = 0.1
+        decoder = SweepMatchDecoder(code, error_model, error_rate)
         assert decoder.matcher.error_model.direction == (0.4, 0.2, 0.4)
-        matching = decoder.matcher.get_matcher()
-        assert matching._matching_graph.distance(0, 0) == 0
-        n_nodes = matching._matching_graph.get_num_nodes()
-        distance_matrix = np.zeros((n_nodes, n_nodes))
-        for i, j, edge in matching._matching_graph.get_edges():
-            distance_matrix[i, j] = edge.weight
-            distance_matrix[j, i] = edge.weight
+        matching = decoder.matcher.matcher_x
+        assert matching.stabiliser_graph.distance(0, 0) == 0
+        distance_matrix = np.array(matching.stabiliser_graph.all_distances)
         n_vertices = int(np.product(code.size))
         assert distance_matrix.shape == (n_vertices, n_vertices)
 
@@ -222,32 +211,10 @@ class TestDeformedDecoder:
 
 class TestDeformedSweepDecoder3D:
 
-    @pytest.mark.parametrize(
-        'noise_direction, expected_edge_probs',
-        [
-            [(0.9, 0, 0.1), (0.81818, 0.090909, 0.090909)],
-            [(0.1, 0, 0.9), (0.05263, 0.47368, 0.47368)],
-            [(1/3, 1/3, 1/3), (0.3333, 0.3333, 0.3333)],
-            [(0, 0, 1), (0, 0.5, 0.5)],
-        ]
-    )
-    def test_get_edge_probabilities(
-        self, code, noise_direction, expected_edge_probs
-    ):
-        error_model = DeformedXZZXErrorModel(*noise_direction)
-        error_rate = 0.5
-        decoder = DeformedSweepDecoder3D(code, error_model, error_rate)
-        print(decoder.get_edge_probabilities())
-        np.testing.assert_allclose(
-            decoder.get_edge_probabilities(),
-            expected_edge_probs,
-            rtol=0.01
-        )
-
     def test_decode_trivial(self, code):
         error_model = DeformedXZZXErrorModel(1/3, 1/3, 1/3)
         error_rate = 0.5
-        decoder = DeformedSweepDecoder3D(code, error_model, error_rate)
+        decoder = SweepDecoder3D(code, error_model, error_rate)
         n = code.n
         error = np.zeros(2*n, dtype=np.uint)
         syndrome = code.measure_syndrome(error)
@@ -266,19 +233,20 @@ class TestDeformedSweepDecoder3D:
         error = code.to_bsf(error_pauli)
         error_model = DeformedXZZXErrorModel(1/3, 1/3, 1/3)
         error_rate = 0.5
-        decoder = DeformedSweepDecoder3D(code, error_model, error_rate)
+        decoder = SweepDecoder3D(code, error_model, error_rate)
         syndrome = code.measure_syndrome(error)
         correction = decoder.decode(syndrome)
         total_error = (error + correction) % 2
         assert np.all(code.measure_syndrome(total_error) == 0)
 
 
-class TestDeformedToric3DMatchingDecoder:
+class TestMatchingDecoder:
 
     def test_decode_trivial(self, code):
         error_model = DeformedXZZXErrorModel(1/3, 1/3, 1/3)
         error_rate = 0.5
-        decoder = DeformedToric3DMatchingDecoder(code, error_model, error_rate)
+        decoder = MatchingDecoder(code, error_model, error_rate,
+                                  error_type='X')
         n = code.n
         error = np.zeros(2*n, dtype=np.uint)
         syndrome = code.measure_syndrome(error)
@@ -313,8 +281,8 @@ class TestMatchingXNoiseOnYZEdgesOnly:
             rng = np.random.default_rng(seed=seed)
             error_rate = 0.5
             error_model = XNoiseOnYZEdgesOnly()
-            decoder = DeformedToric3DMatchingDecoder(
-                code, error_model, error_rate
+            decoder = MatchingDecoder(
+                code, error_model, error_rate, error_type='X'
             )
             error = error_model.generate(
                 code, error_rate=error_rate, rng=rng

@@ -10,6 +10,8 @@ Operator = Dict[Tuple, str]
 class SweepDecoder3D(BaseDecoder):
 
     label: str = 'Toric 3D Sweep Decoder'
+    allowed_codes = ["Toric3DCode", "Planar3DCode"]
+
     _rng: np.random.Generator
     max_sweep_factor: int
 
@@ -81,8 +83,6 @@ class SweepDecoder3D(BaseDecoder):
     def get_initial_state(self, syndrome: np.ndarray) -> np.ndarray:
         """Get initial cellular automaton state from syndrome."""
         signs = syndrome.copy()
-        print("Syndrome", syndrome.shape)
-        print("Indices", len(self.code.z_indices))
         signs[self.code.z_indices] = 0
 
         return signs

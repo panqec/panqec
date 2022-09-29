@@ -1183,7 +1183,8 @@ def get_results_df(
             batch_result['eta_z'] = eta_z
             batch_result['wall_time'] = sim._results['wall_time']
 
-            if len(sim.results['effective_error']) > 0:
+            if ('effective_error' in sim.results and
+                    len(sim.results['effective_error']) > 0):
                 codespace = np.array(sim.results['codespace'])
                 x_errors = np.array(
                     sim.results['effective_error']

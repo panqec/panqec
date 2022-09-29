@@ -9,7 +9,7 @@ from panqec.error_models import PauliErrorModel
 from panqec.codes import Toric2DCode
 from panqec.decoders import BeliefPropagationOSDDecoder
 from panqec.simulation import (
-    read_input_json, run_once, Simulation, expand_input_ranges, run_file,
+    read_input_json, run_once, DirectSimulation, expand_input_ranges, run_file,
     merge_results_dicts, filter_legacy_params, BatchSimulation
 )
 from panqec.cli import merge_dirs
@@ -78,8 +78,9 @@ class TestRunOnce:
 
     def test_run_once_invalid_probability(self, code, error_model):
         error_rate = -1
-        decoder = BeliefPropagationOSDDecoder(code, error_model,
-                                              error_rate=0.5)
+        decoder = BeliefPropagationOSDDecoder(
+            code, error_model, error_rate=error_rate
+        )
         with pytest.raises(ValueError):
             run_once(code, error_model, decoder, error_rate=error_rate)
 
@@ -103,7 +104,7 @@ class TestSimulationToric2DCode():
 
     def test_run(self, code, error_model, decoder, required_fields):
         error_rate = 0.5
-        simulation = Simulation(code, error_model, decoder, error_rate)
+        simulation = DirectSimulation(code, error_model, decoder, error_rate)
         simulation.run(10)
         assert len(simulation._results['success']) == 10
         assert set(required_fields).issubset(simulation._results.keys())
@@ -133,7 +134,9 @@ class TestBatchSimulationOneFile():
             decoder = BeliefPropagationOSDDecoder(
                 code, error_model, error_rate
             )
-            simulation = Simulation(code, error_model, decoder, error_rate)
+            simulation = DirectSimulation(
+                code, error_model, decoder, error_rate
+            )
             batch_sim.append(simulation)
 
         assert len(batch_sim) == 2
