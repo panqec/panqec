@@ -755,10 +755,10 @@ class Analysis:
                         'd': d,
                         'n_trials': 0,
                     })
-        extra_missing = pd.DataFrame(extra_missing_entries)
-        extra_missing = extra_missing.groupby(self.POINT_KEYS).first()
-
-        missing = pd.concat([missing, extra_missing], axis=0)
+        if extra_missing_entries:
+            extra_missing = pd.DataFrame(extra_missing_entries)
+            extra_missing = extra_missing.groupby(self.POINT_KEYS).first()
+            missing = pd.concat([missing, extra_missing], axis=0)
 
         # Calculate the number of missing trials for each data point.
         missing['n_missing'] = missing['n_trials'].apply(
