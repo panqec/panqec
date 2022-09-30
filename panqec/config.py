@@ -123,3 +123,13 @@ def register_error_model(error_model_class):
 def register_decoder(decoder_class):
     label = decoder_class.__class__.__name__
     DECODERS[label] = decoder_class
+
+
+# Shortened names for analysis and plot labelling purposes.
+SHORT_NAMES = {
+    'Deformed XZZX Pauli': 'Deformed',
+    'Deformed Rhombic Pauli': 'Deformed',
+    'BP-OSD decoder': 'BP+OSD',
+    'Toric 3D Sweep Pymatching Decoder': 'SweepMatch',
+    'Deformed Toric 3D Sweep Pymatching Decoder': 'SweepMatch',
+}

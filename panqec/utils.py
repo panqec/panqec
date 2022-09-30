@@ -13,6 +13,19 @@ from panqec.bsparse import is_sparse, to_array
 from typing import Callable
 
 
+def quadratic(x, *params):
+    _, _, A, B, C = params
+    return A + B*x + C*x**2
+
+
+def rescale_prob(x_data, *params):
+    """Rescaled physical error rate."""
+    p, d = x_data
+    p_th, nu, A, B, C = params
+    x = (p - p_th)*d**nu
+    return x
+
+
 def get_direction_from_bias_ratio(pauli: str, eta) -> dict:
     """Get noise params given Pauli and bias."""
 

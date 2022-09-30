@@ -11,7 +11,7 @@ import pandas as pd
 from scipy.special import binom
 import itertools
 from ._hashing_bound import project_triangle, get_hashing_bound
-from ..analysis import quadratic
+from ..utils import quadratic
 
 
 def threshold_plot(
@@ -421,7 +421,8 @@ def update_plot(plt, results_df, error_model, xlim=None, ylim=None,
 
 
 def plot_data_collapse(
-    plt, df_trunc, params_opt, params_bs, title=None
+    plt, df_trunc, params_opt, params_bs, title=None,
+    x_label=None, y_label=None,
 ):
     rescaled_p_fit = np.linspace(
         df_trunc['rescaled_p'].min(), df_trunc['rescaled_p'].max(), 101
@@ -449,11 +450,14 @@ def plot_data_collapse(
         np.quantile(f_fit_bs, 0.84, axis=0),
         color='gray', alpha=0.2, label=r'$1\sigma$ fit'
     )
-    plt.xlabel(
-        r'Rescaled error probability $(p - p_{\mathrm{th}})d^{1/\nu}$',
-        fontsize=16
-    )
-    plt.ylabel(r'Logical failure rate $p_{\mathrm{fail}}$', fontsize=16)
+    if x_label is None:
+        x_label = (
+            r'Rescaled error probability $(p - p_{\mathrm{th}})d^{1/\nu}$'
+        )
+    if y_label is None:
+        y_label = r'Logical failure rate $p_{\mathrm{fail}}$'
+    plt.xlabel(x_label, fontsize=16)
+    plt.ylabel(y_label, fontsize=16)
 
     error_model = df_trunc['error_model'].iloc[0]
     if title is None:

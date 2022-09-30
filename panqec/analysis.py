@@ -22,13 +22,14 @@ import pandas as pd
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
 from scipy.signal import argrelextrema
-from .config import SLURM_DIR
+from .config import SLURM_DIR, SHORT_NAMES
 from .simulation import read_input_json, BatchSimulation
 from .utils import (
     fmt_uncertainty, NumpyEncoder, identity, find_nearest,
-    get_direction_from_bias_ratio,
+    get_direction_from_bias_ratio, rescale_prob
 )
 from .bpauli import int_to_bvector, bvector_to_pauli_string
+from .plots._threshold import plot_data_collapse, draw_tick_symbol
 
 Numerical = Union[Iterable, float, int]
 
@@ -959,6 +960,223 @@ class Analysis:
             'parameters': parameters,
         }
 
+    def make_plots(self, plot_dir: str):
+        """Make and display the plots while saving to directory."""
+        date = pd.Timestamp.now().strftime('%Y-%m-%d')
+        os.makedirs(plot_dir, exist_ok=True)
+        self.log('Making collapse plots.')
+        self.make_collapse_plots(
+            pdf=os.path.join(plot_dir, f'{date}_collapse.pdf')
+        )
+        self.log('Making threshold vs bias plots.')
+        self.make_threshold_vs_bias_plots(
+            pdf=os.path.join(plot_dir, f'{date}_thresholds-vs-bias.pdf')
+        )
+
+    def make_threshold_vs_bias_plots(self, pdf=None):
+        """Make and save threshold vs bias plots."""
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_pdf import PdfPages
+        if pdf is not None:
+            pdf_writer = PdfPages(pdf)
+        for code_family in self.thresholds['code_family'].unique():
+            self.plot_threshold_vs_bias(code_family)
+            if pdf is not None:
+                pdf_writer.savefig(plt.gcf())
+            plt.show()
+        if pdf is not None:
+            pdf_writer.close()
+
+    def make_collapse_plots(self, pdf=None):
+        """Make all the collapse plots."""
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_pdf import PdfPages
+        if pdf is not None:
+            pdf_writer = PdfPages(pdf)
+
+        plot_parameters = self.trunc_results.sort_values(
+            by=['code_family', 'error_model', 'bias']
+        )[['code_family', 'error_model', 'decoder']].drop_duplicates().values
+
+        for code_family, error_model, decoder in plot_parameters:
+            self.plot_collapse(code_family, error_model, decoder)
+            if pdf is not None:
+                pdf_writer.savefig(plt.gcf())
+            plt.show()
+
+        if pdf is not None:
+            pdf_writer.close()
+
+    def plot_threshold_vs_bias(
+        self, code_family: str, inf_bias_replacement: float = 1e3
+    ):
+        """Plot the threshold vs bias plots.
+
+        Parameters
+        ----------
+        code_family : str
+            The code family to plot threshold vs bias for.
+        inf_bias_replacement : float
+            The fintite value of bias at which to plot the infinite bias points
+            at.
+        """
+        import matplotlib.pyplot as plt
+        from matplotlib.lines import Line2D
+
+        plt.figure(figsize=(10, 4))
+        line_params = self.thresholds[
+            self.thresholds['code_family'] == code_family
+        ][
+            ['decoder', 'error_model_family']
+        ].drop_duplicates().sort_values(
+            by=['decoder', 'error_model_family'], ascending=False
+        ).values
+        for decoder, error_model_family in line_params:
+            thresh_df_filt = self.thresholds[(
+                self.thresholds[[
+                    'code_family', 'error_model_family', 'decoder'
+                ]]
+                == (code_family, error_model_family, decoder)
+            ).all(axis=1)].copy()
+            thresh_df_filt['bias_plot'] = thresh_df_filt['bias'].replace({
+                'inf': inf_bias_replacement
+            }).astype(float)
+            thresh_df_filt = thresh_df_filt[[
+                'bias', 'bias_plot', 'p_th_fss',
+                'p_th_fss_left', 'p_th_fss_right'
+            ]]
+            thresh_df_filt = thresh_df_filt.sort_values(
+                by='bias_plot'
+            ).reset_index(drop=True)
+            plt.errorbar(
+                thresh_df_filt['bias_plot'],
+                thresh_df_filt['p_th_fss'],
+                yerr=[
+                    thresh_df_filt['p_th_fss']
+                    - thresh_df_filt['p_th_fss_left'],
+                    thresh_df_filt['p_th_fss_right']
+                    - thresh_df_filt['p_th_fss']
+                ],
+                fmt='o',
+                capsize=5,
+                label=f'{shorten(error_model_family)}, {shorten(decoder)}'
+            )
+            plt.fill_between(
+                thresh_df_filt['bias_plot'],
+                thresh_df_filt['p_th_fss_left'],
+                thresh_df_filt['p_th_fss_right'],
+                alpha=0.3
+            )
+        plt.legend()
+        plt.title(f'{code_family}')
+        plt.xscale('log')
+        plt.xlabel('Bias Ratio $\\eta$', fontsize=16)
+        plt.ylabel('Threshold', fontsize=16)
+        plt.ylim(0, 0.5)
+        plt.xticks(
+            ticks=[0.5, 1e0, 1e1, 1e2, 1e3],
+            labels=['0.5', '1', '10', '100', r'$\infty$']
+        )
+        draw_tick_symbol(plt, Line2D, log=True)
+
+    def plot_collapse(
+        self, code_family: str, error_model: str, decoder: str
+    ):
+        """Plot the collapse for a given parameter set.
+
+        Parameters
+        ----------
+        code_family : str
+            The code family.
+        error_model : str
+            The error model label.
+        decoder : str
+            The decoder label.
+        """
+        import matplotlib.pyplot as plt
+
+        df = self.results
+        df_filt_1 = df[
+            (df['code_family'] == code_family)
+            & (df['error_model'] == error_model)
+            & (df['decoder'] == decoder)
+        ].sort_values(by='probability')
+        bias = df_filt_1['bias'].iloc[0]
+
+        fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 4))
+        plt.sca(ax[0])
+        for size in np.sort(df_filt_1['size'].unique()):
+            df_filt = df_filt_1[
+                df_filt_1['size'] == size
+            ].sort_values(by='probability')
+            df_filt_trunc = self.trunc_results[
+                (self.trunc_results['size'] == size)
+                & (self.trunc_results['code_family'] == code_family)
+                & (self.trunc_results['error_model'] == error_model)
+                & (self.trunc_results['decoder'] == decoder)
+            ].sort_values(by='probability')
+
+            # Draw gray circle underneath plots which are actually used for the
+            # finite-size scaling.
+            plt.plot(
+                df_filt_trunc['probability'],
+                df_filt_trunc['p_est'], 'o', color='gray'
+            )
+            plt.errorbar(
+                df_filt['probability'], df_filt['p_est'],
+                yerr=df_filt['p_se'],
+                capsize=5,
+                label=f'$L={size[0]}$'
+            )
+
+        # Find the threshold estimate and uncertainty.
+        thresh = self.thresholds
+        thresh_data = thresh[
+            (thresh['code_family'] == code_family)
+            & (thresh['error_model'] == error_model)
+            & (thresh['decoder'] == decoder)
+        ].iloc[0]
+
+        # Draw the threshold and uncertainty bounds.
+        plt.axvline(thresh_data['p_th_fss'], color='red', linestyle='--')
+        plt.axvspan(
+            thresh_data['p_th_fss_left'], thresh_data['p_th_fss_right'],
+            alpha=0.5, color='pink'
+        )
+        plt.legend(title=r'$p_{\mathrm{th}}=(%.2f\pm %.2f)\%%$' % (
+            100*thresh_data['p_th_fss'], 100*thresh_data['p_th_fss_se'],
+        ))
+        plt.yscale('linear')
+        plt.xlabel('Physical error rate $p$', fontsize=16)
+        plt.ylabel('Logical error rate $p_L$', fontsize=16)
+        deformation = df_filt_1['error_model_family'].iloc[0]
+        bias_label = str(bias).replace('inf', '\\infty')
+        plt.suptitle(
+            f'{code_family}, {shorten(deformation)} '
+            f'$\\eta={bias_label}$, {shorten(decoder)}',
+            fontsize=16
+        )
+        plt.sca(ax[1])
+
+        df_trunc = self.trunc_results[
+            (self.trunc_results['code_family'] == code_family)
+            & (self.trunc_results['error_model'] == error_model)
+            & (self.trunc_results['decoder'] == decoder)
+        ]
+        params_opt = thresh_data['fss_params']
+        params_bs = thresh_data['params_bs']
+        plot_data_collapse(
+            plt, df_trunc, params_opt, params_bs, title='',
+            y_label='',
+            x_label='Rescaled physical error rate'
+        )
+
+
+def shorten(long_name):
+    if long_name in SHORT_NAMES:
+        return SHORT_NAMES[long_name]
+    return long_name
+
 
 def infer_error_model_family(label: str) -> str:
     """Infer the error_model family from the error_model label.
@@ -1701,19 +1919,6 @@ def grad_fit_function(x_data, *params):
 
     jac = np.vstack([grad_p_th, grad_nu, grad_A, grad_B, grad_C]).T
     return jac
-
-
-def quadratic(x, *params):
-    _, _, A, B, C = params
-    return A + B*x + C*x**2
-
-
-def rescale_prob(x_data, *params):
-    """Rescaled physical error rate."""
-    p, d = x_data
-    p_th, nu, A, B, C = params
-    x = (p - p_th)*d**nu
-    return x
 
 
 def get_fit_params(
