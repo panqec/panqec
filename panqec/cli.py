@@ -236,7 +236,7 @@ def generate_input(
 
         if decoder_class == "BeliefPropagationOSDDecoder":
             decoder_parameters = {'max_bp_iter': 1000,
-                                  'osd_order': 0}
+                                  'osd_order': 100}
         else:
             decoder_parameters = {}
 

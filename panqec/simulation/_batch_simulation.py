@@ -109,7 +109,7 @@ class BatchSimulation():
         label='unlabelled',
         on_update: Callable = identity,
         update_frequency: int = 5,
-        save_frequency: int = 5,
+        save_frequency: int = 1,
         output_dir: Optional[str] = None,
         method: str = "direct",
         verbose: bool = True,
