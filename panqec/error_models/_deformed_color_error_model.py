@@ -43,11 +43,10 @@ class DeformedColorErrorModel(PauliErrorModel):
         if code.id == 'Color3DCode':
             Lx, Ly, Lz = code.size
 
-            for x, y, z in code.type_index('face-square').keys():
-                # Squares on green and blue cells, orthogonal to x axis
-                if x % 4 == 2 and y % 4 == 0 and z % 4 == 0:
-                    for qubit_loc in code.get_stabilizer((x, y, z)):
-                        index = code.qubit_index[qubit_loc]
+            for x in range(2, 4*Lx, 4):
+                for y in range(0, 4*Ly, 4):
+                    for z in range(1, 4*Lz, 2):
+                        index = code.qubit_index[(x, y, z)]
                         is_deformed[index] = True
 
         elif code.id == 'Color666Code':
