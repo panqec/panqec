@@ -34,7 +34,6 @@ from .plots._threshold import plot_data_collapse, draw_tick_symbol
 Numerical = Union[Iterable, float, int]
 
 
-# TODO add plotting routines.
 class Analysis:
     """Analysis on large collections of results files.
 
@@ -642,6 +641,7 @@ class Analysis:
         by giving upper or lower bounds on the threshold.
         """
         self.log('Calculating single-qubit sector thresholds thresholds')
+        pass
 
     def replace_threshold(self, replacement):
         """Format override replace specification for threshold df."""
