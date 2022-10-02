@@ -1,0 +1,62 @@
+{
+  "comments": "Some comments about this run.",
+  "ranges": [
+    {
+      "label": "toric_bitflip",
+      "code": {
+        "model": "Toric2DCode",
+        "parameters": [
+          {"L_x": 4},
+          {"L_x": 6},
+          {"L_x": 8}
+        ]
+      },
+      "noise": {
+        "model": "PauliErrorModel",
+        "parameters": [
+          {"r_x": 1, "r_y": 0, "r_z": 0}
+        ]
+      },
+      "decoder": {
+        "model": "BeliefPropagationOSDDecoder",
+        "parameters": {
+          "max_bp_iter": 1000,
+          "osd_order": 0
+        }
+      },
+      "probability": [
+        0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14
+      ],
+      "trials": 100
+    },
+    {
+      "label": "toric_depolarizing",
+      "code": {
+        "model": "Toric2DCode",
+        "parameters": [
+          {"L_x": 4},
+          {"L_x": 6},
+          {"L_x": 8}
+        ]
+      },
+      "noise": {
+        "model": "PauliErrorModel",
+        "parameters": [
+          {"r_x": 0.333333333, "r_y": 0.333333333, "r_z": 0.333333333}
+        ]
+      },
+      "decoder": {
+        "model": "BeliefPropagationOSDDecoder",
+        "parameters": {
+          "max_bp_iter": 1000,
+          "osd_order": 0
+        }
+      },
+      "probability": [
+        0.005, 0.010, 0.015, 0.020, 0.025, 0.030, 0.035, 0.040, 0.045, 0.050,
+        0.055, 0.060
+      ],
+      "trials": 100
+    }
+  ]
+}

@@ -16,7 +16,6 @@ from .slurm import (
     clear_out_folder, clear_sbatch_folder
 )
 from .utils import get_direction_from_bias_ratio
-
 from panqec.gui import GUI
 from glob import glob
 from .usage import summarize_usage
