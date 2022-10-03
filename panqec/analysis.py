@@ -115,6 +115,9 @@ class Analysis:
     # appended to thresholds DataFrame in the end.
     extra_thresholds: List[Dict]
 
+    # Threshold data for each sector.
+    sectors: Dict[str, Any]
+
     def __init__(
         self, results: Union[str, List[str]] = [], verbose: bool = True,
         overrides: Optional[str] = None
@@ -135,6 +138,8 @@ class Analysis:
         self.replaces = dict()
         self.skips = []
         self.extra_thresholds = []
+
+        self.sectors = dict()
 
     def use_overrides(self, overrides_json):
         """Use override specifications stored in json file."""
@@ -445,6 +450,7 @@ class Analysis:
         p_est: str = 'p_est',
         n_trials_label: str = 'n_trials',
         n_fail_label: str = 'n_fail',
+        sector: Optional[str] = None,
     ):
         """Extract thresholds from table of results using heuristics.
 
@@ -472,6 +478,9 @@ class Analysis:
             scaling.
         n_fail_label : str
             The column that is 'n_fail'.
+        sector : Optional[str]
+            The Pauli sector use to calculate the threshold for.
+            Will use overall error if None given.
         """
 
         results_df = self.results
@@ -631,8 +640,16 @@ class Analysis:
 
         trunc_results = pd.concat(df_trunc_list, axis=0)
 
-        self.thresholds = thresholds
-        self.trunc_results = trunc_results
+        # By default calculate overall threshold and save accordingly.
+        if sector is None:
+            self.thresholds = thresholds
+            self.trunc_results = trunc_results
+
+        # But when told to do so, calculate sector thresholds.
+        else:
+            if 'X' not in self.sectors:
+                self.sectors['X'] = dict()
+            self.sectors['X']['thresholds'] = thresholds
 
     # TODO: implement this properly.
     def calculate_sector_thresholds(self):
@@ -647,6 +664,36 @@ class Analysis:
         # Note that in the case the final state is not in the code space,
         # it is impossible to determine what the effective error is,
         # so these cases are removed from the analysis.
+
+        for sector in ['X', 'Z']:
+
+            # The column names to use.
+            p_est_label = f'p_est_{sector}'
+            n_trials_label = f'n_trials_{sector}'
+            n_fail_label = f'n_fail_{sector}'
+
+            # The number of trials is the number of entries in the binary
+            # symplectic matrix in the corresponding sector,
+            # that is the number of valid trials times the number of logical
+            # qubits.
+            self.results[n_trials_label] = self.results['k']*(
+                self.results['codespace'].apply(sum)
+            )
+
+            self.results[n_fail_label] = self.results[[
+                'effective_error', 'codespace'
+            ]].apply(lambda row: count_fails(*row, sector), axis=1)
+
+            self.results[p_est_label] = self.results[n_fail_label]/(
+                self.results[n_trials_label]
+            )
+
+            self.calculate_thresholds(
+                p_est=p_est_label,
+                n_trials_label=n_trials_label,
+                n_fail_label=n_fail_label,
+                sector=sector,
+            )
 
     def replace_threshold(self, replacement):
         """Format override replace specification for threshold df."""
@@ -1175,6 +1222,44 @@ class Analysis:
             y_label='',
             x_label='Rescaled physical error rate'
         )
+
+
+def count_fails(
+    effective_error: np.ndarray, codespace: np.ndarray, sector: str
+) -> int:
+    """Count the number of sector fails given effective errors as BSFs.
+
+    Parmeters
+    ---------
+    effective_error : np.ndarray
+        Size (2*k, n_trials) array of ints where each row is a binary
+        symplectic form representing the effective logical error on the
+        codespace of one trial.
+    codespace : np.ndarray
+        Size (n_trials,) array of booleans for each trial, where True denotes
+        the the decoding successfully returned the state to the code space for
+        that trial, while False denotes final state was not in the code space.
+    sector: str
+        The sector whose errors are to be counted, either 'X' or 'Z'.
+    """
+    n_fails: int = 0
+
+    # The number of logical qubits.
+    k = int(effective_error.shape[1]/2)
+
+    # Filter out the trials where decoding failed.
+    codespace_effective_errors = effective_error[codespace, :]
+
+    # Get the block corresponding to the sector.
+    if sector == 'X':
+        block = codespace_effective_errors[:, :k]
+    else:
+        block = codespace_effective_errors[:, k:]
+
+    # Count the number of fails in the block.
+    n_fails = block.sum()
+
+    return n_fails
 
 
 def shorten(long_name):

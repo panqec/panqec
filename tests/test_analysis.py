@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from panqec.analysis import (
     get_subthreshold_fit_function, get_single_qubit_error_rate, Analysis,
-    deduce_bias, fill_between_values
+    deduce_bias, fill_between_values, count_fails
 )
 from panqec.simulation import read_input_json
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
@@ -108,19 +108,25 @@ class TestAnalysis:
         assert os.path.exists(results_path)
         analysis = Analysis(results_path)
         analysis.analyze()
-        assert analysis.results.shape == (30, 24)
+        assert analysis.results.shape == (30, 30)
         assert set(analysis.results.columns) == set([
             'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
             'probability', 'wall_time', 'n_trials', 'n_fail',
             'effective_error', 'success', 'codespace', 'bias', 'results_file',
             'p_est', 'p_se', 'p_word_est', 'p_word_se', 'single_qubit_p_est',
-            'single_qubit_p_se', 'code_family', 'error_model_family'
+            'single_qubit_p_se', 'code_family', 'error_model_family',
+            'p_est_X', 'n_fail_X', 'n_trials_X',
+            'p_est_Z', 'n_fail_Z', 'n_trials_Z',
         ])
         assert set(analysis.thresholds.columns).issuperset([
             'code_family', 'error_model', 'decoder',
             'p_th_fss', 'p_th_fss_left', 'p_th_fss_right'
         ])
-        assert set(analysis.trunc_results).issuperset(analysis.results.columns)
+        assert set(analysis.trunc_results.columns).issuperset([
+            'code', 'error_model', 'decoder',
+            'probability',
+            'p_est', 'n_trials', 'n_fail',
+        ])
         assert 'rescaled_p' in analysis.trunc_results
 
     def test_generate_missing_inputs_can_be_read(self, tmpdir):
@@ -268,3 +274,17 @@ class TestFillBetweenValues:
         n_target = 8
         new_values = fill_between_values(old_values, n_target)
         assert new_values == old_values
+
+
+class TestCountFails:
+
+    def test_easy_case(self):
+        effective_error = np.array([
+            [0, 1, 1, 1, 0, 1],
+            [1, 1, 0, 0, 0, 0],
+            [0, 1, 0, 1, 0, 1],
+            [1, 1, 0, 1, 0, 1],
+        ], dtype=np.uint8)
+        codespace = np.array([True, True, False, True], dtype=bool)
+        assert count_fails(effective_error, codespace, 'X') == 6
+        assert count_fails(effective_error, codespace, 'Z') == 4
