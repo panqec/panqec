@@ -443,6 +443,7 @@ class Analysis:
         ftol_std: float = 1e-5,
         maxfev: int = 2000,
         p_est: str = 'p_est',
+        n_trials_label: str = 'n_trials',
         n_fail_label: str = 'n_fail',
     ):
         """Extract thresholds from table of results using heuristics.
@@ -599,7 +600,8 @@ class Analysis:
                     df_filt, entry['p_left'], entry['p_right'],
                     entry['p_th_nearest'],
                     ftol_est=ftol_est, ftol_std=ftol_std, maxfev=maxfev,
-                    p_est=p_est, n_fail_label=n_fail_label,
+                    p_est=p_est, n_trials_label=n_trials_label,
+                    n_fail_label=n_fail_label,
                 )
                 df_trunc_list.append(df_trunc)
 
@@ -641,7 +643,10 @@ class Analysis:
         by giving upper or lower bounds on the threshold.
         """
         self.log('Calculating single-qubit sector thresholds thresholds')
-        pass
+
+        # Note that in the case the final state is not in the code space,
+        # it is impossible to determine what the effective error is,
+        # so these cases are removed from the analysis.
 
     def replace_threshold(self, replacement):
         """Format override replace specification for threshold df."""
@@ -1986,6 +1991,7 @@ def fit_fss_params(
     ftol_std: float = 1e-5,
     maxfev: int = 2000,
     p_est: str = 'p_est',
+    n_trials_label: str = 'n_trials',
     n_fail_label: str = 'n_fail',
     resample_points: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, pd.DataFrame]:
@@ -1994,7 +2000,7 @@ def fit_fss_params(
     Parameters
     ----------
     df_filt : pd.DataFrame
-        Results with columns: 'probability', 'code', `p_est`, 'n_trials',
+        Results with columns: 'probability', 'code', `p_est`, `n_trials_label`,
         `n_fail_label`.
         The 'probability' column is the physical error rate p.
         The 'code' column is the code label.
@@ -2067,7 +2073,7 @@ def fit_fss_params(
         # Sample from Beta distribution over error bar for each data point.
         f_list_bs = []
         for i in range(df_trunc.shape[0]):
-            n_trials = int(df_trunc['n_trials'].iloc[i])
+            n_trials = int(df_trunc[n_trials_label].iloc[i])
             n_fail = int(df_trunc[n_fail_label].iloc[i])
 
             # Posterior distribution starting from uniform prior.

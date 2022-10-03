@@ -399,9 +399,8 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.12, "max": 0.165}
-      },
-      "skip": true
+        "probability": {"min": 0.12, "max": 0.19}
+      }
     },
     {
       "filters": {
