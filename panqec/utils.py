@@ -14,7 +14,7 @@ from typing import Callable
 
 
 def quadratic(x, *params):
-    _, _, A, B, C = params
+    p_th, nu, A, B, C = params
     return A + B*x + C*x**2
 
 

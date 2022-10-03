@@ -108,26 +108,30 @@ class TestAnalysis:
         assert os.path.exists(results_path)
         analysis = Analysis(results_path)
         analysis.analyze()
-        assert analysis.results.shape == (30, 30)
         assert set(analysis.results.columns) == set([
             'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
             'probability', 'wall_time', 'n_trials', 'n_fail',
             'effective_error', 'success', 'codespace', 'bias', 'results_file',
             'p_est', 'p_se', 'p_word_est', 'p_word_se', 'single_qubit_p_est',
             'single_qubit_p_se', 'code_family', 'error_model_family',
-            'p_est_X', 'n_fail_X', 'n_trials_X',
-            'p_est_Z', 'n_fail_Z', 'n_trials_Z',
+            'p_est_X', 'p_se_X', 'n_fail_X', 'n_trials_X',
+            'p_est_Z', 'p_se_Z', 'n_fail_Z', 'n_trials_Z',
         ])
-        assert set(analysis.thresholds.columns).issuperset([
+        threshold_required = [
             'code_family', 'error_model', 'decoder',
             'p_th_fss', 'p_th_fss_left', 'p_th_fss_right'
-        ])
+        ]
+        assert set(analysis.thresholds.columns).issuperset(threshold_required)
         assert set(analysis.trunc_results.columns).issuperset([
             'code', 'error_model', 'decoder',
             'probability',
             'p_est', 'n_trials', 'n_fail',
         ])
         assert 'rescaled_p' in analysis.trunc_results
+        for sector in ['X', 'Z']:
+            assert set(analysis.sectors['X']['thresholds'].columns).issuperset(
+                threshold_required
+            )
 
     def test_generate_missing_inputs_can_be_read(self, tmpdir):
 

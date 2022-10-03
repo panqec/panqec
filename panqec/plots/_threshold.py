@@ -423,6 +423,7 @@ def update_plot(plt, results_df, error_model, xlim=None, ylim=None,
 def plot_data_collapse(
     plt, df_trunc, params_opt, params_bs, title=None,
     x_label=None, y_label=None,
+    p_est_label='p_est',
 ):
     rescaled_p_fit = np.linspace(
         df_trunc['rescaled_p'].min(), df_trunc['rescaled_p'].max(), 101
@@ -437,7 +438,7 @@ def plot_data_collapse(
     for d_val in np.sort(df_trunc['d'].unique()):
         df_trunc_filt = df_trunc[df_trunc['d'] == d_val]
         plt.errorbar(
-            df_trunc_filt['rescaled_p'], df_trunc_filt['p_est'],
+            df_trunc_filt['rescaled_p'], df_trunc_filt[p_est_label],
             yerr=df_trunc_filt['p_se'], fmt='o', capsize=5,
             label=r'$L={}$'.format(d_val)
         )

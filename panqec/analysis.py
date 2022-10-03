@@ -47,9 +47,10 @@ class Analysis:
     results : Union[str, List[str]]
         Path to directory or .zip containing .json.gz or .json results.
         Can also accept list of paths.
-    overrides : Optional[str]
+    overrides : Optional[Union[str, dict]]
         Path to json file that gives specifications on what to override,
         for instance when to truncate.
+        Can also be a dictionary with the same contents as a json file.
         As well as replacements values for known analytical threshold values.
         See `scripts/overrides.json` for an example.
     verbose : bool
@@ -61,6 +62,11 @@ class Analysis:
         Results for each set of (code, error model and decoder).
     thresholds : pd.DataFrame
         Thresholds for each (code family, error_model and decoder).
+    trunc_results : pd.DataFrames
+        Truncated results that were used for threshold calculation.
+    sectors : Dict[str, Any]
+        Dict containing thresholds and trunc_results DataFrames for each
+        sector.
     """
 
     # List of paths where results are to be analyzed.
@@ -120,7 +126,7 @@ class Analysis:
 
     def __init__(
         self, results: Union[str, List[str]] = [], verbose: bool = True,
-        overrides: Optional[str] = None
+        overrides: Optional[Union[str, dict]] = None
     ):
         self.results_paths = []
         if isinstance(results, list):
@@ -130,7 +136,11 @@ class Analysis:
 
         self.overrides_spec = dict()
         if overrides:
-            self.use_overrides(overrides)
+            if isinstance(overrides, str):
+                with open(overrides) as f:
+                    self.overrides_spec = json.load(f)
+            elif isinstance(overrides, dict):
+                self.overrides_spec = overrides
 
         # Manual specifications are intialized as empty until apply_overrides
         # is called after results are aggregated.
@@ -140,11 +150,6 @@ class Analysis:
         self.extra_thresholds = []
 
         self.sectors = dict()
-
-    def use_overrides(self, overrides_json):
-        """Use override specifications stored in json file."""
-        with open(overrides_json) as f:
-            self.overrides_spec = json.load(f)
 
     def apply_overrides(self):
         """Read manual overrides from .json file."""
@@ -364,7 +369,9 @@ class Analysis:
         ], axis=1).reset_index()
 
         # Count the number of fails, later used for error bars.
-        self.results['n_fail'] = self.results['success'].apply(sum)
+        self.results['n_fail'] = (
+            self.results['n_trials'] - self.results['success'].apply(sum)
+        )
 
         # Classify codes by code family for threshold analysis.
         self.results['code_family'] = self.results['code'].apply(
@@ -645,13 +652,13 @@ class Analysis:
             self.thresholds = thresholds
             self.trunc_results = trunc_results
 
-        # But when told to do so, calculate sector thresholds.
+        # But when told to do so, save sectors data.
         else:
-            if 'X' not in self.sectors:
-                self.sectors['X'] = dict()
-            self.sectors['X']['thresholds'] = thresholds
+            if sector not in self.sectors:
+                self.sectors[sector] = dict()
+            self.sectors[sector]['thresholds'] = thresholds
+            self.sectors[sector]['trunc_results'] = trunc_results
 
-    # TODO: implement this properly.
     def calculate_sector_thresholds(self):
         """Calculate thresholds of each single-qubit logical error type.
 
@@ -669,6 +676,7 @@ class Analysis:
 
             # The column names to use.
             p_est_label = f'p_est_{sector}'
+            p_se_label = f'p_se_{sector}'
             n_trials_label = f'n_trials_{sector}'
             n_fail_label = f'n_fail_{sector}'
 
@@ -680,14 +688,22 @@ class Analysis:
                 self.results['codespace'].apply(sum)
             )
 
+            # Count the number of fails.
             self.results[n_fail_label] = self.results[[
                 'effective_error', 'codespace'
             ]].apply(lambda row: count_fails(*row, sector), axis=1)
 
+            # Use the mean as best estimator.
             self.results[p_est_label] = self.results[n_fail_label]/(
                 self.results[n_trials_label]
             )
 
+            # Get the standard error as well.
+            self.results[p_se_label] = get_standard_error(
+                self.results[p_est_label], self.results[n_trials_label]
+            )
+
+            # Calculate the thresholds for this sector only.
             self.calculate_thresholds(
                 p_est=p_est_label,
                 n_trials_label=n_trials_label,
@@ -1131,10 +1147,107 @@ class Analysis:
         )
         draw_tick_symbol(plt, Line2D, log=True)
 
+    def plot_sector_collapse(
+        self, code_family: str, error_model: str, decoder: str
+    ):
+        """Plot the data collapse for a given parameter set for both sectors.
+
+        Parameters
+        ----------
+        code_family : str
+            The code family.
+        error_model : str
+            The error model label.
+        decoder : str
+            The decoder label.
+        """
+        import matplotlib.pyplot as plt
+
+        df = self.results
+        df_filt_1 = df[
+            (df['code_family'] == code_family)
+            & (df['error_model'] == error_model)
+            & (df['decoder'] == decoder)
+        ].sort_values(by='probability')
+        bias = df_filt_1['bias'].iloc[0]
+
+        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(10, 10))
+        for plot_row, sector in enumerate(['X', 'Z']):
+            plt.sca(ax[plot_row, 0])
+            p_est_label = f'p_est_{sector}'
+            p_se_label = f'p_se_{sector}'
+            for size in np.sort(df_filt_1['size'].unique()):
+                df_filt = df_filt_1[
+                    df_filt_1['size'] == size
+                ].sort_values(by='probability')
+                trunc_results = self.sectors[sector]['trunc_results']
+                df_filt_trunc = trunc_results[
+                    (trunc_results['size'] == size)
+                    & (trunc_results['code_family'] == code_family)
+                    & (trunc_results['error_model'] == error_model)
+                    & (trunc_results['decoder'] == decoder)
+                ].sort_values(by='probability')
+
+                # Draw gray circle underneath plots which are actually used for
+                # the finite-size scaling.
+                plt.plot(
+                    df_filt_trunc['probability'],
+                    df_filt_trunc[p_est_label], 'o', color='gray'
+                )
+                plt.errorbar(
+                    df_filt['probability'], df_filt[p_est_label],
+                    yerr=df_filt[p_se_label],
+                    capsize=5,
+                    label=f'$L={size[0]}$'
+                )
+
+            # Find the threshold estimate and uncertainty.
+            thresh = self.sectors[sector]['thresholds']
+            thresh_data = thresh[
+                (thresh['code_family'] == code_family)
+                & (thresh['error_model'] == error_model)
+                & (thresh['decoder'] == decoder)
+            ].iloc[0]
+
+            # Draw the threshold and uncertainty bounds.
+            plt.axvline(thresh_data['p_th_fss'], color='red', linestyle='--')
+            plt.axvspan(
+                thresh_data['p_th_fss_left'], thresh_data['p_th_fss_right'],
+                alpha=0.5, color='pink'
+            )
+            plt.legend(title=r'$p_{\mathrm{th}}=(%.2f\pm %.2f)\%%$' % (
+                100*thresh_data['p_th_fss'], 100*thresh_data['p_th_fss_se'],
+            ))
+            plt.yscale('linear')
+            plt.xlabel('Physical error rate $p$', fontsize=16)
+            plt.ylabel('Logical error rate $p_L$', fontsize=16)
+            deformation = df_filt_1['error_model_family'].iloc[0]
+            bias_label = str(bias).replace('inf', '\\infty')
+            plt.suptitle(
+                f'{code_family}, {shorten(deformation)} '
+                f'$\\eta={bias_label}$, {shorten(decoder)}',
+                fontsize=16
+            )
+            plt.sca(ax[plot_row, 1])
+
+            df_trunc = trunc_results[
+                (trunc_results['code_family'] == code_family)
+                & (trunc_results['error_model'] == error_model)
+                & (trunc_results['decoder'] == decoder)
+            ]
+            params_opt = thresh_data['fss_params']
+            params_bs = thresh_data['params_bs']
+            plot_data_collapse(
+                plt, df_trunc, params_opt, params_bs, title='',
+                y_label='',
+                x_label='Rescaled physical error rate',
+                p_est_label=p_est_label
+            )
+
     def plot_collapse(
         self, code_family: str, error_model: str, decoder: str
     ):
-        """Plot the collapse for a given parameter set.
+        """Plot the data collapse for a given parameter set.
 
         Parameters
         ----------
@@ -2052,7 +2165,9 @@ def get_fit_params(
     # Curve fit.
     bounds = [min(x_data[0]), max(x_data[0])]
 
-    if params_0 is not None and params_0[0] not in bounds:
+    if params_0 is not None and not (
+        bounds[0] <= params_0[0] and params_0[0] <= bounds[1]
+    ):
         params_0[0] = (bounds[0] + bounds[1]) / 2
 
     # print("Bounds", bounds)
@@ -2107,8 +2222,10 @@ def fit_fss_params(
         Maximum iterations for curve fitting optimizer.
     p_est : str
         Label for the logical error rate to use.
+    n_trials_label : str
+        Column label to use for the number of trials.
     n_fail_label : str
-        Label for the number of logical fails to use.
+        Column label to use for the number of logical fails.
 
     Returns
     -------
@@ -2163,7 +2280,7 @@ def fit_fss_params(
 
             # Posterior distribution starting from uniform prior.
             f_list_bs.append(
-                rng.beta(n_trials - n_fail + 1, n_fail + 1)
+                rng.beta(n_fail + 1, n_trials - n_fail + 1)
             )
         f_bs = np.array(f_list_bs)
 
@@ -2195,6 +2312,9 @@ def fit_fss_params(
     if pd.isna(params_bs).any(axis=1).mean() < 0.5:
         params_bs = params_bs[~np.isnan(params_bs).any(axis=1)]
 
+    # mean_params_bs = params_bs.mean(axis=0).round(2)
+    # rel_diff = np.abs(params_opt - mean_params_bs)/np.abs(params_opt)
+    # assert np.all(rel_diff < 0.5)
     return params_opt, params_bs, df_trunc
 
 
