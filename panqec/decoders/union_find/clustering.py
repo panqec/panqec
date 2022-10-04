@@ -172,8 +172,8 @@ class Support():
         self._H_to_grow = H.copy() # connected only if qubit/stabilizer is not grown 
         # UNUSE self._s_status = syndrome
         # UNUSE self._q_status = np.zeros(self._num_qubit, dtype='uint8') # eraser
-        self._q_parents = np.full(self._num_qubit, -1, dtype='int8') # -1 means no parents/it's root
-        self._s_parents = np.full(self._num_stabilizer, -1, dtype='int8') # -1 means no parents/it's root
+        self._q_parents = np.full(self._num_qubit, -1) # -1 means no parents/it's root
+        self._s_parents = np.full(self._num_stabilizer, -1) # -1 means no parents/it's root
         self._cluster_forest = self._init_cluster_forest(syndrome) # stabilizer to cluster
     
     def _init_cluster_forest(self, syndrome: np.ndarray) -> dict[int, Cluster_Tree]:
@@ -214,6 +214,8 @@ class Support():
         """Given a vertex index, returns the root of the cluster it belongs to."""
         parents = self._s_parents
         p = parents[v]
+        if p == -1:
+            return -1
         seen = []
         while v != p:
             seen.append(v)
