@@ -126,7 +126,7 @@ class TestAnalysis:
             'code_family', 'error_model', 'decoder',
             'p_th_fss', 'p_th_fss_left', 'p_th_fss_right',
             'fss_params', 'params_bs',
-            'found'
+            'fit_found'
         ]
         assert (
             set(analysis.thresholds.columns).intersection(threshold_required)

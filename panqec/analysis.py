@@ -664,12 +664,12 @@ class Analysis:
             )
 
         # Add an extra column to determine if the threshold was found.
-        thresholds['found'] = ~(
+        thresholds['fit_found'] = ~(
             pd.isna(thresholds['p_th_fss'])
-            & pd.isna(thresholds['p_th_fss_left'])
-            & pd.isna(thresholds['p_th_fss_right'])
-            & pd.isna(thresholds['p_th_fss_se'])
-            & thresholds['fss_params'].apply(lambda x: pd.isna(x).all())
+            | pd.isna(thresholds['p_th_fss_left'])
+            | pd.isna(thresholds['p_th_fss_right'])
+            | pd.isna(thresholds['p_th_fss_se'])
+            | thresholds['fss_params'].apply(lambda x: pd.isna(x).all())
         )
 
         trunc_results = pd.concat(df_trunc_list, axis=0)
@@ -1081,17 +1081,20 @@ class Analysis:
             'parameters': parameters,
         }
 
-    def make_plots(self, plot_dir: str):
+    def make_plots(self, plot_dir: str, include_date=True):
         """Make and display the plots while saving to directory."""
-        date = pd.Timestamp.now().strftime('%Y-%m-%d')
+        date = ''
+        if include_date:
+            date = pd.Timestamp.now().strftime('%Y-%m-%d') + '_'
+
         os.makedirs(plot_dir, exist_ok=True)
         self.log('Making collapse plots.')
         self.make_collapse_plots(
-            pdf=os.path.join(plot_dir, f'{date}_collapse.pdf')
+            pdf=os.path.join(plot_dir, f'{date}collapse.pdf')
         )
         self.log('Making threshold vs bias plots.')
         self.make_threshold_vs_bias_plots(
-            pdf=os.path.join(plot_dir, f'{date}_thresholds-vs-bias.pdf')
+            pdf=os.path.join(plot_dir, f'{date}thresholds-vs-bias.pdf')
         )
 
     def make_threshold_vs_bias_plots(self, pdf=None):
@@ -1272,6 +1275,8 @@ class Analysis:
             & (thresh['decoder'] == decoder)
         ].iloc[0]
 
+        fit_title = '' if thresh_data['fit_found'] else ' (fit failed)'
+
         # Draw the threshold and uncertainty bounds.
         plt.axvline(thresh_data['p_th_fss'], color='red', linestyle='--')
         plt.axvspan(
@@ -1290,7 +1295,7 @@ class Analysis:
         plt.suptitle(
             f'{code_family}, {shorten(deformation)} '
             f'$\\eta={bias_label}$, {shorten(decoder)}, '
-            f'{sector_name}',
+            f'{sector_name}{fit_title}',
             fontsize=16
         )
         plt.sca(ax[1])
