@@ -669,7 +669,10 @@ class Analysis:
             | pd.isna(thresholds['p_th_fss_left'])
             | pd.isna(thresholds['p_th_fss_right'])
             | pd.isna(thresholds['p_th_fss_se'])
-            | thresholds['fss_params'].apply(lambda x: pd.isna(x).all())
+            | thresholds['fss_params'].apply(
+                lambda x: np.any(pd.isna(x)) if isinstance(x, np.ndarray)
+                else pd.isna(x)
+            )
         )
 
         trunc_results = pd.concat(df_trunc_list, axis=0)

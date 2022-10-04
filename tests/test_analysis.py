@@ -149,6 +149,15 @@ class TestAnalysis:
                 ]).issubset(analysis.sectors[sector]['trunc_results'])
             ), f'{sector} trunc_results should have required columns'
 
+    def test_skip_entry(self):
+        results_path = os.path.join(DATA_DIR, 'toric')
+        analysis = Analysis(results_path, overrides={
+            'overrides': [{'filters': {'bias': 0.5}, 'skip': True}]
+        })
+        analysis.analyze()
+        assert 0.5 not in analysis.thresholds['bias'].values
+        assert analysis.thresholds.shape[0] > 0
+
     def test_generate_missing_inputs_can_be_read(self, tmpdir):
 
         class FakeAnalysis(Analysis):
