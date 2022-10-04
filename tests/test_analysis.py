@@ -108,6 +108,11 @@ class TestAnalysis:
         assert os.path.exists(results_path)
         analysis = Analysis(results_path)
         analysis.analyze()
+        results_required = [
+            'code', 'error_model', 'decoder',
+            'probability',
+            'p_est', 'n_trials', 'n_fail',
+        ]
         assert set(analysis.results.columns) == set([
             'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
             'probability', 'wall_time', 'n_trials', 'n_fail',
@@ -119,19 +124,30 @@ class TestAnalysis:
         ])
         threshold_required = [
             'code_family', 'error_model', 'decoder',
-            'p_th_fss', 'p_th_fss_left', 'p_th_fss_right'
+            'p_th_fss', 'p_th_fss_left', 'p_th_fss_right',
+            'fss_params', 'params_bs',
+            'found'
         ]
-        assert set(analysis.thresholds.columns).issuperset(threshold_required)
-        assert set(analysis.trunc_results.columns).issuperset([
-            'code', 'error_model', 'decoder',
-            'probability',
-            'p_est', 'n_trials', 'n_fail',
-        ])
-        assert 'rescaled_p' in analysis.trunc_results
+        assert (
+            set(analysis.thresholds.columns).intersection(threshold_required)
+            == set(threshold_required)
+        ), 'thresholds should have required columns'
+        assert (
+            set(analysis.trunc_results.columns).intersection(results_required)
+            == set(results_required)
+        ), 'trunc_results should have required columns'
+
         for sector in ['X', 'Z']:
-            assert set(analysis.sectors['X']['thresholds'].columns).issuperset(
-                threshold_required
-            )
+            assert (
+                set(analysis.sectors[sector]['thresholds']).intersection(
+                    threshold_required
+                ) == set(threshold_required)
+            ), f'{sector} thresholds should have required columns'
+            assert (
+                set([
+                    'code', 'error_model', 'decoder', 'rescaled_p',
+                ]).issubset(analysis.sectors[sector]['trunc_results'])
+            ), f'{sector} trunc_results should have required columns'
 
     def test_generate_missing_inputs_can_be_read(self, tmpdir):
 

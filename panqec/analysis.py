@@ -92,9 +92,21 @@ class Analysis:
         'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
         'probability'
     ]
+
+    # Set of parameters that identifies a family for the threshold vs bias
+    # plot.
     FAMILY_KEYS: List[str] = [
         'decoder', 'code_family', 'error_model_family', 'bias'
     ]
+
+    # Set of input parameter that identifies a threshold.
+    THRESHOLD_KEYS: List[str] = [
+        'code_family', 'error_model', 'decoder'
+    ]
+
+    # Set of parameter keys that identify a simulation,
+    # which is visualized as a point with error bars in the logical vs physical
+    # error rate crossing plots to extract thresholds from.
     POINT_KEYS: List[str] = [
         'code', 'error_model', 'decoder', 'probability'
     ]
@@ -121,7 +133,7 @@ class Analysis:
     # appended to thresholds DataFrame in the end.
     extra_thresholds: List[Dict]
 
-    # Threshold data for each sector.
+    # Threshold data for each sector ('total', 'X', 'Z').
     sectors: Dict[str, Any]
 
     def __init__(
@@ -251,8 +263,9 @@ class Analysis:
         self.calculate_total_error_rates()
         self.calculate_word_error_rates()
         self.calculate_single_qubit_error_rates()
-        self.calculate_thresholds()
+        self.calculate_thresholds(sector=None)
         self.calculate_sector_thresholds()
+        self.use_min_thresholds()
 
     def find_files(self):
         """Find where the results files are."""
@@ -459,7 +472,12 @@ class Analysis:
         n_fail_label: str = 'n_fail',
         sector: Optional[str] = None,
     ):
-        """Extract thresholds from table of results using heuristics.
+        """Extract thresholds using heuristics or manual override limits.
+
+        Records thresholds in the `sectors` attribute for the given sector.
+        If sector is None, then the total logical error rate is used to
+        calculate the thresholds and the threshold information is saved to the
+        `sectors['total']` part.
 
         Parameters
         ----------
@@ -645,19 +663,23 @@ class Analysis:
                 [thresholds, pd.DataFrame(self.extra_thresholds)]
             )
 
+        # Add an extra column to determine if the threshold was found.
+        thresholds['found'] = ~(
+            pd.isna(thresholds['p_th_fss'])
+            & pd.isna(thresholds['p_th_fss_left'])
+            & pd.isna(thresholds['p_th_fss_right'])
+            & pd.isna(thresholds['p_th_fss_se'])
+            & thresholds['fss_params'].apply(lambda x: pd.isna(x).all())
+        )
+
         trunc_results = pd.concat(df_trunc_list, axis=0)
 
-        # By default calculate overall threshold and save accordingly.
-        if sector is None:
-            self.thresholds = thresholds
-            self.trunc_results = trunc_results
-
-        # But when told to do so, save sectors data.
-        else:
-            if sector not in self.sectors:
-                self.sectors[sector] = dict()
-            self.sectors[sector]['thresholds'] = thresholds
-            self.sectors[sector]['trunc_results'] = trunc_results
+        # Save data to sectors attribute.
+        sector_key = 'total' if sector is None else sector
+        if sector_key not in self.sectors:
+            self.sectors[sector_key] = dict()
+        self.sectors[sector_key]['thresholds'] = thresholds
+        self.sectors[sector_key]['trunc_results'] = trunc_results
 
     def calculate_sector_thresholds(self):
         """Calculate thresholds of each single-qubit logical error type.
@@ -710,6 +732,37 @@ class Analysis:
                 n_fail_label=n_fail_label,
                 sector=sector,
             )
+
+    def use_min_thresholds(self):
+        """Use the minimum thresholds for `thresholds` DataFrame attribute.
+
+        Go through all the sector thresholds in the `sectors` attribute and
+        take the minimum for each parameter set.
+        """
+
+        # Stack all the sector threshold DataFrames with a 'sector' column.
+        all_thresholds = []
+        for sector in self.sectors:
+            df = self.sectors[sector]['thresholds'].copy()
+            df['sector'] = sector
+            all_thresholds.append(df)
+        thresholds = pd.concat(all_thresholds, axis=0).reset_index(drop=True)
+
+        # Group by input keys, taking the minimum setors.
+        self.thresholds = thresholds.loc[
+            thresholds.groupby(self.THRESHOLD_KEYS)['p_th_fss_left']
+            .idxmin().values
+        ].reset_index(drop=True)
+
+        # Stack all the truncated results together and reset index.
+        used_points = list(map(tuple, pd.concat([
+            self.sectors[sector]['trunc_results'][self.POINT_KEYS]
+            for sector in self.sectors
+        ], axis=0).drop_duplicates().values))
+
+        self.trunc_results = self.results.groupby(self.POINT_KEYS).first().loc[
+            used_points
+        ].reset_index().sort_values(by=self.POINT_KEYS)
 
     def replace_threshold(self, replacement):
         """Format override replace specification for threshold df."""
@@ -1067,10 +1120,13 @@ class Analysis:
         )[['code_family', 'error_model', 'decoder']].drop_duplicates().values
 
         for code_family, error_model, decoder in plot_parameters:
-            self.plot_collapse(code_family, error_model, decoder)
-            if pdf is not None:
-                pdf_writer.savefig(plt.gcf())
-            plt.show()
+            for sector in [None, 'X', 'Z']:
+                self.plot_sector_collapse(
+                    code_family, error_model, decoder, sector
+                )
+                if pdf is not None:
+                    pdf_writer.savefig(plt.gcf())
+                plt.show()
 
         if pdf is not None:
             pdf_writer.close()
@@ -1148,7 +1204,8 @@ class Analysis:
         draw_tick_symbol(plt, Line2D, log=True)
 
     def plot_sector_collapse(
-        self, code_family: str, error_model: str, decoder: str
+        self, code_family: str, error_model: str, decoder: str,
+        sector: Optional[str] = None
     ):
         """Plot the data collapse for a given parameter set for both sectors.
 
@@ -1163,6 +1220,8 @@ class Analysis:
         """
         import matplotlib.pyplot as plt
 
+        sector_key = 'total' if sector is None else sector
+
         df = self.results
         df_filt_1 = df[
             (df['code_family'] == code_family)
@@ -1171,80 +1230,86 @@ class Analysis:
         ].sort_values(by='probability')
         bias = df_filt_1['bias'].iloc[0]
 
-        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(10, 10))
-        for plot_row, sector in enumerate(['X', 'Z']):
-            plt.sca(ax[plot_row, 0])
+        if sector is None:
+            p_est_label = 'p_est'
+            p_se_label = 'p_se'
+        else:
             p_est_label = f'p_est_{sector}'
             p_se_label = f'p_se_{sector}'
-            for size in np.sort(df_filt_1['size'].unique()):
-                df_filt = df_filt_1[
-                    df_filt_1['size'] == size
-                ].sort_values(by='probability')
-                trunc_results = self.sectors[sector]['trunc_results']
-                df_filt_trunc = trunc_results[
-                    (trunc_results['size'] == size)
-                    & (trunc_results['code_family'] == code_family)
-                    & (trunc_results['error_model'] == error_model)
-                    & (trunc_results['decoder'] == decoder)
-                ].sort_values(by='probability')
 
-                # Draw gray circle underneath plots which are actually used for
-                # the finite-size scaling.
-                plt.plot(
-                    df_filt_trunc['probability'],
-                    df_filt_trunc[p_est_label], 'o', color='gray'
-                )
-                plt.errorbar(
-                    df_filt['probability'], df_filt[p_est_label],
-                    yerr=df_filt[p_se_label],
-                    capsize=5,
-                    label=f'$L={size[0]}$'
-                )
-
-            # Find the threshold estimate and uncertainty.
-            thresh = self.sectors[sector]['thresholds']
-            thresh_data = thresh[
-                (thresh['code_family'] == code_family)
-                & (thresh['error_model'] == error_model)
-                & (thresh['decoder'] == decoder)
-            ].iloc[0]
-
-            # Draw the threshold and uncertainty bounds.
-            plt.axvline(thresh_data['p_th_fss'], color='red', linestyle='--')
-            plt.axvspan(
-                thresh_data['p_th_fss_left'], thresh_data['p_th_fss_right'],
-                alpha=0.5, color='pink'
-            )
-            plt.legend(title=r'$p_{\mathrm{th}}=(%.2f\pm %.2f)\%%$' % (
-                100*thresh_data['p_th_fss'], 100*thresh_data['p_th_fss_se'],
-            ))
-            plt.yscale('linear')
-            plt.xlabel('Physical error rate $p$', fontsize=16)
-            plt.ylabel('Logical error rate $p_L$', fontsize=16)
-            deformation = df_filt_1['error_model_family'].iloc[0]
-            bias_label = str(bias).replace('inf', '\\infty')
-            plt.suptitle(
-                f'{code_family}, {shorten(deformation)} '
-                f'$\\eta={bias_label}$, {shorten(decoder)}',
-                fontsize=16
-            )
-            plt.sca(ax[plot_row, 1])
-
-            df_trunc = trunc_results[
-                (trunc_results['code_family'] == code_family)
+        fig, ax = plt.subplots(ncols=2, figsize=(10, 5))
+        plt.sca(ax[0])
+        for size in np.sort(df_filt_1['size'].unique()):
+            df_filt = df_filt_1[
+                df_filt_1['size'] == size
+            ].sort_values(by='probability')
+            trunc_results = self.sectors[sector_key]['trunc_results']
+            df_filt_trunc = trunc_results[
+                (trunc_results['size'] == size)
+                & (trunc_results['code_family'] == code_family)
                 & (trunc_results['error_model'] == error_model)
                 & (trunc_results['decoder'] == decoder)
-            ]
-            params_opt = thresh_data['fss_params']
-            params_bs = thresh_data['params_bs']
-            plot_data_collapse(
-                plt, df_trunc, params_opt, params_bs, title='',
-                y_label='',
-                x_label='Rescaled physical error rate',
-                p_est_label=p_est_label
+            ].sort_values(by='probability')
+
+            # Draw gray circle underneath plots which are actually used for
+            # the finite-size scaling.
+            plt.plot(
+                df_filt_trunc['probability'],
+                df_filt_trunc[p_est_label], 'o', color='gray'
+            )
+            plt.errorbar(
+                df_filt['probability'], df_filt[p_est_label],
+                yerr=df_filt[p_se_label],
+                capsize=5,
+                label=f'$L={size[0]}$'
             )
 
-    def plot_collapse(
+        # Find the threshold estimate and uncertainty.
+        thresh = self.sectors[sector_key]['thresholds']
+        thresh_data = thresh[
+            (thresh['code_family'] == code_family)
+            & (thresh['error_model'] == error_model)
+            & (thresh['decoder'] == decoder)
+        ].iloc[0]
+
+        # Draw the threshold and uncertainty bounds.
+        plt.axvline(thresh_data['p_th_fss'], color='red', linestyle='--')
+        plt.axvspan(
+            thresh_data['p_th_fss_left'], thresh_data['p_th_fss_right'],
+            alpha=0.5, color='pink'
+        )
+        plt.legend(title=r'$p_{\mathrm{th}}=(%.2f\pm %.2f)\%%$' % (
+            100*thresh_data['p_th_fss'], 100*thresh_data['p_th_fss_se'],
+        ))
+        plt.yscale('linear')
+        plt.xlabel('Physical error rate $p$', fontsize=16)
+        plt.ylabel('Logical error rate $p_L$', fontsize=16)
+        deformation = df_filt_1['error_model_family'].iloc[0]
+        bias_label = str(bias).replace('inf', '\\infty')
+        sector_name = 'All errors' if sector is None else f'{sector} errors'
+        plt.suptitle(
+            f'{code_family}, {shorten(deformation)} '
+            f'$\\eta={bias_label}$, {shorten(decoder)}, '
+            f'{sector_name}',
+            fontsize=16
+        )
+        plt.sca(ax[1])
+
+        df_trunc = trunc_results[
+            (trunc_results['code_family'] == code_family)
+            & (trunc_results['error_model'] == error_model)
+            & (trunc_results['decoder'] == decoder)
+        ]
+        params_opt = thresh_data['fss_params']
+        params_bs = thresh_data['params_bs']
+        plot_data_collapse(
+            plt, df_trunc, params_opt, params_bs, title='',
+            y_label='',
+            x_label='Rescaled physical error rate',
+            p_est_label=p_est_label
+        )
+
+    def _plot_collapse(
         self, code_family: str, error_model: str, decoder: str
     ):
         """Plot the data collapse for a given parameter set.
