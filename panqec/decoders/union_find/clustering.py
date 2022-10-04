@@ -39,6 +39,8 @@ def clustering(syndrome: np.ndarray, H: csr_matrix):
 
     while smallest_cluster: # while exists not valid cluster
         fusion_set = smallest_cluster.grow(support) 
+        print(f"smlest cluster: {smallest_cluster}")
+        print(fusion_set)
 
         for q in fusion_set:
             Hr = support.H[:, q] - support._H_to_grow[:, q]
