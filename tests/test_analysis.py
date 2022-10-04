@@ -106,7 +106,11 @@ class TestAnalysis:
     def test_analyse_toric_2d_results(self):
         results_path = os.path.join(DATA_DIR, 'toric')
         assert os.path.exists(results_path)
-        analysis = Analysis(results_path)
+        analysis = Analysis(results_path, overrides={'overrides': [
+            {'filters': {'bias': 'inf'}, 'truncate': {'probability': {
+                'min': 0.06, 'max': 0.14,
+            }}},
+        ]})
         analysis.analyze()
         results_required = [
             'code', 'error_model', 'decoder',
@@ -151,9 +155,12 @@ class TestAnalysis:
 
     def test_skip_entry(self):
         results_path = os.path.join(DATA_DIR, 'toric')
-        analysis = Analysis(results_path, overrides={
-            'overrides': [{'filters': {'bias': 0.5}, 'skip': True}]
-        })
+        analysis = Analysis(results_path, overrides={'overrides': [
+            {'filters': {'bias': 0.5}, 'skip': True},
+            {'filters': {'bias': 'inf'}, 'truncate': {'probability': {
+                'min': 0.06, 'max': 0.14,
+            }}},
+        ]})
         analysis.analyze()
         assert 0.5 not in analysis.thresholds['bias'].values
         assert analysis.thresholds.shape[0] > 0

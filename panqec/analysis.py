@@ -651,6 +651,13 @@ class Analysis:
                     'p_th_fss_se': params_bs[:, 0].std(),
                 })
 
+                # Record whether the fit was found or it was bad.
+                fit_status = self.get_fit_status(entry)
+                entry.update({
+                    'fit_status': fit_status,
+                    'fit_found': fit_status == 'success',
+                })
+
             entries.append(entry)
 
         thresholds = pd.DataFrame(entries)
@@ -663,18 +670,6 @@ class Analysis:
                 [thresholds, pd.DataFrame(self.extra_thresholds)]
             )
 
-        # Add an extra column to determine if the threshold was found.
-        thresholds['fit_found'] = ~(
-            pd.isna(thresholds['p_th_fss'])
-            | pd.isna(thresholds['p_th_fss_left'])
-            | pd.isna(thresholds['p_th_fss_right'])
-            | pd.isna(thresholds['p_th_fss_se'])
-            | thresholds['fss_params'].apply(
-                lambda x: np.any(pd.isna(x)) if isinstance(x, np.ndarray)
-                else pd.isna(x)
-            )
-        )
-
         trunc_results = pd.concat(df_trunc_list, axis=0)
 
         # Save data to sectors attribute.
@@ -683,6 +678,57 @@ class Analysis:
             self.sectors[sector_key] = dict()
         self.sectors[sector_key]['thresholds'] = thresholds
         self.sectors[sector_key]['trunc_results'] = trunc_results
+
+    def get_fit_status(self, entry: Dict[str, Any]) -> str:
+        """Status of the fit. 'success' if successful, comment if not.
+
+        Parameters
+        ----------
+        entry : Dict[str, Any]
+
+        Returns
+        -------
+        status : str
+            'success' of the fit succeeded and is valid otherwise a reason for
+            why it is not a success is given.
+        """
+
+        # Return False if any nan.
+        if np.any(pd.isna(entry['fss_params'])):
+            return 'Curve fitting failed.'
+        keys = ['p_th_fss', 'p_th_fss_left', 'p_th_fss_right', 'p_th_fss_se']
+        for key in keys:
+            if pd.isna(entry[key]):
+                return 'NaN threshold estimate or uncertainty.'
+
+        # If the uncertainty is zero, something bad probably happened.
+        if np.isclose(entry['p_th_fss_left'], entry['p_th_fss_right']):
+            return 'Zero CI uncertainty.'
+        if np.isclose(entry['p_th_fss_se'], 0):
+            return 'Zero SE uncertainty.'
+
+        # If anything is outside the interval [0, 1] then return False.
+        for key in keys:
+            if entry[key] < 0 or entry[key] > 1:
+                return 'Invalid threshold value.'
+
+        # If the fit parameters are implausible then return False.
+        p_th, nu, A, B, C = entry['fss_params']
+
+        # A is the logical error rate at threshold, which should be a
+        # probability between 0 and 1.
+        if A < 0 or A > 1:
+            return 'Invalid logical error rate at threshold.'
+
+        # If threshold is outside bounds then return False.
+        # Should take more data or manually override with wider truncation.
+        if entry['p_th_fss'] < entry['p_left']:
+            return 'Threshold left of leftmost data point used.'
+        if entry['p_th_fss'] > entry['p_right']:
+            return 'Threshold right of rightmost data point used.'
+
+        # Return 'success' if everything passed.
+        return 'success'
 
     def calculate_sector_thresholds(self):
         """Calculate thresholds of each single-qubit logical error type.
@@ -749,7 +795,13 @@ class Analysis:
             df = self.sectors[sector]['thresholds'].copy()
             df['sector'] = sector
             all_thresholds.append(df)
-        thresholds = pd.concat(all_thresholds, axis=0).reset_index(drop=True)
+        thresholds = pd.concat(all_thresholds, axis=0)
+
+        # Only take the thresholds for which fit was found.
+        thresholds = thresholds[thresholds['fit_found']]
+
+        # Reset the index.
+        thresholds = thresholds.reset_index(drop=True)
 
         # Group by input keys, taking the minimum setors.
         self.thresholds = thresholds.loc[
