@@ -163,6 +163,7 @@ class Analysis:
 
         self.sectors = dict()
 
+    # TODO allow overrides that apply for specific sector only.
     def apply_overrides(self):
         """Read manual overrides from .json file."""
 
@@ -832,6 +833,8 @@ class Analysis:
             "p_th_fss_right":  estimate + uncertainty,
             "p_th_fss":  estimate,
             'p_th_fss_se': uncertainty,
+            'fit_found': True,
+            'fit_status': 'success',
         }
 
     def get_quality_metrics(self):

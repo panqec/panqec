@@ -165,6 +165,26 @@ class TestAnalysis:
         assert 0.5 not in analysis.thresholds['bias'].values
         assert analysis.thresholds.shape[0] > 0
 
+    def test_replace_threshold_with_given_value(self):
+        results_path = os.path.join(DATA_DIR, 'toric')
+        analysis = Analysis(results_path, overrides={'overrides': [
+            {'filters': {'bias': 'inf'}, 'truncate': {'probability': {
+                'min': 0.06, 'max': 0.14,
+            }}},
+            {
+              "filters": {
+                "code_family": "Toric",
+                "error_model_family": "Deformed XZZX Pauli",
+                "bias": "inf",
+                "decoder": "BP-OSD decoder"
+              },
+              "replace": {"p_th_fss": 0.5, "p_th_fss_se": 0.01}
+            }
+        ]})
+        analysis.analyze()
+        assert 0.5 not in analysis.thresholds['bias'].values
+        assert analysis.thresholds.shape[0] > 0
+
     def test_generate_missing_inputs_can_be_read(self, tmpdir):
 
         class FakeAnalysis(Analysis):

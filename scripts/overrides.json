@@ -279,9 +279,9 @@
     {
       "filters": {
         "code_family": "Rhombic",
-          "error_model_family": "Deformed Rhombic Pauli",
-          "bias": "inf",
-          "decoder": "BP-OSD decoder"
+        "error_model_family": "Deformed Rhombic Pauli",
+        "bias": "inf",
+        "decoder": "BP-OSD decoder"
       },
       "replace": {"p_th_fss": 0.5, "p_th_fss_se": 0.01}
     },
