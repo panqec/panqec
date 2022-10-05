@@ -1372,6 +1372,15 @@ class Analysis:
             p_est_label=p_est_label
         )
 
+        if not thresh_data['fit_found']:
+            for i in range(2):
+                plt.sca(ax[i])
+                plt.text(
+                    0.5, 0.5, 'INVALID', transform=ax[i].transAxes,
+                    fontsize=40, color='gray', alpha=0.5, ha='center',
+                    va='center', rotation=30
+                )
+
     def _plot_collapse(
         self, code_family: str, error_model: str, decoder: str
     ):
