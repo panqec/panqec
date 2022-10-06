@@ -155,14 +155,46 @@ class TestAnalysis:
 
     # TODO come up with spec for different sectors.
     def test_different_sector_different_truncations(self):
-        results_path = os.path.join(DATA_DIR, 'toric')
+        results_path = os.path.join(DATA_DIR, 'toric3d.zip')
         analysis = Analysis(results_path, overrides={'overrides': [
             {'filters': {'bias': 0.5}, 'skip': True},
-            {'filters': {'bias': 'inf'}, 'truncate': {'probability': {
-                'min': 0.06, 'max': 0.14,
-            }}},
+            {'filters': {'bias': 'inf'}, 'skip': True},
+            {'filters': {'bias': 10}, 'truncate': {
+                'probability': {'min': 0.18, 'max': 0.28}
+            }},
+            {'filters': {'bias': 10}, 'sector': 'X', 'truncate': {
+                'probability': {'min': 0.20, 'max': 0.40}
+            }},
+            {'filters': {'bias': 10}, 'sector': 'Z', 'truncate': {
+                'probability': {'min': 0.18, 'max': 0.28}
+            }},
         ]})
         analysis.analyze()
+        assert analysis.thresholds.shape[0] == 1
+
+        # Check the overall threshold.
+        threshold = analysis.thresholds['p_th_fss'].iloc[0]
+        assert 0.22 < threshold and threshold < 0.23
+
+        # Check the sector thresholds.
+        t_thresh = analysis.sectors['total']['thresholds']['p_th_fss'].iloc[0]
+        assert 0.23 < t_thresh and t_thresh < 0.24
+
+        x_thresh = analysis.sectors['X']['thresholds']['p_th_fss'].iloc[0]
+        assert 0.32 < x_thresh and x_thresh < 0.33
+
+        z_thresh = analysis.sectors['Z']['thresholds']['p_th_fss'].iloc[0]
+        assert 0.22 < z_thresh and z_thresh < 0.23
+
+        # Check the custom sector-by-sector truncation was done correctly.
+        epsilon = 1e-5
+        p_X = analysis.sectors['X']['trunc_results']['probability'].unique()
+        assert all(p_X <= 0.40 + epsilon)
+        assert all(0.20 - epsilon <= p_X)
+
+        p_Z = analysis.sectors['Z']['trunc_results']['probability'].unique()
+        assert all(p_Z <= 0.28 + epsilon)
+        assert all(0.18 - epsilon <= p_Z)
 
     def test_skip_entry(self):
         results_path = os.path.join(DATA_DIR, 'toric')
