@@ -16,7 +16,7 @@ module add Python3/3.8.12
 source venv/bin/activate
 
 # Variables to change.
-trials=100
+trials=512
 data_dir=/nfshomes/ehuang18/panqec/temp/testdata
 n_split=auto
 

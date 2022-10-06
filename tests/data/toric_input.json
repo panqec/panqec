@@ -2,9 +2,9 @@
   "comments": "Some comments about this run.",
   "ranges": [
     {
-      "label": "toric_bitflip",
+      "label": "toric2d_bitflip",
       "code": {
-        "model": "Toric3DCode",
+        "model": "Toric2DCode",
         "parameters": [
           {"L_x": 4},
           {"L_x": 6},
@@ -30,7 +30,7 @@
       "trials": 1000
     },
     {
-      "label": "toric_bias_30",
+      "label": "toric3d_bias_10",
       "code": {
         "model": "Toric3DCode",
         "parameters": [
@@ -43,9 +43,9 @@
         "model": "PauliErrorModel",
         "parameters": [
           {
-            "r_x": 0.016129032258064502,
-            "r_y": 0.016129032258064502,
-            "r_z": 0.967741935483871
+            "r_x": 0.04545454545454547,
+            "r_y": 0.04545454545454547,
+            "r_z": 0.9090909090909091
           }
         ]
       },
@@ -64,9 +64,9 @@
       "trials": 1000
     },
     {
-      "label": "toric_depolarizing",
+      "label": "toric2d_depolarizing",
       "code": {
-        "model": "Toric3DCode",
+        "model": "Toric2DCode",
         "parameters": [
           {"L_x": 4},
           {"L_x": 6},
