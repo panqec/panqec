@@ -150,10 +150,9 @@ class TestBatchSimulationOneFile():
 
         # Make sure this is the only file produced.
         combined_outfile = os.path.join(
-            output_dir, 'mylabel', 'mylabel.json.gz'
+            output_dir, 'mylabel.json.gz'
         )
         assert os.path.isfile(combined_outfile)
-        assert len(os.listdir(os.path.join(output_dir, 'mylabel'))) == 1
         with gzip.open(combined_outfile, 'rb') as gz:
             results = json.loads(gz.read().decode('utf-8'))
 
@@ -215,10 +214,9 @@ def test_run_file_range_input(tmpdir):
     n_trials = 2
     assert os.listdir(tmpdir) == []
     run_file(input_json, n_trials, output_dir=tmpdir)
-    assert os.listdir(tmpdir) == ['test_range']
-    assert len(os.listdir(os.path.join(tmpdir, 'test_range'))) > 0
-    out_files = glob(os.path.join(tmpdir, 'test_range', '*.json.gz'))
-    assert len(out_files) > 0
+    assert len(os.listdir(tmpdir)) == 1
+    out_files = glob(os.path.join(tmpdir, '*.json.gz'))
+    assert len(out_files) == 1
 
 
 def test_merge_results():
@@ -297,4 +295,4 @@ class TestReadInputJson:
     def test_multiple_ranges(self):
         json_file = os.path.join(DATA_DIR, 'toric_input.json')
         batch_sim = read_input_json(json_file)
-        assert len(batch_sim) == 54
+        assert len(batch_sim) == 126

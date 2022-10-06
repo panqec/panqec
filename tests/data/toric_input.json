@@ -4,7 +4,7 @@
     {
       "label": "toric_bitflip",
       "code": {
-        "model": "Toric2DCode",
+        "model": "Toric3DCode",
         "parameters": [
           {"L_x": 4},
           {"L_x": 6},
@@ -30,9 +30,43 @@
       "trials": 1000
     },
     {
+      "label": "toric_bias_30",
+      "code": {
+        "model": "Toric3DCode",
+        "parameters": [
+          {"L_x": 4},
+          {"L_x": 6},
+          {"L_x": 8}
+        ]
+      },
+      "noise": {
+        "model": "PauliErrorModel",
+        "parameters": [
+          {
+            "r_x": 0.016129032258064502,
+            "r_y": 0.016129032258064502,
+            "r_z": 0.967741935483871
+          }
+        ]
+      },
+      "decoder": {
+        "model": "BeliefPropagationOSDDecoder",
+        "parameters": {
+          "max_bp_iter": 1000,
+          "osd_order": 0
+        }
+      },
+      "probability": [
+        0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20,
+        0.22, 0.24, 0.26, 0.28, 0.30, 0.32, 0.34, 0.36, 0.38, 0.40,
+        0.42, 0.44, 0.46, 0.48
+      ],
+      "trials": 1000
+    },
+    {
       "label": "toric_depolarizing",
       "code": {
-        "model": "Toric2DCode",
+        "model": "Toric3DCode",
         "parameters": [
           {"L_x": 4},
           {"L_x": 6},
