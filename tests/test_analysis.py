@@ -218,7 +218,8 @@ class TestAnalysis:
 
     def test_apply_overrides(self):
         analysis = Analysis()
-        assert not analysis.overrides
+        for sector in analysis.SECTOR_KEYS:
+            assert not analysis.overrides[sector]
         analysis.results = pd.DataFrame([
           {
             'code_family': 'Toric',
@@ -260,14 +261,15 @@ class TestAnalysis:
             ]
         }
         analysis.apply_overrides()
-        assert analysis.overrides == {
-            (
-                'Toric', 'Deformed XZZX Pauli X0.0161Y0.0161Z0.9677',
-                'BP-OSD decoder'
-            ): {
-                'probability': [0.1, 0.2]
+        for sector in analysis.SECTOR_KEYS:
+            assert analysis.overrides[sector] == {
+                (
+                    'Toric', 'Deformed XZZX Pauli X0.0161Y0.0161Z0.9677',
+                    'BP-OSD decoder'
+                ): {
+                    'probability': [0.1, 0.2]
+                }
             }
-        }
 
 
 def test_convert_missing_to_input():

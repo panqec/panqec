@@ -111,6 +111,8 @@ class Analysis:
         'code', 'error_model', 'decoder', 'probability'
     ]
 
+    SECTOR_KEYS: List[str] = ['total', 'X', 'Z']
+
     # Quality targets that are to be met.
     targets: Dict[str, Any] = {
         'n_probability': 8,
@@ -121,7 +123,7 @@ class Analysis:
     overrides_spec: Dict
 
     # Processed manual overrides.
-    overrides: Dict[Tuple, Any]
+    overrides: Dict[str, Dict[Tuple, Any]]
 
     # Manual values to be replace parsed from the overrides json file.
     replaces: Dict[Tuple, Any]
@@ -156,7 +158,7 @@ class Analysis:
 
         # Manual specifications are intialized as empty until apply_overrides
         # is called after results are aggregated.
-        self.overrides = dict()
+        self.overrides = {sector: dict() for sector in self.SECTOR_KEYS}
         self.replaces = dict()
         self.skips = []
         self.extra_thresholds = []
@@ -176,7 +178,7 @@ class Analysis:
         data = self.overrides_spec
         if 'overrides' in data and isinstance(data['overrides'], list):
 
-            self.overrides = dict()
+            self.overrides = {sector: dict() for sector in self.SECTOR_KEYS}
             self.replaces = dict()
             self.skips = []
             self.extra_thresholds = []
@@ -199,8 +201,11 @@ class Analysis:
                     ]].drop_duplicates().values
                     for triple in parameter_sets:
                         if 'truncate' in override:
-                            self.overrides[tuple(triple)] = \
-                                    override['truncate']
+                            sector_key = 'total'
+                            if 'sector' in override:
+                                sector_key = override['sector']
+                            self.overrides[sector_key][tuple(triple)] = \
+                                override['truncate']
                             overrides_used[i_override] = True
                         if 'replace' in override:
                             self.replaces[tuple(triple)] = override['replace']
@@ -236,6 +241,15 @@ class Analysis:
                     if counter > 3:
                         self.log(f'... and {unused_overrides - 3} more')
                         break
+
+            # Apply total sector truncations to X and Z  as well if not given
+            # explicitly already.
+            for triple in self.overrides['total'].keys():
+                for sector_key in ['X', 'Z']:
+                    if triple not in self.overrides[sector_key]:
+                        self.overrides[sector_key][triple] = (
+                            self.overrides['total'][triple]
+                        )
 
     def log(self, message: str):
         """Display a message, if the verbose attribute is True.
@@ -508,6 +522,7 @@ class Analysis:
             The Pauli sector use to calculate the threshold for.
             Will use overall error if None given.
         """
+        sector = 'total' if sector is None else sector
 
         results_df = self.results
 
@@ -578,7 +593,7 @@ class Analysis:
             entry['p_th_nearest'] = get_p_th_nearest(df_filt, p_est=p_est)
 
             # Using the manual override to get truncation limits.
-            if param_set in self.overrides:
+            if param_set in self.overrides[sector]:
 
                 # Initialize to max limits and reuse crossover.
                 entry.update({
@@ -588,25 +603,25 @@ class Analysis:
                 })
 
                 # Use the overrides to refine limits if available.
-                if 'probability' in self.overrides[param_set].keys():
+                if 'probability' in self.overrides[sector][param_set]:
                     tolerance = 1e-9
-                    p_trunc = self.overrides[param_set]['probability']
+                    p_trunc = self.overrides[sector][param_set]['probability']
                     if 'min' in p_trunc and p_trunc['min'] is not None:
                         entry['p_left'] = p_trunc['min'] - tolerance
                     if 'max' in p_trunc and p_trunc['max'] is not None:
                         entry['p_right'] = p_trunc['max'] + tolerance
 
                 # Truncate the sizes if told to do so.
-                if 'd' in self.overrides[param_set].keys():
-                    if 'min' in self.overrides[param_set]['d']:
+                if 'd' in self.overrides[sector][param_set].keys():
+                    if 'min' in self.overrides[sector][param_set]['d']:
                         df_filt = df_filt[
                             df_filt['d']
-                            >= self.overrides[param_set]['d']['min']
+                            >= self.overrides[sector][param_set]['d']['min']
                         ]
-                    if 'max' in self.overrides[param_set]['d']:
+                    if 'max' in self.overrides[sector][param_set]['d']:
                         df_filt = df_filt[
                             df_filt['d']
-                            <= self.overrides[param_set]['d']['max']
+                            <= self.overrides[sector][param_set]['d']['max']
                         ]
 
                 # Just use the crossover point if it's in between the limits.
@@ -674,11 +689,10 @@ class Analysis:
         trunc_results = pd.concat(df_trunc_list, axis=0)
 
         # Save data to sectors attribute.
-        sector_key = 'total' if sector is None else sector
-        if sector_key not in self.sectors:
-            self.sectors[sector_key] = dict()
-        self.sectors[sector_key]['thresholds'] = thresholds
-        self.sectors[sector_key]['trunc_results'] = trunc_results
+        if sector not in self.sectors:
+            self.sectors[sector] = dict()
+        self.sectors[sector]['thresholds'] = thresholds
+        self.sectors[sector]['trunc_results'] = trunc_results
 
     def get_fit_status(self, entry: Dict[str, Any]) -> str:
         """Status of the fit. 'success' if successful, comment if not.
