@@ -153,6 +153,17 @@ class TestAnalysis:
                 ]).issubset(analysis.sectors[sector]['trunc_results'])
             ), f'{sector} trunc_results should have required columns'
 
+    # TODO come up with spec for different sectors.
+    def test_different_sector_different_truncations(self):
+        results_path = os.path.join(DATA_DIR, 'toric')
+        analysis = Analysis(results_path, overrides={'overrides': [
+            {'filters': {'bias': 0.5}, 'skip': True},
+            {'filters': {'bias': 'inf'}, 'truncate': {'probability': {
+                'min': 0.06, 'max': 0.14,
+            }}},
+        ]})
+        analysis.analyze()
+
     def test_skip_entry(self):
         results_path = os.path.join(DATA_DIR, 'toric')
         analysis = Analysis(results_path, overrides={'overrides': [

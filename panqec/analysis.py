@@ -1282,6 +1282,9 @@ class Analysis:
         import matplotlib.pyplot as plt
 
         sector_key = 'total' if sector is None else sector
+        self.log(
+            f'Plotting {code_family}, {error_model}, {decoder}, {sector_key}'
+        )
 
         df = self.results
         df_filt_1 = df[
