@@ -165,7 +165,6 @@ class Analysis:
 
         self.sectors = dict()
 
-    # TODO allow overrides that apply for specific sector only.
     def apply_overrides(self):
         """Read manual overrides from .json file."""
 

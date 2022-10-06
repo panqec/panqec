@@ -153,7 +153,6 @@ class TestAnalysis:
                 ]).issubset(analysis.sectors[sector]['trunc_results'])
             ), f'{sector} trunc_results should have required columns'
 
-    # TODO come up with spec for different sectors.
     def test_different_sector_different_truncations(self):
         results_path = os.path.join(DATA_DIR, 'toric3d.zip')
         analysis = Analysis(results_path, overrides={'overrides': [
