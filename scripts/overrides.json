@@ -453,7 +453,9 @@
         "bias": "inf",
         "decoder": "BP-OSD decoder"
       },
-      "replace": {"p_th_fss": 0.5, "p_th_fss_se": 0.01}
+      "truncate": {
+        "probability": {"min": 0.12, "max": 0.22}
+      }
     },
     {
       "filters": {
@@ -486,6 +488,30 @@
       },
       "truncate": {
         "probability": {"min": 0.06, "max": 0.11}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "XCube",
+        "error_model_family": "Deformed XZZX Pauli",
+        "bias": 10,
+        "decoder": "BP-OSD decoder"
+      },
+      "sector": "X",
+      "truncate": {
+        "probability": {"min": 0.06, "max": 0.13}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "XCube",
+        "error_model_family": "Deformed XZZX Pauli",
+        "bias": 10,
+        "decoder": "BP-OSD decoder"
+      },
+      "sector": "Z",
+      "truncate": {
+        "probability": {"min": 0.13, "max": 0.18}
       }
     },
     {
