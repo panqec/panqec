@@ -145,13 +145,15 @@ def read_range_input(specification: str) -> List[float]:
 )
 def analyze(paths, overrides, plot_dir):
     """Analyze the data at given paths."""
+
+    # Use headless plotting and ignore warnings from matplotlib.
     import matplotlib
     matplotlib.use('Agg')
-    analysis = Analysis(list(paths), overrides=overrides, verbose=True)
-    analysis.analyze(progress=tqdm)
-
     import warnings
     warnings.filterwarnings('ignore')
+
+    analysis = Analysis(list(paths), overrides=overrides, verbose=True)
+    analysis.analyze(progress=tqdm)
     analysis.make_plots(plot_dir)
 
 

@@ -1177,7 +1177,7 @@ class Analysis:
         for code_family in self.thresholds['code_family'].unique():
             self.plot_threshold_vs_bias(code_family)
             if pdf is not None:
-                pdf_writer.savefig(plt.gcf())
+                pdf_writer.savefig(plt.gcf(), bbox_inches='tight')
             plt.show()
         if pdf is not None:
             pdf_writer.close()
@@ -1199,7 +1199,7 @@ class Analysis:
                     code_family, error_model, decoder, sector
                 )
                 if pdf is not None:
-                    pdf_writer.savefig(plt.gcf())
+                    pdf_writer.savefig(plt.gcf(), bbox_inches='tight')
                 plt.show()
 
         if pdf is not None:

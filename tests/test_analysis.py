@@ -1,5 +1,6 @@
 import os
 import json
+import re
 import pytest
 import numpy as np
 import pandas as pd
@@ -103,7 +104,7 @@ class TestGetSingleQubitErrorRates:
 
 class TestAnalysis:
 
-    def test_analyse_toric_2d_results(self):
+    def test_analyse_toric_2d_results(self, tmpdir):
         results_path = os.path.join(DATA_DIR, 'toric')
         assert os.path.exists(results_path)
         analysis = Analysis(results_path, overrides={'overrides': [
@@ -152,6 +153,20 @@ class TestAnalysis:
                     'code', 'error_model', 'decoder', 'rescaled_p',
                 ]).issubset(analysis.sectors[sector]['trunc_results'])
             ), f'{sector} trunc_results should have required columns'
+
+        import matplotlib
+        import warnings
+        matplotlib.use('Agg')
+        warnings.filterwarnings('ignore')
+        analysis.make_plots(tmpdir)
+        assert any([
+            bool(re.match(r'.*collapse.pdf$', name))
+            for name in os.listdir(tmpdir)
+        ])
+        assert any([
+            bool(re.match(r'.*thresholds-vs-bias.pdf$', name))
+            for name in os.listdir(tmpdir)
+        ])
 
     def test_different_sector_different_truncations(self):
         results_path = os.path.join(DATA_DIR, 'toric3d.zip')
