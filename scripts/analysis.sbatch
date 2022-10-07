@@ -3,7 +3,7 @@
 #SBATCH -t 48:00:00
 #SBATCH --cpus-per-task=1
 #SBATCH --exclusive
-#SBATCH --job-name=gentestdata
+#SBATCH --job-name=analysis
 #SBATCH --array=1-1
 #SBATCH --mem=20G
 #SBATCH -p dpart
@@ -32,7 +32,7 @@ mkdir -p "$log_dir"
 python scripts/monitor.py "$log_dir/usage_${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}.txt" &
 
 # Do the actual analysis.
-panqec analyze --overrides $overrides --plot_dir $plot_dir $paths \
+stdbuf -oL panqec analyze --overrides $overrides --plot_dir $plot_dir $paths \
         2> $log_dir/stderr 1> $log_dir/stdout &
 
 sleep 48h
