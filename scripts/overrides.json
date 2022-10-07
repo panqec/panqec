@@ -2,6 +2,12 @@
   "overrides": [
     {
       "filters": {
+        "bias": 1000
+      },
+      "skip": true
+    },
+    {
+      "filters": {
         "code_family": "Toric",
         "error_model_family": "Deformed XZZX Pauli",
         "bias": "inf",
@@ -13,13 +19,13 @@
       "filters": {
         "code_family": "Toric",
         "error_model_family": "Deformed XZZX Pauli",
-        "bias": 1000,
-        "decoder": "BP-OSD decoder"
+        "bias": "inf",
+        "decoder": "Deformed Toric 3D Sweep Pymatching Decoder"
       },
+      "sector": "Z",
       "truncate": {
-        "probability": {"min": 0.18, "max": 0.30}
-      },
-      "skip": true
+        "probability": {"min": 0.19, "max": 0.23}
+      }
     },
     {
       "filters": {
@@ -52,6 +58,18 @@
       },
       "truncate": {
         "probability": {"min": 0.15, "max": 0.20}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Toric",
+        "error_model_family": "Deformed XZZX Pauli",
+        "bias": 30,
+        "decoder": "Deformed Toric 3D Sweep Pymatching Decoder"
+      },
+      "sector": "Z",
+      "truncate": {
+        "probability": {"min": 0.19, "max": 0.23}
       }
     },
     {
@@ -135,6 +153,17 @@
       "filters": {
         "code_family": "Toric",
         "error_model_family": "Pauli",
+        "bias": "inf",
+        "decoder": "Toric 3D Sweep Pymatching Decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.13, "max": 0.16}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Toric",
+        "error_model_family": "Pauli",
         "bias": 1000,
         "decoder": "Toric 3D Sweep Pymatching Decoder"
       },
@@ -154,6 +183,17 @@
         "probability": {"min": 0.13, "max": 0.17}
       },
       "skip": true
+    },
+    {
+      "filters": {
+        "code_family": "Toric",
+        "error_model_family": "Pauli",
+        "bias": 100,
+        "decoder": "Toric 3D Sweep Pymatching Decoder"
+      },
+      "truncate": {
+        "probability": {"min": 0.13, "max": 0.17}
+      }
     },
     {
       "filters": {
@@ -196,7 +236,31 @@
         "decoder": "Toric 3D Sweep Pymatching Decoder"
       },
       "truncate": {
-        "probability": {"min": 0.10, "max": 0.15}
+        "probability": {"min": 0.10, "max": 0.14}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Toric",
+        "error_model_family": "Pauli",
+        "bias": 3,
+        "decoder": "Toric 3D Sweep Pymatching Decoder"
+      },
+      "sector": "X",
+      "truncate": {
+        "probability": {"min": 0.10, "max": 0.14}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "Toric",
+        "error_model_family": "Pauli",
+        "bias": 3,
+        "decoder": "Toric 3D Sweep Pymatching Decoder"
+      },
+      "sector": "Z",
+      "truncate": {
+        "probability": {"min": 0.15, "max": 0.18}
       }
     },
     {
@@ -410,7 +474,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.08, "max": 0.12}
+        "probability": {"min": 0.08, "max": 0.13}
       }
     },
     {
@@ -444,6 +508,18 @@
       },
       "truncate": {
         "probability": {"min": 0.035, "max": 0.055}
+      }
+    },
+    {
+      "filters": {
+        "code_family": "XCube",
+        "error_model_family": "Deformed XZZX Pauli",
+        "bias": 0.5,
+        "decoder": "BP-OSD decoder"
+      },
+      "sector": "X",
+      "truncate": {
+        "probability": {"min": 0.035, "max": 0.065}
       }
     },
     {
