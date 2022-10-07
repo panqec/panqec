@@ -259,7 +259,7 @@ class Analysis:
             Message to be displayed.
         """
         if self.verbose:
-            print(message)
+            print(message, flush=True)
 
     def analyze(self, progress: Optional[Callable] = identity):
         """Perform the full analysis.
