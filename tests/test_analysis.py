@@ -104,6 +104,43 @@ class TestGetSingleQubitErrorRates:
 
 class TestAnalysis:
 
+    def test_save_and_load_analysis(self, tmpdir):
+        results_path = os.path.join(DATA_DIR, 'toric')
+        analysis = Analysis(results_path, overrides={'overrides': [
+            {'filters': {'bias': 'inf'}, 'truncate': {'probability': {
+                'min': 0.06, 'max': 0.14,
+            }}},
+        ]})
+        analysis.analyze()
+        save_path = os.path.join(tmpdir, 'myanalysis.json.gz')
+        analysis.save(save_path)
+
+        new_analysis = Analysis()
+        new_analysis.load(save_path)
+        assert new_analysis.results.shape[0] > 0
+        assert new_analysis.results.shape[0] == analysis.results.shape[0]
+        assert new_analysis.thresholds.shape[0] > 0
+        assert new_analysis.thresholds.shape[0] == analysis.thresholds.shape[0]
+        assert 'total' in new_analysis.sectors
+        assert 'X' in new_analysis.sectors
+        assert 'Z' in new_analysis.sectors
+        for sector in new_analysis.sectors:
+            for table_name in ['trunc_results', 'thresholds']:
+                assert (
+                    new_analysis.sectors[sector][table_name].shape[0]
+                    == analysis.sectors[sector][table_name].shape[0]
+                )
+
+        # Attempt to make plots using loaded Analysis.
+        import matplotlib
+        import warnings
+        matplotlib.use('Agg')
+        warnings.filterwarnings('ignore')
+        new_analysis.make_plots(tmpdir)
+        assert len([
+            name for name in os.listdir(tmpdir) if '.pdf' in name
+        ]) == 2
+
     def test_analyse_toric_2d_results(self, tmpdir):
         results_path = os.path.join(DATA_DIR, 'toric')
         assert os.path.exists(results_path)

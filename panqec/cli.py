@@ -155,6 +155,7 @@ def analyze(paths, overrides, plot_dir):
     analysis = Analysis(list(paths), overrides=overrides, verbose=True)
     analysis.analyze(progress=tqdm)
     analysis.make_plots(plot_dir)
+    analysis.save(os.path.join(plot_dir, 'analysis.json.gz'))
 
 
 @click.command()

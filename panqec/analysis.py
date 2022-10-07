@@ -165,6 +165,56 @@ class Analysis:
 
         self.sectors = dict()
 
+    def _load_results_df(self, data: dict) -> pd.DataFrame:
+        """Load dict into results DataFrame."""
+        results = pd.DataFrame(data)
+        if 'size' in results:
+            results['size'] = results['size'].apply(tuple)
+        return results
+
+    def load(self, path):
+        """Load previous analysis from .json.gz file."""
+        with gzip.open(path, 'rb') as gz:
+            data = json.loads(gz.read().decode('utf-8'))
+        self.results = self._load_results_df(data['results'])
+        self.trunc_results = self._load_results_df(data['trunc_results'])
+        self.thresholds = pd.DataFrame(data['thresholds'])
+        self.sectors = {
+            sector: {
+                'thresholds': pd.DataFrame(sector_data['thresholds']),
+                'trunc_results': self._load_results_df(
+                    sector_data['trunc_results']
+                ),
+            }
+            for sector, sector_data in data['sectors'].items()
+        }
+
+    def save(self, path):
+        """Save analysis to a .json.gz file."""
+        drop_columns = [
+            'effective_error', 'codespace', 'success', 'results_file'
+        ]
+        data = {
+            'trunc_results': self.trunc_results.drop(
+                drop_columns, axis=1
+            ).to_dict(),
+            'results': self.results.drop(drop_columns, axis=1).to_dict(),
+            'thresholds': self.thresholds.to_dict(),
+            'sectors': {
+                sector: {
+                    'thresholds':
+                    sector_data['thresholds'].to_dict(),
+                    'trunc_results':
+                    sector_data['trunc_results'].drop(
+                        drop_columns, axis=1
+                    ).to_dict(),
+                }
+                for sector, sector_data in self.sectors.items()
+            }
+        }
+        with gzip.open(path, 'wb') as gz:
+            gz.write(json.dumps(data, cls=NumpyEncoder).encode('utf-8'))
+
     def apply_overrides(self):
         """Read manual overrides from .json file."""
 
