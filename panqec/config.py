@@ -127,6 +127,7 @@ def register_decoder(decoder_class):
 
 # Shortened names for analysis and plot labelling purposes.
 SHORT_NAMES = {
+    'Pauli': 'CSS',
     'Deformed XZZX Pauli': 'Deformed',
     'Deformed Rhombic Pauli': 'Deformed',
     'BP-OSD decoder': 'BP+OSD',
