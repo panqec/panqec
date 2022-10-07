@@ -791,6 +791,12 @@ class Analysis:
         if entry['p_th_fss'] > entry['p_right']:
             return 'Threshold right of rightmost data point used.'
 
+        # If the fit is a flat line, it is likely that all the data was was
+        # zero, or very close to zero, which means that there is either not
+        # enough data or the physical error rate range has been chosen too low.
+        if np.allclose([A, B, C], 0):
+            return 'Zero logical error rate fit'
+
         # Return 'success' if everything passed.
         return 'success'
 
