@@ -131,8 +131,8 @@ SHORT_NAMES = {
     'Deformed XZZX Pauli': 'Deformed',
     'Deformed Rhombic Pauli': 'Deformed',
     'BP-OSD decoder': 'BP-OSD',
-    'Toric 3D Sweep Pymatching Decoder': 'SweepMatch',
-    'Deformed Toric 3D Sweep Pymatching Decoder': 'SweepMatch',
+    'Toric 3D Sweep Pymatching Decoder': 'Sweep-Matching',
+    'Deformed Toric 3D Sweep Pymatching Decoder': 'Sweep-Matching',
 }
 LONG_NAMES = {
     'Rhombic': 'Surface code on checkerboard lattice',
