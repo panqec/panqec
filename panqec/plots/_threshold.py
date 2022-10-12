@@ -531,11 +531,14 @@ def draw_tick_symbol(
     tick_height=0.03, tick_width=0.1, tick_location=2.5,
     axis_offset=0,
 ):
+    """Draw a section cut tick symbol on the x axis."""
+
+    # The actual line.
     x_points = np.array([
+        -0.5,
         -0.25,
-        0,
-        0,
         0.25,
+        0.5,
     ])*tick_width + tick_location
     if log:
         x_points = 10**np.array(x_points)

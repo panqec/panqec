@@ -22,14 +22,15 @@ import pandas as pd
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
 from scipy.signal import argrelextrema
-from .config import SLURM_DIR, SHORT_NAMES
+from .config import SLURM_DIR, SHORT_NAMES, LONG_NAMES
 from .simulation import read_input_json, BatchSimulation
 from .utils import (
     fmt_uncertainty, NumpyEncoder, identity, find_nearest,
-    get_direction_from_bias_ratio, rescale_prob
+    get_direction_from_bias_ratio, rescale_prob, fmt_confidence_interval
 )
 from .bpauli import int_to_bvector, bvector_to_pauli_string
 from .plots._threshold import plot_data_collapse, draw_tick_symbol
+from .plots._hashing_bound import get_hashing_bound
 
 Numerical = Union[Iterable, float, int]
 
@@ -179,6 +180,8 @@ class Analysis:
         self.results = self._load_results_df(data['results'])
         self.trunc_results = self._load_results_df(data['trunc_results'])
         self.thresholds = pd.DataFrame(data['thresholds'])
+        for k in ['fss_params', 'params_bs']:
+            self.thresholds[k] = self.thresholds[k].apply(np.array)
         self.sectors = {
             sector: {
                 'thresholds': pd.DataFrame(sector_data['thresholds']),
@@ -191,6 +194,7 @@ class Analysis:
 
     def save(self, path):
         """Save analysis to a .json.gz file."""
+        self.log(f'Saving analysis to {path}')
         drop_columns = [
             'effective_error', 'codespace', 'success', 'results_file'
         ]
@@ -202,10 +206,8 @@ class Analysis:
             'thresholds': self.thresholds.to_dict(),
             'sectors': {
                 sector: {
-                    'thresholds':
-                    sector_data['thresholds'].to_dict(),
-                    'trunc_results':
-                    sector_data['trunc_results'].drop(
+                    'thresholds': sector_data['thresholds'].to_dict(),
+                    'trunc_results': sector_data['trunc_results'].drop(
                         drop_columns, axis=1
                     ).to_dict(),
                 }
@@ -1262,7 +1264,8 @@ class Analysis:
             pdf_writer.close()
 
     def plot_threshold_vs_bias(
-        self, code_family: str, inf_bias_replacement: float = 1e3
+        self, code_family: str, inf_bias_replacement: float = 1e3,
+        hashing: bool = True,
     ):
         """Plot the threshold vs bias plots.
 
@@ -1273,6 +1276,8 @@ class Analysis:
         inf_bias_replacement : float
             The fintite value of bias at which to plot the infinite bias points
             at.
+        hashing : bool
+            Will also plot hashing bound if True.
         """
         import matplotlib.pyplot as plt
         from matplotlib.lines import Line2D
@@ -1321,8 +1326,29 @@ class Analysis:
                 thresh_df_filt['p_th_fss_right'],
                 alpha=0.3
             )
+
+        if hashing:
+            eta_interp = np.logspace(np.log10(0.5), np.log10(100), 101)
+            interp_points = [
+                (
+                    1/(2*(1 + eta)),
+                    1/(2*(1 + eta)),
+                    eta/(1 + eta)
+                )
+                for eta in eta_interp
+            ]
+            hb_interp = np.array([
+                get_hashing_bound(point)
+                for point in interp_points
+            ])
+            eta_interp = np.append(eta_interp, [inf_bias_replacement])
+            hb_interp = np.append(hb_interp, [get_hashing_bound((0, 0, 1))])
+
+            plt.plot(eta_interp, hb_interp, '-.', color='black',
+                     label='Hashing bound', alpha=0.5, linewidth=2)
+
         plt.legend()
-        plt.title(f'{code_family}')
+        plt.title(lengthen(code_family), fontsize=16)
         plt.xscale('log')
         plt.xlabel('Bias Ratio $\\eta$', fontsize=16)
         plt.ylabel('Threshold', fontsize=16)
@@ -1399,11 +1425,14 @@ class Analysis:
 
         # Find the threshold estimate and uncertainty.
         thresh = self.sectors[sector_key]['thresholds']
-        thresh_data = thresh[
+        thresh_match = thresh[
             (thresh['code_family'] == code_family)
             & (thresh['error_model'] == error_model)
             & (thresh['decoder'] == decoder)
-        ].iloc[0]
+        ]
+        if thresh_match.shape[0] == 0:
+            return
+        thresh_data = thresh_match.iloc[0]
 
         fit_title = '' if thresh_data['fit_found'] else ' (fit failed)'
 
@@ -1423,8 +1452,8 @@ class Analysis:
         bias_label = str(bias).replace('inf', '\\infty')
         sector_name = 'All errors' if sector is None else f'{sector} errors'
         plt.suptitle(
-            f'{code_family}, {shorten(deformation)} '
-            f'$\\eta={bias_label}$, {shorten(decoder)}, '
+            f'{shorten(deformation)} {lengthen(code_family)}\n'
+            f'$\\eta_Z={bias_label}$, {shorten(decoder)}, '
             f'{sector_name}{fit_title}',
             fontsize=16
         )
@@ -1545,6 +1574,65 @@ class Analysis:
             x_label='Rescaled physical error rate'
         )
 
+    def export_latex_tables(self):
+        """Print out LaTeX tables of thresholds."""
+        error_model_family_rename = {
+            'Deformed XZZX Pauli': 'Deformed',
+            'Deformed Rhombic Pauli': 'Deformed',
+            'Pauli': 'CSS',
+        }
+        for code_family in self.thresholds['code_family'].unique():
+            df = self.thresholds.copy()
+            df['threshold'] = df[[
+                'p_th_fss', 'p_th_fss_left', 'p_th_fss_right'
+            ]].apply(lambda x: fmt_confidence_interval(
+                    x[0]*100, x[1]*100, x[2]*100, unit=r'\%'
+            ), axis=1)
+            df = df[df['code_family'] == code_family]
+            df2 = df.groupby([
+                'error_model_family', 'decoder', 'bias'
+            ])[['threshold']].first().reset_index()
+
+            df2['error_model_family'] = df2['error_model_family'].map(
+                error_model_family_rename
+            )
+            df2['bias_value'] = df2['bias'].replace({'inf': np.inf})
+            df2['decoder'] = df2['decoder'].apply(shorten)
+            df2['bias'] = df2['bias'].replace({'inf': r'$\infty$'})
+            index = pd.Index(
+                df2.sort_values(by='bias_value')['bias']
+                .replace({'inf': r'$\infty$'}).unique(),
+                name=r'Bias $\eta_Z$'
+            )
+            columns = df2.groupby([
+                'error_model_family', 'decoder'
+            ]).first().index
+            columns.names = ['', '']
+
+            data = []
+            for bias in index:
+                row = []
+                for error_model_family, decoder in columns:
+                    values = df2[
+                        (df2['bias'] == bias)
+                        & (df2['error_model_family'] == error_model_family)
+                        & (df2['decoder'] == decoder)
+                    ]
+                    if values.shape[0] > 0:
+                        row.append(values['threshold'].iloc[0])
+                    else:
+                        row.append(np.nan)
+                data.append(row)
+
+            df3 = pd.DataFrame(data, columns=columns, index=index)
+            df3 = df3.fillna('-')
+
+            self.log(df3.style.to_latex(
+                caption='Caption', position='H', multicol_align='c',
+                label='tab:' + code_family.lower(), position_float='centering',
+                hrules=True, column_format='c'*(df3.shape[1] + 1)
+            ))
+
 
 def count_fails(
     effective_error: np.ndarray, codespace: np.ndarray, sector: str
@@ -1588,6 +1676,12 @@ def shorten(long_name):
     if long_name in SHORT_NAMES:
         return SHORT_NAMES[long_name]
     return long_name
+
+
+def lengthen(name):
+    if name in LONG_NAMES:
+        return LONG_NAMES[name]
+    return name
 
 
 def infer_error_model_family(label: str) -> str:
