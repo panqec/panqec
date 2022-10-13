@@ -27,7 +27,7 @@ mkdir -p temp/paper/share
 #     --ratio equal \
 #     --sizes "$sizes" --decoder SweepMatchDecoder --bias Z \
 #     --eta "10,30,100,1000,inf" --prob "0.1:0.2:0.01"
-# bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 93 --partition $queue \
+# bn3d ad-sbatch --data_dir "$paper_dir/$name" --n_array 93 --partition $queue \
 #     --memory "$memory" \
 #     --wall_time "$wall_time" --trials 10000 --split 40 $sbatch_dir/$name.sbatch
 # 
@@ -59,7 +59,7 @@ mkdir -p temp/paper/share
 #     --ratio equal \
 #     --sizes "$sizes" --decoder DeformedSweepMatchDecoder --bias Z \
 #     --eta "30,100,1000,inf" --prob "0.16:0.26:0.01"
-# bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 94 --partition $queue \
+# bn3d ad-sbatch --data_dir "$paper_dir/$name" --n_array 94 --partition $queue \
 #     --memory "$memory" \
 #     --wall_time "$wall_time" --trials 10000 --split 40 $sbatch_dir/$name.sbatch
 
@@ -78,7 +78,7 @@ mkdir -p temp/paper/share
 #         --ratio coprime \
 #         --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
 #         --eta "300" --prob "0.19:0.23:0.01"
-#     bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 6 --partition $queue \
+#     bn3d ad-sbatch --data_dir "$paper_dir/$name" --n_array 6 --partition $queue \
 #         --memory "$memory" \
 #         --wall_time "$wall_time" --trials 50000 --split 40 $sbatch_dir/$name.sbatch
 # done
@@ -96,7 +96,7 @@ mkdir -p temp/paper/share
 #     --ratio coprime \
 #     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
 #     --eta "30,100,inf" --prob "0:0.55:0.05"
-# bn3d nist-sbatch --data_dir "$paper_dir/$name" --n_array 39 --partition $queue \
+# bn3d ad-sbatch --data_dir "$paper_dir/$name" --n_array 39 --partition $queue \
 #     --memory "$memory" \
 #     --wall_time "$wall_time" --trials 10000 --split 40 $sbatch_dir/$name.sbatch
 
@@ -131,7 +131,7 @@ mkdir -p temp/paper/share
 #     --lattice kitaev --boundary toric --deformation xzzx --ratio equal  \
 #     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
 #     --eta "1000" --prob "0.18:0.28:0.01"
-# panqec nist-sbatch --data_dir "$paper_dir/$name" --n_array 12 --queue $queue \
+# panqec ad-sbatch --data_dir "$paper_dir/$name" --n_array 12 --queue $queue \
 #     --wall_time "$wall_time" --trials 10000 --split 2 $sbatch_dir/$name.sbatch
 # 
 # name=det_unrot_bposd_undef_zbias
@@ -168,7 +168,7 @@ mkdir -p temp/paper/share
 #     --lattice rotated --boundary planar --deformation none --ratio equal \
 #     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias Z \
 #     --eta "inf" --prob "0.209:0.229:0.002"
-# panqec nist-sbatch --data_dir "$paper_dir/$name" --n_array 14 --queue $queue \
+# panqec ad-sbatch --data_dir "$paper_dir/$name" --n_array 14 --queue $queue \
 
 # name=det_rhombic_bposd_undef_xbias
 # rm -rf $paper_dir/$name/inputs
@@ -216,7 +216,7 @@ mkdir -p temp/paper/share
 #     --ratio equal \
 #     --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
 #     --eta "100,inf" --prob "0.284:0.304:0.002"
-# panqec nist-sbatch --data_dir "$paper_dir/$name" --n_array 55 --memory "$memory" \
+# panqec ad-sbatch --data_dir "$paper_dir/$name" --n_array 55 --memory "$memory" \
 #     --wall_time "$wall_time" --trials 10000 --split 20 $sbatch_dir/$name.sbatch
 # 
 # name=det_rhombic_bposd_xzzx_xbias
@@ -255,7 +255,7 @@ mkdir -p temp/paper/share
 #     --ratio equal \
 #     --sizes "6,8,10,12" --decoder BeliefPropagationOSDDecoder --bias X \
 #     --eta "inf" --prob "0.388:0.408:0.002"
-# panqec nist-sbatch --data_dir "$paper_dir/$name" --n_array 35 --memory "$memory" \
+# panqec ad-sbatch --data_dir "$paper_dir/$name" --n_array 35 --memory "$memory" \
 #     --wall_time "$wall_time" --trials 10000 --split 8 $sbatch_dir/$name.sbatch
 
 # =============== Test Run ================
@@ -274,7 +274,7 @@ panqec generate-input -i "$paper_dir/$name/inputs" \
 
 nfiles=$(ls $paper_dir/$name/inputs | wc -l)
 echo "$nfiles input files created"
-panqec nist-sbatch --data_dir "$paper_dir/$name" --n_array 3 --memory "$memory" \
+panqec ad-sbatch --data_dir "$paper_dir/$name" --n_array 3 --memory "$memory" \
     --wall_time "$wall_time" --trials 10000 --split auto $sbatch_dir/$name.sbatch
 
 # =============== Rhombic Undeformed ================
@@ -289,7 +289,7 @@ source scripts/rhombic_undef.sh
 
 nfiles=$(ls $paper_dir/$name/inputs | wc -l)
 echo "$nfiles input files created"
-panqec nist-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
+panqec ad-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
     --wall_time "$wall_time" --trials 10000 --split auto $sbatch_dir/$name.sbatch \
     --max_sim_array 100
 
@@ -305,7 +305,7 @@ source scripts/rhombic_xzzx.sh
 
 nfiles=$(ls $paper_dir/$name/inputs | wc -l)
 echo "$nfiles input files created"
-panqec nist-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
+panqec ad-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
     --wall_time "$wall_time" --trials 10000 --split auto $sbatch_dir/$name.sbatch \
     --max_sim_array 100
 
@@ -321,7 +321,7 @@ source scripts/xcube_undef.sh
 
 nfiles=$(ls $paper_dir/$name/inputs | wc -l)
 echo "$nfiles input files created"
-panqec nist-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
+panqec ad-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
     --wall_time "$wall_time" --trials 10000 --split auto $sbatch_dir/$name.sbatch \
     --max_sim_array 100
 
@@ -338,6 +338,6 @@ source scripts/xcube_xzzx.sh
 
 nfiles=$(ls $paper_dir/$name/inputs | wc -l)
 echo "$nfiles input files created"
-panqec nist-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
+panqec ad-sbatch --data_dir "$paper_dir/$name" --n_array $nfiles --memory "$memory" \
     --wall_time "$wall_time" --trials 10000 --split auto $sbatch_dir/$name.sbatch \
     --max_sim_array 100

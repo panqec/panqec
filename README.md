@@ -208,11 +208,15 @@ in them, and you can just run then using the `sbatch` command.
 You can do the above generation on the cluster you are running it on so it
 works nicely with the file system there.
 
-# Generating sbatch files for NIST cluster
-To generate sbatch files for NIST cluster for job `deformed_rays` split over 19
+# Generating sbatch files for slurm 
+To generate sbatch files for slurm job `toric` split over 19
 sbatch files.
 ```
-panqec slurm gennist deformed_rays --n_trials 1000 --split 100
+panqec generate-input -i /path/to/inputdir \
+    --code_class Toric2DCode --noise_class DeformedXZZXErrorModel \
+    --ratio equal \
+    --sizes "$sizes" --decoder BeliefPropagationOSDDecoder --bias X \
+    --eta "10,30" --prob "0.0:0.5:0.07"
 ```
 This will split the job into 100 sbatch files, saved to the `slurm/sbatch`
 directory, each of which run 1000 repeated trials.
@@ -221,7 +225,7 @@ in the same directory as where the generated `sbatch` files are saved.
 
 For more options see the help
 ```
-panqec slurm gennist --help
+panqec generate-input --help
 ```
 You can adjust the walltime, memory, etc.
 
@@ -230,11 +234,6 @@ The space of Pauli operators is parameterized by a simplex (triangle).
 See `notebooks/12-eh-generate_params.ipynb` for how to generate values
 of `r_x`, `r_y` and `r_z` that parameterize things in terms of well-established
 values of eta, as defined by Dave Tuckett.
-
-# How to generate figures for the PSI essay
-Take a look at `notebooks/11-eh-essay_figures.ipynb` to generate the figures,
-but note that you will need to run the simulations first to have the data to
-make the plots.
 
 # How to make array jobs
 Once you have a json input file, there is a unique list of parameters.
