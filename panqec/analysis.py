@@ -1350,8 +1350,8 @@ class Analysis:
         plt.legend()
         plt.title(lengthen(code_family), fontsize=16)
         plt.xscale('log')
-        plt.xlabel('Bias Ratio $\\eta$', fontsize=16)
-        plt.ylabel('Threshold', fontsize=16)
+        plt.xlabel('Bias Ratio $\\eta_Z$', fontsize=16)
+        plt.ylabel('Threshold error rate $p_{\\rm{th}}$', fontsize=16)
         plt.ylim(0, 0.5)
         plt.xticks(
             ticks=[0.5, 1e0, 1e1, 1e2, 1e3],
