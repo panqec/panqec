@@ -1348,9 +1348,9 @@ class Analysis:
                      label='Hashing bound', alpha=0.5, linewidth=2)
 
         plt.legend()
-        plt.title(lengthen(code_family), fontsize=16)
+        plt.title(lengthen(code_family, caps=True), fontsize=16)
         plt.xscale('log')
-        plt.xlabel('Bias Ratio $\\eta_Z$', fontsize=16)
+        plt.xlabel('Bias ratio $\\eta_Z$', fontsize=16)
         plt.ylabel('Threshold error rate $p_{\\rm{th}}$', fontsize=16)
         plt.ylim(0, 0.5)
         plt.xticks(
@@ -1450,9 +1450,9 @@ class Analysis:
         plt.ylabel('Logical error rate $p_L$', fontsize=16)
         deformation = df_filt_1['error_model_family'].iloc[0]
         bias_label = str(bias).replace('inf', '\\infty')
-        sector_name = 'All errors' if sector is None else f'{sector} errors'
+        sector_name = 'All errors' if sector is None else f'${sector}$ errors'
         plt.suptitle(
-            f'{shorten(deformation)} {lengthen(code_family)}\n'
+            f'{shorten(deformation)} {lengthen(code_family, caps=False)}\n'
             f'$\\eta_Z={bias_label}$, {shorten(decoder)}, '
             f'{sector_name}{fit_title}',
             fontsize=16
@@ -1678,10 +1678,16 @@ def shorten(long_name):
     return long_name
 
 
-def lengthen(name):
+def lengthen(name, caps=True):
+    long_name = name
     if name in LONG_NAMES:
-        return LONG_NAMES[name]
-    return name
+        long_name = LONG_NAMES[name]
+    if caps:
+        if len(name) > 1:
+            long_name = long_name[0].upper() + long_name[1:]
+        elif len(name) == 1:
+            long_name = long_name[0].upper()
+    return long_name
 
 
 def infer_error_model_family(label: str) -> str:

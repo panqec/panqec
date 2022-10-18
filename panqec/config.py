@@ -128,14 +128,14 @@ def register_decoder(decoder_class):
 # Shortened names for analysis and plot labelling purposes.
 SHORT_NAMES = {
     'Pauli': 'CSS',
-    'Deformed XZZX Pauli': 'Clifford-Deformed',
-    'Deformed Rhombic Pauli': 'Clifford-Deformed',
+    'Deformed XZZX Pauli': 'Clifford-deformed',
+    'Deformed Rhombic Pauli': 'Clifford-deformed',
     'BP-OSD decoder': 'BP-OSD',
-    'Toric 3D Sweep Pymatching Decoder': 'Sweep-Matching',
-    'Deformed Toric 3D Sweep Pymatching Decoder': 'Sweep-Matching',
+    'Toric 3D Sweep Pymatching Decoder': 'sweep-matching',
+    'Deformed Toric 3D Sweep Pymatching Decoder': 'sweep-matching',
 }
 LONG_NAMES = {
-    'Rhombic': 'Surface Code on Checkerboard Lattice',
-    'Toric': 'Surface Code on Cubic Lattice',
-    'XCube': 'X-cube Model',
+    'Rhombic': 'surface code on checkerboard lattice',
+    'Toric': 'surface code on cubic lattice',
+    'XCube': 'X-cube model',
 }
