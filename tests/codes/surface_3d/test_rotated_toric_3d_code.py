@@ -9,7 +9,9 @@ from panqec.error_models import DeformedXZZXErrorModel
 from panqec.decoders import BeliefPropagationOSDDecoder
 from panqec.bsparse import to_array
 
-from tests.codes.stabilizer_code_test import StabilizerCodeTestWithCoordinates
+from tests.codes.stabilizer_code_test import (
+    StabilizerCodeTestWithCoordinates, StabilizerCodeTest
+)
 
 
 class RotatedToric3DCodeTest(StabilizerCodeTestWithCoordinates):
@@ -162,6 +164,13 @@ class TestRotatedToric3DCode4x4x4(RotatedToric3DCodeTest):
     ]
     expected_plane_z = [1, 3, 5, 7]
     expected_vertical_z = [2, 4, 6]
+
+
+class TestDeformedRotatedToric3DCode(StabilizerCodeTest):
+
+    @pytest.fixture
+    def code(self):
+        return RotatedToric3DCode(5, 6, 5, deformed_axis='x')
 
 
 class TestRotatedToric3DDeformation:
