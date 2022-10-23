@@ -10,8 +10,8 @@ from dotenv import load_dotenv
 from .codes import (
     Toric2DCode, Planar2DCode, RotatedPlanar2DCode,
     Toric3DCode, RotatedPlanar3DCode, RotatedToric3DCode,
-    Color666Code, Color488Code, Color3DCode,
-    RhombicCode, XCubeCode, Quasi2DCode
+    Color666PlanarCode, Color666ToricCode, Color488Code,
+    Color3DCode, RhombicCode, XCubeCode, Quasi2DCode
 )
 from .decoders import (
     SweepMatchDecoder, XCubeMatchingDecoder,
@@ -60,7 +60,8 @@ CODES = {
     'Toric2DCode': Toric2DCode,
     'Planar2DCode': Planar2DCode,
     'RotatedPlanar2DCode': RotatedPlanar2DCode,
-    'Color666Code': Color666Code,
+    'Color666PlanarCode': Color666PlanarCode,
+    'Color666ToricCode': Color666ToricCode,
     'Color488Code': Color488Code,
     'Color3DCode': Color3DCode,
     'Toric3DCode': Toric3DCode,
