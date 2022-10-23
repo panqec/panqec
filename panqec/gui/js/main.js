@@ -170,7 +170,7 @@ async function changeLatticeSize() {
     codeSize.Lz = parseInt(params.L);
 
     if (params.coprime)
-        codeSize.Lx += 1;
+        codeSize.Lx += 2;
 
     code.qubits.forEach(q => {
         q.material.dispose();

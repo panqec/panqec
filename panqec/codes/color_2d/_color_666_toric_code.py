@@ -87,6 +87,10 @@ class Color666ToricCode(StabilizerCode):
             if (y >= 12*Ly+2*(x-2)//3):
                 y -= 12*Ly
 
+            if (x == 0 and y == -2):  # Qubit which was on a corner
+                x = 0
+                y = 12*Ly - 2
+
             operator[(x, y)] = pauli
 
         return operator
@@ -122,25 +126,25 @@ class Color666ToricCode(StabilizerCode):
 
         return logicals
 
-    # def stabilizer_representation(
-    #     self, location: Tuple, rotated_picture=False, json_file=None
-    # ) -> Dict:
-    #     rep = super().stabilizer_representation(location, rotated_picture)
+    def stabilizer_representation(
+        self, location: Tuple, rotated_picture=False, json_file=None
+    ) -> Dict:
+        rep = super().stabilizer_representation(location, rotated_picture)
 
-    #     Lx, Ly = self.size
-    #     x, y, _ = location
+        # Lx, Ly = self.size
+        x, y, _ = location
 
-    #     # We remove the last part of the location (indexing X or Z)
-    #     rep['location'] = (x, y)
+        # We remove the last part of the location (indexing X or Z)
+        rep['location'] = (x, y)
 
-    #     if y == 2*x:
-    #         rep["params"]["vertices"] = [[-1, -2], [1, -2], [2, 0], [1, 2]]
+        # if y == 2*x:
+        #     rep["params"]["vertices"] = [[-1, -2], [1, -2], [2, 0], [1, 2]]
 
-    #     if y == 12*Lx - 2*x:
-    #         rep["params"]["vertices"] = [[-1, -2], [1, -2], [-1, 2], [-2, 0]]
+        # if y == 12*Lx - 2*x:
+        #     rep["params"]["vertices"] = [[-1, -2], [1, -2], [-1, 2], [-2, 0]]
 
-    #     if y == 0:
-    #         rep["params"]["vertices"] = [[2, 0], [1, 2], [-1, 2], [-2, 0]]
+        # if y == 0:
+        #     rep["params"]["vertices"] = [[2, 0], [1, 2], [-1, 2], [-2, 0]]
 
-    #     return rep
+        return rep
 
