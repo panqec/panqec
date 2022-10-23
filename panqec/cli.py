@@ -12,7 +12,7 @@ from .simulation import (
 )
 from .config import CODES, ERROR_MODELS, DECODERS, PANQEC_DIR, BASE_DIR
 from .slurm import (
-    generate_sbatch, get_status, generate_sbatch_nist, count_input_runs,
+    generate_sbatch, get_status, generate_sbatch_ad, count_input_runs,
     clear_out_folder, clear_sbatch_folder
 )
 from .utils import get_direction_from_bias_ratio
@@ -470,13 +470,13 @@ def cc_sbatch(
     '--max_sim_array', default=None, type=int, show_default=True,
     help='Max number of simultaneous array jobs'
 )
-def nist_sbatch(
+def ad_sbatch(
     sbatch_file, data_dir, n_array, wall_time, memory, trials, split,
     partition, max_sim_array
 ):
-    """Generate NIST-style sbatch file with parallel array jobs."""
+    """Generate AD-style sbatch file with parallel array jobs."""
     template_file = os.path.join(
-        os.path.dirname(BASE_DIR), 'scripts', 'nist_template.sh'
+        os.path.dirname(BASE_DIR), 'scripts', 'ad_template.sh'
     )
     with open(template_file) as f:
         text = f.read()
@@ -636,15 +636,15 @@ def gen(n_trials, partition, time, cores):
 @click.option('--split', default=1, type=click.INT, show_default=True)
 @click.option('--partition', default='pml', show_default=True)
 @click.option(
-    '--cluster', default='nist', show_default=True,
-    type=click.Choice(['nist', 'symmetry'])
+    '--cluster', default='ad', show_default=True,
+    type=click.Choice(['ad', 'symmetry'])
 )
-def gennist(
+def gen_ad(
     name, n_trials, nodes, ntasks, cpus_per_task, mem, time, split, partition,
     cluster
 ):
-    """Generate sbatch files for NIST cluster."""
-    generate_sbatch_nist(
+    """Generate sbatch files for AD cluster."""
+    generate_sbatch_ad(
         name, n_trials, nodes, ntasks, cpus_per_task, mem, time, split,
         partition, cluster
     )
@@ -697,7 +697,7 @@ def check_usage(data_dirs=None):
 
 
 slurm.add_command(gen)
-slurm.add_command(gennist)
+slurm.add_command(gen_ad)
 slurm.add_command(status)
 slurm.add_command(count)
 slurm.add_command(clear)
@@ -709,7 +709,7 @@ cli.add_command(generate_input)
 cli.add_command(pi_sbatch)
 cli.add_command(cc_sbatch)
 cli.add_command(merge_dirs)
-cli.add_command(nist_sbatch)
+cli.add_command(ad_sbatch)
 cli.add_command(generate_qsub)
 cli.add_command(umiacs_sbatch)
 cli.add_command(check_usage)

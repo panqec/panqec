@@ -5,7 +5,7 @@ with open('requirements/common.txt', 'r') as f:
 
 setup(
     name='panqec',
-    version='0.1.4',
+    version='0.1.5',
     license='MIT',
     description='Simulation and visualization of quantum error correcting codes',
     url='http://github.com/panqec/panqec',

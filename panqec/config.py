@@ -98,8 +98,8 @@ if os.getenv('SLURM_DIR') is not None:
 SBATCH_TEMPLATE = os.path.join(
     os.path.dirname(BASE_DIR), 'scripts', 'template.sbatch'
 )
-NIST_TEMPLATE = os.path.join(
-    os.path.dirname(BASE_DIR), 'scripts', 'nist.sbatch'
+AD_TEMPLATE = os.path.join(
+    os.path.dirname(BASE_DIR), 'scripts', 'ad.sbatch'
 )
 
 # Slurm username for reporting status.
