@@ -160,6 +160,10 @@ class RotatedPlanar3DCode(StabilizerCode):
         if self.qubit_axis(location) == 'z':
             representation['params']['length'] = 2
 
+        if rotated_picture:
+            x, y, z = representation['location']
+            representation['location'] = (x, y, z*1.4142)
+
         return representation
 
     def stabilizer_representation(
@@ -188,14 +192,16 @@ class RotatedPlanar3DCode(StabilizerCode):
                 representation['params']['normal'] = [0, 0, 1]
                 representation['params']['angle'] = 0
             else:
-                representation['params']['w'] = 1.4142
-                representation['params']['h'] = 1.4142
                 representation['params']['angle'] = np.pi/4
 
                 if (x + y) % 4 == 0:
                     representation['params']['normal'] = [1, 1, 0]
                 else:
                     representation['params']['normal'] = [-1, 1, 0]
+
+        if rotated_picture:
+            x, y, z = representation['location']
+            representation['location'] = (x, y, z*1.4142)
 
         return representation
 
