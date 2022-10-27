@@ -1,5 +1,6 @@
 from typing import Tuple, Dict, List
 from panqec.codes import StabilizerCode
+import numpy as np
 
 Operator = Dict[Tuple, str]  # Location to pauli ('X', 'Y' or 'Z')
 Coordinates = List[Tuple]  # List of locations
@@ -7,6 +8,7 @@ Coordinates = List[Tuple]  # List of locations
 
 class Color666ToricCode(StabilizerCode):
     dimension = 2
+    deformation_names = ['X3Z3']
 
     @property
     def label(self) -> str:
@@ -100,6 +102,30 @@ class Color666ToricCode(StabilizerCode):
 
         return 'x'
 
+    def get_deformation(
+        self, location: Tuple,
+        deformation_name: str,
+        **kwargs
+    ) -> Dict:
+
+        x, y = location
+
+        if deformation_name == 'X3Z3':
+            undeformed_dict = {'X': 'X', 'Y': 'Y', 'Z': 'Z'}
+            deformed_dict = {'X': 'Z', 'Y': 'Y', 'Z': 'X'}
+
+            x_to_y = {0: 2, 10: 2, 1: 0, 3: 0, 4: 6, 6: 6, 7: 4, 9: 4}
+
+            if x_to_y[x % 12] == y % 8:
+                deformation = deformed_dict
+            else:
+                deformation = undeformed_dict
+        else:
+            raise ValueError(f"The deformation {deformation_name}"
+                             "does not exist")
+
+        return deformation
+
     def get_logicals_x(self) -> List[Operator]:
         Lx, Ly = self.size
         logicals: List[Operator] = []
@@ -131,20 +157,19 @@ class Color666ToricCode(StabilizerCode):
     ) -> Dict:
         rep = super().stabilizer_representation(location, rotated_picture)
 
-        # Lx, Ly = self.size
         x, y, _ = location
 
         # We remove the last part of the location (indexing X or Z)
         rep['location'] = (x, y)
 
-        # if y == 2*x:
-        #     rep["params"]["vertices"] = [[-1, -2], [1, -2], [2, 0], [1, 2]]
+        # Scaling factor for the X hexagons
+        if '-x' in self.stabilizer_type(location):
+            a = 0.5
+        else:
+            print('test')
+            a = 1
 
-        # if y == 12*Lx - 2*x:
-        #     rep["params"]["vertices"] = [[-1, -2], [1, -2], [-1, 2], [-2, 0]]
-
-        # if y == 0:
-        #     rep["params"]["vertices"] = [[2, 0], [1, 2], [-1, 2], [-2, 0]]
+        vertices = np.array(rep['params']['vertices']) * a
+        rep['params']['vertices'] = vertices.tolist()
 
         return rep
-
