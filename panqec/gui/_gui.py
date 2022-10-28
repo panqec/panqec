@@ -16,10 +16,6 @@ from panqec.decoders import (
     XCubeMatchingDecoder
 )
 from panqec.error_models import PauliErrorModel
-from panqec.error_models import (
-    DeformedXZZXErrorModel, DeformedXYErrorModel, DeformedRhombicErrorModel,
-    DeformedColorErrorModel
-)
 
 import webbrowser
 import argparse
@@ -38,12 +34,6 @@ codes = {'Toric 2D': Toric2DCode,
          'XCube': XCubeCode,
          'Quasi 2D': Quasi2DCode,
          '3D Color Code': Color3DCode}
-
-error_models = {'None': PauliErrorModel,
-                'XZZX': DeformedXZZXErrorModel,
-                'XY': DeformedXYErrorModel,
-                'Rhombic': DeformedRhombicErrorModel,
-                'Color': DeformedColorErrorModel}
 
 noise_directions = {'Pure X': (1, 0, 0),
                     'Pure Y': (0, 1, 0),
@@ -100,7 +90,7 @@ class GUI():
         if 'Lz' in data:
             Lz = data['Lz']
         code_name = data['code_name']
-        deformation_name = data['deformation_name']
+        deformation_name = data['code_deformation_name']
 
         if code_name in self.code_names['2d']:
             code = codes[code_name](Lx, Ly)
@@ -235,17 +225,20 @@ class GUI():
         content = request.json
         syndrome = np.array(content['syndrome'])
         p = content['p']
-        noise_deformation = content['noise_deformation']
+        noise_deformation = content['noise_deformation_name']
         max_bp_iter = content['max_bp_iter']
         alpha = content['alpha']
         beta = content['beta']
         decoder_name = content['decoder']
         error_model_name = content['error_model']
 
+        if noise_deformation == 'None':
+            noise_deformation = None
+
         code = self._instantiate_code(content)
 
         rx, ry, rz = noise_directions[error_model_name]
-        error_model = error_models[noise_deformation](rx, ry, rz)
+        error_model = PauliErrorModel(rx, ry, rz, noise_deformation)
 
         kwargs = {}
         if decoder_name in ['BP-OSD', 'MBP']:
@@ -270,13 +263,16 @@ class GUI():
     def send_random_errors(self):
         content = request.json
         p = content['p']
-        noise_deformation = content['noise_deformation']
+        noise_deformation = content['noise_deformation_name']
         error_model_name = content['error_model']
+
+        if noise_deformation == 'None':
+            noise_deformation = None
 
         code = self._instantiate_code(content)
 
         rx, ry, rz = noise_directions[error_model_name]
-        error_model = error_models[noise_deformation](rx, ry, rz)
+        error_model = PauliErrorModel(rx, ry, rz, noise_deformation)
 
         errors = error_model.generate(code, p)
 

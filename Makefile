@@ -5,6 +5,8 @@ coverage:
 	pytest --cov=panqec --cov-report=html
 	python -m http.server 8080 --directory ./htmlcov/
 test:
+	pytest --cov=panqec --slow
+test-fast:
 	pytest --cov=panqec
 clean:
 	find panqec -type f -name '*.py[co]' -delete

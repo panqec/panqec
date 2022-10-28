@@ -38,6 +38,7 @@ class DecoderTest(metaclass=ABCMeta):
         assert code.is_success(correction)
         assert code.in_codespace(correction)
 
+    @pytest.mark.slow
     def test_decode_single_qubit_error(self, code, decoder, allowed_paulis):
         for pauli in allowed_paulis:
             for i in range(code.n):

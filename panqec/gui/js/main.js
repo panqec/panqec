@@ -9,19 +9,19 @@ var defaultCode = codeDimension == 2 ? '6.6.6 Color Code (toric)' : 'Toric 3D';
 var defaultSize = codeDimension == 2 ? 1 : 4;
 
 const params = {
-    errorProbability: 0.01,
+    errorProbability: 0.1,
     L: defaultSize,
-    noise_deformation: 'None',
+    noiseDeformationName: 'X3Z3',
     decoder: 'BP-OSD',
     max_bp_iter: 10,
     alpha: 0.4,
     beta: 0,
     channel_update: false,
-    errorModel: 'Depolarizing',
+    errorModel: 'Pure Z',
     codeName: defaultCode,
     rotated: false,
     coprime: false,
-    deformationName: 'None'
+    codeDeformationName: 'None'
 };
 
 let codeSize = {Lx: defaultSize, Ly: defaultSize, Lz: defaultSize};
@@ -201,7 +201,7 @@ async function getCodeData() {
             'Ly': codeSize.Ly,
             'Lz': codeSize.Lz,
             'code_name': params.codeName,
-            'deformation_name': params.deformationName,
+            'code_deformation_name': params.codeDeformationName,
             'rotated_picture': params.rotated
         })
     });
@@ -266,38 +266,43 @@ async function buildMenu() {
                                  '8': 8, '9': 9, '10':10, '11':11, '12': 12}).name('Lattice size').onChange(changeLatticeSize);
     codeFolder.open();
 
-    const errorModelFolder = menu.addFolder('Error Model')
-    errorModelFolder.add(params, 'errorModel',
-        {'Pure X': 'Pure X', 'Pure Y': 'Pure Y', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}
-    ).name('Model');
-    errorModelFolder.add(params, 'errorProbability', 0, 0.5).name('Probability');
-    errorModelFolder.add(params, 'noise_deformation',
-        {'None': 'None', 'XZZX': 'XZZX', 'XY': 'XY', 'Rhombic': 'Rhombic', 'Color': 'Color'}
-    ).name('Deformation');
-    errorModelFolder.add(buttons, 'addErrors').name('▶ Add errors (r)');
-    errorModelFolder.open();
-
     updateMenu();
 }
 
 async function updateMenu() {
     // Clifford-deformation part
-    var codeFolder = menu.__folders['Code'];
-
-    codeFolder.__controllers.forEach(controller => {
-        if (controller.property == 'deformationName') {
-            controller.remove();
-        }
-    });
-
     var deformationNames = await getDeformationNames();
     deformationNames = ['None'].concat(deformationNames)
 
-    if (!deformationNames.includes(params.deformationName)) {
-        params.deformationName = 'None';
+    if (!deformationNames.includes(params.codeDeformationName)) {
+        params.codeDeformationName = 'None';
+    }
+    if (!deformationNames.includes(params.noiseDeformationName)) {
+        params.noiseDeformationName = 'None';
     }
 
-    codeFolder.add(params, 'deformationName', deformationNames).name('Deformation').onChange(changeLatticeSize);
+    var codeFolder = menu.__folders['Code'];
+
+    codeFolder.__controllers.forEach(controller => {
+        if (controller.property == 'codeDeformationName') {
+            controller.remove();
+        }
+    });
+    
+    codeFolder.add(params, 'codeDeformationName', deformationNames).name('Clifford deformation').onChange(changeLatticeSize);
+
+    if ('Error Model' in menu.__folders) {
+        menu.removeFolder(menu.__folders['Error Model']);
+    }
+
+    const errorModelFolder = menu.addFolder('Error Model')
+    errorModelFolder.add(params, 'errorModel',
+        {'Pure X': 'Pure X', 'Pure Y': 'Pure Y', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}
+    ).name('Model');
+    errorModelFolder.add(params, 'errorProbability', 0, 0.5).name('Probability');
+    errorModelFolder.add(params, 'noiseDeformationName', deformationNames).name('Clifford deformation').onChange(changeLatticeSize);
+    errorModelFolder.add(buttons, 'addErrors').name('▶ Add errors (r)');
+    errorModelFolder.open();
 
     // Decoder part
     if ('Decoder' in menu.__folders) {
@@ -436,11 +441,11 @@ async function getCorrection(syndrome) {
             'beta': params.beta,
             'channel_update': params.channel_update,
             'syndrome': syndrome,
-            'noise_deformation': params.noise_deformation,
+            'noise_deformation_name': params.noiseDeformationName,
             'decoder': params.decoder,
             'error_model': params.errorModel,
             'code_name': params.codeName,
-            'deformation_name': params.deformationName
+            'code_deformation_name': params.codeDeformationName
         })
     });
 
@@ -460,10 +465,10 @@ async function getRandomErrors() {
             'Ly': codeSize.Ly,
             'Lz': codeSize.Lz,
             'p': params.errorProbability,
-            'noise_deformation': params.noise_deformation,
+            'noise_deformation_name': params.noiseDeformationName,
             'error_model': params.errorModel,
             'code_name': params.codeName,
-            'deformation_name': params.deformationName
+            'code_deformation_name': params.codeDeformationName
         })
     });
 
