@@ -5,12 +5,12 @@ Operator = Dict[Tuple, str]  # Location to pauli ('X', 'Y' or 'Z')
 Coordinates = List[Tuple]  # List of locations
 
 
-class Color666Code(StabilizerCode):
+class Color666PlanarCode(StabilizerCode):
     dimension = 2
 
     @property
     def label(self) -> str:
-        return 'Color 6.6.6 {}x{}'.format(*self.size)
+        return 'Color 6.6.6 Planar {}x{}'.format(*self.size)
 
     def get_qubit_coordinates(self) -> Coordinates:
         coordinates: Coordinates = []

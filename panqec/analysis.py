@@ -2688,7 +2688,9 @@ def deduce_bias(
             eta_f: float = r_max/(1 - r_max)
             common_matches = np.isclose(eta_f, common_eta_values, rtol=rtol)
             if any(common_matches):
-                eta_f = common_eta_values[np.argwhere(common_matches).flat[0]]
+                eta_f = common_eta_values[
+                    int(np.argwhere(common_matches).flat[0])
+                ]
             elif np.isclose(eta_f, np.round(eta_f), rtol=rtol):
                 eta_f = int(np.round(eta_f))
             else:

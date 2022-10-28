@@ -49,7 +49,7 @@ class DeformedColorErrorModel(PauliErrorModel):
                         index = code.qubit_index[(x, y, z)]
                         is_deformed[index] = True
 
-        elif code.id == 'Color666Code':
+        elif code.id == 'Color666PlanarCode':
             Lx, Ly = code.size
 
             # Squares on green and blue cells, orthogonal to x axis
