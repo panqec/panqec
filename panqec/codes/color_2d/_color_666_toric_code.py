@@ -130,11 +130,46 @@ class Color666ToricCode(StabilizerCode):
         Lx, Ly = self.size
         logicals: List[Operator] = []
 
-        # X operators in x direction.
         operator: Operator = dict()
-        # for x in range(0, 12*Lx+4, 2):
-        #     if self.is_qubit((x, 0)):
-        #         operator[(x, 0)] = 'X'
+        for x in range(8, 9*Lx, 9):
+            y = 12*Ly - 6 - 6 * (x-8) // 9
+            operator[(x-4, y+4)] = 'X'
+            operator[(x-2, y+4)] = 'X'
+
+            if self.is_qubit((x+1, y+2)):
+                operator[(x+1, y+2)] = 'X'
+                operator[(x+2, y)] = 'X'
+            else:
+                operator[(0, 2)] = 'X'
+                operator[(1, 0)] = 'X'
+        logicals.append(operator)
+
+        operator = dict()
+        for x in range(5, 9*Lx, 9):
+            y = 12*Ly - 4 - 6 * (x-5) // 9
+            operator[(x-5, y+2)] = 'X'
+            operator[(x-4, y)] = 'X'
+
+            operator[(x-1, y-2)] = 'X'
+            operator[(x+1, y-2)] = 'X'
+        logicals.append(operator)
+
+        operator = dict()
+        for y in range(8, 12*Ly, 12):
+            x = 5
+            operator[(x-1, y+2)] = 'X'
+            operator[(x-2, y)] = 'X'
+            operator[(x-2, y-4)] = 'X'
+            operator[(x-1, y-6)] = 'X'
+        logicals.append(operator)
+
+        operator = dict()
+        for y in range(8, 12*Ly, 12):
+            x = 5
+            operator[(x-2, y)] = 'X'
+            operator[(x-1, y-2)] = 'X'
+            operator[(x-1, y-6)] = 'X'
+            operator[(x-2, y-8)] = 'X'
         logicals.append(operator)
 
         return logicals
@@ -143,11 +178,46 @@ class Color666ToricCode(StabilizerCode):
         Lx, Ly = self.size
         logicals: List[Operator] = []
 
-        # Z operators x direction.
         operator: Operator = dict()
-        # for x in range(0, 12*Lx+4, 2):
-        #     if self.is_qubit((x, 0)):
-        #         operator[(x, 0)] = 'Z'
+        for y in range(8, 12*Ly, 12):
+            x = 5
+            operator[(x-1, y+2)] = 'Z'
+            operator[(x-2, y)] = 'Z'
+            operator[(x-2, y-4)] = 'Z'
+            operator[(x-1, y-6)] = 'Z'
+        logicals.append(operator)
+
+        operator = dict()
+        for y in range(8, 12*Ly, 12):
+            x = 5
+            operator[(x-2, y)] = 'Z'
+            operator[(x-1, y-2)] = 'Z'
+            operator[(x-1, y-6)] = 'Z'
+            operator[(x-2, y-8)] = 'Z'
+        logicals.append(operator)
+
+        operator = dict()
+        for x in range(8, 9*Lx, 9):
+            y = 12*Ly - 6 - 6 * (x-8) // 9
+            operator[(x-4, y+4)] = 'Z'
+            operator[(x-2, y+4)] = 'Z'
+
+            if self.is_qubit((x+1, y+2)):
+                operator[(x+1, y+2)] = 'Z'
+                operator[(x+2, y)] = 'Z'
+            else:
+                operator[(0, 2)] = 'Z'
+                operator[(1, 0)] = 'Z'
+        logicals.append(operator)
+
+        operator = dict()
+        for x in range(5, 9*Lx, 9):
+            y = 12*Ly - 4 - 6 * (x-5) // 9
+            operator[(x-5, y+2)] = 'Z'
+            operator[(x-4, y)] = 'Z'
+
+            operator[(x-1, y-2)] = 'Z'
+            operator[(x+1, y-2)] = 'Z'
         logicals.append(operator)
 
         return logicals
@@ -166,7 +236,6 @@ class Color666ToricCode(StabilizerCode):
         if '-x' in self.stabilizer_type(location):
             a = 0.5
         else:
-            print('test')
             a = 1
 
         vertices = np.array(rep['params']['vertices']) * a
