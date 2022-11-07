@@ -2494,7 +2494,7 @@ def fit_fss_params(
     df_filt: pd.DataFrame,
     p_left_val: float,
     p_right_val: float,
-    p_nearest: float = None,
+    p_nearest: Optional[float] = None,
     n_bs: int = 100,
     ftol_est: float = 1e-5,
     ftol_std: float = 1e-5,
