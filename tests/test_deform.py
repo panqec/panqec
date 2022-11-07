@@ -22,6 +22,23 @@ def rng():
     return np.random
 
 
+def get_pymatching_distance_matrix(matching):
+    edges = matching.edges()
+    nodes = sorted(
+        set([edge[0] for edge in edges] + [edge[1] for edge in edges])
+    )
+    weights = {
+        (edge[0], edge[1]): edge[2]['weight']
+        for edge in edges
+    }
+    matrix = np.zeros((len(nodes), len(nodes)), dtype=float)
+    for i_1, node_1 in enumerate(nodes):
+        for i_2, node_2 in enumerate(nodes):
+            if (node_1, node_2) in weights:
+                matrix[i_1, i_2] = weights[(i_1, i_2)]
+    return matrix
+
+
 class TestDeformedXZZXErrorModel:
 
     @pytest.mark.parametrize(
@@ -149,8 +166,7 @@ class TestDeformedXZZXErrorModel:
         decoder = SweepMatchDecoder(code, error_model, error_rate)
         assert decoder.matcher.error_model.direction == (0.1, 0.2, 0.7)
         matching = decoder.matcher.matcher_x
-        assert matching.stabiliser_graph.distance(0, 0) == 0
-        distance_matrix = np.array(matching.stabiliser_graph.all_distances)
+        distance_matrix = get_pymatching_distance_matrix(matching)
         n_vertices = int(np.product(code.size))
         assert distance_matrix.shape == (n_vertices, n_vertices)
 
@@ -189,8 +205,7 @@ class TestDeformedXZZXErrorModel:
         decoder = SweepMatchDecoder(code, error_model, error_rate)
         assert decoder.matcher.error_model.direction == (0.4, 0.2, 0.4)
         matching = decoder.matcher.matcher_x
-        assert matching.stabiliser_graph.distance(0, 0) == 0
-        distance_matrix = np.array(matching.stabiliser_graph.all_distances)
+        distance_matrix = get_pymatching_distance_matrix(matching)
         n_vertices = int(np.product(code.size))
         assert distance_matrix.shape == (n_vertices, n_vertices)
 
