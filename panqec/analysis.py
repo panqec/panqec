@@ -70,7 +70,7 @@ def get_results_df_from_batch(batch_sim, batch_label):
 def get_results_df(
     job_list: List[str],
     output_dir: str,
-    input_dir: str = None,
+    input_dir: Optional[str] = None,
 ) -> pd.DataFrame:
     """Get raw results in DataFrame."""
 
