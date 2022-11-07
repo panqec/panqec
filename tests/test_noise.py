@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from panqec.bpauli import bsf_to_pauli, bsf_wt
-from panqec.error_models import PauliErrorModel, DeformedXZZXErrorModel
+from panqec.error_models import PauliErrorModel
 from panqec.codes import Toric3DCode
 from panqec.bsparse import to_array
 from panqec.utils import get_direction_from_bias_ratio
@@ -154,7 +154,10 @@ class TestDeformedMatchingWeights:
             r_x, r_y, r_z = p_X/error_rate, p_Y/error_rate, p_Z/error_rate
         else:
             r_x, r_y, r_z = 1/3, 1/3, 1/3
-        error_model = DeformedXZZXErrorModel(r_x, r_y, r_z)
+        error_model = PauliErrorModel(
+            r_x, r_y, r_z,
+            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+        )
         weights_x, weight_z = error_model.get_weights(code, error_rate)
         return weights_x, weight_z
 

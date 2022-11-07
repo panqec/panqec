@@ -21,11 +21,6 @@ from .decoders import (
 from .decoders import BeliefPropagationOSDDecoder
 from .decoders import MemoryBeliefPropagationDecoder
 from .decoders.matching._matching_decoder import MatchingDecoder
-from .error_models import (
-    DeformedXZZXErrorModel, DeformedXYErrorModel,
-    DeformedRhombicErrorModel, DeformedRandomErrorModel,
-    DeformedColorErrorModel
-)
 from .error_models import PauliErrorModel
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -73,12 +68,7 @@ CODES = {
     'Quasi2DCode': Quasi2DCode
 }
 ERROR_MODELS = {
-    'PauliErrorModel': PauliErrorModel,
-    'DeformedXZZXErrorModel': DeformedXZZXErrorModel,
-    'DeformedRandomErrorModel': DeformedRandomErrorModel,
-    'DeformedXYErrorModel': DeformedXYErrorModel,
-    'DeformedRhombicErrorModel': DeformedRhombicErrorModel,
-    'DeformedColorErrorModel': DeformedColorErrorModel,
+    'PauliErrorModel': PauliErrorModel
 }
 DECODERS: Dict[str, Any] = {
     'MatchingDecoder': MatchingDecoder,
@@ -128,9 +118,5 @@ def register_decoder(decoder_class):
 
 # Shortened names for analysis and plot labelling purposes.
 SHORT_NAMES = {
-    'Deformed XZZX Pauli': 'Deformed',
-    'Deformed Rhombic Pauli': 'Deformed',
-    'BP-OSD decoder': 'BP+OSD',
-    'Toric 3D Sweep Pymatching Decoder': 'SweepMatch',
-    'Deformed Toric 3D Sweep Pymatching Decoder': 'SweepMatch',
+    'BP-OSD decoder': 'BP-OSD'
 }

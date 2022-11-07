@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 from panqec.codes import RotatedToric3DCode
 from panqec.bpauli import apply_deformation
-from panqec.error_models import DeformedXZZXErrorModel
+from panqec.error_models import PauliErrorModel
 from panqec.decoders import BeliefPropagationOSDDecoder
 
 from tests.codes.stabilizer_code_test import StabilizerCodeTestWithCoordinates
@@ -167,7 +167,10 @@ class TestRotatedToric3DDeformation:
 
     def test_deformation_index(self):
         code = RotatedToric3DCode(3, 4, 4)
-        error_model = DeformedXZZXErrorModel(0.2, 0.3, 0.5)
+        error_model = PauliErrorModel(
+            0.2, 0.3, 0.5,
+            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+        )
         deformation_index = error_model.get_deformation_indices(code)
         coords_map = {
             index: coord for index, coord in enumerate(code.qubit_coordinates)
@@ -210,7 +213,10 @@ class TestRotatedToric3DDeformation:
             out_json = os.path.join(
                 project_dir, 'temp', 'rotated_toric_3d_test.json'
                 )
-            error_model = DeformedXZZXErrorModel(0.2, 0.3, 0.5)
+            error_model = PauliErrorModel(
+                0.2, 0.3, 0.5,
+                deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+            )
             deformation_index = error_model._get_deformation_indices(code)
 
             entries.append({
@@ -250,7 +256,10 @@ class TestBPOSDOnRotatedToric3DCodeOddTimesEven:
     @pytest.mark.parametrize('pauli', ['X', 'Y', 'Z'])
     def test_decode_single_qubit_error_bposd(self, pauli):
         code = RotatedToric3DCode(3, 4, 3)
-        error_model = DeformedXZZXErrorModel(1/3, 1/3, 1/3)
+        error_model = PauliErrorModel(
+            1/3, 1/3, 1/3,
+            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+        )
         error_rate = 0.1
         decoder = BeliefPropagationOSDDecoder(code, error_model, error_rate)
 

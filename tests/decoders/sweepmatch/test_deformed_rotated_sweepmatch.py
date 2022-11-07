@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 from panqec.codes import RotatedPlanar3DCode
 from panqec.decoders import RotatedSweepMatchDecoder
-from panqec.error_models import DeformedXZZXErrorModel
+from panqec.error_models import PauliErrorModel
 from tests.decoders.decoder_test import DecoderTest
 
 
@@ -19,7 +19,10 @@ class TestDeformedRotatedPlanarMatchingDecoder(DecoderTest):
 
     @pytest.fixture
     def error_model(self):
-        return DeformedXZZXErrorModel(*self.direction)
+        return PauliErrorModel(
+            *self.direction,
+            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+        )
 
     @pytest.fixture
     def decoder(self, code, error_model):
