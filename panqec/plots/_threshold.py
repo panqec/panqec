@@ -11,7 +11,7 @@ import pandas as pd
 from scipy.special import binom
 import itertools
 from ._hashing_bound import project_triangle, get_hashing_bound
-from ..analysis import quadratic
+from ..utils import quadratic
 
 
 def threshold_plot(
@@ -109,7 +109,8 @@ def threshold_plot(
 def detailed_plot(
     plt, results_df, error_model, x_limits=None, y_limits=None,
     yscale=None, eta_key='eta_x', min_y_axis=1e-3,
-    thresholds_df=None, save_folder=None
+    thresholds_df=None, word=True,
+    save_folder=None
 ):
     """Plot routine on loop.
 
@@ -130,15 +131,24 @@ def detailed_plot(
         Set to 'log' to make yscale logarithmic.
     thresholds_df : Optional[pd.DataFrame]
         Plot the estimated threshold if given.
+    word : bool
+        Use the word error rate instead of the overall error rate.
     """
     df = results_df.copy()
     df.sort_values('probability', inplace=True)
     fig, axes = plt.subplots(ncols=3, figsize=(12, 4))
-    plot_labels = [
-        (0, 'p_est', 'p_se', 'All sectors'),
-        (1, 'p_x', 'p_x_se', 'Point sector'),
-        (2, 'p_z', 'p_z_se', 'Loop sector'),
-    ]
+    if word:
+        plot_labels = [
+            (0, 'p_est_word', 'p_se_word', 'All sectors'),
+            (1, 'p_x_word', 'p_x_se_word', 'Point sector'),
+            (2, 'p_z_word', 'p_z_se_word', 'Loop sector'),
+        ]
+    else:
+        plot_labels = [
+            (0, 'p_est', 'p_se', 'All sectors'),
+            (1, 'p_x', 'p_x_se', 'Point sector'),
+            (2, 'p_z', 'p_z_se', 'Loop sector'),
+        ]
     if x_limits is None:
         x_limits = [(0, 0.5), (0, 0.5), (0, 0.5)]
 
@@ -216,7 +226,7 @@ def detailed_plot(
 def xyz_sector_plot(
     plt, results_df, error_model, x_limits=None, save_folder=None,
     yscale=None, eta_key='eta_x', min_y_axis=1e-3,
-    thresholds_df=None
+    thresholds_df=None, y_limits=None, logical_type='total'
 ):
     """Plot the different sectors (pure X, pure Y, pure Z) crossover plots
 
@@ -239,16 +249,44 @@ def xyz_sector_plot(
         Minimum value in the yscale (relevant in logarithmic scale)
     thresholds_df : Optional[pd.DataFrame]
         Plot the estimated threshold if given.
+    y_limits : Optional[Union[List[Tuple[float, float]], str]]
+        Will set y limits as given, otherwise default with potentially
+        different limits on each plot.
+    logical_type : Optional[int]
+        The type of logical error rate to plot on the y axis.
+        Choose from 'total', 'single' or 'word'.
     """
     df = results_df.copy()
     df.sort_values('probability', inplace=True)
     fig, axes = plt.subplots(ncols=4, figsize=(16, 4))
+
+    # Default labels and columns.
     plot_labels = [
-        (0, 'p_est', 'p_se', 'Full threshold'),
-        (1, 'p_pure_x', 'p_pure_x_se', '$X_L$ sector'),
-        (2, 'p_pure_y', 'p_pure_y_se', '$Y_L$ sector'),
-        (3, 'p_pure_z', 'p_pure_z_se', '$Z_L$ sector'),
+        (0, 'p_est', 'p_se', 'All errors'),
     ]
+    y_label = 'Logical error rate'
+
+    if logical_type == 'single':
+        # The index of the logical qubit to plot information for.
+        i_logical = 0
+        plot_labels = [
+            (0, f'p_{i_logical}_est', f'p_{i_logical}_se', 'All errors'),
+        ] + [
+            (
+                i_ax + 1,
+                f'p_{i_logical}_{pauli}_est',
+                f'p_{i_logical}_{pauli}_se',
+                f'${pauli}_L$ errors'
+            )
+            for i_ax, pauli in enumerate('XYZ')
+        ]
+        y_label = f'Logical qubit {i_logical} error rate'
+    if logical_type == 'word':
+        plot_labels = [
+            (0, 'p_est_word', 'p_se_word', 'All errors'),
+        ]
+        y_label = 'Logical word error rate'
+
     if x_limits is None:
         x_limits = [(0, 0.5), (0, 0.5), (0, 0.5), (0, 0.5)]
 
@@ -308,7 +346,9 @@ def xyz_sector_plot(
             ax.legend(loc='best', title=legend_title)
         else:
             ax.legend(loc='best')
-    axes[0].set_ylabel('Logical Error Rate')
+        if y_limits is not None:
+            ax.set_ylim(y_limits)
+    axes[0].set_ylabel(y_label)
 
     # fig.suptitle(f"$\\eta={eta:.1f}$")
 
@@ -380,7 +420,11 @@ def update_plot(plt, results_df, error_model, xlim=None, ylim=None,
     plt.legend(prop={'size': 12}, loc='best', title=legend_title)
 
 
-def plot_data_collapse(plt, df_trunc, params_opt, params_bs):
+def plot_data_collapse(
+    plt, df_trunc, params_opt, params_bs, title=None,
+    x_label=None, y_label=None,
+    p_est_label='p_est',
+):
     rescaled_p_fit = np.linspace(
         df_trunc['rescaled_p'].min(), df_trunc['rescaled_p'].max(), 101
     )
@@ -394,7 +438,7 @@ def plot_data_collapse(plt, df_trunc, params_opt, params_bs):
     for d_val in np.sort(df_trunc['d'].unique()):
         df_trunc_filt = df_trunc[df_trunc['d'] == d_val]
         plt.errorbar(
-            df_trunc_filt['rescaled_p'], df_trunc_filt['p_est'],
+            df_trunc_filt['rescaled_p'], df_trunc_filt[p_est_label],
             yerr=df_trunc_filt['p_se'], fmt='o', capsize=5,
             label=r'$L={}$'.format(d_val)
         )
@@ -407,20 +451,24 @@ def plot_data_collapse(plt, df_trunc, params_opt, params_bs):
         np.quantile(f_fit_bs, 0.84, axis=0),
         color='gray', alpha=0.2, label=r'$1\sigma$ fit'
     )
-    plt.xlabel(
-        r'Rescaled error probability $(p - p_{\mathrm{th}})d^{1/\nu}$',
-        fontsize=16
-    )
-    plt.ylabel(r'Logical failure rate $p_{\mathrm{fail}}$', fontsize=16)
+    if x_label is None:
+        x_label = (
+            r'Rescaled error probability $(p - p_{\mathrm{th}})d^{1/\nu}$'
+        )
+    if y_label is None:
+        y_label = r'Logical failure rate $p_{\mathrm{fail}}$'
+    plt.xlabel(x_label, fontsize=16)
+    plt.ylabel(y_label, fontsize=16)
 
     error_model = df_trunc['error_model'].iloc[0]
-    title = get_error_model_format(error_model)
+    if title is None:
+        title = get_error_model_format(error_model)
     plt.title(title)
     plt.legend()
 
 
 def get_error_model_format(error_model: str, eta=None) -> str:
-    if 'deformed' in error_model:
+    if 'deformed' in error_model.lower():
         fmt = 'Deformed'
     else:
         fmt = 'Undeformed'
@@ -483,11 +531,14 @@ def draw_tick_symbol(
     tick_height=0.03, tick_width=0.1, tick_location=2.5,
     axis_offset=0,
 ):
+    """Draw a section cut tick symbol on the x axis."""
+
+    # The actual line.
     x_points = np.array([
+        -0.5,
         -0.25,
-        0,
-        0,
         0.25,
+        0.5,
     ])*tick_width + tick_location
     if log:
         x_points = 10**np.array(x_points)

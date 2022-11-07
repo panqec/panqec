@@ -529,7 +529,7 @@ class StabilizerCode(metaclass=ABCMeta):
 
         return bs_prod(self.stabilizer_matrix, error)
 
-    def is_stabilizer(self, location: Tuple, stab_type: str = None):
+    def is_stabilizer(self, location: Tuple, stab_type: Optional[str] = None):
         """Returns whether a given location in the coordinate system
         corresponds to a stabilizer or not
         """
@@ -607,7 +607,7 @@ class StabilizerCode(metaclass=ABCMeta):
 
     @abstractmethod
     def get_stabilizer(
-        self, location: Tuple, deformed_axis: str = None
+        self, location: Tuple, deformed_axis: Optional[str] = None
     ) -> Operator:
         """ Returns a stabilizer, formatted as dictionary that assigns a Pauli
         operator ('X', 'Y' or 'Z') to each qubit location in the support of

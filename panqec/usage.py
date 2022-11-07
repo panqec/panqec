@@ -140,7 +140,12 @@ class TextPlotter:
     ASCII plotter like matplotlib but in command line.
     """
 
-    def __init__(self, width: int = None, height: int = None):
+    canvas_width: int
+    canvas_height: int
+
+    def __init__(
+        self, width: Optional[int] = None, height: Optional[int] = None
+    ):
         term = shutil.get_terminal_size()
         if height is None:
             self.canvas_height = term.lines - 1
