@@ -13,7 +13,7 @@ from typing import Dict, Optional
 from glob import glob
 import numpy as np
 from .config import (
-    SLURM_DIR, SBATCH_TEMPLATE, SLURM_USERNAME, NIST_TEMPLATE
+    SLURM_DIR, SBATCH_TEMPLATE, SLURM_USERNAME, AD_TEMPLATE
 )
 from .simulation import read_input_json, count_runs
 
@@ -48,7 +48,7 @@ def count_input_runs(name: str) -> Optional[int]:
     return n_runs
 
 
-def generate_sbatch_nist(
+def generate_sbatch_ad(
     name: str,
     n_trials: int,
     nodes: int,
@@ -60,12 +60,12 @@ def generate_sbatch_nist(
     partition: str,
     cluster: str,
 ):
-    """Generate sbatch files for NIST."""
+    """Generate sbatch files for AD."""
     input_dir = os.path.join(SLURM_DIR, 'inputs')
     sbatch_dir = os.path.join(SLURM_DIR, 'sbatch')
     output_dir = os.path.join(SLURM_DIR, 'out')
 
-    template_path = NIST_TEMPLATE
+    template_path = AD_TEMPLATE
     if cluster == 'symmetry':
         template_path = SBATCH_TEMPLATE
 
@@ -76,7 +76,7 @@ def generate_sbatch_nist(
     if not os.path.exists(input_file):
         print(f'File {input_file} not found')
     else:
-        print(f'Generating NIST sbatch files for {name}')
+        print(f'Generating AD sbatch files for {name}')
         run_count = count_runs(input_file)
         if split == 1 or run_count is None:
             split_label = ''
