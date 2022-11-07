@@ -7,8 +7,11 @@ from panqec.codes import RotatedToric3DCode
 from panqec.bpauli import apply_deformation
 from panqec.error_models import DeformedXZZXErrorModel
 from panqec.decoders import BeliefPropagationOSDDecoder
+from panqec.bsparse import to_array
 
-from tests.codes.stabilizer_code_test import StabilizerCodeTestWithCoordinates
+from tests.codes.stabilizer_code_test import (
+    StabilizerCodeTestWithCoordinates, StabilizerCodeTest
+)
 
 
 class RotatedToric3DCodeTest(StabilizerCodeTestWithCoordinates):
@@ -163,6 +166,13 @@ class TestRotatedToric3DCode4x4x4(RotatedToric3DCodeTest):
     expected_vertical_z = [2, 4, 6]
 
 
+class TestDeformedRotatedToric3DCode(StabilizerCodeTest):
+
+    @pytest.fixture
+    def code(self):
+        return RotatedToric3DCode(5, 6, 5, deformed_axis='x')
+
+
 class TestRotatedToric3DDeformation:
 
     def test_deformation_index(self):
@@ -200,7 +210,7 @@ class TestRotatedToric3DDeformation:
         to find the lowest-weight Z-only logical operators by brute force.
         """
         project_dir = os.path.dirname(
-            os.path.dirname(os.path.dirname(__file__))
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         )
         entries = []
         for size in [3, 4, 5, 6, 7, 8, 9, 10]:
@@ -211,32 +221,35 @@ class TestRotatedToric3DDeformation:
                 project_dir, 'temp', 'rotated_toric_3d_test.json'
                 )
             error_model = DeformedXZZXErrorModel(0.2, 0.3, 0.5)
-            deformation_index = error_model._get_deformation_indices(code)
+            deformation_index = error_model.get_deformation_indices(code)
 
             entries.append({
                 'size': [L_x, L_y, L_z],
                 'coords': code.qubit_coordinates,
                 'undeformed': {
-                    'n': code.n,
-                    'k': code.k,
-                    'd': code.d,
-                    'stabilizers': code.stabilizer_matrix.tolist(),
-                    'logicals_x': code.logicals_x.tolist(),
-                    'logicals_z': code.logicals_z.tolist(),
+                    'n': int(code.n),
+                    'k': int(code.k),
+                    'd': int(code.d),
+                    'stabilizers': to_array(code.stabilizer_matrix).tolist(),
+                    'logicals_x': to_array(code.logicals_x).tolist(),
+                    'logicals_z': to_array(code.logicals_z).tolist(),
                 },
                 'deformed': {
-                    'n': code.n,
-                    'k': code.k,
-                    'd': code.d,
+                    'n': int(code.n),
+                    'k': int(code.k),
+                    'd': int(code.d),
                     'stabilizers': apply_deformation(
-                        deformation_index, code.stabilizer_matrix
+                        deformation_index,
+                        to_array(code.stabilizer_matrix)
                     ).tolist(),
                     'logicals_x': apply_deformation(
-                        deformation_index, code.logicals_x
+                        deformation_index,
+                        to_array(code.logicals_x)
                     ).tolist(),
-                    'logicals_z': apply_deformation(
-                        deformation_index, code.logicals_z
-                    ).tolist(),
+                    'logicals_z': to_array(apply_deformation(
+                        deformation_index,
+                        to_array(code.logicals_z)
+                    )).tolist(),
                 }
             })
         with open(out_json, 'w') as f:
