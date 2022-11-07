@@ -8,5 +8,5 @@ psutil>=5.8.0
 click>=8.1.2
 Flask>=2.0.1
 ldpc>=0.1.0
-PyMatching==0.2.4
 galois>=0.1.1
+PyMatching>=2.0.1
