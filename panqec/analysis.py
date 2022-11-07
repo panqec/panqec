@@ -38,7 +38,7 @@ class Analysis:
     """Analysis on large collections of results files.
 
     This is the preferred method because it does not require reading the input
-    files since the input parameters are saved to the results files anwyay.
+    files since the input parameters are saved to the results files anyway.
     It also does not create Simulation objects for every data point, which
     could be slow.
 
@@ -659,14 +659,14 @@ class Analysis:
         }
 
     def get_quality_metrics(self):
-        """Table of quality metrices of data used for analysis.
+        """Table of quality metrics of data used for analysis.
 
         Returns
         -------
         quality : pd.DataFrame
             Summary of data quality metric for each input family as index,
             in particular the minimum number of trials for any data point in
-            the input family and the number of probabilty values for that input
+            the input family and the number of probability values for that input
             family that actually got used in the analysis.
         """
 
