@@ -143,6 +143,22 @@ class RotatedToric3DCode(StabilizerCode):
 
         return operator
 
+    def _deform_operator(self, operator: Operator):
+        """Deformation to operator in place accounting for defects."""
+        deformation_map = {'I': 'I', 'X': 'Z', 'Y': 'Y', 'Z': 'Z'}
+        for location in operator:
+            x, y, z = location
+            Lx, Ly, Lz = self.size
+            defect_x_boundary, defect_y_boundary = on_defect_boundary(
+                Lx, Ly, x, y
+            )
+            defect_x_on_edge = defect_x_boundary and x == 1
+            defect_y_on_edge = defect_y_boundary and y == 1
+            has_defect = (defect_x_on_edge != defect_y_on_edge)
+            is_deformed = self.qubit_axis(location) == self._deformed_axis
+            if is_deformed != has_defect:
+                operator[location] = deformation_map[operator[location]]
+
     def qubit_axis(self, location: Location) -> str:
         x, y, z = location
 
@@ -169,18 +185,22 @@ class RotatedToric3DCode(StabilizerCode):
         # Even times even - two logicals.
         if Lx % 2 == 0 and Ly % 2 == 0:
             # X string operator along y.
-            logicals.append({
+            operator_1: Operator = {
                 (x, y, z): 'X'
                 for x, y, z in self.qubit_coordinates
                 if y == 1 and z == 1
-            })
+            }
+            self._deform_operator(operator_1)
+            logicals.append(operator_1)
 
             # X string operator along x.
-            logicals.append({
+            operator_2: Operator = {
                 (x, y, z): 'X'
                 for x, y, z in self.qubit_coordinates
                 if x == 1 and z == 1
-            })
+            }
+            self._deform_operator(operator_2)
+            logicals.append(operator_2)
 
         # TODO: Get odd times odd to work
         # Odd times odd
@@ -197,19 +217,23 @@ class RotatedToric3DCode(StabilizerCode):
 
             # Odd times even.
             if Lx % 2 == 1:
-                logicals.append({
+                operator = {
                     (x, y, z): 'X'
                     for x, y, z in self.qubit_coordinates
                     if x == 1 and z == 1
-                })
+                }
+                self._deform_operator(operator)
+                logicals.append(operator)
 
             # Even times odd.
             else:
-                logicals.append({
+                operator = {
                     (x, y, z): 'X'
                     for x, y, z in self.qubit_coordinates
                     if y == 1 and z == 1
-                })
+                }
+                self._deform_operator(operator)
+                logicals.append(operator)
 
         return logicals
 

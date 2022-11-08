@@ -522,7 +522,7 @@ class StabilizerCode(metaclass=ABCMeta):
 
         return bs_prod(self.stabilizer_matrix, error)
 
-    def is_stabilizer(self, location: Tuple, stab_type: str = None):
+    def is_stabilizer(self, location: Tuple, stab_type: Optional[str] = None):
         """Returns whether a given location in the coordinate system
         corresponds to a stabilizer or not
         """

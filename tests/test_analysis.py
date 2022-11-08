@@ -1,11 +1,12 @@
 import os
 import json
+import re
 import pytest
 import numpy as np
 import pandas as pd
 from panqec.analysis import (
     get_subthreshold_fit_function, get_single_qubit_error_rate, Analysis,
-    deduce_bias, fill_between_values
+    deduce_bias, fill_between_values, count_fails
 )
 from panqec.simulation import read_input_json
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
@@ -103,25 +104,180 @@ class TestGetSingleQubitErrorRates:
 
 class TestAnalysis:
 
-    def test_analyse_toric_2d_results(self):
+    def test_save_and_load_analysis(self, tmpdir):
+        results_path = os.path.join(DATA_DIR, 'toric')
+        analysis = Analysis(results_path, overrides={'overrides': [
+            {'filters': {'bias': 'inf'}, 'truncate': {'probability': {
+                'min': 0.06, 'max': 0.14,
+            }}},
+        ]})
+        analysis.analyze()
+        save_path = os.path.join(tmpdir, 'myanalysis.json.gz')
+        analysis.save(save_path)
+
+        new_analysis = Analysis()
+        new_analysis.load(save_path)
+        assert new_analysis.results.shape[0] > 0
+        assert new_analysis.results.shape[0] == analysis.results.shape[0]
+        assert new_analysis.thresholds.shape[0] > 0
+        assert new_analysis.thresholds.shape[0] == analysis.thresholds.shape[0]
+        assert 'total' in new_analysis.sectors
+        assert 'X' in new_analysis.sectors
+        assert 'Z' in new_analysis.sectors
+        for sector in new_analysis.sectors:
+            for table_name in ['trunc_results', 'thresholds']:
+                assert (
+                    new_analysis.sectors[sector][table_name].shape[0]
+                    == analysis.sectors[sector][table_name].shape[0]
+                )
+
+        # Attempt to make plots using loaded Analysis.
+        import matplotlib
+        import warnings
+        matplotlib.use('Agg')
+        warnings.filterwarnings('ignore')
+        new_analysis.make_plots(tmpdir)
+        assert len([
+            name for name in os.listdir(tmpdir) if '.pdf' in name
+        ]) == 2
+
+    def test_analyse_toric_2d_results(self, tmpdir):
         results_path = os.path.join(DATA_DIR, 'toric')
         assert os.path.exists(results_path)
-        analysis = Analysis(results_path)
+        analysis = Analysis(results_path, overrides={'overrides': [
+            {'filters': {'bias': 'inf'}, 'truncate': {'probability': {
+                'min': 0.06, 'max': 0.14,
+            }}},
+        ]})
         analysis.analyze()
-        assert analysis.results.shape == (30, 24)
+        results_required = [
+            'code', 'error_model', 'decoder',
+            'probability',
+            'p_est', 'n_trials', 'n_fail',
+        ]
         assert set(analysis.results.columns) == set([
             'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
             'probability', 'wall_time', 'n_trials', 'n_fail',
             'effective_error', 'success', 'codespace', 'bias', 'results_file',
             'p_est', 'p_se', 'p_word_est', 'p_word_se', 'single_qubit_p_est',
-            'single_qubit_p_se', 'code_family', 'error_model_family'
+            'single_qubit_p_se', 'code_family', 'error_model_family',
+            'p_est_X', 'p_se_X', 'n_fail_X', 'n_trials_X',
+            'p_est_Z', 'p_se_Z', 'n_fail_Z', 'n_trials_Z',
         ])
-        assert set(analysis.thresholds.columns).issuperset([
+        threshold_required = [
             'code_family', 'error_model', 'decoder',
-            'p_th_fss', 'p_th_fss_left', 'p_th_fss_right'
+            'p_th_fss', 'p_th_fss_left', 'p_th_fss_right',
+            'fss_params', 'params_bs',
+            'fit_found'
+        ]
+        assert (
+            set(analysis.thresholds.columns).intersection(threshold_required)
+            == set(threshold_required)
+        ), 'thresholds should have required columns'
+        assert (
+            set(analysis.trunc_results.columns).intersection(results_required)
+            == set(results_required)
+        ), 'trunc_results should have required columns'
+
+        for sector in ['X', 'Z']:
+            assert (
+                set(analysis.sectors[sector]['thresholds']).intersection(
+                    threshold_required
+                ) == set(threshold_required)
+            ), f'{sector} thresholds should have required columns'
+            assert (
+                set([
+                    'code', 'error_model', 'decoder', 'rescaled_p',
+                ]).issubset(analysis.sectors[sector]['trunc_results'])
+            ), f'{sector} trunc_results should have required columns'
+
+        import matplotlib
+        import warnings
+        matplotlib.use('Agg')
+        warnings.filterwarnings('ignore')
+        analysis.make_plots(tmpdir)
+        assert any([
+            bool(re.match(r'.*collapse.pdf$', name))
+            for name in os.listdir(tmpdir)
         ])
-        assert set(analysis.trunc_results).issuperset(analysis.results.columns)
-        assert 'rescaled_p' in analysis.trunc_results
+        assert any([
+            bool(re.match(r'.*thresholds-vs-bias.pdf$', name))
+            for name in os.listdir(tmpdir)
+        ])
+
+    def test_different_sector_different_truncations(self):
+        results_path = os.path.join(DATA_DIR, 'toric3d.zip')
+        analysis = Analysis(results_path, overrides={'overrides': [
+            {'filters': {'bias': 0.5}, 'skip': True},
+            {'filters': {'bias': 'inf'}, 'skip': True},
+            {'filters': {'bias': 10}, 'truncate': {
+                'probability': {'min': 0.18, 'max': 0.28}
+            }},
+            {'filters': {'bias': 10}, 'sector': 'X', 'truncate': {
+                'probability': {'min': 0.20, 'max': 0.40}
+            }},
+            {'filters': {'bias': 10}, 'sector': 'Z', 'truncate': {
+                'probability': {'min': 0.18, 'max': 0.28}
+            }},
+        ]})
+        analysis.analyze()
+        assert analysis.thresholds.shape[0] == 1
+
+        # Check the overall threshold.
+        threshold = analysis.thresholds['p_th_fss'].iloc[0]
+        assert 0.22 < threshold and threshold < 0.23
+
+        # Check the sector thresholds.
+        t_thresh = analysis.sectors['total']['thresholds']['p_th_fss'].iloc[0]
+        assert 0.23 < t_thresh and t_thresh < 0.24
+
+        x_thresh = analysis.sectors['X']['thresholds']['p_th_fss'].iloc[0]
+        assert 0.32 < x_thresh and x_thresh < 0.33
+
+        z_thresh = analysis.sectors['Z']['thresholds']['p_th_fss'].iloc[0]
+        assert 0.22 < z_thresh and z_thresh < 0.23
+
+        # Check the custom sector-by-sector truncation was done correctly.
+        epsilon = 1e-5
+        p_X = analysis.sectors['X']['trunc_results']['probability'].unique()
+        assert all(p_X <= 0.40 + epsilon)
+        assert all(0.20 - epsilon <= p_X)
+
+        p_Z = analysis.sectors['Z']['trunc_results']['probability'].unique()
+        assert all(p_Z <= 0.28 + epsilon)
+        assert all(0.18 - epsilon <= p_Z)
+
+    def test_skip_entry(self):
+        results_path = os.path.join(DATA_DIR, 'toric')
+        analysis = Analysis(results_path, overrides={'overrides': [
+            {'filters': {'bias': 0.5}, 'skip': True},
+            {'filters': {'bias': 'inf'}, 'truncate': {'probability': {
+                'min': 0.06, 'max': 0.14,
+            }}},
+        ]})
+        analysis.analyze()
+        assert 0.5 not in analysis.thresholds['bias'].values
+        assert analysis.thresholds.shape[0] > 0
+
+    def test_replace_threshold_with_given_value(self):
+        results_path = os.path.join(DATA_DIR, 'toric')
+        analysis = Analysis(results_path, overrides={'overrides': [
+            {'filters': {'bias': 'inf'}, 'truncate': {'probability': {
+                'min': 0.06, 'max': 0.14,
+            }}},
+            {
+              "filters": {
+                "code_family": "Toric",
+                "error_model_family": "Deformed XZZX Pauli",
+                "bias": "inf",
+                "decoder": "BP-OSD decoder"
+              },
+              "replace": {"p_th_fss": 0.5, "p_th_fss_se": 0.01}
+            }
+        ]})
+        analysis.analyze()
+        assert 0.5 not in analysis.thresholds['bias'].values
+        assert analysis.thresholds.shape[0] > 0
 
     def test_generate_missing_inputs_can_be_read(self, tmpdir):
 
@@ -145,7 +301,8 @@ class TestAnalysis:
 
     def test_apply_overrides(self):
         analysis = Analysis()
-        assert not analysis.overrides
+        for sector in analysis.SECTOR_KEYS:
+            assert not analysis.overrides[sector]
         analysis.results = pd.DataFrame([
           {
             'code_family': 'Toric',
@@ -187,14 +344,15 @@ class TestAnalysis:
             ]
         }
         analysis.apply_overrides()
-        assert analysis.overrides == {
-            (
-                'Toric', 'Deformed XZZX Pauli X0.0161Y0.0161Z0.9677',
-                'BP-OSD decoder'
-            ): {
-                'probability': [0.1, 0.2]
+        for sector in analysis.SECTOR_KEYS:
+            assert analysis.overrides[sector] == {
+                (
+                    'Toric', 'Deformed XZZX Pauli X0.0161Y0.0161Z0.9677',
+                    'BP-OSD decoder'
+                ): {
+                    'probability': [0.1, 0.2]
+                }
             }
-        }
 
 
 def test_convert_missing_to_input():
@@ -268,3 +426,17 @@ class TestFillBetweenValues:
         n_target = 8
         new_values = fill_between_values(old_values, n_target)
         assert new_values == old_values
+
+
+class TestCountFails:
+
+    def test_easy_case(self):
+        effective_error = np.array([
+            [0, 1, 1, 1, 0, 1],
+            [1, 1, 0, 0, 0, 0],
+            [0, 1, 0, 1, 0, 1],
+            [1, 1, 0, 1, 0, 1],
+        ], dtype=np.uint8)
+        codespace = np.array([True, True, False, True], dtype=bool)
+        assert count_fails(effective_error, codespace, 'X') == 6
+        assert count_fails(effective_error, codespace, 'Z') == 4

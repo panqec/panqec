@@ -19,6 +19,7 @@ from .utils import get_direction_from_bias_ratio
 from panqec.gui import GUI
 from glob import glob
 from .usage import summarize_usage
+from .analysis import Analysis
 
 
 @click.group(invoke_without_command=True)
@@ -126,6 +127,35 @@ def read_range_input(specification: str) -> List[float]:
     else:
         values = [float(specification)]
     return values
+
+
+@click.command()
+@click.option(
+    '-o', '--overrides', type=click.Path(exists=True),
+    default=None,
+    help='Overrides specification .json file.'
+)
+@click.option(
+    '-p', '--plot_dir', type=click.Path(),
+    default=os.path.join(PANQEC_DIR, 'plots'),
+    help='Directory to save plots in.'
+)
+@click.argument(
+    'paths', nargs=-1, type=click.Path(exists=True),
+)
+def analyze(paths, overrides, plot_dir):
+    """Analyze the data at given paths."""
+
+    # Use headless plotting and ignore warnings from matplotlib.
+    import matplotlib
+    matplotlib.use('Agg')
+    import warnings
+    warnings.filterwarnings('ignore')
+
+    analysis = Analysis(list(paths), overrides=overrides, verbose=True)
+    analysis.analyze(progress=tqdm)
+    analysis.make_plots(plot_dir)
+    analysis.save(os.path.join(plot_dir, 'analysis.json.gz'))
 
 
 @click.command()
@@ -721,3 +751,4 @@ cli.add_command(ad_sbatch)
 cli.add_command(generate_qsub)
 cli.add_command(umiacs_sbatch)
 cli.add_command(check_usage)
+cli.add_command(analyze)

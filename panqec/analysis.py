@@ -22,14 +22,15 @@ import pandas as pd
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
 from scipy.signal import argrelextrema
-from .config import SLURM_DIR, SHORT_NAMES
+from .config import SLURM_DIR, SHORT_NAMES, LONG_NAMES
 from .simulation import read_input_json, BatchSimulation
 from .utils import (
     fmt_uncertainty, NumpyEncoder, identity, find_nearest,
-    get_direction_from_bias_ratio, rescale_prob
+    get_direction_from_bias_ratio, rescale_prob, fmt_confidence_interval
 )
 from .bpauli import int_to_bvector, bvector_to_pauli_string
 from .plots._threshold import plot_data_collapse, draw_tick_symbol
+from .plots._hashing_bound import get_hashing_bound
 
 Numerical = Union[Iterable, float, int]
 
@@ -47,9 +48,10 @@ class Analysis:
     results : Union[str, List[str]]
         Path to directory or .zip containing .json.gz or .json results.
         Can also accept list of paths.
-    overrides : Optional[str]
+    overrides : Optional[Union[str, dict]]
         Path to json file that gives specifications on what to override,
         for instance when to truncate.
+        Can also be a dictionary with the same contents as a json file.
         As well as replacements values for known analytical threshold values.
         See `scripts/overrides.json` for an example.
     verbose : bool
@@ -61,6 +63,11 @@ class Analysis:
         Results for each set of (code, error model and decoder).
     thresholds : pd.DataFrame
         Thresholds for each (code family, error_model and decoder).
+    trunc_results : pd.DataFrames
+        Truncated results that were used for threshold calculation.
+    sectors : Dict[str, Any]
+        Dict containing thresholds and trunc_results DataFrames for each
+        sector.
     """
 
     # List of paths where results are to be analyzed.
@@ -86,12 +93,26 @@ class Analysis:
         'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
         'probability'
     ]
+
+    # Set of parameters that identifies a family for the threshold vs bias
+    # plot.
     FAMILY_KEYS: List[str] = [
         'decoder', 'code_family', 'error_model_family', 'bias'
     ]
+
+    # Set of input parameter that identifies a threshold.
+    THRESHOLD_KEYS: List[str] = [
+        'code_family', 'error_model', 'decoder'
+    ]
+
+    # Set of parameter keys that identify a simulation,
+    # which is visualized as a point with error bars in the logical vs physical
+    # error rate crossing plots to extract thresholds from.
     POINT_KEYS: List[str] = [
         'code', 'error_model', 'decoder', 'probability'
     ]
+
+    SECTOR_KEYS: List[str] = ['total', 'X', 'Z']
 
     # Quality targets that are to be met.
     targets: Dict[str, Any] = {
@@ -103,7 +124,7 @@ class Analysis:
     overrides_spec: Dict
 
     # Processed manual overrides.
-    overrides: Dict[Tuple, Any]
+    overrides: Dict[str, Dict[Tuple, Any]]
 
     # Manual values to be replace parsed from the overrides json file.
     replaces: Dict[Tuple, Any]
@@ -115,9 +136,12 @@ class Analysis:
     # appended to thresholds DataFrame in the end.
     extra_thresholds: List[Dict]
 
+    # Threshold data for each sector ('total', 'X', 'Z').
+    sectors: Dict[str, Any]
+
     def __init__(
         self, results: Union[str, List[str]] = [], verbose: bool = True,
-        overrides: Optional[str] = None
+        overrides: Optional[Union[str, dict]] = None
     ):
         self.results_paths = []
         if isinstance(results, list):
@@ -127,19 +151,71 @@ class Analysis:
 
         self.overrides_spec = dict()
         if overrides:
-            self.use_overrides(overrides)
+            if isinstance(overrides, str):
+                with open(overrides) as f:
+                    self.overrides_spec = json.load(f)
+            elif isinstance(overrides, dict):
+                self.overrides_spec = overrides
 
         # Manual specifications are intialized as empty until apply_overrides
         # is called after results are aggregated.
-        self.overrides = dict()
+        self.overrides = {sector: dict() for sector in self.SECTOR_KEYS}
         self.replaces = dict()
         self.skips = []
         self.extra_thresholds = []
 
-    def use_overrides(self, overrides_json):
-        """Use override specifications stored in json file."""
-        with open(overrides_json) as f:
-            self.overrides_spec = json.load(f)
+        self.sectors = dict()
+
+    def _load_results_df(self, data: dict) -> pd.DataFrame:
+        """Load dict into results DataFrame."""
+        results = pd.DataFrame(data)
+        if 'size' in results:
+            results['size'] = results['size'].apply(tuple)
+        return results
+
+    def load(self, path):
+        """Load previous analysis from .json.gz file."""
+        with gzip.open(path, 'rb') as gz:
+            data = json.loads(gz.read().decode('utf-8'))
+        self.results = self._load_results_df(data['results'])
+        self.trunc_results = self._load_results_df(data['trunc_results'])
+        self.thresholds = pd.DataFrame(data['thresholds'])
+        for k in ['fss_params', 'params_bs']:
+            self.thresholds[k] = self.thresholds[k].apply(np.array)
+        self.sectors = {
+            sector: {
+                'thresholds': pd.DataFrame(sector_data['thresholds']),
+                'trunc_results': self._load_results_df(
+                    sector_data['trunc_results']
+                ),
+            }
+            for sector, sector_data in data['sectors'].items()
+        }
+
+    def save(self, path):
+        """Save analysis to a .json.gz file."""
+        self.log(f'Saving analysis to {path}')
+        drop_columns = [
+            'effective_error', 'codespace', 'success', 'results_file'
+        ]
+        data = {
+            'trunc_results': self.trunc_results.drop(
+                drop_columns, axis=1
+            ).to_dict(),
+            'results': self.results.drop(drop_columns, axis=1).to_dict(),
+            'thresholds': self.thresholds.to_dict(),
+            'sectors': {
+                sector: {
+                    'thresholds': sector_data['thresholds'].to_dict(),
+                    'trunc_results': sector_data['trunc_results'].drop(
+                        drop_columns, axis=1
+                    ).to_dict(),
+                }
+                for sector, sector_data in self.sectors.items()
+            }
+        }
+        with gzip.open(path, 'wb') as gz:
+            gz.write(json.dumps(data, cls=NumpyEncoder).encode('utf-8'))
 
     def apply_overrides(self):
         """Read manual overrides from .json file."""
@@ -153,7 +229,7 @@ class Analysis:
         data = self.overrides_spec
         if 'overrides' in data and isinstance(data['overrides'], list):
 
-            self.overrides = dict()
+            self.overrides = {sector: dict() for sector in self.SECTOR_KEYS}
             self.replaces = dict()
             self.skips = []
             self.extra_thresholds = []
@@ -176,8 +252,11 @@ class Analysis:
                     ]].drop_duplicates().values
                     for triple in parameter_sets:
                         if 'truncate' in override:
-                            self.overrides[tuple(triple)] = \
-                                    override['truncate']
+                            sector_key = 'total'
+                            if 'sector' in override:
+                                sector_key = override['sector']
+                            self.overrides[sector_key][tuple(triple)] = \
+                                override['truncate']
                             overrides_used[i_override] = True
                         if 'replace' in override:
                             self.replaces[tuple(triple)] = override['replace']
@@ -214,6 +293,15 @@ class Analysis:
                         self.log(f'... and {unused_overrides - 3} more')
                         break
 
+            # Apply total sector truncations to X and Z  as well if not given
+            # explicitly already.
+            for triple in self.overrides['total'].keys():
+                for sector_key in ['X', 'Z']:
+                    if triple not in self.overrides[sector_key]:
+                        self.overrides[sector_key][triple] = (
+                            self.overrides['total'][triple]
+                        )
+
     def log(self, message: str):
         """Display a message, if the verbose attribute is True.
 
@@ -223,7 +311,7 @@ class Analysis:
             Message to be displayed.
         """
         if self.verbose:
-            print(message)
+            print(message, flush=True)
 
     def analyze(self, progress: Optional[Callable] = identity):
         """Perform the full analysis.
@@ -241,8 +329,9 @@ class Analysis:
         self.calculate_total_error_rates()
         self.calculate_word_error_rates()
         self.calculate_single_qubit_error_rates()
-        self.calculate_thresholds()
+        self.calculate_thresholds(sector=None)
         self.calculate_sector_thresholds()
+        self.use_min_thresholds()
 
     def find_files(self):
         """Find where the results files are."""
@@ -359,7 +448,9 @@ class Analysis:
         ], axis=1).reset_index()
 
         # Count the number of fails, later used for error bars.
-        self.results['n_fail'] = self.results['success'].apply(sum)
+        self.results['n_fail'] = (
+            self.results['n_trials'] - self.results['success'].apply(sum)
+        )
 
         # Classify codes by code family for threshold analysis.
         self.results['code_family'] = self.results['code'].apply(
@@ -443,9 +534,16 @@ class Analysis:
         ftol_std: float = 1e-5,
         maxfev: int = 2000,
         p_est: str = 'p_est',
+        n_trials_label: str = 'n_trials',
         n_fail_label: str = 'n_fail',
+        sector: Optional[str] = None,
     ):
-        """Extract thresholds from table of results using heuristics.
+        """Extract thresholds using heuristics or manual override limits.
+
+        Records thresholds in the `sectors` attribute for the given sector.
+        If sector is None, then the total logical error rate is used to
+        calculate the thresholds and the threshold information is saved to the
+        `sectors['total']` part.
 
         Parameters
         ----------
@@ -471,7 +569,11 @@ class Analysis:
             scaling.
         n_fail_label : str
             The column that is 'n_fail'.
+        sector : Optional[str]
+            The Pauli sector use to calculate the threshold for.
+            Will use overall error if None given.
         """
+        sector = 'total' if sector is None else sector
 
         results_df = self.results
 
@@ -542,7 +644,7 @@ class Analysis:
             entry['p_th_nearest'] = get_p_th_nearest(df_filt, p_est=p_est)
 
             # Using the manual override to get truncation limits.
-            if param_set in self.overrides:
+            if param_set in self.overrides[sector]:
 
                 # Initialize to max limits and reuse crossover.
                 entry.update({
@@ -552,25 +654,25 @@ class Analysis:
                 })
 
                 # Use the overrides to refine limits if available.
-                if 'probability' in self.overrides[param_set].keys():
+                if 'probability' in self.overrides[sector][param_set]:
                     tolerance = 1e-9
-                    p_trunc = self.overrides[param_set]['probability']
+                    p_trunc = self.overrides[sector][param_set]['probability']
                     if 'min' in p_trunc and p_trunc['min'] is not None:
                         entry['p_left'] = p_trunc['min'] - tolerance
                     if 'max' in p_trunc and p_trunc['max'] is not None:
                         entry['p_right'] = p_trunc['max'] + tolerance
 
                 # Truncate the sizes if told to do so.
-                if 'd' in self.overrides[param_set].keys():
-                    if 'min' in self.overrides[param_set]['d']:
+                if 'd' in self.overrides[sector][param_set].keys():
+                    if 'min' in self.overrides[sector][param_set]['d']:
                         df_filt = df_filt[
                             df_filt['d']
-                            >= self.overrides[param_set]['d']['min']
+                            >= self.overrides[sector][param_set]['d']['min']
                         ]
-                    if 'max' in self.overrides[param_set]['d']:
+                    if 'max' in self.overrides[sector][param_set]['d']:
                         df_filt = df_filt[
                             df_filt['d']
-                            <= self.overrides[param_set]['d']['max']
+                            <= self.overrides[sector][param_set]['d']['max']
                         ]
 
                 # Just use the crossover point if it's in between the limits.
@@ -599,7 +701,8 @@ class Analysis:
                     df_filt, entry['p_left'], entry['p_right'],
                     entry['p_th_nearest'],
                     ftol_est=ftol_est, ftol_std=ftol_std, maxfev=maxfev,
-                    p_est=p_est, n_fail_label=n_fail_label,
+                    p_est=p_est, n_trials_label=n_trials_label,
+                    n_fail_label=n_fail_label,
                 )
                 df_trunc_list.append(df_trunc)
 
@@ -613,6 +716,13 @@ class Analysis:
                     'p_th_fss_left': np.quantile(params_bs[:, 0], 0.16),
                     'p_th_fss_right': np.quantile(params_bs[:, 0], 0.84),
                     'p_th_fss_se': params_bs[:, 0].std(),
+                })
+
+                # Record whether the fit was found or it was bad.
+                fit_status = self.get_fit_status(entry)
+                entry.update({
+                    'fit_status': fit_status,
+                    'fit_found': fit_status == 'success',
                 })
 
             entries.append(entry)
@@ -629,10 +739,69 @@ class Analysis:
 
         trunc_results = pd.concat(df_trunc_list, axis=0)
 
-        self.thresholds = thresholds
-        self.trunc_results = trunc_results
+        # Save data to sectors attribute.
+        if sector not in self.sectors:
+            self.sectors[sector] = dict()
+        self.sectors[sector]['thresholds'] = thresholds
+        self.sectors[sector]['trunc_results'] = trunc_results
 
-    # TODO: implement this properly.
+    def get_fit_status(self, entry: Dict[str, Any]) -> str:
+        """Status of the fit. 'success' if successful, comment if not.
+
+        Parameters
+        ----------
+        entry : Dict[str, Any]
+
+        Returns
+        -------
+        status : str
+            'success' of the fit succeeded and is valid otherwise a reason for
+            why it is not a success is given.
+        """
+
+        # Return False if any nan.
+        if np.any(pd.isna(entry['fss_params'])):
+            return 'Curve fitting failed.'
+        keys = ['p_th_fss', 'p_th_fss_left', 'p_th_fss_right', 'p_th_fss_se']
+        for key in keys:
+            if pd.isna(entry[key]):
+                return 'NaN threshold estimate or uncertainty.'
+
+        # If the uncertainty is zero, something bad probably happened.
+        if np.isclose(entry['p_th_fss_left'], entry['p_th_fss_right']):
+            return 'Zero CI uncertainty.'
+        if np.isclose(entry['p_th_fss_se'], 0):
+            return 'Zero SE uncertainty.'
+
+        # If anything is outside the interval [0, 1] then return False.
+        for key in keys:
+            if entry[key] < 0 or entry[key] > 1:
+                return 'Invalid threshold value.'
+
+        # If the fit parameters are implausible then return False.
+        p_th, nu, A, B, C = entry['fss_params']
+
+        # A is the logical error rate at threshold, which should be a
+        # probability between 0 and 1.
+        if A < 0 or A > 1:
+            return 'Invalid logical error rate at threshold.'
+
+        # If threshold is outside bounds then return False.
+        # Should take more data or manually override with wider truncation.
+        if entry['p_th_fss'] < entry['p_left']:
+            return 'Threshold left of leftmost data point used.'
+        if entry['p_th_fss'] > entry['p_right']:
+            return 'Threshold right of rightmost data point used.'
+
+        # If the fit is a flat line, it is likely that all the data was was
+        # zero, or very close to zero, which means that there is either not
+        # enough data or the physical error rate range has been chosen too low.
+        if np.allclose([A, B, C], 0):
+            return 'Zero logical error rate fit'
+
+        # Return 'success' if everything passed.
+        return 'success'
+
     def calculate_sector_thresholds(self):
         """Calculate thresholds of each single-qubit logical error type.
 
@@ -641,7 +810,86 @@ class Analysis:
         by giving upper or lower bounds on the threshold.
         """
         self.log('Calculating single-qubit sector thresholds thresholds')
-        pass
+
+        # Note that in the case the final state is not in the code space,
+        # it is impossible to determine what the effective error is,
+        # so these cases are removed from the analysis.
+
+        for sector in ['X', 'Z']:
+
+            # The column names to use.
+            p_est_label = f'p_est_{sector}'
+            p_se_label = f'p_se_{sector}'
+            n_trials_label = f'n_trials_{sector}'
+            n_fail_label = f'n_fail_{sector}'
+
+            # The number of trials is the number of entries in the binary
+            # symplectic matrix in the corresponding sector,
+            # that is the number of valid trials times the number of logical
+            # qubits.
+            self.results[n_trials_label] = self.results['k']*(
+                self.results['codespace'].apply(sum)
+            )
+
+            # Count the number of fails.
+            self.results[n_fail_label] = self.results[[
+                'effective_error', 'codespace'
+            ]].apply(lambda row: count_fails(*row, sector), axis=1)
+
+            # Use the mean as best estimator.
+            self.results[p_est_label] = self.results[n_fail_label]/(
+                self.results[n_trials_label]
+            )
+
+            # Get the standard error as well.
+            self.results[p_se_label] = get_standard_error(
+                self.results[p_est_label], self.results[n_trials_label]
+            )
+
+            # Calculate the thresholds for this sector only.
+            self.calculate_thresholds(
+                p_est=p_est_label,
+                n_trials_label=n_trials_label,
+                n_fail_label=n_fail_label,
+                sector=sector,
+            )
+
+    def use_min_thresholds(self):
+        """Use the minimum thresholds for `thresholds` DataFrame attribute.
+
+        Go through all the sector thresholds in the `sectors` attribute and
+        take the minimum for each parameter set.
+        """
+
+        # Stack all the sector threshold DataFrames with a 'sector' column.
+        all_thresholds = []
+        for sector in self.sectors:
+            df = self.sectors[sector]['thresholds'].copy()
+            df['sector'] = sector
+            all_thresholds.append(df)
+        thresholds = pd.concat(all_thresholds, axis=0)
+
+        # Only take the thresholds for which fit was found.
+        thresholds = thresholds[thresholds['fit_found']]
+
+        # Reset the index.
+        thresholds = thresholds.reset_index(drop=True)
+
+        # Group by input keys, taking the minimum setors.
+        self.thresholds = thresholds.loc[
+            thresholds.groupby(self.THRESHOLD_KEYS)['p_th_fss_left']
+            .idxmin().values
+        ].reset_index(drop=True)
+
+        # Stack all the truncated results together and reset index.
+        used_points = list(map(tuple, pd.concat([
+            self.sectors[sector]['trunc_results'][self.POINT_KEYS]
+            for sector in self.sectors
+        ], axis=0).drop_duplicates().values))
+
+        self.trunc_results = self.results.groupby(self.POINT_KEYS).first().loc[
+            used_points
+        ].reset_index().sort_values(by=self.POINT_KEYS)
 
     def replace_threshold(self, replacement):
         """Format override replace specification for threshold df."""
@@ -656,6 +904,8 @@ class Analysis:
             "p_th_fss_right":  estimate + uncertainty,
             "p_th_fss":  estimate,
             'p_th_fss_se': uncertainty,
+            'fit_found': True,
+            'fit_status': 'success',
         }
 
     def get_quality_metrics(self):
@@ -960,17 +1210,20 @@ class Analysis:
             'parameters': parameters,
         }
 
-    def make_plots(self, plot_dir: str):
+    def make_plots(self, plot_dir: str, include_date=True):
         """Make and display the plots while saving to directory."""
-        date = pd.Timestamp.now().strftime('%Y-%m-%d')
+        date = ''
+        if include_date:
+            date = pd.Timestamp.now().strftime('%Y-%m-%d') + '_'
+
         os.makedirs(plot_dir, exist_ok=True)
         self.log('Making collapse plots.')
         self.make_collapse_plots(
-            pdf=os.path.join(plot_dir, f'{date}_collapse.pdf')
+            pdf=os.path.join(plot_dir, f'{date}collapse.pdf')
         )
         self.log('Making threshold vs bias plots.')
         self.make_threshold_vs_bias_plots(
-            pdf=os.path.join(plot_dir, f'{date}_thresholds-vs-bias.pdf')
+            pdf=os.path.join(plot_dir, f'{date}thresholds-vs-bias.pdf')
         )
 
     def make_threshold_vs_bias_plots(self, pdf=None):
@@ -982,7 +1235,7 @@ class Analysis:
         for code_family in self.thresholds['code_family'].unique():
             self.plot_threshold_vs_bias(code_family)
             if pdf is not None:
-                pdf_writer.savefig(plt.gcf())
+                pdf_writer.savefig(plt.gcf(), bbox_inches='tight')
             plt.show()
         if pdf is not None:
             pdf_writer.close()
@@ -999,16 +1252,20 @@ class Analysis:
         )[['code_family', 'error_model', 'decoder']].drop_duplicates().values
 
         for code_family, error_model, decoder in plot_parameters:
-            self.plot_collapse(code_family, error_model, decoder)
-            if pdf is not None:
-                pdf_writer.savefig(plt.gcf())
-            plt.show()
+            for sector in [None, 'X', 'Z']:
+                self.plot_sector_collapse(
+                    code_family, error_model, decoder, sector
+                )
+                if pdf is not None:
+                    pdf_writer.savefig(plt.gcf(), bbox_inches='tight')
+                plt.show()
 
         if pdf is not None:
             pdf_writer.close()
 
     def plot_threshold_vs_bias(
-        self, code_family: str, inf_bias_replacement: float = 1e3
+        self, code_family: str, inf_bias_replacement: float = 1e3,
+        hashing: bool = True,
     ):
         """Plot the threshold vs bias plots.
 
@@ -1019,6 +1276,8 @@ class Analysis:
         inf_bias_replacement : float
             The fintite value of bias at which to plot the infinite bias points
             at.
+        hashing : bool
+            Will also plot hashing bound if True.
         """
         import matplotlib.pyplot as plt
         from matplotlib.lines import Line2D
@@ -1067,11 +1326,32 @@ class Analysis:
                 thresh_df_filt['p_th_fss_right'],
                 alpha=0.3
             )
+
+        if hashing:
+            eta_interp = np.logspace(np.log10(0.5), np.log10(100), 101)
+            interp_points = [
+                (
+                    1/(2*(1 + eta)),
+                    1/(2*(1 + eta)),
+                    eta/(1 + eta)
+                )
+                for eta in eta_interp
+            ]
+            hb_interp = np.array([
+                get_hashing_bound(point)
+                for point in interp_points
+            ])
+            eta_interp = np.append(eta_interp, [inf_bias_replacement])
+            hb_interp = np.append(hb_interp, [get_hashing_bound((0, 0, 1))])
+
+            plt.plot(eta_interp, hb_interp, '-.', color='black',
+                     label='Hashing bound', alpha=0.5, linewidth=2)
+
         plt.legend()
-        plt.title(f'{code_family}')
+        plt.title(lengthen(code_family, caps=True), fontsize=16)
         plt.xscale('log')
-        plt.xlabel('Bias Ratio $\\eta$', fontsize=16)
-        plt.ylabel('Threshold', fontsize=16)
+        plt.xlabel('Bias ratio $\\eta_Z$', fontsize=16)
+        plt.ylabel('Threshold error rate $p_{\\rm{th}}$', fontsize=16)
         plt.ylim(0, 0.5)
         plt.xticks(
             ticks=[0.5, 1e0, 1e1, 1e2, 1e3],
@@ -1079,10 +1359,133 @@ class Analysis:
         )
         draw_tick_symbol(plt, Line2D, log=True)
 
-    def plot_collapse(
+    def plot_sector_collapse(
+        self, code_family: str, error_model: str, decoder: str,
+        sector: Optional[str] = None
+    ):
+        """Plot the data collapse for a given parameter set for both sectors.
+
+        Parameters
+        ----------
+        code_family : str
+            The code family.
+        error_model : str
+            The error model label.
+        decoder : str
+            The decoder label.
+        """
+        import matplotlib.pyplot as plt
+
+        sector_key = 'total' if sector is None else sector
+        self.log(
+            f'Plotting {code_family}, {error_model}, {decoder}, {sector_key}'
+        )
+
+        df = self.results
+        df_filt_1 = df[
+            (df['code_family'] == code_family)
+            & (df['error_model'] == error_model)
+            & (df['decoder'] == decoder)
+        ].sort_values(by='probability')
+        bias = df_filt_1['bias'].iloc[0]
+
+        if sector is None:
+            p_est_label = 'p_est'
+            p_se_label = 'p_se'
+        else:
+            p_est_label = f'p_est_{sector}'
+            p_se_label = f'p_se_{sector}'
+
+        fig, ax = plt.subplots(ncols=2, figsize=(10, 5))
+        plt.sca(ax[0])
+        for size in np.sort(df_filt_1['size'].unique()):
+            df_filt = df_filt_1[
+                df_filt_1['size'] == size
+            ].sort_values(by='probability')
+            trunc_results = self.sectors[sector_key]['trunc_results']
+            df_filt_trunc = trunc_results[
+                (trunc_results['size'] == size)
+                & (trunc_results['code_family'] == code_family)
+                & (trunc_results['error_model'] == error_model)
+                & (trunc_results['decoder'] == decoder)
+            ].sort_values(by='probability')
+
+            # Draw gray circle underneath plots which are actually used for
+            # the finite-size scaling.
+            plt.plot(
+                df_filt_trunc['probability'],
+                df_filt_trunc[p_est_label], 'o', color='gray'
+            )
+            plt.errorbar(
+                df_filt['probability'], df_filt[p_est_label],
+                yerr=df_filt[p_se_label],
+                capsize=5,
+                label=f'$L={size[0]}$'
+            )
+
+        # Find the threshold estimate and uncertainty.
+        thresh = self.sectors[sector_key]['thresholds']
+        thresh_match = thresh[
+            (thresh['code_family'] == code_family)
+            & (thresh['error_model'] == error_model)
+            & (thresh['decoder'] == decoder)
+        ]
+        if thresh_match.shape[0] == 0:
+            return
+        thresh_data = thresh_match.iloc[0]
+
+        fit_title = '' if thresh_data['fit_found'] else ' (fit failed)'
+
+        # Draw the threshold and uncertainty bounds.
+        plt.axvline(thresh_data['p_th_fss'], color='red', linestyle='--')
+        plt.axvspan(
+            thresh_data['p_th_fss_left'], thresh_data['p_th_fss_right'],
+            alpha=0.5, color='pink'
+        )
+        plt.legend(title=r'$p_{\mathrm{th}}=(%.2f\pm %.2f)\%%$' % (
+            100*thresh_data['p_th_fss'], 100*thresh_data['p_th_fss_se'],
+        ))
+        plt.yscale('linear')
+        plt.xlabel('Physical error rate $p$', fontsize=16)
+        plt.ylabel('Logical error rate $p_L$', fontsize=16)
+        deformation = df_filt_1['error_model_family'].iloc[0]
+        bias_label = str(bias).replace('inf', '\\infty')
+        sector_name = 'All errors' if sector is None else f'${sector}$ errors'
+        plt.suptitle(
+            f'{shorten(deformation)} {lengthen(code_family, caps=False)}\n'
+            f'$\\eta_Z={bias_label}$, {shorten(decoder)}, '
+            f'{sector_name}{fit_title}',
+            fontsize=16
+        )
+        plt.sca(ax[1])
+
+        df_trunc = trunc_results[
+            (trunc_results['code_family'] == code_family)
+            & (trunc_results['error_model'] == error_model)
+            & (trunc_results['decoder'] == decoder)
+        ]
+        params_opt = thresh_data['fss_params']
+        params_bs = thresh_data['params_bs']
+        plot_data_collapse(
+            plt, df_trunc, params_opt, params_bs, title='',
+            y_label='',
+            x_label='Rescaled physical error rate',
+            p_est_label=p_est_label
+        )
+
+        if not thresh_data['fit_found']:
+            for i in range(2):
+                plt.sca(ax[i])
+                plt.text(
+                    0.5, 0.5, 'INVALID', transform=ax[i].transAxes,
+                    fontsize=40, color='gray', alpha=0.5, ha='center',
+                    va='center', rotation=30
+                )
+
+    def _plot_collapse(
         self, code_family: str, error_model: str, decoder: str
     ):
-        """Plot the collapse for a given parameter set.
+        """Plot the data collapse for a given parameter set.
 
         Parameters
         ----------
@@ -1171,10 +1574,119 @@ class Analysis:
             x_label='Rescaled physical error rate'
         )
 
+    def export_latex_tables(self):
+        """Print out LaTeX tables of thresholds."""
+        error_model_family_rename = {
+            'Deformed XZZX Pauli': 'Deformed',
+            'Deformed Rhombic Pauli': 'Deformed',
+            'Pauli': 'CSS',
+        }
+        for code_family in self.thresholds['code_family'].unique():
+            df = self.thresholds.copy()
+            df['threshold'] = df[[
+                'p_th_fss', 'p_th_fss_left', 'p_th_fss_right'
+            ]].apply(lambda x: fmt_confidence_interval(
+                    x[0]*100, x[1]*100, x[2]*100, unit=r'\%'
+            ), axis=1)
+            df = df[df['code_family'] == code_family]
+            df2 = df.groupby([
+                'error_model_family', 'decoder', 'bias'
+            ])[['threshold']].first().reset_index()
+
+            df2['error_model_family'] = df2['error_model_family'].map(
+                error_model_family_rename
+            )
+            df2['bias_value'] = df2['bias'].replace({'inf': np.inf})
+            df2['decoder'] = df2['decoder'].apply(shorten)
+            df2['bias'] = df2['bias'].replace({'inf': r'$\infty$'})
+            index = pd.Index(
+                df2.sort_values(by='bias_value')['bias']
+                .replace({'inf': r'$\infty$'}).unique(),
+                name=r'Bias $\eta_Z$'
+            )
+            columns = df2.groupby([
+                'error_model_family', 'decoder'
+            ]).first().index
+            columns.names = ['', '']
+
+            data = []
+            for bias in index:
+                row = []
+                for error_model_family, decoder in columns:
+                    values = df2[
+                        (df2['bias'] == bias)
+                        & (df2['error_model_family'] == error_model_family)
+                        & (df2['decoder'] == decoder)
+                    ]
+                    if values.shape[0] > 0:
+                        row.append(values['threshold'].iloc[0])
+                    else:
+                        row.append(np.nan)
+                data.append(row)
+
+            df3 = pd.DataFrame(data, columns=columns, index=index)
+            df3 = df3.fillna('-')
+
+            self.log(df3.style.to_latex(
+                caption='Caption', position='H', multicol_align='c',
+                label='tab:' + code_family.lower(), position_float='centering',
+                hrules=True, column_format='c'*(df3.shape[1] + 1)
+            ))
+
+
+def count_fails(
+    effective_error: np.ndarray, codespace: np.ndarray, sector: str
+) -> int:
+    """Count the number of sector fails given effective errors as BSFs.
+
+    Parmeters
+    ---------
+    effective_error : np.ndarray
+        Size (2*k, n_trials) array of ints where each row is a binary
+        symplectic form representing the effective logical error on the
+        codespace of one trial.
+    codespace : np.ndarray
+        Size (n_trials,) array of booleans for each trial, where True denotes
+        the the decoding successfully returned the state to the code space for
+        that trial, while False denotes final state was not in the code space.
+    sector: str
+        The sector whose errors are to be counted, either 'X' or 'Z'.
+    """
+    n_fails: int = 0
+
+    # The number of logical qubits.
+    k = int(effective_error.shape[1]/2)
+
+    # Filter out the trials where decoding failed.
+    codespace_effective_errors = effective_error[codespace, :]
+
+    # Get the block corresponding to the sector.
+    if sector == 'X':
+        block = codespace_effective_errors[:, :k]
+    else:
+        block = codespace_effective_errors[:, k:]
+
+    # Count the number of fails in the block.
+    n_fails = block.sum()
+
+    return n_fails
+
 
 def shorten(long_name):
     if long_name in SHORT_NAMES:
         return SHORT_NAMES[long_name]
+    return long_name
+
+
+def lengthen(name, caps=True):
+    long_name = name
+    if name in LONG_NAMES:
+        long_name = LONG_NAMES[name]
+    if caps:
+        if len(name) > 1:
+            long_name = long_name[0].upper() + long_name[1:]
+        elif len(name) == 1:
+            long_name = long_name[0].upper()
     return long_name
 
 
@@ -1314,7 +1826,7 @@ def get_results_df_from_batch(
 def get_results_df(
     job_list: List[str],
     output_dir: str,
-    input_dir: str = None,
+    input_dir: Optional[str] = None,
 ) -> pd.DataFrame:
     """Get raw results in DataFrame from list of jobs in output dir.
 
@@ -1962,7 +2474,9 @@ def get_fit_params(
     # Curve fit.
     bounds = [min(x_data[0]), max(x_data[0])]
 
-    if params_0 is not None and params_0[0] not in bounds:
+    if params_0 is not None and not (
+        bounds[0] <= params_0[0] and params_0[0] <= bounds[1]
+    ):
         params_0[0] = (bounds[0] + bounds[1]) / 2
 
     # print("Bounds", bounds)
@@ -1980,12 +2494,13 @@ def fit_fss_params(
     df_filt: pd.DataFrame,
     p_left_val: float,
     p_right_val: float,
-    p_nearest: float = None,
+    p_nearest: Optional[float] = None,
     n_bs: int = 100,
     ftol_est: float = 1e-5,
     ftol_std: float = 1e-5,
     maxfev: int = 2000,
     p_est: str = 'p_est',
+    n_trials_label: str = 'n_trials',
     n_fail_label: str = 'n_fail',
     resample_points: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, pd.DataFrame]:
@@ -1994,7 +2509,7 @@ def fit_fss_params(
     Parameters
     ----------
     df_filt : pd.DataFrame
-        Results with columns: 'probability', 'code', `p_est`, 'n_trials',
+        Results with columns: 'probability', 'code', `p_est`, `n_trials_label`,
         `n_fail_label`.
         The 'probability' column is the physical error rate p.
         The 'code' column is the code label.
@@ -2016,8 +2531,10 @@ def fit_fss_params(
         Maximum iterations for curve fitting optimizer.
     p_est : str
         Label for the logical error rate to use.
+    n_trials_label : str
+        Column label to use for the number of trials.
     n_fail_label : str
-        Label for the number of logical fails to use.
+        Column label to use for the number of logical fails.
 
     Returns
     -------
@@ -2067,12 +2584,12 @@ def fit_fss_params(
         # Sample from Beta distribution over error bar for each data point.
         f_list_bs = []
         for i in range(df_trunc.shape[0]):
-            n_trials = int(df_trunc['n_trials'].iloc[i])
+            n_trials = int(df_trunc[n_trials_label].iloc[i])
             n_fail = int(df_trunc[n_fail_label].iloc[i])
 
             # Posterior distribution starting from uniform prior.
             f_list_bs.append(
-                rng.beta(n_trials - n_fail + 1, n_fail + 1)
+                rng.beta(n_fail + 1, n_trials - n_fail + 1)
             )
         f_bs = np.array(f_list_bs)
 
@@ -2104,6 +2621,9 @@ def fit_fss_params(
     if pd.isna(params_bs).any(axis=1).mean() < 0.5:
         params_bs = params_bs[~np.isnan(params_bs).any(axis=1)]
 
+    # mean_params_bs = params_bs.mean(axis=0).round(2)
+    # rel_diff = np.abs(params_opt - mean_params_bs)/np.abs(params_opt)
+    # assert np.all(rel_diff < 0.5)
     return params_opt, params_bs, df_trunc
 
 

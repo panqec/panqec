@@ -2,6 +2,7 @@
 
 import os
 import json
+import uuid
 import gzip
 from json import JSONDecodeError
 import itertools
@@ -407,7 +408,7 @@ class BatchSimulation():
         output_dir: Optional[str] = None,
         method: str = "direct",
         verbose: bool = True,
-        onefile: bool = False
+        onefile: bool = False,
     ):
         self._simulations = []
         self.code: Dict = {}
@@ -418,7 +419,10 @@ class BatchSimulation():
         self.method = method
         self.verbose = verbose
         if output_dir is not None:
-            self._output_dir = os.path.join(output_dir, self.label)
+            if onefile:
+                self._output_dir = output_dir
+            else:
+                self._output_dir = os.path.join(output_dir, self.label)
         else:
             self._output_dir = os.path.join(PANQEC_DIR, self.label)
         os.makedirs(self._output_dir, exist_ok=True)
@@ -907,8 +911,8 @@ def read_input_dict(
 
     if 'ranges' in data:
 
-        # If may ranges are given, label it combined, but if there is only one
-        # unique label, then we can just use that label.
+        # If many ranges are given label is 'combined', but if there is
+        # only one unique label, then we can just use that label.
         if isinstance(data['ranges'], list):
             label = 'combined'
             labels = []
@@ -925,6 +929,11 @@ def read_input_dict(
 
         if 'method' in data['ranges']:
             method = data['ranges']['method']['name']
+
+    # If writing to one combined .json.gz file for everything, then the
+    # label should be a random UUID.
+    if 'onefile' in kwargs and kwargs['onefile']:
+        label = str(uuid.uuid4().hex)
 
     kwargs['label'] = label
     kwargs['method'] = method

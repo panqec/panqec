@@ -14,7 +14,7 @@ from typing import Callable
 
 
 def quadratic(x, *params):
-    _, _, A, B, C = params
+    p_th, nu, A, B, C = params
     return A + B*x + C*x**2
 
 
@@ -101,6 +101,69 @@ def list_where(array):
 def set_where(array):
     """Get locations of binary list as sorted list of tuples."""
     return set(map(tuple, np.array(np.where(array)).T))
+
+
+def fmt_confidence_interval(
+    estimate, left, right, sn=None, unit=None, sn_cutoff=8,
+):
+    """Format confidence interval for latex."""
+    x = estimate
+    dx_right = right - estimate
+    dx_left = estimate - left
+    n_decimals = min(
+        -int(np.floor(np.log10(np.abs(dx_left)))),
+        -int(np.floor(np.log10(np.abs(dx_right)))),
+    )
+    leading_magnitude = np.abs(min(dx_left, dx_right))/10**-n_decimals
+    if leading_magnitude <= 1.5:
+        n_decimals += 1
+    if sn is None:
+        if np.abs(x) >= 10**sn_cutoff or np.abs(x) <= 10**-sn_cutoff:
+            sn = True
+        else:
+            sn = False
+    if sn:
+        exponent = int(np.floor(np.log10(np.abs(x))))
+        x_mag = np.abs(x)/10**exponent
+        dx_mag_left = np.abs(dx_left)/10**exponent
+        dx_mag_right = np.abs(dx_right)/10**exponent
+    else:
+        exponent = 0
+        x_mag = np.abs(x)
+        dx_mag_left = np.abs(dx_left)
+        dx_mag_right = np.abs(dx_right)
+    x_round = np.round(x_mag, decimals=n_decimals + exponent)
+    dx_left_round = np.round(dx_mag_left, decimals=n_decimals + exponent)
+    dx_right_round = np.round(dx_mag_right, decimals=n_decimals + exponent)
+    if min(dx_left_round, dx_right_round) > 1.5:
+        x_str = str(int(x_round))
+    else:
+        x_str = str(x_round)
+    dx_left_str = str(dx_left_round)
+    dx_right_str = str(dx_right_round)
+
+    if sn:
+        fmt_str = r'{%s}^{+%s}_{-%s}\times {10}^{%s}' % (
+            x_str, dx_right_str, dx_left_str, exponent
+        )
+        if dx_right_str == dx_left_str:
+            fmt_str = r'{(%s\pm %s)}\times {10}^{%s}' % (
+                x_str, dx_right_str, exponent
+            )
+        if x < 0:
+            fmt_str = f'-{fmt_str}'
+    else:
+        fmt_str = r'{%s}^{+%s}_{-%s}' % (x_str, dx_right_str, dx_left_str)
+        if dx_left_str == dx_right_str:
+            fmt_str = r'{%s}\pm %s' % (x_str, dx_right_str)
+    if unit is not None:
+        if r'\pm' in fmt_str:
+            fmt_str = f'({fmt_str})'
+        if unit == r'\%':
+            fmt_str += r'\mathrm{%s}' % unit
+        else:
+            fmt_str += r'\ \mathrm{%s}' % unit
+    return f'${fmt_str}$'
 
 
 def fmt_uncertainty(x, dx, sn=None, sn_cutoff=8, unit=None):
