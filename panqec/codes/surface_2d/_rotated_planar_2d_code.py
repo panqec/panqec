@@ -8,6 +8,7 @@ Coordinates = List[Tuple]  # List of locations
 
 class RotatedPlanar2DCode(StabilizerCode):
     dimension = 2
+    deformation_names = ['XZZX', 'XY']
 
     @property
     def label(self) -> str:
@@ -52,7 +53,7 @@ class RotatedPlanar2DCode(StabilizerCode):
         else:
             return 'face'
 
-    def get_stabilizer(self, location, deformed_axis=None) -> Operator:
+    def get_stabilizer(self, location) -> Operator:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location} for a stabilizer")
 
@@ -61,8 +62,6 @@ class RotatedPlanar2DCode(StabilizerCode):
         else:
             pauli = 'X'
 
-        deformed_pauli = {'Z': 'X', 'X': 'Z'}[pauli]
-
         delta = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
 
         operator = dict()
@@ -70,11 +69,7 @@ class RotatedPlanar2DCode(StabilizerCode):
             qubit_location = tuple(np.add(location, d))
 
             if self.is_qubit(qubit_location):
-                is_deformed = (
-                    self.qubit_axis(qubit_location) == deformed_axis
-                )
-                operator[qubit_location] = (deformed_pauli if is_deformed
-                                            else pauli)
+                operator[qubit_location] = pauli
 
         return operator
 
@@ -114,3 +109,32 @@ class RotatedPlanar2DCode(StabilizerCode):
         logicals.append(operator)
 
         return logicals
+
+    def get_deformation(
+        self, location: Tuple,
+        deformation_name: str,
+        deformation_axis: str = 'y',
+        **kwargs
+    ) -> Dict:
+
+        if deformation_axis not in ['x', 'y']:
+            raise ValueError(f"{deformation_axis} is not a valid "
+                             "deformation axis")
+
+        if deformation_name == 'XZZX':
+            undeformed_dict = {'X': 'X', 'Y': 'Y', 'Z': 'Z'}
+            deformed_dict = {'X': 'Z', 'Y': 'Y', 'Z': 'X'}
+
+            if self.qubit_axis(location) == deformation_axis:
+                deformation = deformed_dict
+            else:
+                deformation = undeformed_dict
+
+        elif deformation_name == 'XY':
+            deformation = {'X': 'X', 'Y': 'Z', 'Z': 'Y'}
+
+        else:
+            raise ValueError(f"The deformation {deformation_name}"
+                             "does not exist")
+
+        return deformation

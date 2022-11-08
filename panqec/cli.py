@@ -199,9 +199,14 @@ def analyze(paths, overrides, plot_dir):
     help='Code class name, e.g. Toric3DCode'
 )
 @click.option(
-    '--noise_class', default=None, type=str,
+    '--noise_class', default='PauliErrorModel', type=str,
     show_default=True,
-    help='Error model class name, e.g. DeformedXZZXErrorModel'
+    help='Error model class name, e.g. PauliErrorModel'
+)
+@click.option(
+    '--deformation_name', default=None, type=str,
+    show_default=True,
+    help='Name of the Clifford deformation to use in our noise, e.g. XZZX'
 )
 @click.option(
     '-m', '--method', default='direct',
@@ -217,8 +222,8 @@ def analyze(paths, overrides, plot_dir):
     help='Label for the inputs'
 )
 def generate_input(
-    input_dir, ratio, sizes, decoder_class, bias,
-    eta, prob, code_class, noise_class, method, label
+    input_dir, ratio, sizes, decoder_class, bias, eta, prob,
+    code_class, noise_class, deformation_name, method, label
 ):
     """Generate the json files of every experiment.
 
@@ -258,6 +263,9 @@ def generate_input(
         }
 
         noise_parameters = direction
+        if deformation_name is not None:
+            noise_parameters['deformation_name'] = deformation_name
+
         noise_dict = {
             "model": noise_class,
             "parameters": noise_parameters
@@ -265,7 +273,7 @@ def generate_input(
 
         if decoder_class == "BeliefPropagationOSDDecoder":
             decoder_parameters = {'max_bp_iter': 1000,
-                                  'osd_order': 0}
+                                  'osd_order': 100}
         else:
             decoder_parameters = {}
 

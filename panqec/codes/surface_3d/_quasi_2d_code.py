@@ -92,7 +92,7 @@ class Quasi2DCode(StabilizerCode):
         else:
             return 'face'
 
-    def get_stabilizer(self, location, deformed_axis=None) -> Operator:
+    def get_stabilizer(self, location) -> Operator:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location}"
                              "for a stabilizer")
@@ -101,8 +101,6 @@ class Quasi2DCode(StabilizerCode):
             pauli = 'Z'
         else:
             pauli = 'X'
-
-        deformed_pauli = {'X': 'Z', 'Z': 'X'}[pauli]
 
         x, y, z = location
 
@@ -128,10 +126,7 @@ class Quasi2DCode(StabilizerCode):
             qubit_location = tuple(np.add(location, d))
 
             if self.is_qubit(qubit_location):
-                is_deformed = (self.qubit_axis(qubit_location)
-                               == deformed_axis)
-                operator[qubit_location] = (deformed_pauli if is_deformed
-                                            else pauli)
+                operator[qubit_location] = pauli
 
         return operator
 

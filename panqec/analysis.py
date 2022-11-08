@@ -39,7 +39,7 @@ class Analysis:
     """Analysis on large collections of results files.
 
     This is the preferred method because it does not require reading the input
-    files since the input parameters are saved to the results files anwyay.
+    files since the input parameters are saved to the results files anyway.
     It also does not create Simulation objects for every data point, which
     could be slow.
 
@@ -909,15 +909,15 @@ class Analysis:
         }
 
     def get_quality_metrics(self):
-        """Table of quality metrices of data used for analysis.
+        """Table of quality metrics of data used for analysis.
 
         Returns
         -------
         quality : pd.DataFrame
             Summary of data quality metric for each input family as index,
             in particular the minimum number of trials for any data point in
-            the input family and the number of probabilty values for that input
-            family that actually got used in the analysis.
+            the input family and the number of probability values for that
+            input family that actually got used in the analysis.
         """
 
         # Quality of data as measured by number of trials and number
@@ -1147,10 +1147,6 @@ class Analysis:
 
         # Determine the class.
         error_model_class = 'PauliErrorModel'
-        if 'Deformed Rhombic Pauli' in error_model_family:
-            error_model_class = 'DeformedRhombicErrorModel'
-        elif 'Deformed XZZX Pauli' in error_model_family:
-            error_model_class = 'DeformedXZZXErrorModel'
 
         # Determine the parameters using the bias ratio as hint.
         rounded_noise_direction = deduce_noise_direction(error_model)
@@ -3208,7 +3204,9 @@ def deduce_bias(
             eta_f: float = r_max/(1 - r_max)
             common_matches = np.isclose(eta_f, common_eta_values, rtol=rtol)
             if any(common_matches):
-                eta_f = common_eta_values[np.argwhere(common_matches).flat[0]]
+                eta_f = common_eta_values[
+                    int(np.argwhere(common_matches).flat[0])
+                ]
             elif np.isclose(eta_f, np.round(eta_f), rtol=rtol):
                 eta_f = int(np.round(eta_f))
             else:

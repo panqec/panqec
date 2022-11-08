@@ -9,6 +9,7 @@ Coordinates = List[Tuple]  # List of locations
 
 class RhombicCode(StabilizerCode):
     dimension = 3
+    deformation_names = ['Checkerboard XZZX']
 
     @property
     def label(self) -> str:
@@ -66,7 +67,7 @@ class RhombicCode(StabilizerCode):
         else:
             return 'cube'
 
-    def get_stabilizer(self, location, deformed_axis=None) -> Operator:
+    def get_stabilizer(self, location) -> Operator:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location} for a stabilizer")
 
@@ -74,8 +75,6 @@ class RhombicCode(StabilizerCode):
             pauli = 'X'
         else:
             pauli = 'Z'
-
-        deformed_pauli = {'X': 'Z', 'Z': 'X'}[pauli]
 
         if self.stabilizer_type(location) == 'cube':
             x, y, z = location
@@ -103,12 +102,7 @@ class RhombicCode(StabilizerCode):
             )
 
             if self.is_qubit(qubit_location):
-                is_deformed = (
-                    self.qubit_axis(qubit_location) == deformed_axis
-                )
-                operator[qubit_location] = (
-                    deformed_pauli if is_deformed else pauli
-                )
+                operator[qubit_location] = pauli
 
         return operator
 
@@ -213,3 +207,25 @@ class RhombicCode(StabilizerCode):
                                                     [0, 0, dz]]
 
         return representation
+
+    def get_deformation(
+        self, location: Tuple,
+        deformation_name: str,
+        **kwargs
+    ) -> Dict:
+        undeformed_dict = {'X': 'X', 'Y': 'Y', 'Z': 'Z'}
+
+        if deformation_name == 'Checkerboard XZZX':
+            deformed_dict = {'X': 'Z', 'Y': 'Y', 'Z': 'X'}
+        else:
+            raise ValueError(f"The deformation {deformation_name}"
+                             "does not exist")
+
+        x, y, z = location
+
+        if (self.qubit_axis(location) == 'z'
+                and ((z % 4 == 3 and (x + y) % 4 == 2)
+                     or (z % 4 == 1 and (x + y) % 4 == 0))):
+            return deformed_dict
+        else:
+            return undeformed_dict

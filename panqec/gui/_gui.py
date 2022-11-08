@@ -1,11 +1,13 @@
 import numpy as np
 
-from flask import Flask, send_from_directory, request, json, render_template
+from flask import (
+    Flask, send_from_directory, request, json, render_template
+)
 from panqec.codes import (
     Toric2DCode, RotatedPlanar2DCode, Planar2DCode,
     Toric3DCode, RotatedPlanar3DCode, RhombicCode,
     Planar3DCode, RotatedToric3DCode, XCubeCode, Quasi2DCode,
-    Color3DCode, Color666Code, Color488Code
+    Color3DCode, Color666PlanarCode, Color666ToricCode, Color488Code
 )
 from panqec.decoders import (
     MatchingDecoder, RotatedSweepMatchDecoder,
@@ -14,10 +16,6 @@ from panqec.decoders import (
     XCubeMatchingDecoder
 )
 from panqec.error_models import PauliErrorModel
-from panqec.error_models import (
-    DeformedXZZXErrorModel, DeformedXYErrorModel, DeformedRhombicErrorModel,
-    DeformedColorErrorModel
-)
 
 import webbrowser
 import argparse
@@ -25,7 +23,8 @@ import argparse
 codes = {'Toric 2D': Toric2DCode,
          'Planar 2D': Planar2DCode,
          'Rotated Planar 2D': RotatedPlanar2DCode,
-         '6.6.6 Color Code': Color666Code,
+         '6.6.6 Color Code (toric)': Color666ToricCode,
+         '6.6.6 Color Code (planar)': Color666PlanarCode,
          '4.8.8 Color Code': Color488Code,
          'Toric 3D': Toric3DCode,
          'Rotated Toric 3D': RotatedToric3DCode,
@@ -35,12 +34,6 @@ codes = {'Toric 2D': Toric2DCode,
          'XCube': XCubeCode,
          'Quasi 2D': Quasi2DCode,
          '3D Color Code': Color3DCode}
-
-error_models = {'None': PauliErrorModel,
-                'XZZX': DeformedXZZXErrorModel,
-                'XY': DeformedXYErrorModel,
-                'Rhombic': DeformedRhombicErrorModel,
-                'Color': DeformedColorErrorModel}
 
 noise_directions = {'Pure X': (1, 0, 0),
                     'Pure Y': (0, 1, 0),
@@ -57,12 +50,16 @@ decoders = {'BP-OSD': BeliefPropagationOSDDecoder,
 
 
 class GUI():
+    app = None
+
     def __init__(self):
         self.app = Flask(__name__)
 
         self.codes = codes
         self.decoders = decoders
         self._code_names = {}
+
+        self.add_all_routes()
 
     @property
     def code_names(self):
@@ -93,157 +90,210 @@ class GUI():
         if 'Lz' in data:
             Lz = data['Lz']
         code_name = data['code_name']
-        deformed_axis = data['deformed_axis']
+        deformation_name = data['code_deformation_name']
 
         if code_name in self.code_names['2d']:
-            code = codes[code_name](Lx, Ly, deformed_axis=deformed_axis)
+            code = codes[code_name](Lx, Ly)
         elif code_name in self.code_names['3d']:
-            code = codes[code_name](Lx, Ly, Lz, deformed_axis=deformed_axis)
+            code = codes[code_name](Lx, Ly, Lz)
         else:
             raise ValueError(f'Code {code_name} not recognized')
 
+        if deformation_name != "None":
+            code.deform(deformation_name)
+
         return code
 
-    def run(self, port=5000):
-        @self.app.route('/')
-        def send_index():
-            return render_template('index.html')
+    def run(self, *args, **kwargs):
+        self.app.run(*args, **kwargs)
 
-        @self.app.route('/2d')
-        def send_index_2d():
-            return render_template('gui.html')
+    def add_all_routes(self):
+        self.app.add_url_rule(
+            "/", "send_index",
+            self.send_index
+        )
+        self.app.add_url_rule(
+            "/main.css", "css",
+            self.css
+        )
+        self.app.add_url_rule(
+            "/favicon.ico", "favicon",
+            self.favicon
+        )
+        self.app.add_url_rule(
+            "/js/<path:path>", "send_js",
+            self.send_js
+        )
+        self.app.add_url_rule(
+            "/2d", "send_index_2d",
+            self.send_index_2d
+        )
+        self.app.add_url_rule(
+            "/3d", "send_index_3d",
+            self.send_index_3d
+        )
+        self.app.add_url_rule(
+            "/code-names", "code-names",
+            self.send_code_names, methods=['POST']
+        )
+        self.app.add_url_rule(
+            "/decoder-names", "decoder-names",
+            self.send_decoder_names, methods=['POST']
+        )
+        self.app.add_url_rule(
+            "/deformation-names", "deformation-names",
+            self.send_deformation_names, methods=['POST']
+        )
+        self.app.add_url_rule(
+            "/code-data", "code-data",
+            self.send_code_data, methods=['POST']
+        )
+        self.app.add_url_rule(
+            "/decode", "decode",
+            self.send_correction, methods=['POST']
+        )
+        self.app.add_url_rule(
+            "/new-errors", "new-errors",
+            self.send_random_errors, methods=['POST']
+        )
 
-        @self.app.route('/3d')
-        def send_index_3d():
-            return render_template('gui.html')
+    def send_index_2d(self):
+        return render_template('gui.html')
 
-        @self.app.route('/main.css')
-        def css():
-            return send_from_directory('static/css', 'main.css')
+    def send_index_3d(self):
+        return render_template('gui.html')
 
-        @self.app.route('/favicon.ico')
-        def favicon():
-            return send_from_directory('static', 'favicon.ico')
+    def send_index(self):
+        return render_template('index.html')
 
-        @self.app.route('/js/<path:path>')
-        def send_js(path):
-            return send_from_directory('js', path)
+    def css(self):
+        return send_from_directory('static/css', 'main.css')
 
-        @self.app.route('/code-names', methods=['POST'])
-        def send_code_names():
-            dim = request.json['dimension']
-            code_names = self.code_names[f'{dim}d']
+    def favicon(self):
+        return send_from_directory('static', 'favicon.ico')
 
-            return json.dumps(code_names)
+    def send_js(self, path):
+        return send_from_directory('js', path)
 
-        @self.app.route('/decoder-names', methods=['POST'])
-        def send_decoder_names():
-            code_name = request.json['code_name']
-            code_id = codes[code_name].__name__
+    def send_code_names(self):
+        dim = request.json['dimension']
+        code_names = self.code_names[f'{dim}d']
 
-            decoder_names = []
+        return json.dumps(code_names)
 
-            for decoder_name, decoder_class in decoders.items():
-                if (decoder_class.allowed_codes is None
-                   or code_id in decoder_class.allowed_codes):
-                    decoder_names.append(decoder_name)
+    def send_decoder_names(self):
+        code_name = request.json['code_name']
+        code_id = codes[code_name].__name__
 
-            return json.dumps(decoder_names)
+        decoder_names = []
 
-        @self.app.route('/code-data', methods=['POST'])
-        def send_code_data():
-            rotated_picture = request.json['rotated_picture']
+        for decoder_name, decoder_class in decoders.items():
+            if (decoder_class.allowed_codes is None
+                    or code_id in decoder_class.allowed_codes):
+                decoder_names.append(decoder_name)
 
-            code = self._instantiate_code(request.json)
+        return json.dumps(decoder_names)
 
-            qubits = [code.qubit_representation(location, rotated_picture)
-                      for location in code.qubit_coordinates]
-            stabilizers = [code.stabilizer_representation(location,
-                                                          rotated_picture)
-                           for location in code.stabilizer_coordinates]
+    def send_deformation_names(self):
+        code_name = request.json['code_name']
+        deformation_names = codes[code_name].deformation_names
 
-            logical_z = code.logicals_z
-            logical_x = code.logicals_x
+        return json.dumps(deformation_names)
 
-            # print(code.stabilizer_matrix.toarray().tolist())
+    def send_code_data(self):
+        rotated_picture = request.json['rotated_picture']
 
-            return json.dumps({'H': code.stabilizer_matrix.toarray().tolist(),
-                               'qubits': qubits,
-                               'stabilizers': stabilizers,
-                               'logical_z': logical_z.tolist(),
-                               'logical_x': logical_x.tolist()})
+        code = self._instantiate_code(request.json)
 
-        @self.app.route('/decode', methods=['POST'])
-        def send_correction():
-            content = request.json
-            syndrome = np.array(content['syndrome'])
-            p = content['p']
-            noise_deformation = content['noise_deformation']
-            max_bp_iter = content['max_bp_iter']
-            alpha = content['alpha']
-            beta = content['beta']
-            decoder_name = content['decoder']
-            error_model_name = content['error_model']
+        qubits = [code.qubit_representation(location, rotated_picture)
+                  for location in code.qubit_coordinates]
+        stabilizers = [code.stabilizer_representation(location,
+                                                      rotated_picture)
+                       for location in code.stabilizer_coordinates]
 
-            code = self._instantiate_code(content)
+        logical_z = code.logicals_z
+        logical_x = code.logicals_x
 
-            rx, ry, rz = noise_directions[error_model_name]
-            error_model = error_models[noise_deformation](rx, ry, rz)
+        return json.dumps({'H': code.stabilizer_matrix.toarray().tolist(),
+                           'qubits': qubits,
+                           'stabilizers': stabilizers,
+                           'logical_z': logical_z.tolist(),
+                           'logical_x': logical_x.tolist()
+                           })
 
-            kwargs = {}
-            if decoder_name in ['BP-OSD', 'MBP']:
-                kwargs['max_bp_iter'] = max_bp_iter
-            if decoder_name == 'BP-OSD':
-                kwargs['osd_order'] = 0
-            if decoder_name == 'MBP':
-                kwargs['alpha'] = alpha
-                kwargs['beta'] = beta
+    def send_correction(self):
+        content = request.json
+        syndrome = np.array(content['syndrome'])
+        p = content['p']
+        noise_deformation = content['noise_deformation_name']
+        max_bp_iter = content['max_bp_iter']
+        alpha = content['alpha']
+        beta = content['beta']
+        decoder_name = content['decoder']
+        error_model_name = content['error_model']
 
-            decoder = self.decoders[decoder_name](code, error_model, p,
-                                                  **kwargs)
+        if noise_deformation == 'None':
+            noise_deformation = None
 
-            correction = decoder.decode(syndrome)
+        code = self._instantiate_code(content)
 
-            correction_x = correction[:code.n]
-            correction_z = correction[code.n:]
+        rx, ry, rz = noise_directions[error_model_name]
+        error_model = PauliErrorModel(rx, ry, rz, noise_deformation)
 
-            return json.dumps({'x': correction_x.tolist(),
-                               'z': correction_z.tolist()})
+        kwargs = {}
+        if decoder_name in ['BP-OSD', 'MBP']:
+            kwargs['max_bp_iter'] = max_bp_iter
+        if decoder_name == 'BP-OSD':
+            kwargs['osd_order'] = 0
+        if decoder_name == 'MBP':
+            kwargs['alpha'] = alpha
+            kwargs['beta'] = beta
 
-        @self.app.route('/new-errors', methods=['POST'])
-        def send_random_errors():
-            content = request.json
-            p = content['p']
-            noise_deformation = content['noise_deformation']
-            error_model_name = content['error_model']
+        decoder = self.decoders[decoder_name](code, error_model, p,
+                                              **kwargs)
 
-            code = self._instantiate_code(content)
+        correction = decoder.decode(syndrome)
 
-            rx, ry, rz = noise_directions[error_model_name]
-            error_model = error_models[noise_deformation](rx, ry, rz)
+        correction_x = correction[:code.n]
+        correction_z = correction[code.n:]
 
-            errors = error_model.generate(code, p)
+        return json.dumps({'x': correction_x.tolist(),
+                           'z': correction_z.tolist()})
 
-            bsf_to_str_map = {(0, 0): 'I', (1, 0): 'X', (0, 1): 'Z',
-                              (1, 1): 'Y'}
-            error_spec = [
-                (
-                    bsf_to_str_map[
-                        (errors[i_qubit], errors[i_qubit + code.n])
-                    ],
-                    [
-                        coords for index, coords in enumerate(
-                            code.qubit_coordinates
-                        )
-                        if index == i_qubit
-                    ][0]
-                )
-                for i_qubit in range(code.n)
-            ]
-            error_spec = [spec for spec in error_spec if spec[0] != 'I']
-            return json.dumps(errors.tolist())
+    def send_random_errors(self):
+        content = request.json
+        p = content['p']
+        noise_deformation = content['noise_deformation_name']
+        error_model_name = content['error_model']
 
-        self.app.run(port=port)
+        if noise_deformation == 'None':
+            noise_deformation = None
+
+        code = self._instantiate_code(content)
+
+        rx, ry, rz = noise_directions[error_model_name]
+        error_model = PauliErrorModel(rx, ry, rz, noise_deformation)
+
+        errors = error_model.generate(code, p)
+
+        bsf_to_str_map = {(0, 0): 'I', (1, 0): 'X', (0, 1): 'Z',
+                          (1, 1): 'Y'}
+        error_spec = [
+            (
+                bsf_to_str_map[
+                    (errors[i_qubit], errors[i_qubit + code.n])
+                ],
+                [
+                    coords for index, coords in enumerate(
+                        code.qubit_coordinates
+                    )
+                    if index == i_qubit
+                ][0]
+            )
+            for i_qubit in range(code.n)
+        ]
+        error_spec = [spec for spec in error_spec if spec[0] != 'I']
+        return json.dumps(errors.tolist())
 
 
 def open_browser(port):
@@ -258,6 +308,7 @@ def run_gui():
     port = args.port
 
     gui = GUI()
+    # gui.add_all_endpoints()
     gui.run(port=port)
 
 

@@ -22,6 +22,7 @@ class RotatedToric3DCode(StabilizerCode):
     """Rotated Toric Code for good subthreshold scaling."""
 
     dimension = 3
+    deformation_names = ['XZZX']
 
     @property
     def label(self) -> str:
@@ -87,7 +88,7 @@ class RotatedToric3DCode(StabilizerCode):
         else:
             return 'face'
 
-    def get_stabilizer(self, location, deformed_axis=None) -> Operator:
+    def get_stabilizer(self, location) -> Operator:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location} for a stabilizer")
 
@@ -96,7 +97,7 @@ class RotatedToric3DCode(StabilizerCode):
         else:
             pauli = 'X'
 
-        deformed_pauli = {'X': 'Z', 'Z': 'X'}[pauli]
+        defect_pauli = {'X': 'Z', 'Z': 'X'}[pauli]
 
         x, y, z = location
         Lx, Ly, Lz = self.size
@@ -136,12 +137,8 @@ class RotatedToric3DCode(StabilizerCode):
                 defect_y_on_edge = defect_y_boundary and qubit_location[1] == 1
                 has_defect = (defect_x_on_edge != defect_y_on_edge)
 
-                is_deformed = (
-                    self.qubit_axis(qubit_location) == deformed_axis
-                )
-
                 operator[qubit_location] = (
-                    deformed_pauli if is_deformed != has_defect else pauli
+                    defect_pauli if has_defect else pauli
                 )
 
         return operator
@@ -158,8 +155,7 @@ class RotatedToric3DCode(StabilizerCode):
             defect_x_on_edge = defect_x_boundary and x == 1
             defect_y_on_edge = defect_y_boundary and y == 1
             has_defect = (defect_x_on_edge != defect_y_on_edge)
-            is_deformed = self.qubit_axis(location) == self._deformed_axis
-            if is_deformed != has_defect:
+            if has_defect:
                 operator[location] = deformation_map[operator[location]]
 
     def qubit_axis(self, location: Location) -> str:
@@ -292,6 +288,10 @@ class RotatedToric3DCode(StabilizerCode):
         if self.qubit_axis(location) == 'z':
             representation['params']['length'] = 2
 
+        if rotated_picture:
+            x, y, z = representation['location']
+            representation['location'] = (x, y, z*1.4142)
+
         return representation
 
     def stabilizer_representation(
@@ -320,8 +320,6 @@ class RotatedToric3DCode(StabilizerCode):
                 representation['params']['normal'] = [0, 0, 1]
                 representation['params']['angle'] = 0
             else:
-                representation['params']['w'] = 1.4142
-                representation['params']['h'] = 1.4142
                 representation['params']['angle'] = np.pi/4
 
                 if (x + y) % 4 == 0:
@@ -329,4 +327,34 @@ class RotatedToric3DCode(StabilizerCode):
                 else:
                     representation['params']['normal'] = [-1, 1, 0]
 
+        if rotated_picture:
+            x, y, z = representation['location']
+            representation['location'] = (x, y, z*1.4142)
+
         return representation
+
+    def get_deformation(
+        self, location: Tuple,
+        deformation_name: str,
+        deformation_axis: str = 'y',
+        **kwargs
+    ) -> Dict:
+
+        if deformation_axis not in ['x', 'y', 'z']:
+            raise ValueError(f"{deformation_axis} is not a valid "
+                             "deformation axis")
+
+        if deformation_name == 'XZZX':
+            undeformed_dict = {'X': 'X', 'Y': 'Y', 'Z': 'Z'}
+            deformed_dict = {'X': 'Z', 'Y': 'Y', 'Z': 'X'}
+
+            if self.qubit_axis(location) == deformation_axis:
+                deformation = deformed_dict
+            else:
+                deformation = undeformed_dict
+
+        else:
+            raise ValueError(f"The deformation {deformation_name}"
+                             "does not exist")
+
+        return deformation

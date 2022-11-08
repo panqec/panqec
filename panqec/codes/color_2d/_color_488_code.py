@@ -7,6 +7,7 @@ Coordinates = List[Tuple]  # List of locations
 
 class Color488Code(StabilizerCode):
     dimension = 2
+    deformation_names = ['XXZZ']
 
     @property
     def label(self) -> str:
@@ -57,7 +58,7 @@ class Color488Code(StabilizerCode):
 
         return stab_type
 
-    def get_stabilizer(self, location, deformed_axis=None) -> Operator:
+    def get_stabilizer(self, location) -> Operator:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location}"
                              "for a stabilizer")
@@ -68,8 +69,6 @@ class Color488Code(StabilizerCode):
             pauli = 'X'
         else:
             pauli = 'Z'
-
-        deformed_pauli = {'X': 'Z', 'Z': 'X'}[pauli]
 
         stab_type = self.stabilizer_type(location)
 
@@ -85,11 +84,7 @@ class Color488Code(StabilizerCode):
                               (location[1] + d[1]) % (8*Ly))
             x, y = qubit_location
 
-            is_deformed = (
-                self.qubit_axis(qubit_location) == deformed_axis
-            )
-            operator[qubit_location] = (deformed_pauli if is_deformed
-                                        else pauli)
+            operator[qubit_location] = pauli
 
         return operator
 
@@ -169,46 +164,73 @@ class Color488Code(StabilizerCode):
         # We remove the last part of the location (indexing X or Z)
         rep['location'] = (x, y)
 
+        if '-x' in self.stabilizer_type(location):
+            a = 0.5
+        else:
+            a = 1
+
         if 'octahedron' in self.stabilizer_type(location):
             if x == 0:
-                rep['params']['vertices'] = [[0, -3], [1, -3], [3, -1],
-                                             [3, 1], [1, 3], [0, 3]]
+                rep['params']['vertices'] = [[0, -3*a], [a, -3*a], [3*a, -a],
+                                             [3*a, a], [a, 3*a], [0, 3*a]]
             elif x == 8*Lx:
-                rep['params']['vertices'] = [[0, -3], [0, 3], [-1, 3],
-                                             [-3, 1], [-3, -1], [-1, -3]]
+                rep['params']['vertices'] = [[0, -3*a], [0, 3*a], [-a, 3*a],
+                                             [-3*a, a], [-3*a, -a], [-a, -3*a]]
             elif y == 0:
-                rep['params']['vertices'] = [[3, 0], [3, 1], [1, 3],
-                                             [-1, 3], [-3, 1], [-3, 0]]
+                rep['params']['vertices'] = [[3*a, 0], [3*a, a], [a, 3*a],
+                                             [-a, 3*a], [-3*a, a], [-3*a, 0]]
             elif y == 8*Ly:
-                rep['params']['vertices'] = [[1, -3], [3, -1], [3, 0],
-                                             [-3, 0], [-3, -1], [-1, -3]]
+                rep['params']['vertices'] = [[a, -3*a], [3*a, -a], [3*a, 0],
+                                             [-3*a, 0], [-3*a, -a], [-a, -3*a]]
         else:
             if x == 0:
                 if y == 0:
-                    rep['params']['vertices'] = [[0, 0], [1, 0],
-                                                 [1, 1], [0, 1]]
+                    rep['params']['vertices'] = [[0, 0], [a, 0],
+                                                 [a, a], [0, a]]
                 elif y == 8*Ly:
-                    rep['params']['vertices'] = [[0, 0], [1, 0],
-                                                 [1, -1], [0, -1]]
+                    rep['params']['vertices'] = [[0, 0], [a, 0],
+                                                 [a, -a], [0, -a]]
                 else:
-                    rep['params']['vertices'] = [[0, 1], [1, 1],
-                                                 [1, -1], [0, -1]]
+                    rep['params']['vertices'] = [[0, a], [a, a],
+                                                 [a, -a], [0, -a]]
             elif x == 8*Lx:
                 if y == 0:
-                    rep['params']['vertices'] = [[0, 0], [0, 1],
-                                                 [-1, 1], [-1, 0]]
+                    rep['params']['vertices'] = [[0, 0], [0, a],
+                                                 [-a, a], [-a, 0]]
                 elif y == 8*Ly:
-                    rep['params']['vertices'] = [[0, 0], [0, -1],
-                                                 [-1, -1], [-1, 0]]
+                    rep['params']['vertices'] = [[0, 0], [0, -a],
+                                                 [-a, -a], [-a, 0]]
                 else:
-                    rep['params']['vertices'] = [[-1, 1], [0, 1],
-                                                 [0, -1], [-1, -1]]
+                    rep['params']['vertices'] = [[-a, a], [0, a],
+                                                 [0, -a], [-a, -a]]
             elif y == 0:
-                rep['params']['vertices'] = [[-1, 0], [1, 0],
-                                             [1, 1], [-1, 1]]
+                rep['params']['vertices'] = [[-a, 0], [a, 0],
+                                             [a, a], [-a, a]]
 
             elif y == 8*Ly:
-                rep['params']['vertices'] = [[-1, 0], [1, 0],
-                                             [1, -1], [-1, -1]]
+                rep['params']['vertices'] = [[-a, 0], [a, 0],
+                                             [a, -a], [-a, -a]]
 
         return rep
+
+    def get_deformation(
+        self, location: Tuple,
+        deformation_name: str,
+        **kwargs
+    ) -> Dict:
+
+        x, y = location
+        if deformation_name == 'XXZZ':
+            undeformed_dict = {'X': 'X', 'Y': 'Y', 'Z': 'Z'}
+            deformed_dict = {'X': 'Z', 'Y': 'Y', 'Z': 'X'}
+
+            if (x + y - 4) % 4 == 0:
+                deformation = deformed_dict
+            else:
+                deformation = undeformed_dict
+
+        else:
+            raise ValueError(f"The deformation {deformation_name}"
+                             "does not exist")
+
+        return deformation

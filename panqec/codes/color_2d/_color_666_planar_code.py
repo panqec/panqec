@@ -5,12 +5,12 @@ Operator = Dict[Tuple, str]  # Location to pauli ('X', 'Y' or 'Z')
 Coordinates = List[Tuple]  # List of locations
 
 
-class Color666Code(StabilizerCode):
+class Color666PlanarCode(StabilizerCode):
     dimension = 2
 
     @property
     def label(self) -> str:
-        return 'Color 6.6.6 {}x{}'.format(*self.size)
+        return 'Color 6.6.6 Planar {}x{}'.format(*self.size)
 
     def get_qubit_coordinates(self) -> Coordinates:
         coordinates: Coordinates = []
@@ -62,7 +62,7 @@ class Color666Code(StabilizerCode):
 
         return stab_type
 
-    def get_stabilizer(self, location, deformed_axis=None) -> Operator:
+    def get_stabilizer(self, location) -> Operator:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location}"
                              "for a stabilizer")
@@ -74,8 +74,6 @@ class Color666Code(StabilizerCode):
         else:
             pauli = 'Z'
 
-        deformed_pauli = {'X': 'Z', 'Z': 'X'}[pauli]
-
         delta: List[Tuple] = [(-1, -2), (1, -2), (2, 0),
                               (1, 2), (-1, 2), (-2, 0)]
 
@@ -85,11 +83,7 @@ class Color666Code(StabilizerCode):
             x, y = qubit_location
 
             if x >= 0 and 0 <= y <= min(2*x + 1, 12*Lx - 2*x + 3):
-                is_deformed = (
-                    self.qubit_axis(qubit_location) == deformed_axis
-                )
-                operator[qubit_location] = (deformed_pauli if is_deformed
-                                            else pauli)
+                operator[qubit_location] = pauli
 
         return operator
 

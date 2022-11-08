@@ -111,7 +111,7 @@ class Color3DCode(StabilizerCode):
 
         return stab_type
 
-    def get_stabilizer(self, location, deformed_axis=None) -> Operator:
+    def get_stabilizer(self, location) -> Operator:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location}"
                              "for a stabilizer")
