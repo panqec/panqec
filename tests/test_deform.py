@@ -2,7 +2,6 @@ import pytest
 import numpy as np
 from panqec.codes import Toric3DCode, StabilizerCode
 from panqec.error_models import PauliErrorModel
-from panqec.error_models import PauliErrorModel
 from panqec.decoders import (
     SweepDecoder3D, SweepMatchDecoder,
     MatchingDecoder, FoliatedMatchingDecoder

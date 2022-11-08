@@ -916,8 +916,8 @@ class Analysis:
         quality : pd.DataFrame
             Summary of data quality metric for each input family as index,
             in particular the minimum number of trials for any data point in
-            the input family and the number of probability values for that input
-            family that actually got used in the analysis.
+            the input family and the number of probability values for that
+            input family that actually got used in the analysis.
         """
 
         # Quality of data as measured by number of trials and number

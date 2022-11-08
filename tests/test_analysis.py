@@ -358,7 +358,8 @@ class TestAnalysis:
 def test_convert_missing_to_input():
     missing_entry = {
         'code': 'Rhombic 10x10x10',
-        'error_model': 'Deformed Checkerboard XZZX Rhombic Pauli X0.3333Y0.3333Z0.3333',
+        'error_model': 'Deformed Checkerboard XZZX'
+                       'Rhombic Pauli X0.3333Y0.3333Z0.3333',
         'decoder': 'BP-OSD decoder',
         'probability': 0.01,
         'code_family': 'Rhombic',

@@ -87,7 +87,7 @@ class PauliErrorModel(BaseErrorModel):
         error_pauli = ''.join([fast_choice(
             ('I', 'X', 'Y', 'Z'),
             [p_i[i], p_x[i], p_y[i], p_z[i]],
-            rng=rng 
+            rng=rng
         ) for i in range(code.n)])
 
         error = pauli_to_bsf(error_pauli)

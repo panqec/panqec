@@ -156,7 +156,7 @@ class TestDeformedMatchingWeights:
             r_x, r_y, r_z = 1/3, 1/3, 1/3
         error_model = PauliErrorModel(
             r_x, r_y, r_z,
-            deformation_name='XZZX', 
+            deformation_name='XZZX',
             deformation_kwargs={'deformation_axis': 'z'}
         )
         weights_x, weight_z = error_model.get_weights(code, error_rate)
