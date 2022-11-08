@@ -170,27 +170,27 @@ class TestDeformedRotatedToric3DCode(StabilizerCodeTest):
 
     @pytest.fixture
     def code(self):
-        return RotatedToric3DCode(5, 6, 5, deformed_axis='x')
+        code = RotatedToric3DCode(5, 6, 5)
+        code.deform('XZZX')
+
+        return code
 
 
 class TestRotatedToric3DDeformation:
 
     def test_deformation_index(self):
         code = RotatedToric3DCode(3, 4, 4)
-        error_model = PauliErrorModel(
-            0.2, 0.3, 0.5,
-            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
-        )
-        deformation_index = error_model.get_deformation_indices(code)
-        coords_map = {
-            index: coord for index, coord in enumerate(code.qubit_coordinates)
-        }
-        coords = [coords_map[index] for index in range(len(coords_map))]
+        all_deformations = np.array([
+            code.get_deformation(loc, 'XZZX', deformation_axis='x')
+            for loc in code.qubit_coordinates
+        ])
+        no_deformation = {'X': 'X', 'Y': 'Y', 'Z': 'Z'}
+        deformation_index = np.where(all_deformations != no_deformation)[0]
+
         deformation_sites = sorted(
             [
-                coords[i]
-                for i, active in enumerate(deformation_index)
-                if active
+                code.qubit_coordinates[i]
+                for i in deformation_index
             ],
             key=lambda x: x[::-1]
         )
@@ -222,12 +222,13 @@ class TestRotatedToric3DDeformation:
             code = RotatedToric3DCode(L_x, L_y, L_z)
             out_json = os.path.join(
                 project_dir, 'temp', 'rotated_toric_3d_test.json'
-                )
-            error_model = PauliErrorModel(
-                0.2, 0.3, 0.5,
-                deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
             )
-            deformation_index = error_model._get_deformation_indices(code)
+            all_deformations = np.array([
+                code.get_deformation(loc, 'XZZX', deformation_axis='x')
+                for loc in code.qubit_coordinates
+            ])
+            no_deformation = {'X': 'X', 'Y': 'Y', 'Z': 'Z'}
+            deformation_idx = np.where(all_deformations != no_deformation)[0]
 
             entries.append({
                 'size': [L_x, L_y, L_z],
@@ -245,15 +246,15 @@ class TestRotatedToric3DDeformation:
                     'k': int(code.k),
                     'd': int(code.d),
                     'stabilizers': apply_deformation(
-                        deformation_index,
+                        deformation_idx,
                         to_array(code.stabilizer_matrix)
                     ).tolist(),
                     'logicals_x': apply_deformation(
-                        deformation_index,
+                        deformation_idx,
                         to_array(code.logicals_x)
                     ).tolist(),
                     'logicals_z': to_array(apply_deformation(
-                        deformation_index,
+                        deformation_idx,
                         to_array(code.logicals_z)
                     )).tolist(),
                 }
@@ -271,7 +272,8 @@ class TestBPOSDOnRotatedToric3DCodeOddTimesEven:
         code = RotatedToric3DCode(3, 4, 3)
         error_model = PauliErrorModel(
             1/3, 1/3, 1/3,
-            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+            deformation_name='XZZX',
+            deformation_kwargs={'deformation_axis': 'z'}
         )
         error_rate = 0.1
         decoder = BeliefPropagationOSDDecoder(code, error_model, error_rate)

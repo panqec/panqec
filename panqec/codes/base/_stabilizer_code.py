@@ -84,6 +84,9 @@ class StabilizerCode(metaclass=ABCMeta):
         self._z_indices: Optional[np.ndarray] = None
         self._d: Optional[int] = None
         self._stabilizer_types: Optional[List[str]] = None
+        self.is_deformed: bool = False
+        self.deformation_name: Optional[str] = None
+        self.deformation_kwargs: Optional[dict] = None
 
         self.colormap = {'red': '0xFF4B3E',
                          'blue': '0x48BEFF',
@@ -656,6 +659,10 @@ class StabilizerCode(metaclass=ABCMeta):
 
     def deform(self, deformation_name, **kwargs):
         self.__init__(*self.size)
+
+        self.is_deformed = True
+        self.deformation_name = deformation_name
+        self.deformation_kwargs = kwargs
 
         if not hasattr(self, '_get_undeformed_stabilizer'):
             self._get_undeformed_stabilizer = copy(

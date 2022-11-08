@@ -1147,10 +1147,6 @@ class Analysis:
 
         # Determine the class.
         error_model_class = 'PauliErrorModel'
-        if 'Deformed Rhombic Pauli' in error_model_family:
-            error_model_class = 'DeformedRhombicErrorModel'
-        elif 'Deformed XZZX Pauli' in error_model_family:
-            error_model_class = 'DeformedXZZXErrorModel'
 
         # Determine the parameters using the bias ratio as hint.
         rounded_noise_direction = deduce_noise_direction(error_model)

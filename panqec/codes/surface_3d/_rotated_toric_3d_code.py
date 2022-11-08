@@ -155,8 +155,7 @@ class RotatedToric3DCode(StabilizerCode):
             defect_x_on_edge = defect_x_boundary and x == 1
             defect_y_on_edge = defect_y_boundary and y == 1
             has_defect = (defect_x_on_edge != defect_y_on_edge)
-            is_deformed = self.qubit_axis(location) == self._deformed_axis
-            if is_deformed != has_defect:
+            if has_defect:
                 operator[location] = deformation_map[operator[location]]
 
     def qubit_axis(self, location: Location) -> str:
@@ -341,8 +340,8 @@ class RotatedToric3DCode(StabilizerCode):
         **kwargs
     ) -> Dict:
 
-        if deformation_axis not in ['x', 'y']:
-            raise ValueError(f"{deformation_axis} is not a valid"
+        if deformation_axis not in ['x', 'y', 'z']:
+            raise ValueError(f"{deformation_axis} is not a valid "
                              "deformation axis")
 
         if deformation_name == 'XZZX':

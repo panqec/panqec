@@ -190,7 +190,7 @@ class Planar3DCode(StabilizerCode):
     ) -> Dict:
 
         if deformation_axis not in ['x', 'y', 'z']:
-            raise ValueError(f"{deformation_axis} is not a valid"
+            raise ValueError(f"{deformation_axis} is not a valid "
                              "deformation axis")
 
         if deformation_name == 'XZZX':

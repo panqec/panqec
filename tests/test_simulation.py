@@ -10,7 +10,7 @@ from panqec.codes import Toric2DCode
 from panqec.decoders import BeliefPropagationOSDDecoder
 from panqec.simulation import (
     read_input_json, run_once, DirectSimulation, expand_input_ranges, run_file,
-    merge_results_dicts, filter_legacy_params, BatchSimulation
+    merge_results_dicts, BatchSimulation
 )
 from panqec.cli import merge_dirs
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -280,14 +280,6 @@ def test_merge_results():
     merged_results = merge_results_dicts(results_dicts)
 
     assert merged_results == expected_merged_results
-
-
-def test_filter_legacy_params():
-    old_params = {
-        'joschka': True
-    }
-    filtered_params = filter_legacy_params(old_params)
-    assert 'joschka' not in filtered_params
 
 
 class TestReadInputJson:

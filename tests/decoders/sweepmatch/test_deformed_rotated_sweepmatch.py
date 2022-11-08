@@ -21,7 +21,8 @@ class TestDeformedRotatedPlanarMatchingDecoder(DecoderTest):
     def error_model(self):
         return PauliErrorModel(
             *self.direction,
-            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+            deformation_name='XZZX',
+            deformation_kwargs={'deformation_axis': 'z'}
         )
 
     @pytest.fixture

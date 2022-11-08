@@ -215,8 +215,8 @@ class Toric3DCode(StabilizerCode):
         **kwargs
     ) -> Dict:
 
-        if deformation_axis not in ['x', 'y']:
-            raise ValueError(f"{deformation_axis} is not a valid"
+        if deformation_axis not in ['x', 'y', 'z']:
+            raise ValueError(f"{deformation_axis} is not a valid "
                              "deformation axis")
 
         if deformation_name == 'XZZX':

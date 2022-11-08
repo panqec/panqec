@@ -73,7 +73,11 @@ class PauliErrorModel(BaseErrorModel):
 
     @property
     def label(self):
-        return 'Pauli X{:.4f}Y{:.4f}Z{:.4f}'.format(*self.direction)
+        label = 'Pauli X{:.4f}Y{:.4f}Z{:.4f}'.format(*self.direction)
+        if self._deformation_name:
+            label = 'Deformed ' + self._deformation_name + ' ' + label
+
+        return label
 
     def generate(self, code: StabilizerCode, error_rate: float, rng=None):
         rng = np.random.default_rng() if rng is None else rng
@@ -83,7 +87,7 @@ class PauliErrorModel(BaseErrorModel):
         error_pauli = ''.join([fast_choice(
             ('I', 'X', 'Y', 'Z'),
             [p_i[i], p_x[i], p_y[i], p_z[i]],
-            rng=rng
+            rng=rng 
         ) for i in range(code.n)])
 
         error = pauli_to_bsf(error_pauli)

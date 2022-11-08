@@ -213,7 +213,7 @@ class RotatedPlanar3DCode(StabilizerCode):
     ) -> Dict:
 
         if deformation_axis not in ['x', 'y', 'z']:
-            raise ValueError(f"{deformation_axis} is not a valid"
+            raise ValueError(f"{deformation_axis} is not a valid "
                              "deformation axis")
 
         undeformed_dict = {'X': 'X', 'Y': 'Y', 'Z': 'Z'}

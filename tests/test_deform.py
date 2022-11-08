@@ -49,7 +49,8 @@ class TestDeformedXZZXErrorModel:
     )
     def test_max_noise(self, code, rng, noise, original, deformed):
         error_model = PauliErrorModel(
-            *noise, deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+            *noise, deformation_name='XZZX',
+            deformation_kwargs={'deformation_axis': 'z'}
         )
         error = error_model.generate(code, error_rate=1, rng=rng)
         pauli = code.from_bsf(error)
@@ -62,10 +63,12 @@ class TestDeformedXZZXErrorModel:
     def test_original_all_X_becomes_Z_on_deformed_axis(self, code):
         error_model = PauliErrorModel(
             1, 0, 0,
-            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+            deformation_name='XZZX',
+            deformation_kwargs={'deformation_axis': 'z'}
         )
         error = error_model.generate(code, error_rate=1)
         pauli = code.from_bsf(error)
+        print(pauli)
 
         for edge in code.qubit_index:
             if code.qubit_axis(edge) == 'z':
@@ -76,7 +79,8 @@ class TestDeformedXZZXErrorModel:
     def test_original_all_Z_becomes_X_on_deformed_axis(self, code):
         error_model = PauliErrorModel(
             0, 0, 1,
-            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+            deformation_name='XZZX',
+            deformation_kwargs={'deformation_axis': 'z'}
         )
         error = error_model.generate(code, error_rate=1)
         pauli = code.from_bsf(error)
@@ -90,7 +94,8 @@ class TestDeformedXZZXErrorModel:
     def test_all_Y_deformed_is_still_all_Y(self, code):
         error_model = PauliErrorModel(
             0, 1, 0,
-            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+            deformation_name='XZZX',
+            deformation_kwargs={'deformation_axis': 'z'}
         )
         error = error_model.generate(code, error_rate=1)
         pauli = code.from_bsf(error)
@@ -101,14 +106,16 @@ class TestDeformedXZZXErrorModel:
     def test_label(self, code):
         error_model = PauliErrorModel(
             1, 0, 0,
-            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+            deformation_name='XZZX',
+            deformation_kwargs={'deformation_axis': 'z'}
         )
         assert error_model.label == 'Deformed XZZX Pauli X1.0000Y0.0000Z0.0000'
 
     def test_decode_trivial(self, code):
         error_model = PauliErrorModel(
             0.1, 0.2, 0.7,
-            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+            deformation_name='XZZX',
+            deformation_kwargs={'deformation_axis': 'z'}
         )
         error_rate = 0.1
         decoder = SweepMatchDecoder(code, error_model, error_rate)
@@ -121,7 +128,8 @@ class TestDeformedXZZXErrorModel:
     def test_decode_single_X_on_undeformed_axis(self, code):
         error_model = PauliErrorModel(
             0.1, 0.2, 0.7,
-            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+            deformation_name='XZZX',
+            deformation_kwargs={'deformation_axis': 'z'}
         )
         error_rate = 0.1
         decoder = SweepMatchDecoder(code, error_model, error_rate)
@@ -161,7 +169,8 @@ class TestDeformedXZZXErrorModel:
         noise_direction = (0.1, 0.2, 0.7)
         error_model = PauliErrorModel(
             *noise_direction,
-            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+            deformation_name='XZZX',
+            deformation_kwargs={'deformation_axis': 'z'}
         )
         error_rate = 0.1
         decoder = SweepMatchDecoder(code, error_model, error_rate)
@@ -186,7 +195,8 @@ class TestDeformedXZZXErrorModel:
     def test_deformed_pymatching_weights_nonuniform(self, code):
         error_model = PauliErrorModel(
             0.1, 0.2, 0.7,
-            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+            deformation_name='XZZX',
+            deformation_kwargs={'deformation_axis': 'z'}
         )
         error_rate = 0.1
         decoder = SweepMatchDecoder(code, error_model, error_rate)
@@ -229,7 +239,8 @@ class TestDeformedXZZXErrorModel:
     def test_equal_XZ_bias_deformed_pymatching_weights_uniform(self, code):
         error_model = PauliErrorModel(
             0.4, 0.2, 0.4,
-            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+            deformation_name='XZZX',
+            deformation_kwargs={'deformation_axis': 'z'}
         )
         print(f'{error_model.direction=}')
         error_rate = 0.1
@@ -256,7 +267,8 @@ class TestDeformedSweepDecoder3D:
     def test_decode_trivial(self, code):
         error_model = PauliErrorModel(
             1/3, 1/3, 1/3,
-            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+            deformation_name='XZZX',
+            deformation_kwargs={'deformation_axis': 'z'}
         )
         error_rate = 0.5
         decoder = SweepDecoder3D(code, error_model, error_rate)
@@ -278,7 +290,8 @@ class TestDeformedSweepDecoder3D:
         error = code.to_bsf(error_pauli)
         error_model = PauliErrorModel(
             1/3, 1/3, 1/3,
-            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+            deformation_name='XZZX',
+            deformation_kwargs={'deformation_axis': 'z'}
         )
         error_rate = 0.5
         decoder = SweepDecoder3D(code, error_model, error_rate)
@@ -293,7 +306,8 @@ class TestMatchingDecoder:
     def test_decode_trivial(self, code):
         error_model = PauliErrorModel(
             1/3, 1/3, 1/3,
-            deformation_name='XZZX', deformation_kwargs={'axis': 'z'}
+            deformation_name='XZZX',
+            deformation_kwargs={'deformation_axis': 'z'}
         )
         error_rate = 0.5
         decoder = MatchingDecoder(code, error_model, error_rate,
