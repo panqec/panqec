@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Optional, List
+from typing import Dict, Tuple, Optional, List, Any
 from types import MethodType
 from copy import copy
 import os
@@ -62,6 +62,8 @@ class StabilizerCode(metaclass=ABCMeta):
         if L_z is None:
             L_z = L_x
 
+        self._parameters = {'L_x': L_x, 'L_y': L_y, 'L_z': L_z}
+
         self._size: Tuple
         if self.dimension == 2:
             self._size = (L_x, L_y)
@@ -99,6 +101,13 @@ class StabilizerCode(metaclass=ABCMeta):
                          'salmon': '0xe79e90',
                          'light-orange': '0xFA824C',
                          'orange': '0xfa7921'}
+
+    @property
+    def parameters(self) -> Dict[str, Any]:
+        return {
+            'class': self.__class__.__name__,
+            'parameters': self._parameters,
+        }
 
     @property
     @abstractmethod

@@ -18,6 +18,11 @@ class StabilizerCodeTest(metaclass=ABCMeta):
     def code(self) -> StabilizerCode:
         pass
 
+    def test_code_parameters_exist(self, code):
+        params = code.parameters
+        assert isinstance(params['class'], str)
+        assert isinstance(params['parameters'], dict)
+
     def test_n_equals_len_qubit_index(self, code):
         assert code.n == len(code.qubit_coordinates)
 
