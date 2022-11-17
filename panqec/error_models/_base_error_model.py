@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Any, Dict
 from abc import ABCMeta, abstractmethod
 import numpy as np
 from panqec.codes import StabilizerCode
@@ -7,12 +7,22 @@ from panqec.codes import StabilizerCode
 class BaseErrorModel(metaclass=ABCMeta):
     """Base class for error models"""
 
+    _parameters: Dict[str, Any] = {}
+
     @property
     @abstractmethod
     def label(self):
         """Label used in plots result files
         E.g. 'PauliErrorModel X1 Y0 Z0'
         """
+
+    @property
+    def parameters(self) -> Dict[str, Any]:
+        """Input parameters used in constructor."""
+        return {
+            'class': self.__class__.__name__,
+            'parameters': self._parameters,
+        }
 
     @abstractmethod
     def generate(

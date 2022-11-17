@@ -51,6 +51,7 @@ class BaseSimulation(metaclass=ABCMeta):
             'd': self.code.d,
             'error_model': self.error_model.label,
             'code_parameters': code.parameters,
+            'error_model_parameters': error_model.parameters,
         }
 
     @property

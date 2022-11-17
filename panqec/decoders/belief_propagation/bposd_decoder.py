@@ -23,6 +23,12 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
         self._osd_order = osd_order
         self._bp_method = bp_method
 
+        self._parameters = {
+            'error_rate': error_rate, 'max_bp_iter': max_bp_iter,
+            'channel_udpate': channel_update, 'osd_order': osd_order,
+            'bp_method': bp_method,
+        }
+
         # Do not initialize the decoder until we call the decode method.
         # This is required because during analysis, there is no need to
         # initialize the decoder every time.

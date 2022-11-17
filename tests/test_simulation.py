@@ -160,7 +160,8 @@ class TestBatchSimulationOneFile():
         assert len(results) == 2
         expected_input_keys = [
             'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
-            'probability'
+            'probability', 'code_parameters', 'error_model_parameters',
+            'decoder_parameters',
         ]
         expected_results_keys = [
             'effective_error', 'success', 'codespace', 'wall_time',
@@ -177,6 +178,37 @@ class TestBatchSimulationOneFile():
         assert len(results[0]['results']['effective_error']) == self.n_trials
         assert len(results[0]['results']['success']) == self.n_trials
         assert len(results[0]['results']['codespace']) == self.n_trials
+
+        # Test input parameters are faithfully recorded.
+        inputs_0 = results[0]['inputs']
+        assert inputs_0['probability'] == 0.1
+        assert inputs_0['code_parameters'] == {
+            'class': 'Toric2DCode',
+            'parameters': {'L_x': 3, 'L_y': 3, 'L_z': 3},
+        }
+        assert inputs_0['error_model_parameters'] == {
+            'class': 'PauliErrorModel',
+            'parameters': {
+                'r_x': 1/3, 'r_y': 1/3, 'r_z': 1/3,
+                'deformation_name': None, 'deformation_kwargs': None,
+            }
+        }
+        assert inputs_0['decoder_parameters'] == {
+            'class': 'BeliefPropagationOSDDecoder',
+            'parameters': {
+                'bp_method': 'msl',
+                'channel_udpate': False,
+                'error_rate': 0.1,
+                'max_bp_iter': 1000,
+                'osd_order': 10
+            }
+        }
+        inputs_1 = results[1]['inputs']
+        assert inputs_1['probability'] == 0.5
+        assert inputs_1['code_parameters'] == {
+            'class': 'Toric2DCode',
+            'parameters': {'L_x': 4, 'L_y': 4, 'L_z': 4},
+        }
 
     @pytest.mark.skip
     def test_merge_output_dirs(self, tmpdir, output_dir):

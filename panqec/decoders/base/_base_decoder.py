@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from panqec.codes import StabilizerCode
 from panqec.error_models import BaseErrorModel
 import numpy as np
@@ -7,6 +7,8 @@ import numpy as np
 
 class BaseDecoder(metaclass=ABCMeta):
     """Base class for decoders"""
+
+    _parameters: Dict[str, Any] = {}
 
     def __init__(
         self,
@@ -17,6 +19,17 @@ class BaseDecoder(metaclass=ABCMeta):
         self.code = code
         self.error_model = error_model
         self.error_rate = error_rate
+        self._parameters = {
+            'error_rate': error_rate,
+        }
+
+    @property
+    def parameters(self) -> Dict[str, Any]:
+        """Input parameters used in constructor."""
+        return {
+            'class': self.__class__.__name__,
+            'parameters': self._parameters,
+        }
 
     @property
     @abstractmethod

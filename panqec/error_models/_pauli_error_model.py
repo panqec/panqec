@@ -47,6 +47,12 @@ class PauliErrorModel(BaseErrorModel):
             Name of the Clifford deformation to apply to the noise model.
             The Clifford deformation must be provided in the code class.
         """
+        self._parameters = {
+            'r_x': r_x, 'r_y': r_y, 'r_z': r_z,
+            'deformation_name': deformation_name,
+            'deformation_kwargs': deformation_kwargs,
+        }
+
         if not np.isclose(r_x + r_y + r_z, 1):
             raise ValueError(
                 f'Noise direction ({r_x}, {r_y}, {r_z}) does not sum to 1.0'

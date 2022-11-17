@@ -104,6 +104,7 @@ class StabilizerCode(metaclass=ABCMeta):
 
     @property
     def parameters(self) -> Dict[str, Any]:
+        """Input parameters used in constructor."""
         return {
             'class': self.__class__.__name__,
             'parameters': self._parameters,
