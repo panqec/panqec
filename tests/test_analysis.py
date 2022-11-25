@@ -376,7 +376,7 @@ def test_convert_missing_to_input():
     expected_entry = {
         'label': 'unlabelled',
         'code': {
-            'model': 'RhombicCode',
+            'model': 'RhombicToricCode',
             'parameters': {'L_x': 10}
         },
         'noise': {

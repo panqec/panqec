@@ -13,7 +13,8 @@ from .surface_3d._toric_3d_code import Toric3DCode  # noqa
 from .surface_3d._planar_3d_code import Planar3DCode  # noqa
 from .surface_3d._rotated_planar_3d_code import RotatedPlanar3DCode  # noqa
 from .surface_3d._quasi_2d_code import Quasi2DCode  # noqa
-from .rhombic._rhombic_code import RhombicCode  # noqa
+from .rhombic._rhombic_toric_code import RhombicToricCode  # noqa
+from .rhombic._rhombic_planar_code import RhombicPlanarCode  # noqa
 from .surface_3d._rotated_toric_3d_code import RotatedToric3DCode  # noqa
 from .fractons._xcube_code import XCubeCode  # noqa
 from .color_3d._color_3d_code import Color3DCode  # noqa
@@ -30,7 +31,8 @@ __all__ = [
     "Toric3DCode",
     "Planar3DCode",
     "RotatedPlanar3DCode",
-    "RhombicCode",
+    "RhombicToricCode",
+    "RhombicPlanarCode",
     "RotatedToric3DCode",
     "XCubeCode",
     "Quasi2DCode",

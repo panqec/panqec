@@ -5,7 +5,7 @@ from flask import (
 )
 from panqec.codes import (
     Toric2DCode, RotatedPlanar2DCode, Planar2DCode,
-    Toric3DCode, RotatedPlanar3DCode, RhombicCode,
+    Toric3DCode, RotatedPlanar3DCode, RhombicToricCode, RhombicPlanarCode,
     Planar3DCode, RotatedToric3DCode, XCubeCode, Quasi2DCode,
     Color3DCode, Color666PlanarCode, Color666ToricCode, Color488Code
 )
@@ -27,10 +27,11 @@ codes = {'Toric 2D': Toric2DCode,
          '6.6.6 Color Code (planar)': Color666PlanarCode,
          '4.8.8 Color Code': Color488Code,
          'Toric 3D': Toric3DCode,
+         'Planar 3D': Planar3DCode,
          'Rotated Toric 3D': RotatedToric3DCode,
          'Rotated Planar 3D': RotatedPlanar3DCode,
-         'Rhombic': RhombicCode,
-         'Planar 3D': Planar3DCode,
+         'Rhombic Toric 3D': RhombicToricCode,
+         'Rhombic Planar 3D': RhombicPlanarCode,
          'XCube': XCubeCode,
          'Quasi 2D': Quasi2DCode,
          '3D Color Code': Color3DCode}

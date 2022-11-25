@@ -5,7 +5,7 @@ import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat
 
 import { TopologicalCode } from './topologicalCode.js';
 
-var defaultCode = codeDimension == 2 ? '6.6.6 Color Code (toric)' : 'Toric 3D';
+var defaultCode = codeDimension == 2 ? '6.6.6 Color Code (toric)' : 'Rhombic Planar 3D';
 var defaultSize = codeDimension == 2 ? 1 : 4;
 
 const params = {

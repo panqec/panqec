@@ -7,13 +7,13 @@ Operator = Dict[Tuple, str]  # Location to pauli ('X', 'Y' or 'Z')
 Coordinates = List[Tuple]  # List of locations
 
 
-class RhombicCode(StabilizerCode):
+class RhombicToricCode(StabilizerCode):
     dimension = 3
     deformation_names = ['Checkerboard XZZX']
 
     @property
     def label(self) -> str:
-        return 'Rhombic {}x{}x{}'.format(*self.size)
+        return 'Rhombic Toric {}x{}x{}'.format(*self.size)
 
     def get_qubit_coordinates(self):
         coordinates = []
