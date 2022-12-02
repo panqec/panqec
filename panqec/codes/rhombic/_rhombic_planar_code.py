@@ -15,10 +15,7 @@ class RhombicPlanarCode(StabilizerCode):
     def label(self) -> str:
         return 'Rhombic Planar {}x{}x{}'.format(*self.size)
 
-    def get_qubit_coordinates(self):
-        coordinates = []
-        Lx, Ly, Lz = self.size
-
+    def get_qubit_coordinates(self) -> Coordinates:
         coordinates: Coordinates = []
         Lx, Ly, Lz = self.size
 
@@ -80,7 +77,8 @@ class RhombicPlanarCode(StabilizerCode):
                     or ((x + y + z) % 4 != 0 and axis == 0)))
             )
             rough_triangle = (
-                (y == 0 and axis in [1,2]) or (y == 2*Ly-2 and axis in [0,3])
+                (y == 0 and axis in [1, 2]) or
+                (y == 2*Ly-2 and axis in [0, 3])
             )
 
             if not edge_triangle and not rough_triangle:
@@ -175,7 +173,7 @@ class RhombicPlanarCode(StabilizerCode):
         logicals = []
 
         # Line of parallel Z operators along the z direction
-        operator = dict()
+        operator: Operator = dict()
         for z in range(0, 2*Lz, 2):
             operator[(2*Lx-1, 2*Ly-2, z)] = 'Z'
         logicals.append(operator)

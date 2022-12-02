@@ -15,8 +15,8 @@ class RhombicToricCode(StabilizerCode):
     def label(self) -> str:
         return 'Rhombic Toric {}x{}x{}'.format(*self.size)
 
-    def get_qubit_coordinates(self):
-        coordinates = []
+    def get_qubit_coordinates(self) -> Coordinates:
+        coordinates: Coordinates = []
         Lx, Ly, Lz = self.size
 
         # Qubits along e_x
