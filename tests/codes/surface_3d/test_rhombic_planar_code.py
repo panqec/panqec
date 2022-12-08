@@ -7,7 +7,7 @@ class TestRhombicPlanarCode(StabilizerCodeTest):
 
     @pytest.fixture
     def code(self):
-        return RhombicPlanarCode(2, 2, 2)
+        return RhombicPlanarCode(4)
 
     def test_stabilizer_index(self, code):
         assert all(

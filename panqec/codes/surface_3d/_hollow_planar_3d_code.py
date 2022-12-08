@@ -6,12 +6,12 @@ Operator = Dict[Tuple, str]  # Location to pauli ('X','Y','Z')
 Coordinates = List[Tuple]  # List of locations
 
 
-class Quasi2DCode(StabilizerCode):
+class HollowPlanar3DCode(StabilizerCode):
     dimension = 3
 
     @property
     def label(self) -> str:
-        return 'Quasi 2D {}x{}x{}'.format(*self.size)
+        return 'Hollow Planar 3D {}x{}x{}'.format(*self.size)
 
     def _is_in_hole(self, x, y, z):
         Lx, Ly, Lz = self.size

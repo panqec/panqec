@@ -12,7 +12,7 @@ from .codes import (
     Toric3DCode, RotatedPlanar3DCode, RotatedToric3DCode,
     Color666PlanarCode, Color666ToricCode, Color488Code,
     Color3DCode, RhombicToricCode, RhombicPlanarCode,
-    XCubeCode, Quasi2DCode
+    XCubeCode, HollowPlanar3DCode, HollowRhombicCode
 )
 from .decoders import (
     SweepMatchDecoder, XCubeMatchingDecoder,
@@ -67,7 +67,8 @@ CODES = {
     'RhombicToricCode': RhombicToricCode,
     'RhombicPlanarCode': RhombicPlanarCode,
     'XCubeCode': XCubeCode,
-    'Quasi2DCode': Quasi2DCode
+    'HollowPlanar3DCode': HollowPlanar3DCode,
+    'HollowRhombicCode': HollowRhombicCode
 }
 ERROR_MODELS = {
     'PauliErrorModel': PauliErrorModel

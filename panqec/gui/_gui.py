@@ -6,7 +6,8 @@ from flask import (
 from panqec.codes import (
     Toric2DCode, RotatedPlanar2DCode, Planar2DCode,
     Toric3DCode, RotatedPlanar3DCode, RhombicToricCode, RhombicPlanarCode,
-    Planar3DCode, RotatedToric3DCode, XCubeCode, Quasi2DCode,
+    Planar3DCode, RotatedToric3DCode, XCubeCode,
+    HollowPlanar3DCode, HollowRhombicCode,
     Color3DCode, Color666PlanarCode, Color666ToricCode, Color488Code
 )
 from panqec.decoders import (
@@ -33,7 +34,8 @@ codes = {'Toric 2D': Toric2DCode,
          'Rhombic Toric 3D': RhombicToricCode,
          'Rhombic Planar 3D': RhombicPlanarCode,
          'XCube': XCubeCode,
-         'Quasi 2D': Quasi2DCode,
+         'Hollow Planar 3D': HollowPlanar3DCode,
+         'Hollow Rhombic Code': HollowRhombicCode,
          '3D Color Code': Color3DCode}
 
 noise_directions = {'Pure X': (1, 0, 0),
