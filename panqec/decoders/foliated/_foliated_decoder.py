@@ -31,6 +31,10 @@ class FoliatedMatchingDecoder(BaseDecoder):
         self.matcher: Dict = dict()
         super().__init__(code, error_model, error_rate)
 
+    @property
+    def params(self) -> dict:
+        return {}
+
     def get_matcher_list(self) -> List[Matching]:
         """Return a new list of Matching objects for a given code."""
 

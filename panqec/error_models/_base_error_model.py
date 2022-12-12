@@ -9,10 +9,20 @@ class BaseErrorModel(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def label(self):
+    def label(self) -> str:
         """Label used in plots result files
         E.g. 'PauliErrorModel X1 Y0 Z0'
         """
+
+    @property
+    def id(self) -> str:
+        return self.__class__.__name__
+
+    @property
+    @abstractmethod
+    def params(self) -> dict:
+        """List of class arguments (as a dictionary), that can be saved
+        and reused to instantiate the same error model"""
 
     @abstractmethod
     def generate(

@@ -115,7 +115,6 @@ def run_file(
         onefile=onefile
     )
 
-    print("test")
     if verbose:
         print(f'running {len(batch_sim._simulations)} simulations:')
         for simulation in batch_sim._simulations:

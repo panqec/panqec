@@ -42,6 +42,7 @@ class MatchingDecoder(BaseDecoder):
                              f"or None, not {error_type}")
 
         self.error_type = error_type
+        self.weights = weights
 
         if weights is not None:
             wx, wz = weights
@@ -52,6 +53,13 @@ class MatchingDecoder(BaseDecoder):
             self.matcher_x = Matching(self.code.Hz, spacelike_weights=wx)
         if error_type is None or error_type == "Z":
             self.matcher_z = Matching(self.code.Hx, spacelike_weights=wz)
+
+    @property
+    def params(self) -> dict:
+        return {
+            'error_type': self.error_type,
+            'weights': self.weights
+        }
 
     def decode(self, syndrome: np.ndarray, **kwargs) -> np.ndarray:
         """Get X corrections given code and measured syndrome."""

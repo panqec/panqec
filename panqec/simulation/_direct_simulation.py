@@ -108,8 +108,9 @@ class DirectSimulation(BaseSimulation):
         }
         self._inputs = {
             **self._inputs,
-            'decoder': self.decoder.label,
-            'probability': self.error_rate,
+            'decoder': self.decoder.id,
+            'decoder_params': self.decoder.params,
+            'error_rate': self.error_rate,
             'method': 'direct'
         }
 

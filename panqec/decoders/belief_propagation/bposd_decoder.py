@@ -28,6 +28,15 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
         # initialize the decoder every time.
         self._initialized = False
 
+    @property
+    def params(self) -> dict:
+        return {
+            'max_bp_iter': self._max_bp_iter,
+            'channel_update': self._channel_update,
+            'osd_order': self._osd_order,
+            'bp_method': self._bp_method
+        }
+
     def get_probabilities(self):
         pi, px, py, pz = self.error_model.probability_distribution(
             self.code, self.error_rate

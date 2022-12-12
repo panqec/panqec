@@ -44,12 +44,13 @@ class BaseSimulation(metaclass=ABCMeta):
             'wall_time': 0,
         }
         self._inputs = {
-            'size': self.code.size,
-            'code': self.code.label,
+            'code': self.code.id,
+            'code_params': self.code.params,
             'n': self.code.n,
             'k': self.code.k,
             'd': self.code.d,
-            'error_model': self.error_model.label,
+            'error_model': self.error_model.id,
+            'error_model_params': self.error_model.params,
         }
 
     @property
@@ -89,6 +90,8 @@ class BaseSimulation(metaclass=ABCMeta):
     def load_results(self, output_dir: str):
         """Load previously written results from directory."""
         file_path = self.get_file_path(output_dir)
+
+        print(f"Load results in {file_path}")
 
         # Find the alternative compressed file path if it doesn't exist.
         if not os.path.exists(file_path):

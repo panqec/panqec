@@ -59,8 +59,12 @@ class StabilizerCode(metaclass=ABCMeta):
 
         if L_y is None:
             L_y = L_x
-        if L_z is None:
+        if L_z is None and self.dimension == 3:
             L_z = L_x
+
+        self.L_x = L_x
+        self.L_y = L_y
+        self.L_z = L_z
 
         self._size: Tuple
         if self.dimension == 2:
@@ -116,6 +120,16 @@ class StabilizerCode(metaclass=ABCMeta):
     def id(self) -> str:
         """Returns a string identifying the class (usually the code name)"""
         return self.__class__.__name__
+
+    @property
+    def params(self) -> dict:
+        """List of class arguments (as a dictionary), that can be saved
+        and reused to instantiate the same code"""
+        return {
+            'L_x': self.L_x,
+            'L_y': self.L_y,
+            'L_z': self.L_z,
+        }
 
     @property
     def n(self) -> int:

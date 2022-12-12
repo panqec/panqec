@@ -65,8 +65,9 @@ class SplittingSimulation(BaseSimulation):
         }
         self._inputs = {
             **self._inputs,
-            'decoder': self.decoders[0].label,
-            'probability': self.error_rates,
+            'decoder': self.decoders[0].id,
+            'decoder_params': self.decoders[0].params,
+            'error_rates': self.error_rates,
             'method': 'splitting'
         }
 

@@ -22,7 +22,15 @@ class RotatedSweepDecoder3D(BaseDecoder):
                  max_rounds: int = 32):
         super().__init__(code, error_model, error_rate)
         self._rng = np.random.default_rng(seed)
+        self.seed = seed
         self.max_rounds = max_rounds
+
+    @property
+    def params(self) -> dict:
+        return {
+            'seed': self.seed,
+            'max_rounds': self.max_rounds
+        }
 
     def get_face_syndromes(
         self, full_syndrome: np.ndarray

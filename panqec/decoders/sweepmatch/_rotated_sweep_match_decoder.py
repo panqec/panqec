@@ -16,12 +16,21 @@ class RotatedSweepMatchDecoder(BaseDecoder):
                  error_rate: float,
                  max_rounds=32):
         super().__init__(code, error_model, error_rate)
+
+        self.max_rounds = max_rounds
+
         self.sweeper = RotatedSweepDecoder3D(
             code, error_model, error_rate, max_rounds=max_rounds
         )
         self.matcher = MatchingDecoder(
             code, error_model, error_rate, 'X'
         )
+
+    @property
+    def params(self) -> dict:
+        return {
+            'max_rounds': self.max_rounds
+        }
 
     def decode(self, syndrome: np.ndarray, **kwargs) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
