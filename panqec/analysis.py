@@ -149,6 +149,10 @@ class Analysis:
         else:
             self.results_paths.append(results)
 
+        for results_path in self.results_paths:
+            if not os.path.exists(results_path):
+                raise ValueError(f"The path {results_path} does not exist")
+
         self.overrides_spec = dict()
         if overrides:
             if isinstance(overrides, str):
@@ -342,7 +346,6 @@ class Analysis:
         file_locations: List[str, Tuple[str, str]] = []
 
         for results_path in self.results_paths:
-
             # Look for .zip files that may contain .json.gz or .json files
             # inside.
             zip_files: List[Any] = []
