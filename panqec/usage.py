@@ -1,7 +1,7 @@
 """
 Routines for checking usage and progress.
 
-Works by reading usage txt files produced by scripts/monitor.py.
+Works by reading usage txt files produced by the `monitor` command.
 """
 
 from typing import List, Dict, Tuple, Any, Optional, Union

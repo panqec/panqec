@@ -6,6 +6,10 @@ from tqdm import tqdm
 import numpy as np
 import json
 from json.decoder import JSONDecodeError
+import multiprocessing
+import datetime
+import time
+import psutil
 import gzip
 from .simulation import (
     run_file, merge_results_dicts, merge_lists_of_results_dicts
@@ -45,22 +49,19 @@ def start_gui(port: Optional[int]):
 @click.command()
 @click.pass_context
 @click.option('-f', '--file', 'file_')
+@click.option('-o', '--output_dir', type=click.STRING)
 @click.option('-t', '--trials', default=100, type=click.INT, show_default=True)
 @click.option('-s', '--start', default=None, type=click.INT, show_default=True)
-@click.option(
-    '-o', '--output_dir', default=PANQEC_DIR, type=click.STRING,
-    show_default=True
-)
 @click.option(
     '-n', '--n_runs', default=None, type=click.INT, show_default=True
 )
 def run(
     ctx,
     file_: Optional[str],
+    output_dir: Optional[str],
     trials: int,
-    start: Optional[int],
-    n_runs: Optional[int],
-    output_dir: Optional[str]
+    start: Optional[int] = None,
+    n_runs: Optional[int] = None
 ):
     """Run a single job or run many jobs from input file."""
     if file_ is not None:
@@ -72,6 +73,97 @@ def run(
     else:
         print(ctx.get_help())
 
+@click.command()
+@click.option('-d', '--data_dir')
+@click.option('-t', '--trials', default=1000, type=click.INT, show_default=True)
+@click.option('-c', '--n_cores', default=None, type=click.INT, show_default=True)
+@click.option('-n', '--n_nodes', default=1, type=click.INT, show_default=True)
+@click.option('-j', '--job_idx', default=1, type=click.INT, show_default=True)
+def run_parallel(
+    data_dir: Optional[str],
+    trials: int,
+    n_cores: Optional[int],
+    n_nodes: Optional[int],
+    job_idx: Optional[int]
+):
+    """Run panqec jobs in parallel"""
+
+    input_dir=f"{data_dir}/inputs"
+
+    i_node = job_idx - 1
+
+    assert 1 <= job_idx <= n_nodes, \
+        f"job_id={job_idx} is invalid. It must be between 1 and {n_nodes}"
+
+    n_cpu = multiprocessing.cpu_count()
+    assert n_cores <= n_cpu, \
+        f"The number of cores requested ({n_cores}) is higher than" \
+        f"the total number of cores ({n_cpu})"
+
+    if not n_cores:
+        n_cores = n_cpu
+
+    print(f"Running job {job_idx}/{n_nodes} on {n_cores} cores")
+
+    n_tasks = n_nodes * n_cores
+
+    print(f"Total number of tasks: {n_tasks}\n")
+
+    list_inputs = glob(f"{input_dir}/*.json")
+
+    print("List inputs", list_inputs)
+
+    n_inputs = len(list_inputs)
+
+    if n_inputs == 0:
+        raise ValueError(f"No input files in {input_dir}")
+
+    procs = []
+    for i_core in range(n_cores):
+        i_task = n_cores * i_node + i_core
+
+        n_tasks_per_input = n_tasks // n_inputs
+
+        i_input = i_task // n_tasks_per_input
+        if i_input >= n_inputs:
+            i_input = n_inputs - 1
+
+        if i_input == n_inputs - 1:
+            n_tasks_per_input= n_tasks_per_input + n_tasks % n_inputs
+
+        i_task_in_input = i_task % n_tasks_per_input
+
+        if i_input == n_inputs - 1:
+            i_task_in_input = i_task - n_tasks // n_inputs * (n_inputs - 1)
+
+        n_runs = trials // n_tasks_per_input
+
+        if i_task_in_input == n_tasks_per_input - 1:
+            n_runs += trials % n_runs
+
+        filename = list_inputs[i_input]
+        input_name = os.path.basename(filename)
+
+        # Split the results over directories results_1, results_2, etc.
+        results_dir = f"results_{str(i_task).zfill(3)}"
+        os.makedirs(os.path.join(data_dir, results_dir), exist_ok=True)
+
+        print(f"{input_name}\t{results_dir}\t{n_runs}")
+
+        input_file = os.path.abspath(os.path.join(input_dir, input_name))
+        output_dir = os.path.abspath(os.path.join(data_dir, results_dir))
+
+        proc = multiprocessing.Process(
+            target=run_file,
+            args=(input_file, n_runs),
+            kwargs={'output_dir': output_dir, 'progress': tqdm}
+        )
+        procs.append(proc)
+        proc.start()
+
+    # complete the processes
+    for proc in procs:
+        proc.join()
 
 @click.command()
 @click.argument('model_type', required=False, type=click.Choice(
@@ -157,11 +249,49 @@ def analyze(paths, overrides, plot_dir):
     analysis.make_plots(plot_dir)
     analysis.save(os.path.join(plot_dir, 'analysis.json.gz'))
 
+@click.command()
+@click.option('-f', '--log_file', type=str, required=True)
+@click.option(
+    '-i', '--interval', default=10, type=click.INT,
+    show_default=True, required=True
+)
+def monitor_usage(log_file: str, interval: float = 10):
+    """Continously monitor CPU usage by logging to file at intervals.
+
+    Parameters
+    ----------
+    log_file : str
+        Path to log file where messages are saved.
+    interval : int
+        Interval at which to check usage, in seconds.
+    """
+    ppid = os.getppid()
+    if not os.path.isfile(log_file):
+        with open(log_file, 'w') as f:
+            f.write(f'Log file for {ppid}\n')
+    while True:
+        cpu_usage = psutil.cpu_percent(percpu=True)
+        mean_cpu_usage = np.mean(cpu_usage)
+        n_cores = len(cpu_usage)
+        time_now = datetime.datetime.now()
+        mem = psutil.virtual_memory()
+        ram_usage = mem.percent
+        ram_total = mem.total/2**30
+        message = (
+            f'{time_now} CPU usage {mean_cpu_usage:.2f}% '
+            f'({n_cores} cores) '
+            f'RAM {ram_usage:.2f}% ({ram_total:.2f} GiB tot)'
+        )
+        with open(log_file, 'a') as f:
+            f.write(message + '\n')
+        time.sleep(interval)
+
 
 @click.command()
 @click.option(
-    '-i', '--input_dir', required=True, type=str,
-    help='Directory to save input .json files'
+    '-d', '--data_dir', required=True, type=str,
+    help='Directory to save input .json files, as' \
+    '`[data_dir]/inputs/input_bias_[eta].json`'
 )
 @click.option(
     '-r', '--ratio', default='equal', type=click.Choice(['equal', 'coprime']),
@@ -222,14 +352,14 @@ def analyze(paths, overrides, plot_dir):
     help='Label for the inputs'
 )
 def generate_input(
-    input_dir, ratio, sizes, decoder_class, bias, eta, prob,
+    data_dir, ratio, sizes, decoder_class, bias, eta, prob,
     code_class, noise_class, deformation_name, method, label
 ):
     """Generate the json files of every experiment.
 
     \b
     Example:
-    panqec generate-input -i /path/to/inputdir \\
+    panqec generate-input -i data/toric-3d-code/ \\
             --code_class Toric3DCode \\
             --noise_class Toric3D
             -r equal \\
@@ -237,6 +367,7 @@ def generate_input(
             --bias Z --eta '10,100,1000,inf' \\
             --prob 0:0.5:0.005
     """
+    input_dir = os.path.join(data_dir, 'inputs')
     os.makedirs(input_dir, exist_ok=True)
 
     probabilities = read_range_input(prob)
@@ -741,6 +872,7 @@ slurm.add_command(count)
 slurm.add_command(clear)
 cli.add_command(start_gui)
 cli.add_command(run)
+cli.add_command(run_parallel)
 cli.add_command(ls)
 cli.add_command(slurm)
 cli.add_command(generate_input)

@@ -107,11 +107,15 @@ def run_file(
     -------
     None
     """
+    print(f"Run file {file_name}")
+
     batch_sim = read_input_json(
         file_name, output_dir=output_dir,
         start=start, n_runs=n_runs,
         onefile=onefile
     )
+
+    print("test")
     if verbose:
         print(f'running {len(batch_sim._simulations)} simulations:')
         for simulation in batch_sim._simulations:
@@ -939,6 +943,7 @@ def read_input_dict(
     kwargs['method'] = method
     kwargs['verbose'] = verbose
 
+    print("Start batch simulation instance")
     batch_sim = BatchSimulation(*args, **kwargs)
     assert len(batch_sim._simulations) == 0
 
