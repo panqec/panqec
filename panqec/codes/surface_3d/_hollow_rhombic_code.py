@@ -77,8 +77,10 @@ class HollowRhombicCode(StabilizerCode):
             )
             if (((x + y + z) % 4 == 1)
                     and not on_edge
-                    and not np.all([self._is_in_hole(x+d[0], y+d[1], z+d[2]) for d in itertools.product([-1,1], repeat=3)])
-                ):
+                    and not np.all([
+                        self._is_in_hole(x+d[0], y+d[1], z+d[2])
+                        for d in itertools.product([-1, 1], repeat=3)
+                    ])):
                 coordinates.append((x, y, z))
 
         # Triangles
@@ -90,18 +92,16 @@ class HollowRhombicCode(StabilizerCode):
             stab = list(self.get_stabilizer(location).keys())
 
             em_edge = (y, z) in itertools.product([0, 2*Ly-2], [0, 2*Lz-2])
-            corner = (x, y, z) in itertools.product(
-                [0, 2*Lx-2], [0, 2*Ly-2], [0, 2*Lz-2],
-            )
             constant_z = np.all([loc[2] == stab[0][2] for loc in stab])
 
             excluded_triangle = (
                 len(stab) <= 1 or (
-                self._is_m_boundary(x, y, z) and
-                len(stab) <= 2 and
-                (not self._is_e_boundary(x, y, z) or (
-                    em_edge and not constant_z)
-                ))
+                    self._is_m_boundary(x, y, z) and
+                    len(stab) <= 2 and
+                    (not self._is_e_boundary(x, y, z) or (
+                        em_edge and not constant_z
+                    ))
+                )
             )
 
             if (not excluded_triangle
@@ -248,17 +248,16 @@ class HollowRhombicCode(StabilizerCode):
             dx, dy, dz = tuple(a * np.array(delta[axis]))
 
             if len(self.get_stabilizer(location)) <= 2:
-                if 2 < x < 2*Lx-2 and 0 < z < 2*Lz-2 and (y == 2 or y == 2*Ly-4):
+                if (2 < x < 2*Lx-2 and 0 < z < 2*Lz-2 and
+                        (y == 2 or y == 2*Ly-4)):
                     dy = 0
                 if ((z == 0 and
                         (dz == -1 or (2 < x < 2*Lx-2 and 2 < y < 2*Lz-2))) or
                     (z == 2*Lz-2 and
-                        (dz == 1 or (2 < x < 2*Lx-2 and 2 < y < 2*Ly-4)))
-                ):
+                        (dz == 1 or (2 < x < 2*Lx-2 and 2 < y < 2*Ly-4)))):
                     dz = 0
                 if ((2 < y < 2*Ly-4 and 0 < z < 2*Lz-2) and
-                    ((x == 2 and dx == 1) or (x == 2*Lx-2 and dx == -1))
-                ):
+                        ((x == 2 and dx == 1) or (x == 2*Lx-2 and dx == -1))):
                     dx = 0
 
             representation['params']['vertices'] = [[dx, 0, 0],

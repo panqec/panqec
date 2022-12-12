@@ -73,22 +73,31 @@ def run(
     else:
         print(ctx.get_help())
 
+
 @click.command()
 @click.option('-d', '--data_dir')
-@click.option('-t', '--trials', default=1000, type=click.INT, show_default=True)
-@click.option('-c', '--n_cores', default=None, type=click.INT, show_default=True)
-@click.option('-n', '--n_nodes', default=1, type=click.INT, show_default=True)
-@click.option('-j', '--job_idx', default=1, type=click.INT, show_default=True)
+@click.option(
+    '-t', '--trials', default=1000, type=click.INT, show_default=True
+)
+@click.option(
+    '-n', '--n_nodes', default=1, type=click.INT, show_default=True
+)
+@click.option(
+    '-j', '--job_idx', default=1, type=click.INT, show_default=True
+)
+@click.option(
+    '-c', '--n_cores', default=None, type=click.INT, show_default=True
+)
 def run_parallel(
-    data_dir: Optional[str],
+    data_dir: str,
     trials: int,
+    n_nodes: int,
+    job_idx: int,
     n_cores: Optional[int],
-    n_nodes: Optional[int],
-    job_idx: Optional[int]
 ):
     """Run panqec jobs in parallel"""
 
-    input_dir=f"{data_dir}/inputs"
+    input_dir = f"{data_dir}/inputs"
 
     i_node = job_idx - 1
 
@@ -96,12 +105,13 @@ def run_parallel(
         f"job_id={job_idx} is invalid. It must be between 1 and {n_nodes}"
 
     n_cpu = multiprocessing.cpu_count()
-    assert n_cores <= n_cpu, \
-        f"The number of cores requested ({n_cores}) is higher than" \
-        f"the total number of cores ({n_cpu})"
 
     if not n_cores:
         n_cores = n_cpu
+
+    assert n_cores <= n_cpu, \
+        f"The number of cores requested ({n_cores}) is higher than" \
+        f"the total number of cores ({n_cpu})"
 
     print(f"Running job {job_idx}/{n_nodes} on {n_cores} cores")
 
@@ -129,7 +139,7 @@ def run_parallel(
             i_input = n_inputs - 1
 
         if i_input == n_inputs - 1:
-            n_tasks_per_input= n_tasks_per_input + n_tasks % n_inputs
+            n_tasks_per_input = n_tasks_per_input + n_tasks % n_inputs
 
         i_task_in_input = i_task % n_tasks_per_input
 
@@ -164,6 +174,7 @@ def run_parallel(
     # complete the processes
     for proc in procs:
         proc.join()
+
 
 @click.command()
 @click.argument('model_type', required=False, type=click.Choice(
@@ -249,6 +260,7 @@ def analyze(paths, overrides, plot_dir):
     analysis.make_plots(plot_dir)
     analysis.save(os.path.join(plot_dir, 'analysis.json.gz'))
 
+
 @click.command()
 @click.option('-f', '--log_file', type=str, required=True)
 @click.option(
@@ -290,7 +302,7 @@ def monitor_usage(log_file: str, interval: float = 10):
 @click.command()
 @click.option(
     '-d', '--data_dir', required=True, type=str,
-    help='Directory to save input .json files, as' \
+    help='Directory to save input .json files, as'
     '`[data_dir]/inputs/input_bias_[eta].json`'
 )
 @click.option(
