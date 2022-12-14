@@ -12,7 +12,7 @@ from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
 from panqec.error_models import BaseErrorModel
 from panqec.config import (
-    CODES, ERROR_MODELS, DECODERS, PANQEC_DIR
+    CODES, ERROR_MODELS, DECODERS
 )
 from panqec.utils import identity, NumpyEncoder
 from . import (
@@ -125,35 +125,39 @@ class BatchSimulation():
     ----------
     label : str
         The label of the files.
+    output_file : str
+        Path to the file (.json or .json.gz) that will store
+        the simulation results
+    label: str
+        Label of the batch simulation
     on_update : Callable
         Function that gets called on every update.
     update_frequency : int
         Frequency at which to update results.
     save_frequency : int
         Frequency at which to write results to file on disk.
-    output_dir : Optional[str]
-        The directory to output to.
-    onefile : bool
-        Saves to one combined file if True, as opposed to a lot of smaller
-        files.
+    method: str
+        The method can be either "direct" or "splitting".
+        The direct method samples independent errors at each iteration,
+        while the splitting method (by Bravyi & Vargo) uses MCMC to
+        determine the next error to sample.
+        Ref: arXiv:1308.6270
     """
 
     _simulations: List[BaseSimulation]
     update_frequency: int
     save_frequency: int
-    _output_dir: str
-    onefile: bool
+    _output_file: str
 
     def __init__(
         self,
+        output_file: str,
         label='unlabelled',
         on_update: Callable = identity,
         update_frequency: int = 5,
         save_frequency: int = 1,
-        output_dir: Optional[str] = None,
         method: str = "direct",
         verbose: bool = True,
-        onefile: bool = False,
     ):
         self._simulations = []
         self.code: Dict = {}
@@ -163,15 +167,12 @@ class BatchSimulation():
         self.label = label
         self.method = method
         self.verbose = verbose
-        if output_dir is not None:
-            if onefile:
-                self._output_dir = output_dir
-            else:
-                self._output_dir = os.path.join(output_dir, self.label)
+        self._output_file = output_file
+
+        if os.path.splitext(output_file)[-1] == '.gz':
+            self.compressed_output = True
         else:
-            self._output_dir = os.path.join(PANQEC_DIR, self.label)
-        os.makedirs(self._output_dir, exist_ok=True)
-        self.onefile = onefile
+            self.compressed_output = False
 
     def __getitem__(self, *args):
         return self._simulations.__getitem__(*args)
@@ -198,7 +199,7 @@ class BatchSimulation():
     def load_results(self):
         """Load results from disk."""
         for simulation in self._simulations:
-            simulation.load_results(self._output_dir)
+            simulation.load_results(self._output_file)
 
     def on_update(self):
         """Function that gets called on every update."""
@@ -267,41 +268,48 @@ class BatchSimulation():
         #     simulation.postprocess()
 
     def _save_results(self):
-        if self.onefile:
-            self._update_onefile(
-                self.get_results_to_save()
-            )
+        self._update_file(
+            self.get_results_to_save()
+        )
 
-    def get_onefile_path(self) -> str:
-        """Get path of combined all-in-one output file."""
-        return os.path.join(self._output_dir, self.label + '.json.gz')
-
-    def save_onefile(self):
-        """Do a complete save of the onefile."""
-        out_file = self.get_onefile_path()
+    def save_file(self):
+        """Do a complete save of the file."""
         combined_data = []
         for simulation in self._simulations:
             combined_data.append(simulation.get_results_to_save())
-        with gzip.open(out_file, 'wb') as gz:
-            gz.write(
-                json.dumps(combined_data, cls=NumpyEncoder).encode('utf-8')
-            )
 
-    def _update_onefile(self, new_data: list) -> None:
+        # Create output directory if it does not exist yet
+        output_dir = os.path.dirname(self._output_file)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        json_data = json.dumps(
+            combined_data, cls=NumpyEncoder
+        ).encode('utf-8')
+
+        open_fn = gzip.open if self.compressed_output else open
+
+        with open_fn(self._output_file, 'wb') as f:
+            f.write(json_data)
+
+    def _update_file(self, new_data: list) -> None:
         """Update only the results to one file."""
-        out_file = self.get_onefile_path()
 
         # First time file does not exist, so write it to start.
-        if not os.path.isfile(out_file):
-            self.save_onefile()
+        if not os.path.isfile(self._output_file):
+            self.save_file()
 
-        # Write the updated list to the .json.gz file.
-        with gzip.open(out_file, 'wb') as gz:
-            gz.write(
-                json.dumps(new_data, cls=NumpyEncoder).encode('utf-8')
-            )
+        # Write the updated list to the .json or .json.gz file.
+        json_data = json.dumps(
+            new_data, cls=NumpyEncoder
+        ).encode('utf-8')
 
-    def load_onefile(self):
+        open_fn = gzip.open if self.compressed_output else open
+
+        with open_fn(self._output_file, 'wb') as f:
+            f.write(json_data)
+
+    def load_file(self):
         pass
 
     def save_results(self):
@@ -452,6 +460,7 @@ def expand_input_ranges(data: dict) -> List[Dict]:
 
 
 def _parse_code_dict(code_dict: Dict[str, Any]) -> StabilizerCode:
+    print("Code dict", code_dict)
     code_name = code_dict['name']
     code_params: Union[list, dict] = []
     if 'parameters' in code_dict:
@@ -499,19 +508,19 @@ def _parse_decoder_dict(
     return decoder
 
 
-def read_input_json(file_path: str, *args, **kwargs) -> BatchSimulation:
+def read_input_json(input_file: str, output_file: str) -> BatchSimulation:
     """Read json input file or .json.gz file."""
     try:
-        if os.path.splitext(file_path)[-1] == '.json':
-            with open(file_path) as f:
+        if os.path.splitext(input_file)[-1] == '.json':
+            with open(input_file) as f:
                 data = json.load(f)
         else:
-            with gzip.open(file_path, 'rb') as g:
+            with gzip.open(input_file, 'rb') as g:
                 data = json.loads(g.read().decode('utf-8'))
     except JSONDecodeError as err:
-        print(f'Error reading input file {file_path}')
+        print(f'Error reading input file {input_file}')
         raise err
-    return read_input_dict(data, *args, **kwargs)
+    return read_input_dict(data, output_file)
 
 
 def get_runs(data: dict) -> List[dict]:
@@ -572,6 +581,7 @@ def get_simulations(data: dict, verbose: bool = True) -> List[BaseSimulation]:
             method_params = data['ranges']['method']['parameters']
 
     elif 'runs' in data:
+        print("Run", data['runs'])
         codes = [_parse_code_dict(run['code']) for run in data['runs']]
         decoder_range = [run['decoder'] for run in data['runs']]
         error_models = [_parse_error_model_dict(run['error_model'])
@@ -607,6 +617,7 @@ def get_simulations(data: dict, verbose: bool = True) -> List[BaseSimulation]:
 
 def read_input_dict(
     data: dict,
+    output_file: str,
     verbose: bool = True,
     *args, **kwargs
 ) -> BatchSimulation:
@@ -645,15 +656,12 @@ def read_input_dict(
         if 'method' in data['ranges']:
             method = data['ranges']['method']['name']
 
-    if 'onefile' in kwargs and kwargs['onefile']:
-        label = 'results'
-
     kwargs['label'] = label
     kwargs['method'] = method
     kwargs['verbose'] = verbose
 
     print("Start batch simulation instance")
-    batch_sim = BatchSimulation(*args, **kwargs)
+    batch_sim = BatchSimulation(output_file, *args, **kwargs)
     assert len(batch_sim._simulations) == 0
 
     simulations = get_simulations(data, verbose=verbose)
@@ -731,7 +739,7 @@ def merge_results_dicts(results_dicts: List[Dict]) -> Dict:
 def merge_lists_of_results_dicts(
     results_dicts: List[Union[dict, list]]
 ) -> List[dict]:
-    """List of results lists of dicts produced by BatchSimulation onefile.
+    """List of results lists of dicts produced by BatchSimulation file.
 
     A more general version of `merge_results_dicts()` that can allow merging
     lists of results dicts that may not necessarily have the same inputs.

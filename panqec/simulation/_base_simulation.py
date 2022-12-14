@@ -87,36 +87,23 @@ class BaseSimulation(metaclass=ABCMeta):
         finish_time = datetime.datetime.now() - self.start_time
         self._results['wall_time'] += finish_time.total_seconds()
 
-    def get_file_path(self, output_dir: str) -> str:
-        file_path = os.path.join(output_dir, self.file_name)
-        return file_path
-
     def _find_current_simulation(self, data: list) -> dict:
         for sim in data:
             if sim['inputs'] == self._inputs:
                 return sim
         return {}
 
-    def load_results(self, output_dir: str):
+    def load_results(self, output_file: str):
         """Load previously written results from directory."""
-        file_path = self.get_file_path(output_dir)
 
         # Find the alternative compressed file path if it doesn't exist.
-        if not os.path.exists(file_path):
-            alt_file_path = file_path
-            if os.path.splitext(file_path)[-1] == '.json':
-                alt_file_path = file_path + '.gz'
-            elif os.path.splitext(file_path)[-1] == '.gz':
-                alt_file_path = file_path.replace('.json.gz', '.json')
-            if os.path.exists(alt_file_path):
-                file_path = alt_file_path
         try:
-            if os.path.exists(file_path):
-                if os.path.splitext(file_path)[-1] == '.gz':
-                    with gzip.open(file_path, 'rb') as gz:
+            if os.path.exists(output_file):
+                if os.path.splitext(output_file)[-1] == '.gz':
+                    with gzip.open(output_file, 'rb') as gz:
                         data = json.loads(gz.read().decode('utf-8'))
                 else:
-                    with open(file_path) as json_file:
+                    with open(output_file) as json_file:
                         data = json.load(json_file)
 
                 data_simulation = self._find_current_simulation(data)
@@ -125,7 +112,7 @@ class BaseSimulation(metaclass=ABCMeta):
                     self.load_results_from_dict(data_simulation)
 
         except JSONDecodeError as err:
-            print(f'Error loading existing results file {file_path}')
+            print(f'Error loading existing results file {output_file}')
             print('Starting this from scratch')
             print(err)
 
@@ -151,14 +138,14 @@ class BaseSimulation(metaclass=ABCMeta):
 
         return data
 
-    def save_results(self, output_dir: str):
+    def save_results(self, output_file: str):
         """Save results to directory."""
         data = self.get_results_to_save()
         if self.compress:
-            with gzip.open(self.get_file_path(output_dir), 'wb') as gz:
+            with gzip.open(output_file, 'wb') as gz:
                 gz.write(json.dumps(data, cls=NumpyEncoder).encode('utf-8'))
         else:
-            with open(self.get_file_path(output_dir), 'w') as json_file:
+            with open(output_file, 'w') as json_file:
                 json.dump(data, json_file, indent=4, cls=NumpyEncoder)
 
     @abstractmethod

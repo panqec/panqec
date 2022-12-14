@@ -106,6 +106,8 @@ def run_parallel(
     input_dir = os.path.join(data_dir, "inputs")
     result_dir = os.path.join(data_dir, "results")
 
+    os.makedirs(result_dir, exist_ok=True)
+
     i_node = job_idx - 1
 
     assert 1 <= job_idx <= n_nodes, \
@@ -163,24 +165,22 @@ def run_parallel(
 
         # Split the results over files results_1.json, results_2.json, etc.
         max_n_digits = len(str(n_tasks))
-        result_dir = os.path.abspath(os.path.join(
-            data_dir,
-            f"results_{str(i_task+1).zfill(max_n_digits)}"
+        result_file = os.path.abspath(os.path.join(
+            result_dir,
+            f"results_{str(i_task+1).zfill(max_n_digits)}.json"
         ))
 
-        if delete_existing and os.path.exists(result_dir):
-            shutil.rmtree(result_dir)
+        if delete_existing and os.path.exists(result_file):
+            os.remove(result_file)
 
-        os.makedirs(result_dir, exist_ok=True)
-
-        print(f"{input_name}\t{result_dir}\t{n_runs}")
+        print(f"{input_name}\t{n_runs}")
 
         input_file = os.path.abspath(os.path.join(input_dir, input_name))
 
         proc = multiprocessing.Process(
             target=run_file,
-            args=(input_file, n_runs),
-            kwargs={'output_dir': result_dir, 'progress': tqdm}
+            args=(input_file, result_file, n_runs),
+            kwargs={'progress': tqdm}
         )
         procs.append(proc)
         proc.start()
