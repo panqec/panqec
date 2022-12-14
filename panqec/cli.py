@@ -276,7 +276,7 @@ def analyze(paths, overrides, plot_dir):
 
 
 @click.command()
-@click.option('log_file', type=str, required=True)
+@click.argument('log_file', type=str, required=True)
 @click.option(
     '-i', '--interval', default=10, type=click.INT,
     show_default=True, required=True
