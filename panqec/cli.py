@@ -485,27 +485,30 @@ def merge_dirs(outdir, dirs):
     if len(dirs) == 0:
         results_dirs = glob(os.path.join(os.path.dirname(outdir), 'results_*'))
         results_dirs = [path for path in results_dirs if os.path.isdir(path)]
+        print(results_dirs)
     else:
         results_dirs = list(dirs)
 
     print(f'Merging {len(results_dirs)} dirs into {outdir}')
     file_lists: Dict[Tuple[str, str], List[str]] = dict()
-    for sep_dir in results_dirs:
-        for sub_dir in os.listdir(sep_dir):
-            file_list = glob(os.path.join(sep_dir, sub_dir, '*.json'))
-            file_list += glob(os.path.join(sep_dir, sub_dir, '*.json.gz'))
-            for file_path in file_list:
-                base_name = os.path.basename(file_path)
-                key = (sub_dir, base_name)
-                if key not in file_lists:
-                    file_lists[key] = []
-                file_lists[key].append(file_path)
+    for res_dir in results_dirs:
+        print(res_dir)
+        file_list = glob(os.path.join(res_dir, '*.json'))
+        file_list += glob(os.path.join(res_dir, '*.json.gz'))
+
+        print(file_list)
+        for file_path in file_list:
+            base_name = os.path.basename(file_path)
+            key = (res_dir, base_name)
+            if key not in file_lists:
+                file_lists[key] = []
+            file_lists[key].append(file_path)
     print(len(file_lists))
 
     iterator = tqdm(file_lists.items(), total=len(file_lists))
-    for (sub_dir, base_name), file_list in iterator:
-        os.makedirs(os.path.join(outdir, sub_dir), exist_ok=True)
-        combined_file = os.path.join(outdir, sub_dir, base_name)
+    for (res_dir, base_name), file_list in iterator:
+        os.makedirs(os.path.join(outdir, res_dir), exist_ok=True)
+        combined_file = os.path.join(outdir, res_dir, base_name)
 
         results_dicts = []
         for file_path in file_list:
@@ -523,10 +526,12 @@ def merge_dirs(outdir, dirs):
 
         # If any combined files, flatten the lists of dicts into dicts.
         if any(isinstance(element, list) for element in results_dicts):
+            print('test 1')
             combined_results = merge_lists_of_results_dicts(results_dicts)
 
         # Otherwise deal with it the old way.
         else:
+            print('test 2')
             combined_results = merge_results_dicts(results_dicts)
 
         if os.path.splitext(file_path)[-1] == '.json':
@@ -896,6 +901,7 @@ cli.add_command(run_parallel)
 cli.add_command(ls)
 cli.add_command(slurm)
 cli.add_command(generate_input)
+cli.add_command(monitor_usage)
 cli.add_command(pi_sbatch)
 cli.add_command(cc_sbatch)
 cli.add_command(merge_dirs)
