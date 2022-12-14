@@ -17,7 +17,7 @@ source ~/.bashrc
 conda activate panqec
 
 # Variables to change.
-data_dir='temp/toric-2d-code'
+data_dir='/home/ucapacp/panqec/temp/toric-2d-code'
 delete_existing=true
 n_trials=1000
 n_cores=8
@@ -28,6 +28,7 @@ i_node=$SGE_TASK_ID
 log_dir="$data_dir/logs"
 mkdir -p $log_dir
 
+# Option to delete existing experiments, passed as an argument to run-parallel
 delete_option=""
 if $delete_existing; then
     delete_option="--delete-existing";
