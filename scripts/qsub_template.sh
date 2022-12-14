@@ -33,11 +33,11 @@ run_command="panqec run-parallel -d $experiment_dir -n $n_nodes -j $i_node -c $n
 if $delete_existing; then
     run_command=run_command" --delete-existing";
 fi
-monitor_command="panqec monitor-usage "$log_dir/usage_${JOB_ID}_${i_node}.txt" &"
+monitor_command="panqec monitor-usage "$log_dir/usage_${JOB_ID}_${i_node}.txt
 
 echo "Node: $i_node / $n_nodes"
 
-$monitor_command
+$monitor_command &
 $bash_command
 
 date

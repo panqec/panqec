@@ -160,7 +160,7 @@ class TestBatchSimulationOneFile():
         assert len(results) == 2
         expected_input_keys = [
             'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
-            'probability'
+            'error_rate'
         ]
         expected_results_keys = [
             'effective_error', 'success', 'codespace', 'wall_time',
@@ -236,7 +236,7 @@ def test_merge_results():
                 'd': -1,
                 'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
                 'decoder': 'BP-OSD decoder',
-                'probability': 0.05
+                'error_rate': 0.05
             }
         },
         {
@@ -254,7 +254,7 @@ def test_merge_results():
                 'd': -1,
                 'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
                 'decoder': 'BP-OSD decoder',
-                'probability': 0.05
+                'error_rate': 0.05
             }
         }
     ]
@@ -273,7 +273,7 @@ def test_merge_results():
             'd': -1,
             'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
             'decoder': 'BP-OSD decoder',
-            'probability': 0.05
+            'error_rate': 0.05
         }
     }
 

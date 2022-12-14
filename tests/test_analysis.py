@@ -145,19 +145,19 @@ class TestAnalysis:
         results_path = os.path.join(DATA_DIR, 'toric')
         assert os.path.exists(results_path)
         analysis = Analysis(results_path, overrides={'overrides': [
-            {'filters': {'bias': 'inf'}, 'truncate': {'probability': {
+            {'filters': {'bias': 'inf'}, 'truncate': {'error_rate': {
                 'min': 0.06, 'max': 0.14,
             }}},
         ]})
         analysis.analyze()
         results_required = [
             'code', 'error_model', 'decoder',
-            'probability',
+            'error_rate',
             'p_est', 'n_trials', 'n_fail',
         ]
         assert set(analysis.results.columns) == set([
             'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
-            'probability', 'wall_time', 'n_trials', 'n_fail',
+            'error_rate', 'wall_time', 'n_trials', 'n_fail',
             'effective_error', 'success', 'codespace', 'bias', 'results_file',
             'p_est', 'p_se', 'p_word_est', 'p_word_se', 'single_qubit_p_est',
             'single_qubit_p_se', 'code_family', 'error_model_family',
@@ -211,13 +211,13 @@ class TestAnalysis:
             {'filters': {'bias': 0.5}, 'skip': True},
             {'filters': {'bias': 'inf'}, 'skip': True},
             {'filters': {'bias': 10}, 'truncate': {
-                'probability': {'min': 0.18, 'max': 0.28}
+                'error_rate': {'min': 0.18, 'max': 0.28}
             }},
             {'filters': {'bias': 10}, 'sector': 'X', 'truncate': {
-                'probability': {'min': 0.20, 'max': 0.40}
+                'error_rate': {'min': 0.20, 'max': 0.40}
             }},
             {'filters': {'bias': 10}, 'sector': 'Z', 'truncate': {
-                'probability': {'min': 0.18, 'max': 0.28}
+                'error_rate': {'min': 0.18, 'max': 0.28}
             }},
         ]})
         analysis.analyze()
@@ -239,11 +239,11 @@ class TestAnalysis:
 
         # Check the custom sector-by-sector truncation was done correctly.
         epsilon = 1e-5
-        p_X = analysis.sectors['X']['trunc_results']['probability'].unique()
+        p_X = analysis.sectors['X']['trunc_results']['error_rate'].unique()
         assert all(p_X <= 0.40 + epsilon)
         assert all(0.20 - epsilon <= p_X)
 
-        p_Z = analysis.sectors['Z']['trunc_results']['probability'].unique()
+        p_Z = analysis.sectors['Z']['trunc_results']['error_rate'].unique()
         assert all(p_Z <= 0.28 + epsilon)
         assert all(0.18 - epsilon <= p_Z)
 
@@ -251,7 +251,7 @@ class TestAnalysis:
         results_path = os.path.join(DATA_DIR, 'toric')
         analysis = Analysis(results_path, overrides={'overrides': [
             {'filters': {'bias': 0.5}, 'skip': True},
-            {'filters': {'bias': 'inf'}, 'truncate': {'probability': {
+            {'filters': {'bias': 'inf'}, 'truncate': {'error_rate': {
                 'min': 0.06, 'max': 0.14,
             }}},
         ]})
@@ -262,7 +262,7 @@ class TestAnalysis:
     def test_replace_threshold_with_given_value(self):
         results_path = os.path.join(DATA_DIR, 'toric')
         analysis = Analysis(results_path, overrides={'overrides': [
-            {'filters': {'bias': 'inf'}, 'truncate': {'probability': {
+            {'filters': {'bias': 'inf'}, 'truncate': {'error_rate': {
                 'min': 0.06, 'max': 0.14,
             }}},
             {
@@ -311,7 +311,7 @@ class TestAnalysis:
             'decoder': 'BP-OSD decoder',
             'bias': 1000,
             'code': 'Toric 9x9x9',
-            'probability': 0.18
+            'error_rate': 0.18
           },
           {
             'code_family': 'Toric',
@@ -319,7 +319,7 @@ class TestAnalysis:
             'decoder': 'BP-OSD decoder',
             'bias': 30,
             'code': 'Toric 9x9x9',
-            'probability': 0.1
+            'error_rate': 0.1
           },
           {
             'code_family': 'Toric',
@@ -327,7 +327,7 @@ class TestAnalysis:
             'decoder': 'BP-OSD decoder',
             'bias': 'inf',
             'code': 'Toric 9x9x9',
-            'probability': 0.204
+            'error_rate': 0.204
           }
         ])
         analysis.overrides_spec = {
@@ -339,7 +339,7 @@ class TestAnalysis:
                         'decoder': 'BP-OSD decoder'
                     },
                     'truncate': {
-                        'probability': [0.1, 0.2]
+                        'error_rate': [0.1, 0.2]
                     }
                 }
             ]
@@ -351,7 +351,7 @@ class TestAnalysis:
                     'Toric', 'Deformed XZZX Pauli X0.0161Y0.0161Z0.9677',
                     'BP-OSD decoder'
                 ): {
-                    'probability': [0.1, 0.2]
+                    'error_rate': [0.1, 0.2]
                 }
             }
 
@@ -363,7 +363,7 @@ def test_convert_missing_to_input():
         'error_model': 'Deformed Checkerboard XZZX'
                        'Rhombic Pauli X0.3333Y0.3333Z0.3333',
         'decoder': 'BP-OSD decoder',
-        'probability': 0.01,
+        'error_rate': 0.01,
         'code_family': 'Rhombic',
         'error_model_family': 'Deformed Rhombic Pauli',
         'bias': 0.5,
@@ -396,7 +396,7 @@ def test_convert_missing_to_input():
                 'osd_order': 0
             }
         },
-        'probability': 0.01,
+        'error_rate': 0.01,
         'trials': 4774,
     }
     analysis = Analysis()
