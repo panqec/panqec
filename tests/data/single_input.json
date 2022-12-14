@@ -7,14 +7,14 @@
         "name": "Toric3DCode",
         "parameters": {"L_x": 3}
       },
-      "noise": {
+      "error_model": {
         "name": "PauliErrorModel",
         "parameters": {"r_x": 1, "r_y": 0, "r_z": 0}
       },
       "decoder": {
         "name": "SweepMatchDecoder"
       },
-      "probability": 0.1,
+      "error_rate": 0.1,
       "n_runs": 10
     }
   ]

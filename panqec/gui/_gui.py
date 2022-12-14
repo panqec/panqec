@@ -12,9 +12,8 @@ from panqec.codes import (
 )
 from panqec.decoders import (
     MatchingDecoder, RotatedSweepMatchDecoder,
-    ZMatchingDecoder, SweepMatchDecoder,
-    BeliefPropagationOSDDecoder, MemoryBeliefPropagationDecoder,
-    XCubeMatchingDecoder
+    SweepMatchDecoder, BeliefPropagationOSDDecoder,
+    MemoryBeliefPropagationDecoder, XCubeMatchingDecoder
 )
 from panqec.error_models import PauliErrorModel
 
@@ -48,7 +47,6 @@ decoders = {'BP-OSD': BeliefPropagationOSDDecoder,
             'SweepMatch': SweepMatchDecoder,
             'RotatedSweepMatch': RotatedSweepMatchDecoder,
             'Matching': MatchingDecoder,
-            'Optimal ∞ bias': ZMatchingDecoder,
             'XCube Matching': XCubeMatchingDecoder}
 
 

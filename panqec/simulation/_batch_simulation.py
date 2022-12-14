@@ -6,7 +6,6 @@ import gzip
 from json import JSONDecodeError
 import itertools
 from typing import List, Dict, Callable, Union, Any, Optional, Tuple, Iterable
-import datetime
 import numpy as np
 import pandas as pd
 from panqec.codes import StabilizerCode
@@ -75,48 +74,33 @@ def run_once(
 
 
 def run_file(
-    file_name: str, n_trials: int,
-    start: Optional[int] = None,
-    n_runs: Optional[int] = None,
+    input_file: str,
+    output_file: str,
+    n_trials: int,
     progress: Callable = identity,
-    output_dir: Optional[str] = None,
     verbose: bool = True,
-    onefile: bool = True,
 ):
     """Run an input json file.
 
     Parameters
     ----------
-    file_name : str
+    input_file : str
         Path to the input json file.
+    output_file: str
+        Path to the json file that will contain the results.
     n_trials : int
         The number of MCMC trials to do.
-    start : Optional[int]
-        If given, then instead of running all simulations in the sense of
-        `simulations` only run `simulations[start:start + n_runs]`.
-    n_runs : Optional[int]
-        If given, then instead of running all simulations in the sense of
-        `simulations` only run `simulations[start:start + n_runs]`.
     progress : Callable
         Callable function
-    output_dir: Optional[str]
-        Directory to store the result json file
     verbose: bool,
         Verbosity of the output
-    onefile : bool
-        If set to True, then all outputs get written to one file.
-
     Returns
     -------
     None
     """
-    print(f"Run file {file_name}")
+    print(f"Run file {input_file}")
 
-    batch_sim = read_input_json(
-        file_name, output_dir=output_dir,
-        start=start, n_runs=n_runs,
-        onefile=onefile
-    )
+    batch_sim = read_input_json(input_file, output_file)
 
     if verbose:
         print(f'running {len(batch_sim._simulations)} simulations:')
@@ -530,9 +514,7 @@ def read_input_json(file_path: str, *args, **kwargs) -> BatchSimulation:
     return read_input_dict(data, *args, **kwargs)
 
 
-def get_runs(
-    data: dict, start: Optional[int] = None, n_runs: Optional[int] = None
-) -> List[dict]:
+def get_runs(data: dict) -> List[dict]:
     """Get expanded runs from input dictionary."""
 
     runs = []
@@ -540,12 +522,6 @@ def get_runs(
         runs = data['runs']
     if 'ranges' in data:
         runs += expand_input_ranges(data['ranges'])
-
-    # Filter the range of runs.
-    if start is not None:
-        runs = runs[start:]
-        if n_runs is not None:
-            runs = runs[:n_runs]
 
     return runs
 
@@ -558,15 +534,12 @@ def count_runs(file_path: str) -> Optional[int]:
     n_runs = None
     with open(file_path) as f:
         data = json.load(f)
-    all_runs = get_runs(data, start=None, n_runs=None)
+    all_runs = get_runs(data)
     n_runs = len(all_runs)
     return n_runs
 
 
-def get_simulations(
-    data: dict, start: Optional[int] = None, n_runs: Optional[int] = None,
-    verbose: bool = True
-) -> List[BaseSimulation]:
+def get_simulations(data: dict, verbose: bool = True) -> List[BaseSimulation]:
     simulations: List[BaseSimulation] = []
 
     method = 'direct'
@@ -629,18 +602,11 @@ def get_simulations(
                 verbose=verbose, **method_params
             ))
 
-    if start is not None:
-        simulations = simulations[start:]
-    if n_runs is not None:
-        simulations = simulations[:n_runs]
-
     return simulations
 
 
 def read_input_dict(
     data: dict,
-    start: Optional[int] = None,
-    n_runs: Optional[int] = None,
     verbose: bool = True,
     *args, **kwargs
 ) -> BatchSimulation:
@@ -650,13 +616,6 @@ def read_input_dict(
     ----------
     data : dict
         Data that has been parsed from an input json file.
-    start : Optional[int]
-        Restrict the BatchSimulation skip this number of simulations.
-        This is useful if you want a batch simulation with
-        `simulations[start:start + n_runs]`.
-    n_runs : Optional[int]
-        Return this many simulations in the returned BatchSimulation.
-
     Returns
     -------
     batch_simulation : BatchSimulation
@@ -697,8 +656,7 @@ def read_input_dict(
     batch_sim = BatchSimulation(*args, **kwargs)
     assert len(batch_sim._simulations) == 0
 
-    simulations = get_simulations(data, start=start, n_runs=n_runs,
-                                  verbose=verbose)
+    simulations = get_simulations(data, verbose=verbose)
 
     for sim in simulations:
         batch_sim.append(sim)

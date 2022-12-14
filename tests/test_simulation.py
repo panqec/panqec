@@ -41,8 +41,8 @@ def test_read_json_input(file_name, expected_runs):
     parameters = [
         {
             'code': list(s.code.size),
-            'noise': s.error_model.direction,
-            'probability': s.error_rate
+            'error_model': s.error_model.direction,
+            'error_rate': s.error_rate
         }
         for s in batch_simulation._simulations
     ]

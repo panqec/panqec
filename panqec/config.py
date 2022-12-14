@@ -16,8 +16,7 @@ from .codes import (
 )
 from .decoders import (
     SweepMatchDecoder, XCubeMatchingDecoder,
-    RotatedSweepMatchDecoder, RotatedInfiniteZBiasDecoder,
-    FoliatedMatchingDecoder
+    RotatedSweepMatchDecoder
 )
 from .decoders import BeliefPropagationOSDDecoder
 from .decoders import MemoryBeliefPropagationDecoder
@@ -77,10 +76,8 @@ DECODERS: Dict[str, Any] = {
     'MatchingDecoder': MatchingDecoder,
     'SweepMatchDecoder': SweepMatchDecoder,
     'RotatedSweepMatchDecoder': RotatedSweepMatchDecoder,
-    'FoliatedMatchingDecoder': FoliatedMatchingDecoder,
     'BeliefPropagationOSDDecoder': BeliefPropagationOSDDecoder,
     'MemoryBeliefPropagationDecoder': MemoryBeliefPropagationDecoder,
-    'RotatedInfiniteZBiasDecoder': RotatedInfiniteZBiasDecoder,
     'XCubeMatchingDecoder': XCubeMatchingDecoder
 }
 

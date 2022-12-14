@@ -3,8 +3,7 @@ import numpy as np
 from panqec.codes import Toric3DCode, StabilizerCode
 from panqec.error_models import PauliErrorModel
 from panqec.decoders import (
-    SweepDecoder3D, SweepMatchDecoder,
-    MatchingDecoder, FoliatedMatchingDecoder
+    SweepDecoder3D, SweepMatchDecoder, MatchingDecoder
 )
 
 
@@ -387,57 +386,6 @@ class TestMatchingXNoiseOnYZEdgesOnly:
                 edge not in correction_pauli
                 or correction_pauli[edge] == 'I'
                 for edge in x_edges
-            ), 'No corrections should be on x edges'
-
-            assert np.any([
-                correction_pauli[edge] != 'I'
-                for edge in y_edges + z_edges
-                if edge in correction_pauli
-            ]), 'Non-trivial corrections should be on the y and z edges'
-
-
-class TestFoliatedDecoderXNoiseOnYZEdgesOnly:
-
-    def test_decode(self, code):
-        for seed in range(5):
-            rng = np.random.default_rng(seed=seed)
-            error_rate = 0.5
-            error_model = XNoiseOnYZEdgesOnly()
-            decoder = FoliatedMatchingDecoder(code, error_model, error_rate)
-            error = error_model.generate(
-                code, error_rate=error_rate, rng=rng
-            )
-            assert any(error), 'Error should be non-trivial'
-            syndrome = code.measure_syndrome(error)
-            correction = decoder.decode(syndrome)
-            assert any(correction), 'Correction should be non-trivial'
-            total_error = (correction + error) % 2
-            assert np.all(
-                code.measure_syndrome(total_error) == 0
-            ), 'Total error should be in code space'
-
-            # Error and correction as objects.
-            error_pauli = code.from_bsf(error)
-            correction_pauli = code.from_bsf(correction)
-
-            x_edges, y_edges, z_edges = [
-                [
-                    edge for edge in code.qubit_coordinates
-                    if code.qubit_axis(edge) == axis
-                ]
-                for axis in ['x', 'y', 'z']
-            ]
-
-            assert np.all(
-                edge not in error_pauli or
-                error_pauli[edge] == 'I'
-                for edge in x_edges
-            ), 'No errors should be on x edges'
-
-            assert np.all(
-                edge not in correction_pauli or
-                correction_pauli[edge] == 'I'
-                for edge in y_edges
             ), 'No corrections should be on x edges'
 
             assert np.any([

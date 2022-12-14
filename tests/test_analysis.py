@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from panqec.analysis import (
     get_subthreshold_fit_function, get_single_qubit_error_rate, Analysis,
-    deduce_bias, fill_between_values, count_fails
+    deduce_bias, count_fails
 )
 from panqec.simulation import read_input_json
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
@@ -107,7 +107,7 @@ class TestAnalysis:
     def test_save_and_load_analysis(self, tmpdir):
         results_path = os.path.join(DATA_DIR, 'toric')
         analysis = Analysis(results_path, overrides={'overrides': [
-            {'filters': {'bias': 'inf'}, 'truncate': {'probability': {
+            {'filters': {'bias': 'inf'}, 'truncate': {'error_rate': {
                 'min': 0.06, 'max': 0.14,
             }}},
         ]})
@@ -379,7 +379,7 @@ def test_convert_missing_to_input():
             'name': 'RhombicToricCode',
             'parameters': {'L_x': 10}
         },
-        'noise': {
+        'error_model': {
             'name': 'PauliErrorModel',
             'parameters': {
                 'r_x': 0.3333333333333333,
@@ -416,25 +416,7 @@ def test_deduce_bias(error_model, bias):
     assert bias == deduce_bias(error_model)
 
 
-class TestFillBetweenValues:
-
-    @pytest.mark.parametrize('old_values,n_target,new_values', [
-        ([1, 2.1, 4], 4, [1, 2.1, 3, 4]),
-        ([1, 2, 4, 5, 7, 8], 8, [1, 2, 3, 4, 5, 6, 7, 8]),
-    ])
-    def test_easy_cases(self, old_values, n_target, new_values):
-        assert new_values == fill_between_values(old_values, n_target)
-        assert set(old_values).issubset(new_values)
-
-    def test_long_array_does_not_change(self):
-        old_values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-        n_target = 8
-        new_values = fill_between_values(old_values, n_target)
-        assert new_values == old_values
-
-
 class TestCountFails:
-
     def test_easy_case(self):
         effective_error = np.array([
             [0, 1, 1, 1, 0, 1],

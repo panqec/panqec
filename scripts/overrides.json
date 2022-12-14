@@ -24,7 +24,7 @@
       },
       "sector": "Z",
       "truncate": {
-        "probability": {"min": 0.19, "max": 0.23}
+        "error_rate": {"min": 0.19, "max": 0.23}
       }
     },
     {
@@ -35,7 +35,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.19, "max": 0.29}
+        "error_rate": {"min": 0.19, "max": 0.29}
       }
     },
     {
@@ -46,7 +46,7 @@
         "decoder": "Deformed Toric 3D Sweep Pymatching Decoder"
       },
       "truncate": {
-        "probability": {"min": 0.18, "max": 0.24}
+        "error_rate": {"min": 0.18, "max": 0.24}
       }
     },
     {
@@ -57,7 +57,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.15, "max": 0.20}
+        "error_rate": {"min": 0.15, "max": 0.20}
       }
     },
     {
@@ -69,7 +69,7 @@
       },
       "sector": "Z",
       "truncate": {
-        "probability": {"min": 0.19, "max": 0.23}
+        "error_rate": {"min": 0.19, "max": 0.23}
       }
     },
     {
@@ -80,7 +80,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.10, "max": 0.14}
+        "error_rate": {"min": 0.10, "max": 0.14}
       }
     },
     {
@@ -91,7 +91,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.07, "max": 0.09}
+        "error_rate": {"min": 0.07, "max": 0.09}
       }
     },
     {
@@ -102,7 +102,7 @@
         "decoder": "Deformed Toric 3D Sweep Pymatching Decoder"
       },
       "truncate": {
-        "probability": {"min": 0.06, "max": 0.10}
+        "error_rate": {"min": 0.06, "max": 0.10}
       }
     },
     {
@@ -113,7 +113,7 @@
         "decoder": "Deformed Toric 3D Sweep Pymatching Decoder"
       },
       "truncate": {
-        "probability": {"min": 0.04, "max": 0.06}
+        "error_rate": {"min": 0.04, "max": 0.06}
       }
     },
     {
@@ -124,7 +124,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.05, "max": 0.075}
+        "error_rate": {"min": 0.05, "max": 0.075}
       }
     },
     {
@@ -135,7 +135,7 @@
         "decoder": "Deformed Toric 3D Sweep Pymatching Decoder"
       },
       "truncate": {
-        "probability": {"min": 0.04, "max": 0.05}
+        "error_rate": {"min": 0.04, "max": 0.05}
       }
     },
     {
@@ -146,7 +146,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.20, "max": 0.23}
+        "error_rate": {"min": 0.20, "max": 0.23}
       }
     },
     {
@@ -157,7 +157,7 @@
         "decoder": "Toric 3D Sweep Pymatching Decoder"
       },
       "truncate": {
-        "probability": {"min": 0.13, "max": 0.16}
+        "error_rate": {"min": 0.13, "max": 0.16}
       }
     },
     {
@@ -168,7 +168,7 @@
         "decoder": "Toric 3D Sweep Pymatching Decoder"
       },
       "truncate": {
-        "probability": {"min": 0.12, "max": 0.18}
+        "error_rate": {"min": 0.12, "max": 0.18}
       },
       "skip": true
     },
@@ -180,7 +180,7 @@
         "decoder": "Toric 3D Sweep Pymatching Decoder"
       },
       "truncate": {
-        "probability": {"min": 0.13, "max": 0.17}
+        "error_rate": {"min": 0.13, "max": 0.17}
       },
       "skip": true
     },
@@ -192,7 +192,7 @@
         "decoder": "Toric 3D Sweep Pymatching Decoder"
       },
       "truncate": {
-        "probability": {"min": 0.13, "max": 0.17}
+        "error_rate": {"min": 0.13, "max": 0.17}
       }
     },
     {
@@ -203,7 +203,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.20, "max": 0.235}
+        "error_rate": {"min": 0.20, "max": 0.235}
       }
     },
     {
@@ -214,7 +214,7 @@
         "decoder": "Toric 3D Sweep Pymatching Decoder"
       },
       "truncate": {
-        "probability": {"min": 0.13, "max": 0.17}
+        "error_rate": {"min": 0.13, "max": 0.17}
       }
     },
     {
@@ -225,7 +225,7 @@
         "decoder": "Toric 3D Sweep Pymatching Decoder"
       },
       "truncate": {
-        "probability": {"min": 0.13, "max": 0.18}
+        "error_rate": {"min": 0.13, "max": 0.18}
       }
     },
     {
@@ -236,7 +236,7 @@
         "decoder": "Toric 3D Sweep Pymatching Decoder"
       },
       "truncate": {
-        "probability": {"min": 0.10, "max": 0.14}
+        "error_rate": {"min": 0.10, "max": 0.14}
       }
     },
     {
@@ -248,7 +248,7 @@
       },
       "sector": "X",
       "truncate": {
-        "probability": {"min": 0.10, "max": 0.14}
+        "error_rate": {"min": 0.10, "max": 0.14}
       }
     },
     {
@@ -260,7 +260,7 @@
       },
       "sector": "Z",
       "truncate": {
-        "probability": {"min": 0.15, "max": 0.18}
+        "error_rate": {"min": 0.15, "max": 0.18}
       }
     },
     {
@@ -271,7 +271,7 @@
         "decoder": "Toric 3D Sweep Pymatching Decoder"
       },
       "truncate": {
-        "probability": {"min": 0.04, "max": 0.07}
+        "error_rate": {"min": 0.04, "max": 0.07}
       }
     },
     {
@@ -282,7 +282,7 @@
         "decoder": "Toric 3D Sweep Pymatching Decoder"
       },
       "truncate": {
-        "probability": {"min": 0.03, "max": 0.05}
+        "error_rate": {"min": 0.03, "max": 0.05}
       }
     },
     {
@@ -293,7 +293,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.01, "max": 0.017}
+        "error_rate": {"min": 0.01, "max": 0.017}
       }
     },
     {
@@ -304,7 +304,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.025, "max": 0.035}
+        "error_rate": {"min": 0.025, "max": 0.035}
       }
     },
     {
@@ -315,7 +315,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.05, "max": 0.07}
+        "error_rate": {"min": 0.05, "max": 0.07}
       }
     },
     {
@@ -326,7 +326,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.06, "max": 0.12}
+        "error_rate": {"min": 0.06, "max": 0.12}
       }
     },
     {
@@ -337,7 +337,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.16, "max": 0.24}
+        "error_rate": {"min": 0.16, "max": 0.24}
       }
     },
     {
@@ -357,7 +357,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.010, "max": 0.020}
+        "error_rate": {"min": 0.010, "max": 0.020}
       }
     },
     {
@@ -368,7 +368,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.025, "max": 0.050}
+        "error_rate": {"min": 0.025, "max": 0.050}
       }
     },
     {
@@ -379,7 +379,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.07, "max": 0.13}
+        "error_rate": {"min": 0.07, "max": 0.13}
       }
     },
     {
@@ -390,7 +390,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.14, "max": 0.17}
+        "error_rate": {"min": 0.14, "max": 0.17}
       }
     },
     {
@@ -401,7 +401,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.14, "max": 0.23}
+        "error_rate": {"min": 0.14, "max": 0.23}
       }
     },
     {
@@ -421,7 +421,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.27, "max": 0.31}
+        "error_rate": {"min": 0.27, "max": 0.31}
       }
     },
     {
@@ -432,7 +432,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.27, "max": 0.31}
+        "error_rate": {"min": 0.27, "max": 0.31}
       }
     },
     {
@@ -443,7 +443,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.27, "max": 0.31}
+        "error_rate": {"min": 0.27, "max": 0.31}
       }
     },
     {
@@ -454,7 +454,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.12, "max": 0.22}
+        "error_rate": {"min": 0.12, "max": 0.22}
       }
     },
     {
@@ -465,7 +465,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.12, "max": 0.19}
+        "error_rate": {"min": 0.12, "max": 0.19}
       }
     },
     {
@@ -476,7 +476,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.08, "max": 0.13}
+        "error_rate": {"min": 0.08, "max": 0.13}
       }
     },
     {
@@ -487,7 +487,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.06, "max": 0.11}
+        "error_rate": {"min": 0.06, "max": 0.11}
       }
     },
     {
@@ -499,7 +499,7 @@
       },
       "sector": "X",
       "truncate": {
-        "probability": {"min": 0.06, "max": 0.13}
+        "error_rate": {"min": 0.06, "max": 0.13}
       }
     },
     {
@@ -511,7 +511,7 @@
       },
       "sector": "Z",
       "truncate": {
-        "probability": {"min": 0.13, "max": 0.18}
+        "error_rate": {"min": 0.13, "max": 0.18}
       }
     },
     {
@@ -522,7 +522,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.05, "max": 0.09}
+        "error_rate": {"min": 0.05, "max": 0.09}
       }
     },
     {
@@ -533,7 +533,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.035, "max": 0.055}
+        "error_rate": {"min": 0.035, "max": 0.055}
       }
     },
     {
@@ -545,7 +545,7 @@
       },
       "sector": "X",
       "truncate": {
-        "probability": {"min": 0.035, "max": 0.065}
+        "error_rate": {"min": 0.035, "max": 0.065}
       }
     },
     {
@@ -556,7 +556,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.08, "max": 0.105}
+        "error_rate": {"min": 0.08, "max": 0.105}
       }
     },
     {
@@ -567,7 +567,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.08, "max": 0.105},
+        "error_rate": {"min": 0.08, "max": 0.105},
         "d": {"min": 13}
       }
     },
@@ -579,7 +579,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.08, "max": 0.11},
+        "error_rate": {"min": 0.08, "max": 0.11},
         "d": {"min": 13}
       }
     },
@@ -591,7 +591,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.08, "max": 0.11},
+        "error_rate": {"min": 0.08, "max": 0.11},
         "d": {"min": 13}
       }
     },
@@ -603,7 +603,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.10, "max": 0.12}
+        "error_rate": {"min": 0.10, "max": 0.12}
       }
     },
     {
@@ -614,7 +614,7 @@
         "decoder": "BP-OSD decoder"
       },
       "truncate": {
-        "probability": {"min": 0.03, "max": 0.055}
+        "error_rate": {"min": 0.03, "max": 0.055}
       }
     }
   ]

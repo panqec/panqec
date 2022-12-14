@@ -109,14 +109,14 @@ class Analysis:
     # which is visualized as a point with error bars in the logical vs physical
     # error rate crossing plots to extract thresholds from.
     POINT_KEYS: List[str] = [
-        'code', 'error_model', 'decoder', 'probability'
+        'code', 'error_model', 'decoder', 'error_rate'
     ]
 
     SECTOR_KEYS: List[str] = ['total', 'X', 'Z']
 
     # Quality targets that are to be met.
     targets: Dict[str, Any] = {
-        'n_probability': 8,
+        'n_error_rates': 8,
         'n_trials': 10000,
     }
 
@@ -435,7 +435,7 @@ class Analysis:
         # Convert to DataFrame to conserve memory.
         self.raw = pd.DataFrame(entries)
 
-        # Round probability to six digits, because anything smaller than that
+        # Round error_rate to six digits, because anything smaller than that
         # is likely numerical error.
         self.raw['error_rate'] = self.raw['error_rate'].round(6)
 
@@ -703,15 +703,15 @@ class Analysis:
 
                 # Initialize to max limits and reuse crossover.
                 entry.update({
-                    'p_left': df_filt['probability'].min(),
-                    'p_right': df_filt['probability'].max(),
+                    'p_left': df_filt['error_rate'].min(),
+                    'p_right': df_filt['error_rate'].max(),
                     'p_th_sd': entry['p_th_nearest'],
                 })
 
                 # Use the overrides to refine limits if available.
-                if 'probability' in self.overrides[sector][param_set]:
+                if 'error_rate' in self.overrides[sector][param_set]:
                     tolerance = 1e-9
-                    p_trunc = self.overrides[sector][param_set]['probability']
+                    p_trunc = self.overrides[sector][param_set]['error_rate']
                     if 'min' in p_trunc and p_trunc['min'] is not None:
                         entry['p_left'] = p_trunc['min'] - tolerance
                     if 'max' in p_trunc and p_trunc['max'] is not None:
@@ -971,25 +971,25 @@ class Analysis:
         quality : pd.DataFrame
             Summary of data quality metric for each input family as index,
             in particular the minimum number of trials for any data point in
-            the input family and the number of probability values for that
+            the input family and the number of error_rate values for that
             input family that actually got used in the analysis.
         """
 
         # Quality of data as measured by number of trials and number
-        # of unique probability values for this family of inputs.
+        # of unique error_rate values for this family of inputs.
         quality = pd.concat([
             self.trunc_results.groupby(self.FAMILY_KEYS)['n_trials'].min(),
             self.trunc_results.groupby(self.FAMILY_KEYS)[[
-                'probability'
+                'error_rate'
             ]].aggregate(pd.Series.nunique).rename(
-                columns={'probability': 'n_probability'}
+                columns={'error_rates': 'n_error_rates'}
             ),
         ], axis=1)
 
         # Check whether the quality targets are met for each input.
         quality['pass'] = (
             (quality['n_trials'] >= self.targets['n_trials'])
-            & (quality['n_probability'] >= self.targets['n_probability'])
+            & (quality['n_error_rates'] >= self.targets['n_error_rates'])
         )
         return quality
 
@@ -1169,7 +1169,7 @@ class Analysis:
             (df['code_family'] == code_family)
             & (df['error_model'] == error_model)
             & (df['decoder'] == decoder)
-        ].sort_values(by='probability')
+        ].sort_values(by='error_rate')
         bias = df_filt_1['bias'].iloc[0]
 
         if sector is None:
@@ -1184,23 +1184,23 @@ class Analysis:
         for size in np.sort(df_filt_1['size'].unique()):
             df_filt = df_filt_1[
                 df_filt_1['code_params'] == size
-            ].sort_values(by='probability')
+            ].sort_values(by='error_rate')
             trunc_results = self.sectors[sector_key]['trunc_results']
             df_filt_trunc = trunc_results[
                 (trunc_results['size'] == size)
                 & (trunc_results['code_family'] == code_family)
                 & (trunc_results['error_model'] == error_model)
                 & (trunc_results['decoder'] == decoder)
-            ].sort_values(by='probability')
+            ].sort_values(by='error_rate')
 
             # Draw gray circle underneath plots which are actually used for
             # the finite-size scaling.
             plt.plot(
-                df_filt_trunc['probability'],
+                df_filt_trunc['error_rate'],
                 df_filt_trunc[p_est_label], 'o', color='gray'
             )
             plt.errorbar(
-                df_filt['probability'], df_filt[p_est_label],
+                df_filt['error_rate'], df_filt[p_est_label],
                 yerr=df_filt[p_se_label],
                 capsize=5,
                 label=f'$L={size[0]}$'
@@ -1286,7 +1286,7 @@ class Analysis:
             (df['code_family'] == code_family)
             & (df['error_model'] == error_model)
             & (df['decoder'] == decoder)
-        ].sort_values(by='probability')
+        ].sort_values(by='error_rate')
         bias = df_filt_1['bias'].iloc[0]
 
         fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 4))
@@ -1294,22 +1294,22 @@ class Analysis:
         for size in np.sort(df_filt_1['size'].unique()):
             df_filt = df_filt_1[
                 df_filt_1['size'] == size
-            ].sort_values(by='probability')
+            ].sort_values(by='error_rate')
             df_filt_trunc = self.trunc_results[
                 (self.trunc_results['size'] == size)
                 & (self.trunc_results['code_family'] == code_family)
                 & (self.trunc_results['error_model'] == error_model)
                 & (self.trunc_results['decoder'] == decoder)
-            ].sort_values(by='probability')
+            ].sort_values(by='error_rate')
 
             # Draw gray circle underneath plots which are actually used for the
             # finite-size scaling.
             plt.plot(
-                df_filt_trunc['probability'],
+                df_filt_trunc['error_rate'],
                 df_filt_trunc['p_est'], 'o', color='gray'
             )
             plt.errorbar(
-                df_filt['probability'], df_filt['p_est'],
+                df_filt['error_rate'], df_filt['p_est'],
                 yerr=df_filt['p_se'],
                 capsize=5,
                 label=f'$L={size[0]}$'
@@ -1884,7 +1884,7 @@ def extract_logical_rates(input_file, output_dir):
         entry = {
             'label': batch_sim.label,
             'noise_direction': sim.error_model.direction,
-            'probability': batch_result['probability'],
+            'error_rate': batch_result['error_rate'],
             'size': batch_result['size'],
             'n': batch_result['n'],
             'k': batch_result['k'],
@@ -1940,12 +1940,12 @@ def get_p_th_sd_interp(
     Parameters
     ----------
     df_filt : pd.DataFrame
-        Results with columns: 'probability', 'code', `p_est`.
-        The 'probability' column is the physical error rate p.
+        Results with columns: 'error_rate', 'code', `p_est`.
+        The 'error_rate' column is the physical error rate p.
         The 'code' column is the code label.
         The `p_est` column is the logical error rate.
     p_nearest : Optional[float]
-        A hint for the nearest 'probability' value that is close to the
+        A hint for the nearest 'error_rate' value that is close to the
         threshold, to be used as a starting point for searching.
     p_est : str
         The column in the `df_filt` DataFrame that is to be used as the logical
@@ -1968,8 +1968,8 @@ def get_p_th_sd_interp(
 
     # Points to interpolate at.
     interp_res = 0.001
-    p_min = df_filt['probability'].min()
-    p_max = df_filt['probability'].max()
+    p_min = df_filt['error_rate'].min()
+    p_max = df_filt['error_rate'].max()
     if p_nearest is not None:
         if p_nearest > p_min:
             p_max = min(p_max, p_nearest*2)
@@ -1983,11 +1983,11 @@ def get_p_th_sd_interp(
     curves = {}
     for code in df_filt['code'].unique():
         df_filt_code = df_filt[df_filt['code'] == code].sort_values(
-            by='probability'
+            by='error_rate'
         )
         if df_filt_code.shape[0] > 1:
             interpolator = interp1d(
-                df_filt_code['probability'], df_filt_code[p_est],
+                df_filt_code['error_rate'], df_filt_code[p_est],
                 fill_value="extrapolate"
             )
             curves[code] = interpolator(p_interp)
@@ -2125,8 +2125,8 @@ def get_p_th_nearest(df_filt: pd.DataFrame, p_est: str = 'p_est') -> float:
     Parameters
     ----------
     df_filt : pd.DataFrame
-        Results with columns: 'probability', 'code', `p_est`.
-        The 'probability' column is the physical error rate p.
+        Results with columns: 'error_rate', 'code', `p_est`.
+        The 'error_rate' column is the physical error rate p.
         The 'code' column is the code label.
         The `p_est` column is the logical error rate.
     p_est : str
@@ -2136,7 +2136,7 @@ def get_p_th_nearest(df_filt: pd.DataFrame, p_est: str = 'p_est') -> float:
     Returns
     -------
     p_th_nearest : float
-        The value in the `probability` that is apparently the closes to the
+        The value in the `error_rate` that is apparently the closes to the
         threshold.
     """
     code_df = get_code_df(df_filt)
@@ -2144,7 +2144,7 @@ def get_p_th_nearest(df_filt: pd.DataFrame, p_est: str = 'p_est') -> float:
     # Estimate the threshold by where the order of the lines change.
     p_est_df = pd.DataFrame({
         code: dict(df_filt[df_filt['code'] == code][[
-            'probability', p_est
+            'error_rate', p_est
         ]].values)
         for code in code_df['code']
     })
@@ -2263,17 +2263,17 @@ def fit_fss_params(
     Parameters
     ----------
     df_filt : pd.DataFrame
-        Results with columns: 'probability', 'code', `p_est`, `n_trials_label`,
+        Results with columns: 'error_rate', 'code', `p_est`, `n_trials_label`,
         `n_fail_label`.
-        The 'probability' column is the physical error rate p.
+        The 'error_rate' column is the physical error rate p.
         The 'code' column is the code label.
         The `p_est` column is the logical error rate.
     p_left_val : float
-        The left left value of 'probability' to truncate.
+        The left left value of 'error_rate' to truncate.
     p_right_val : float
-        The left right value of 'probability' to truncate.
+        The left right value of 'error_rate' to truncate.
     p_nearest : float
-        The nearest value of 'probability' to what was previously roughly
+        The nearest value of 'error_rate' to what was previously roughly
         estimated to be the threshold.
     n_bs : int
         The number of bootstrap samples to take.
@@ -2301,19 +2301,19 @@ def fit_fss_params(
         The truncated DataFrame used for performing the curve fitting.
     """
 
-    # Truncate error probability between values.
+    # Truncate error rate between values.
     df_trunc = df_filt[
-        (p_left_val <= df_filt['probability'])
-        & (df_filt['probability'] <= p_right_val)
+        (p_left_val <= df_filt['error_rate'])
+        & (df_filt['error_rate'] <= p_right_val)
     ].copy()
     df_trunc = df_trunc.dropna(subset=[p_est])
 
     d_list = df_trunc['d'].values
-    p_list = df_trunc['probability'].values
+    p_list = df_trunc['error_rate'].values
     f_list = df_trunc[p_est].values
 
     # Initial parameters to optimize.
-    f_0 = df_trunc[df_trunc['probability'] == p_nearest][p_est].mean()
+    f_0 = df_trunc[df_trunc['error_rate'] == p_nearest][p_est].mean()
     if pd.isna(f_0):
         f_0 = df_trunc[p_est].mean()
     params_0 = [p_nearest, 2, f_0, 1, 1]
@@ -2697,11 +2697,11 @@ def subthreshold_scaling(results_df, chosen_probabilities=None):
     This was a legacy method where we tried many different fitting ansatzs.
     """
     if chosen_probabilities is None:
-        chosen_probabilities = np.sort(results_df['probability'].unique())
+        chosen_probabilities = np.sort(results_df['error_rate'].unique())
     sts_properties = []
-    for probability in chosen_probabilities:
+    for error_rate in chosen_probabilities:
         df_filt = results_df[
-            np.isclose(results_df['probability'], probability)
+            np.isclose(results_df['error_rate'], error_rate)
         ].copy()
         df_filt['d'] = df_filt['size'].apply(lambda x: min(x))
         df_filt = df_filt[df_filt['d'] > 2]
@@ -2749,7 +2749,7 @@ def subthreshold_scaling(results_df, chosen_probabilities=None):
         # The slope of the linear fit.
         linear_fit_gradient = linear_coefficients[-1]
         sts_properties.append({
-            'probability': probability,
+            'error_rate': error_rate,
             'd': d_values,
             'p_est': p_est_values,
             'p_se': p_se_values,
@@ -2757,7 +2757,7 @@ def subthreshold_scaling(results_df, chosen_probabilities=None):
             'quadratic_coefficients': quadratic_coefficients,
             'cubic_coefficients': cubic_coefficients,
             'linear_fit_gradient': linear_fit_gradient,
-            'log_p_on_1_minus_p': np.log(probability/(1 - probability)),
+            'log_p_on_1_minus_p': np.log(error_rate/(1 - error_rate)),
         })
 
     gradient_coefficients = polyfit(
@@ -2772,7 +2772,7 @@ def subthreshold_scaling(results_df, chosen_probabilities=None):
 def fit_subthreshold_scaling_cubic(results_df, order=3, ansatz='poly'):
     """Get fit parameters for subthreshold scaling ansatz."""
     log_p_L = np.log(results_df['p_est'].values)
-    log_p = np.log(results_df['probability'].values)
+    log_p = np.log(results_df['error_rate'].values)
     L = results_df['size'].apply(lambda x: min(x))
 
     if ansatz == 'free_power':

@@ -10,7 +10,7 @@
         {"L_x": 5}
       ]
     },
-    "noise": {
+    "error_model": {
       "name": "PauliErrorModel",
       "parameters": [
         {"r_x": 1, "r_y": 0, "r_z": 0},
@@ -21,7 +21,7 @@
     "decoder": {
       "name": "SweepMatchDecoder"
     },
-    "probability": [0.1, 0.2, 0.3],
+    "error_rate": [0.1, 0.2, 0.3],
     "n_runs": 10
   }
 }
