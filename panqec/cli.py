@@ -279,7 +279,7 @@ def analyze(paths, overrides, plot_dir):
 @click.argument('log_file', type=str, required=True)
 @click.option(
     '-i', '--interval', default=10, type=click.INT,
-    show_default=True, required=True
+    show_default=True
 )
 def monitor_usage(log_file: str, interval: float = 10):
     """Continously monitor CPU usage by logging to file at intervals.
