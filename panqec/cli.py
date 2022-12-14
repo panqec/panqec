@@ -167,7 +167,7 @@ def run_parallel(
         max_n_digits = len(str(n_tasks))
         result_file = os.path.abspath(os.path.join(
             result_dir,
-            f"results_{str(i_task+1).zfill(max_n_digits)}.json"
+            f"results_{str(i_task+1).zfill(max_n_digits)}.json.gz"
         ))
 
         if delete_existing and os.path.exists(result_file):
