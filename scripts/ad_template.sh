@@ -79,7 +79,7 @@ function filter_input {
 
     # Number of tasks assigned to this node so far.
     tasks_assigned=0
-    
+
     # Iterate through files in the input directory.
     for filename in $input_dir/*.json; do
 

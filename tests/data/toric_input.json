@@ -4,7 +4,7 @@
     {
       "label": "toric2d_bitflip",
       "code": {
-        "model": "Toric2DCode",
+        "name": "Toric2DCode",
         "parameters": [
           {"L_x": 4},
           {"L_x": 6},
@@ -12,13 +12,13 @@
         ]
       },
       "noise": {
-        "model": "PauliErrorModel",
+        "name": "PauliErrorModel",
         "parameters": [
           {"r_x": 1, "r_y": 0, "r_z": 0}
         ]
       },
       "decoder": {
-        "model": "BeliefPropagationOSDDecoder",
+        "name": "BeliefPropagationOSDDecoder",
         "parameters": {
           "max_bp_iter": 1000,
           "osd_order": 0
@@ -32,7 +32,7 @@
     {
       "label": "toric3d_bias_10",
       "code": {
-        "model": "Toric3DCode",
+        "name": "Toric3DCode",
         "parameters": [
           {"L_x": 4},
           {"L_x": 6},
@@ -40,7 +40,7 @@
         ]
       },
       "noise": {
-        "model": "PauliErrorModel",
+        "name": "PauliErrorModel",
         "parameters": [
           {
             "r_x": 0.04545454545454547,
@@ -50,7 +50,7 @@
         ]
       },
       "decoder": {
-        "model": "BeliefPropagationOSDDecoder",
+        "name": "BeliefPropagationOSDDecoder",
         "parameters": {
           "max_bp_iter": 1000,
           "osd_order": 0
@@ -66,7 +66,7 @@
     {
       "label": "toric2d_depolarizing",
       "code": {
-        "model": "Toric2DCode",
+        "name": "Toric2DCode",
         "parameters": [
           {"L_x": 4},
           {"L_x": 6},
@@ -74,13 +74,13 @@
         ]
       },
       "noise": {
-        "model": "PauliErrorModel",
+        "name": "PauliErrorModel",
         "parameters": [
           {"r_x": 0.333333333, "r_y": 0.333333333, "r_z": 0.333333333}
         ]
       },
       "decoder": {
-        "model": "BeliefPropagationOSDDecoder",
+        "name": "BeliefPropagationOSDDecoder",
         "parameters": {
           "max_bp_iter": 1000,
           "osd_order": 0

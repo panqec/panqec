@@ -3,7 +3,7 @@
   "ranges": {
     "label": "test_range",
     "code": {
-      "model": "Toric3DCode",
+      "name": "Toric3DCode",
       "parameters": [
         {"L_x": 3},
         {"L_x": 4},
@@ -11,7 +11,7 @@
       ]
     },
     "noise": {
-      "model": "PauliErrorModel",
+      "name": "PauliErrorModel",
       "parameters": [
         {"r_x": 1, "r_y": 0, "r_z": 0},
         {"r_x": 0.5, "r_y": 0, "r_z": 0.5},
@@ -19,7 +19,7 @@
       ]
     },
     "decoder": {
-      "model": "SweepMatchDecoder"
+      "name": "SweepMatchDecoder"
     },
     "probability": [0.1, 0.2, 0.3],
     "n_runs": 10

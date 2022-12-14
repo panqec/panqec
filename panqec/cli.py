@@ -3,6 +3,7 @@ from typing import Optional, List, Dict, Tuple
 import click
 import panqec
 from tqdm import tqdm
+import shutil
 import numpy as np
 import json
 from json.decoder import JSONDecodeError
@@ -88,16 +89,22 @@ def run(
 @click.option(
     '-c', '--n_cores', default=None, type=click.INT, show_default=True
 )
+@click.option(
+    '--delete-existing', is_flag=True, default=False, show_default=True,
+    help="Delete existing results folder in the data directory"
+)
 def run_parallel(
     data_dir: str,
     trials: int,
     n_nodes: int,
     job_idx: int,
     n_cores: Optional[int],
+    delete_existing: bool
 ):
     """Run panqec jobs in parallel"""
 
-    input_dir = f"{data_dir}/inputs"
+    input_dir = os.path.join(data_dir, "inputs")
+    result_dir = os.path.join(data_dir, "results")
 
     i_node = job_idx - 1
 
@@ -154,19 +161,26 @@ def run_parallel(
         filename = list_inputs[i_input]
         input_name = os.path.basename(filename)
 
-        # Split the results over directories results_1, results_2, etc.
-        results_dir = f"results_{str(i_task).zfill(3)}"
-        os.makedirs(os.path.join(data_dir, results_dir), exist_ok=True)
+        # Split the results over files results_1.json, results_2.json, etc.
+        max_n_digits = len(str(n_tasks))
+        result_dir = os.path.abspath(os.path.join(
+            data_dir,
+            f"results_{str(i_task+1).zfill(max_n_digits)}"
+        ))
 
-        print(f"{input_name}\t{results_dir}\t{n_runs}")
+        if delete_existing and os.path.exists(result_dir):
+            shutil.rmtree(result_dir)
+
+        os.makedirs(result_dir, exist_ok=True)
+
+        print(f"{input_name}\t{result_dir}\t{n_runs}")
 
         input_file = os.path.abspath(os.path.join(input_dir, input_name))
-        output_dir = os.path.abspath(os.path.join(data_dir, results_dir))
 
         proc = multiprocessing.Process(
             target=run_file,
             args=(input_file, n_runs),
-            kwargs={'output_dir': output_dir, 'progress': tqdm}
+            kwargs={'output_dir': result_dir, 'progress': tqdm}
         )
         procs.append(proc)
         proc.start()
@@ -178,17 +192,17 @@ def run_parallel(
 
 @click.command()
 @click.argument('model_type', required=False, type=click.Choice(
-    ['codes', 'noise', 'decoders'],
+    ['codes', 'error_models', 'decoders'],
     case_sensitive=False
 ))
 def ls(model_type=None):
-    """List available codes, noise models and decoders."""
+    """List available codes, error models and decoders."""
     if model_type is None or model_type == 'codes':
         print('Codes:')
         print('\n'.join([
             '    ' + name for name in sorted(CODES.keys())
         ]))
-    if model_type is None or model_type == 'noise':
+    if model_type is None or model_type == 'error_models':
         print('Error Models (Noise):')
         print('\n'.join([
             '    ' + name for name in sorted(ERROR_MODELS.keys())
@@ -373,7 +387,7 @@ def generate_input(
     Example:
     panqec generate-input -i data/toric-3d-code/ \\
             --code_class Toric3DCode \\
-            --noise_class Toric3D
+            --noise_class PauliErrorModel
             -r equal \\
             -s 2,4,6,8 --decoder BeliefPropagationOSDDecoder \\
             --bias Z --eta '10,100,1000,inf' \\
@@ -382,7 +396,7 @@ def generate_input(
     input_dir = os.path.join(data_dir, 'inputs')
     os.makedirs(input_dir, exist_ok=True)
 
-    probabilities = read_range_input(prob)
+    error_rates = read_range_input(prob)
     bias_ratios = read_bias_ratios(eta)
 
     for eta in bias_ratios:
@@ -401,7 +415,7 @@ def generate_input(
             ]
 
         code_dict = {
-            "model": code_class,
+            "name": code_class,
             "parameters": code_parameters
         }
 
@@ -409,8 +423,8 @@ def generate_input(
         if deformation_name is not None:
             noise_parameters['deformation_name'] = deformation_name
 
-        noise_dict = {
-            "model": noise_class,
+        error_model_dict = {
+            "name": noise_class,
             "parameters": noise_parameters
         }
 
@@ -429,7 +443,7 @@ def generate_input(
             'parameters': method_parameters
         }
 
-        decoder_dict = {"model": decoder_class,
+        decoder_dict = {"name": decoder_class,
                         "parameters": decoder_parameters}
 
         if label is None:
@@ -440,20 +454,14 @@ def generate_input(
         ranges_dict = {"label": label,
                        "method": method_dict,
                        "code": code_dict,
-                       "noise": noise_dict,
+                       "error_model": error_model_dict,
                        "decoder": decoder_dict,
-                       "probability": probabilities}
+                       "error_rate": error_rates}
 
         json_dict = {"comments": "",
                      "ranges": ranges_dict}
 
-        proposed_filename = os.path.join(input_dir, f'{label}.json')
-
-        filename = proposed_filename
-        i = 0
-        while os.path.exists(filename):
-            filename = proposed_filename + f'_{i:02d}'
-            i += 1
+        filename = os.path.join(input_dir, f'{label}.json')
 
         with open(filename, 'w') as json_file:
             json.dump(json_dict, json_file, indent=4)

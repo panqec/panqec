@@ -3,7 +3,7 @@
   "ranges": {
     "label": "foliated_X_yz_01",
     "code": {
-      "model": "Toric3DCode",
+      "name": "Toric3DCode",
       "parameters": [
         {"L_x": 4},
         {"L_x": 6},
@@ -13,10 +13,10 @@
       ]
     },
     "noise": {
-      "model": "XNoiseOnYZEdgesOnly"
+      "name": "XNoiseOnYZEdgesOnly"
     },
     "decoder": {
-      "model": "FoliatedMatchingDecoder"
+      "name": "FoliatedMatchingDecoder"
     },
     "probability": [
       0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10,

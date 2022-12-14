@@ -90,8 +90,8 @@ class Analysis:
 
     # Set of parameters that are unique to each input.
     INPUT_KEYS: List[str] = [
-        'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
-        'probability'
+        'code_str', 'error_model_str', 'error_rate', 'decoder_str',
+        'method_str'
     ]
 
     # Set of parameters that identifies a family for the threshold vs bias
@@ -141,7 +141,8 @@ class Analysis:
 
     def __init__(
         self, results: Union[str, List[str]] = [], verbose: bool = True,
-        overrides: Optional[Union[str, dict]] = None
+        overrides: Optional[Union[str, dict]] = None,
+        progress: Optional[Callable] = identity
     ):
         self.results_paths = []
         if isinstance(results, list):
@@ -170,6 +171,19 @@ class Analysis:
 
         self.sectors = dict()
 
+        self.find_files()
+        self.count_files()
+        self.read_files(progress=progress)
+        self.aggregate()
+        self.apply_overrides()
+        self.calculate_total_error_rates()
+        self.calculate_word_error_rates()
+        self.calculate_single_qubit_error_rates()
+        self.reorder_columns()
+
+    def get_results(self, progress: Optional[Callable] = identity):
+        return self._results
+
     def _load_results_df(self, data: dict) -> pd.DataFrame:
         """Load dict into results DataFrame."""
         results = pd.DataFrame(data)
@@ -181,7 +195,7 @@ class Analysis:
         """Load previous analysis from .json.gz file."""
         with gzip.open(path, 'rb') as gz:
             data = json.loads(gz.read().decode('utf-8'))
-        self.results = self._load_results_df(data['results'])
+        self._results = self._load_results_df(data['results'])
         self.trunc_results = self._load_results_df(data['trunc_results'])
         self.thresholds = pd.DataFrame(data['thresholds'])
         for k in ['fss_params', 'params_bs']:
@@ -206,7 +220,7 @@ class Analysis:
             'trunc_results': self.trunc_results.drop(
                 drop_columns, axis=1
             ).to_dict(),
-            'results': self.results.drop(drop_columns, axis=1).to_dict(),
+            'results': self._results.drop(drop_columns, axis=1).to_dict(),
             'thresholds': self.thresholds.to_dict(),
             'sectors': {
                 sector: {
@@ -246,12 +260,12 @@ class Analysis:
                 if 'filters' in override and override['filters']:
                     filter_index = None
                     for key, value in override['filters'].items():
-                        extra_index = self.results[key] == value
+                        extra_index = self._results[key] == value
                         if filter_index is None:
                             filter_index = extra_index
                         else:
                             filter_index = filter_index & extra_index
-                    parameter_sets = self.results[filter_index][[
+                    parameter_sets = self._results[filter_index][[
                         'code_family', 'error_model', 'decoder'
                     ]].drop_duplicates().values
                     for triple in parameter_sets:
@@ -423,14 +437,22 @@ class Analysis:
 
         # Round probability to six digits, because anything smaller than that
         # is likely numerical error.
-        self.raw['probability'] = self.raw['probability'].round(6)
+        self.raw['error_rate'] = self.raw['error_rate'].round(6)
 
     def aggregate(self):
         """Aggregate the raw data into results attribute."""
         self.log('Aggregating data')
 
         # Input keys by which data is to be grouped.
-        grouped_df = self.raw.groupby(self.INPUT_KEYS)
+        grouped_df = self.raw.assign(
+            code_str=self.raw['code'].astype('str'),
+            decoder_str=self.raw['decoder'].astype('str'),
+            error_model_str=self.raw['error_model'].astype('str'),
+            method_str=self.raw['method'].astype('str'),
+        ).groupby(
+            self.INPUT_KEYS
+        )
+        # grouped_df = self.raw.groupby(self.INPUT_KEYS)
 
         # Columns for which grouped values are to be summed.
         added_columns = grouped_df[[
@@ -445,28 +467,58 @@ class Analysis:
         # Columns to be grouped and turned into lists.
         list_columns = grouped_df[['results_file']].aggregate(list)
 
+        remaining_columns = grouped_df[
+            ['code', 'error_model', 'decoder', 'method']
+        ].first()
+
         # Stack the columns together side by side to form a big table.
-        self.results = pd.concat([
-            added_columns, concat_columns, list_columns
+        self._results = pd.concat([
+            added_columns, concat_columns, list_columns,
+            remaining_columns
         ], axis=1).reset_index()
 
         # Count the number of fails, later used for error bars.
-        self.results['n_fail'] = (
-            self.results['n_trials'] - self.results['success'].apply(sum)
+        self._results['n_fail'] = (
+            self._results['n_trials'] - self._results['success'].apply(sum)
         )
 
-        # Classify codes by code family for threshold analysis.
-        self.results['code_family'] = self.results['code'].apply(
-            infer_code_family
-        )
-
-        # Classify the error model by family for threshold analysis.
-        self.results['error_model_family'] = self.results['error_model'].apply(
-            infer_error_model_family
+        self._results.drop(
+            ['code_str', 'decoder_str', 'error_model_str', 'method_str'],
+            axis=1, inplace=True
         )
 
         # Deduce the bias.
-        self.results['bias'] = self.results['error_model'].apply(deduce_bias)
+        self._results['bias'] = self._results['error_model'].apply(deduce_bias)
+
+        # Put useful parameters as their own columns
+        for col in ['n', 'k', 'd']:
+            self._results[col] = self._results['code'].apply(lambda x: x[col])
+
+        # Separate model names from parameters
+        for s in ['code', 'decoder', 'error_model', 'method']:
+            self._results[f'{s}_params'] = self._results[s].apply(
+                lambda x: x['parameters']
+            )
+            self._results[s] = self._results[s].apply(lambda x: x['name'])
+
+    def reorder_columns(self):
+        """Reorder the columns of the results dataframe for a more
+        relevant display when printing it"""
+
+        ordered_columns = [
+            'code', 'n', 'k', 'd', 'bias',
+            'error_rate', 'n_trials', 'p_est', 'p_se', 'p_word_est',
+            'p_word_se', 'single_qubit_p_est', 'single_qubit_p_se',
+            'success', 'codespace', 'code_params', 'decoder',
+            'decoder_params', 'error_model', 'error_model_params',
+            'method', 'method_params', 'results_file', 'wall_time'
+        ]
+
+        # Intersection of the proposed columns and the existing ones
+        for col in ordered_columns:
+            if col not in self._results.columns:
+                ordered_columns.remove(col)
+        self._results = self._results[ordered_columns]
 
     def calculate_total_error_rates(self):
         """Calculate the total error rate.
@@ -476,13 +528,13 @@ class Analysis:
         self.log('Calculating total error rates')
         estimates_list = []
         uncertainties_list = []
-        for i_entry, entry in self.results.iterrows():
+        for i_entry, entry in self._results.iterrows():
             estimator = 1 - entry['success'].mean()
             uncertainty = get_standard_error(estimator, entry['n_trials'])
             estimates_list.append(estimator)
             uncertainties_list.append(uncertainty)
-        self.results['p_est'] = estimates_list
-        self.results['p_se'] = uncertainties_list
+        self._results['p_est'] = estimates_list
+        self._results['p_se'] = uncertainties_list
 
     def calculate_word_error_rates(self):
         """Calculate the word error rate using the formula.
@@ -490,12 +542,12 @@ class Analysis:
         The formula assumes a uniform error rate across all logical qubits.
         """
         self.log('Calculating word error rates')
-        p_est = self.results['p_est']
-        p_se = self.results['p_se']
-        k = self.results['k']
+        p_est = self._results['p_est']
+        p_se = self._results['p_se']
+        k = self._results['k']
         p_word_est, p_word_se = get_word_error_rate(p_est, p_se, k)
-        self.results['p_word_est'] = p_word_est
-        self.results['p_word_se'] = p_word_se
+        self._results['p_word_est'] = p_word_est
+        self._results['p_word_se'] = p_word_se
 
     def calculate_single_qubit_error_rates(self):
         """Add single error rate estimates and uncertainties to results.
@@ -516,7 +568,7 @@ class Analysis:
         # Calculate single-qubit error rates.
         estimates_list = []
         uncertainties_list = []
-        for i_entry, entry in self.results.iterrows():
+        for i_entry, entry in self._results.iterrows():
             estimates = np.zeros((entry['k'], 4))
             uncertainties = np.zeros((entry['k'], 4))
             for i in range(entry['k']):
@@ -528,8 +580,8 @@ class Analysis:
                     uncertainties[i, i_pauli] = uncertainty
             estimates_list.append(estimates)
             uncertainties_list.append(estimates)
-        self.results['single_qubit_p_est'] = estimates_list
-        self.results['single_qubit_p_se'] = uncertainties_list
+        self._results['single_qubit_p_est'] = estimates_list
+        self._results['single_qubit_p_se'] = uncertainties_list
 
     def calculate_thresholds(
         self,
@@ -578,17 +630,17 @@ class Analysis:
         """
         sector = 'total' if sector is None else sector
 
-        results_df = self.results
+        results_df = self._results
 
         # Intialize the lists.
         entries = []
         df_trunc_list = []
 
         # List of triples that identifies each parameter set,
-        param_keys = ['code_family', 'error_model', 'decoder']
+        param_keys = ['code', 'error_model', 'decoder']
         parameter_sets: List[Tuple] = [
             tuple(param_set)
-            for param_set in self.results[
+            for param_set in self._results[
                 param_keys
             ].drop_duplicates().sort_values(by=param_keys).values
         ]
@@ -830,23 +882,23 @@ class Analysis:
             # symplectic matrix in the corresponding sector,
             # that is the number of valid trials times the number of logical
             # qubits.
-            self.results[n_trials_label] = self.results['k']*(
-                self.results['codespace'].apply(sum)
+            self._results[n_trials_label] = self._results['k']*(
+                self._results['codespace'].apply(sum)
             )
 
             # Count the number of fails.
-            self.results[n_fail_label] = self.results[[
+            self._results[n_fail_label] = self._results[[
                 'effective_error', 'codespace'
             ]].apply(lambda row: count_fails(*row, sector), axis=1)
 
             # Use the mean as best estimator.
-            self.results[p_est_label] = self.results[n_fail_label]/(
-                self.results[n_trials_label]
+            self._results[p_est_label] = self._results[n_fail_label]/(
+                self._results[n_trials_label]
             )
 
             # Get the standard error as well.
-            self.results[p_se_label] = get_standard_error(
-                self.results[p_est_label], self.results[n_trials_label]
+            self._results[p_se_label] = get_standard_error(
+                self._results[p_est_label], self._results[n_trials_label]
             )
 
             # Calculate the thresholds for this sector only.
@@ -890,7 +942,7 @@ class Analysis:
             for sector in self.sectors
         ], axis=0).drop_duplicates().values))
 
-        self.trunc_results = self.results.groupby(self.POINT_KEYS).first().loc[
+        self.trunc_results = self._results.groupby(self.POINT_KEYS).first().loc[
             used_points
         ].reset_index().sort_values(by=self.POINT_KEYS)
 
@@ -940,274 +992,6 @@ class Analysis:
             & (quality['n_probability'] >= self.targets['n_probability'])
         )
         return quality
-
-    def get_missing_points(self, digits: int = 3):
-        """Table with missing data points.
-
-        Parameters
-        ----------
-        digits : int
-            Number of digits to round to for missing values of probability.
-
-        Returns
-        -------
-        missing : pd.DataFrame
-            Index is (code, error_model, decoder, probability),
-            columns are 'code_family', 'error_model_family', 'bias', 'd',
-            'n_trials', 'n_missing'.
-            n_missing is the number of missing trials that must be sampled in
-            order to meet the quality targets.
-        """
-
-        # Start with table of all available data points so far.
-        missing = self.trunc_results[[
-            'code_family', 'error_model_family', 'bias',
-            'code', 'error_model', 'decoder',
-            'probability', 'd', 'n_trials'
-        ]].copy()
-        missing = missing.groupby(self.POINT_KEYS).first()
-
-        # Extra probability values that are missing due to insufficient range.
-        extra_missing_entries = []
-        quality = self.get_quality_metrics()
-        bad_quality_family_keys = quality[
-            quality['n_probability'] < self.targets['n_probability']
-        ].index
-        for index in bad_quality_family_keys:
-            decoder, code_family, error_model_family, bias = index
-            existing_results = self.trunc_results[
-                (self.trunc_results[self.FAMILY_KEYS] == index).all(axis=1)
-            ]
-            d_values = existing_results['d'].unique()
-
-            # Sorted list of existing probability values.
-            probability_values = sorted(
-                existing_results['probability'].unique().tolist()
-            )
-
-            # Fill probability values in between if not enough.
-            new_probability_values = fill_between_values(
-                probability_values, self.targets['n_probability'],
-                digits=digits
-            )
-
-            for d, probability in product(d_values, new_probability_values):
-                code = existing_results[
-                    existing_results['d'] == d
-                ]['code'].iloc[0]
-                error_model = existing_results['error_model'].iloc[0]
-                missing_index = (code, error_model, decoder, probability)
-                if missing_index not in missing.index:
-                    extra_missing_entries.append({
-                        'code': code,
-                        'error_model': error_model,
-                        'decoder': decoder,
-                        'probability': probability,
-                        'code_family': code_family,
-                        'error_model_family': error_model_family,
-                        'bias': bias,
-                        'd': d,
-                        'n_trials': 0,
-                    })
-        if extra_missing_entries:
-            extra_missing = pd.DataFrame(extra_missing_entries)
-            extra_missing = extra_missing.groupby(self.POINT_KEYS).first()
-            missing = pd.concat([missing, extra_missing], axis=0)
-
-        # Calculate the number of missing trials for each data point.
-        missing['n_missing'] = missing['n_trials'].apply(
-            lambda n: max(self.targets['n_trials'] - n, 0)
-        )
-
-        # Calculate the remaining run times too.
-        times = self.get_run_times()
-        missing['time_per_trial'] = missing.reset_index()[[
-            'code', 'error_model', 'decoder'
-        ]].apply(tuple, axis=1).map(
-            dict(zip(times.index, times.time_per_trial))
-        ).values
-
-        missing['time_remaining'] = pd.to_timedelta(
-            missing['time_per_trial']*missing['n_missing'], unit='s'
-        )
-        return missing
-
-    def get_run_times(self) -> pd.DataFrame:
-        """Table of run times for each parameter set."""
-        times_group = self.results.groupby([
-            'code', 'error_model', 'decoder', 'probability'
-        ])
-        times_df = pd.concat([
-            times_group['wall_time'].sum(),
-            times_group['n_trials'].sum(),
-        ], axis=1)
-        times_df['time_per_trial'] = times_df['wall_time']/times_df['n_trials']
-        times_df = times_df.reset_index().groupby([
-            'code', 'error_model', 'decoder'
-        ]).max()[['time_per_trial']]
-        return times_df
-
-    def generate_missing_inputs(
-        self, path: str, missing: Optional[pd.DataFrame] = None
-    ):
-        """Generate input json files for missing data.
-
-        Parameters
-        ----------
-        path : str
-            Path to input json where missing inputs are to be saved.
-        missing :
-            Filtered DataFrame of missing data points.
-            If not given, input for all missing data points will be generated.
-        """
-
-        if missing is None:
-            missing = self.get_missing_points()
-
-        # Only generate inputs for the actual missing files.
-        missing = missing[missing['n_missing'] > 0]
-
-        # Print number of parameter sets with missing data.
-        n_missing_param_sets = missing.shape[0]
-        self.log(f'{n_missing_param_sets} parameter sets missing data.')
-
-        # Single trial over all missing parameter sets.
-        single_run_time = pd.to_timedelta(
-            missing['time_per_trial'].sum(),
-            unit='s'
-        )
-        self.log(f'Estimated time to run 1 trial: {single_run_time}.')
-
-        n_trials = self.targets['n_trials']
-        self.log(f'Target number of trials per parameter set: {n_trials}')
-
-        # Total run time.
-        total_run_time = single_run_time*n_trials
-        self.log(f'Estimated total run time remaining {total_run_time}')
-
-        # Convert the table to input format.
-        runs = missing.reset_index().apply(
-            lambda entry: self.convert_missing_to_input(dict(entry)),
-            axis=1
-        ).tolist()
-        data = {
-            'comments': 'Autogenerated runs for missing data.',
-            'runs': runs
-        }
-        with open(path, 'w') as f:
-            json.dump(data, f)
-
-    def convert_missing_to_input(self, entry: dict) -> Dict[str, Any]:
-        """Convert entry in missing dictionary to input specification.
-
-        Parameters
-        ----------
-        entry : dict
-            The row of the missing DataFrame.
-
-        Returns
-        -------
-        run : Dict[str, Any]
-            Run that is to be appended to the 'runs' list of an input json
-            file.
-
-        """
-        run: Dict[str, Any] = {
-            'label': 'unlabelled',
-            'code': self._infer_code_input(
-                entry['code_family'], entry['code'], entry['d']
-            ),
-            'noise': self._infer_noise_input(
-                entry['error_model_family'], entry['error_model'],
-                entry['bias']
-            ),
-            'decoder': self._infer_decoder_input(entry['decoder']),
-            'probability': entry['probability'],
-            'trials': entry['n_missing'],
-        }
-        return run
-
-    def _infer_decoder_input(self, decoder: str) -> dict:
-        decoder_class = 'BeliefPropagationOSDDecoder'
-        if decoder == 'Deformed Toric 3D Sweep Pymatching Decoder':
-            decoder_class = 'DeformedSweepMatchDecoder'
-        elif decoder == 'Toric 3D Sweep Pymatching Decoder':
-            decoder_class = 'SweepMatchDecoder'
-        inputs: Dict[str, Any] = {
-            'model': decoder_class
-        }
-        if decoder_class == 'BeliefPropagationOSDDecoder':
-            inputs['parameters'] = {
-                'max_bp_iter': 1000,
-                'osd_order': 0,
-            }
-        return inputs
-
-    def _infer_noise_input(
-        self, error_model_family: str, error_model: str,
-        bias: Union[str, float, int]
-    ) -> dict:
-
-        # Determine the class.
-        error_model_class = 'PauliErrorModel'
-
-        # Determine the parameters using the bias ratio as hint.
-        rounded_noise_direction = deduce_noise_direction(error_model)
-        most_biased_direction = {
-            0: 'X', 1: 'Y', 2: 'Z'
-        }[int(np.argmax(rounded_noise_direction))]
-        eta = np.inf
-        if bias != 'inf':
-            eta = float(bias)
-        parameters = get_direction_from_bias_ratio(
-            most_biased_direction, eta
-        )
-        return {
-            'model': error_model_class,
-            'parameters': parameters,
-        }
-
-    def _infer_code_input(self, code_family: str, code: str, d: int) -> dict:
-        size_match_2d = re.search(r'(\d+)x(\d+)$', code)
-        size_match_3d = re.search(r'(\d+)x(\d+)x(\d+)$', code)
-        code_size = []
-        if size_match_3d:
-            code_size = [size_match_3d.group(i) for i in [1, 2, 3]]
-        elif size_match_2d:
-            code_size = [size_match_2d.group(i) for i in [1, 2]]
-
-        parameters = {'L_x': d}
-        if size_match_3d and (
-            code_size[0] != code_size[1] or code_size[0] != code_size[2]
-        ):
-            parameters = {
-                'L_x': int(code_size[0]),
-                'L_y': int(code_size[1]),
-                'L_z': int(code_size[2]),
-            }
-        if not size_match_3d and size_match_2d and (
-            code_size[0] != code_size[2]
-        ):
-            parameters = {
-                'L_x': int(code_size[0]),
-                'L_y': int(code_size[1])
-            }
-
-        code_class = 'Toric3DCode'
-        if code_family == 'Rhombic':
-            code_class = 'RhombicCode'
-        elif code_family == 'Toric':
-            if size_match_3d:
-                code_class = 'Toric3DCode'
-            else:
-                code_class = 'Toric2DCode'
-        elif code_family == 'XCube':
-            code_class = 'XCubeCode'
-
-        return {
-            'model': code_class,
-            'parameters': parameters,
-        }
 
     def make_plots(self, plot_dir: str, include_date=True):
         """Make and display the plots while saving to directory."""
@@ -1380,7 +1164,7 @@ class Analysis:
             f'Plotting {code_family}, {error_model}, {decoder}, {sector_key}'
         )
 
-        df = self.results
+        df = self._results
         df_filt_1 = df[
             (df['code_family'] == code_family)
             & (df['error_model'] == error_model)
@@ -1399,7 +1183,7 @@ class Analysis:
         plt.sca(ax[0])
         for size in np.sort(df_filt_1['size'].unique()):
             df_filt = df_filt_1[
-                df_filt_1['size'] == size
+                df_filt_1['code_params'] == size
             ].sort_values(by='probability')
             trunc_results = self.sectors[sector_key]['trunc_results']
             df_filt_trunc = trunc_results[
@@ -1497,7 +1281,7 @@ class Analysis:
         """
         import matplotlib.pyplot as plt
 
-        df = self.results
+        df = self._results
         df_filt_1 = df[
             (df['code_family'] == code_family)
             & (df['error_model'] == error_model)
@@ -1715,35 +1499,6 @@ def infer_error_model_family(label: str) -> str:
     direction_pattern = r'X[\d.]+Y[\d.]+Z[\d.]+'
     family = re.sub(direction_pattern, '', family).strip()
     return family
-
-
-def infer_code_family(label: str) -> str:
-    """Infer the code family from the code label.
-
-    Parameters
-    ----------
-    label : str
-        The code label.
-
-    Returns
-    -------
-    family : str
-        The code family.
-        If the code family cannot be inferred,
-        the original code label is returned.
-
-    Examples
-    --------
-    >>> infer_code_family('Toric 4x4')
-    'Toric'
-    >>> infer_code_family('Rhombic 10x10x10')
-    'Rhombic'
-    """
-    family = label
-    dimension_pattern = r'\d+x\d+(x\d+)?'
-    family = re.sub(dimension_pattern, '', family).strip()
-    return family
-
 
 def get_standard_error(estimator, n_samples):
     """Get the standard error of mean estimator.
@@ -3120,14 +2875,13 @@ def read_entry(
             entries += read_entry(sub_data, results_file=results_file)
 
     elif isinstance(data, dict):
-
-        # If requires keys are not there, return empty list.
-        if 'inputs' not in data or 'results' not in data:
-            return []
+        if 'inputs' not in data:
+            raise ValueError('Inputs missing in data')
+        if 'results' not in data:
+            raise ValueError('Results missing in data')
 
         # Add the inputs.
         entry = data['inputs']
-        entry['size'] = tuple(entry['size'])
 
         # Add the results, converting to np arrays where possible.
         entry.update(data['results'])
@@ -3145,20 +2899,12 @@ def read_entry(
         # Count the number of samples
         entry['n_trials'] = len(entry['effective_error'])
 
-        # Deal with legacy names for things.
-        if 'n_k_d' in entry:
-            n_k_d = entry.pop('n_k_d')
-            entry['n'], entry['k'], entry['d'] = n_k_d
-        if 'error_probability' in entry:
-            entry['probability'] = entry.pop('error_probability')
-
         entries.append(entry)
     return entries
 
 
 def deduce_bias(
-    error_model: str, rtol: float = 0.1,
-    results_path: Optional[str] = None
+    error_model: dict, rtol: float = 0.1
 ) -> Union[str, float, int]:
     """Deduce the eta ratio from the noise model label.
 
@@ -3176,87 +2922,28 @@ def deduce_bias(
     """
     eta: Union[str, float, int] = 0
 
-    # Infer the bias from the file path if possible.
-    file_path_match = None
-    if results_path:
-        file_path_match = re.search(r'bias-([\d\.]+|inf)-', results_path)
-
-    if file_path_match:
-        if file_path_match.group(1) == 'inf':
-            eta = 'inf'
-        else:
-            eta = float(file_path_match.group(1))
-            if np.isclose(eta % 1, 0):
-                eta = int(np.round(eta))
-        return eta
-
     # Commonly occuring eta values to snap to.
     common_eta_values = [0.5, 3, 10, 30, 100, 300, 1000]
-    error_model_match = re.search(
-        r'Pauli X([\d\.]+)Y([\d\.]+)Z([\d\.]+)', error_model
+
+    direction = (
+        error_model['parameters']['r_x'],
+        error_model['parameters']['r_y'],
+        error_model['parameters']['r_z'],
     )
-    if error_model_match:
-        direction = np.array([
-            float(error_model_match.group(i))
-            for i in [1, 2, 3]
-        ])
-        r_max = np.max(direction)
-        if r_max == 1:
-            eta = 'inf'
-        else:
-            eta_f: float = r_max/(1 - r_max)
-            common_matches = np.isclose(eta_f, common_eta_values, rtol=rtol)
-            if any(common_matches):
-                eta_f = common_eta_values[
-                    int(np.argwhere(common_matches).flat[0])
-                ]
-            elif np.isclose(eta_f, np.round(eta_f), rtol=rtol):
-                eta_f = int(np.round(eta_f))
-            else:
-                eta_f = np.round(eta_f, 3)
-            eta = eta_f
-    return eta
-
-
-def fill_between_values(old_values, n_target, digits=3):
-    """List of n_target values filled between the given old values.
-
-    Used for suggesting data points to use when missing data,
-    where we want to reuse the old values as much as possible.
-
-    Parameters
-    ----------
-    old_values : list
-        Old values with len < n_target
-    n_target : int
-        The target number of values
-
-    Returns
-    -------
-    new_values : list
-        List of length at least n_target with old_values reused as much as
-        possible.
-    """
-
-    if len(old_values) >= n_target:
-        new_values = list(old_values)
-
+    r_max = np.max(direction)
+    if r_max == 1:
+        eta = 'inf'
     else:
+        eta_f: float = r_max/(1 - r_max)
+        common_matches = np.isclose(eta_f, common_eta_values, rtol=rtol)
+        if any(common_matches):
+            eta_f = common_eta_values[
+                int(np.argwhere(common_matches).flat[0])
+            ]
+        elif np.isclose(eta_f, np.round(eta_f), rtol=rtol):
+            eta_f = int(np.round(eta_f))
+        else:
+            eta_f = np.round(eta_f, 3)
+        eta = eta_f
 
-        # Equally spaced values.
-        linspace_values = np.linspace(
-            min(old_values), max(old_values), n_target
-        ).round(digits).tolist()
-
-        # Add the old values one by one, removing closest linspace value.
-        new_values = []
-        for old_value in old_values:
-            nearest_linspace_value = find_nearest(linspace_values, old_value)
-            linspace_values.remove(nearest_linspace_value)
-            new_values.append(old_value)
-
-        # Add the remaining linspace values not yet removed.
-        new_values += linspace_values
-        new_values.sort()
-
-    return new_values
+    return eta

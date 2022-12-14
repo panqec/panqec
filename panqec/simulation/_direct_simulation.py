@@ -96,9 +96,6 @@ class DirectSimulation(BaseSimulation):
 
         self.decoder = decoder
         self.error_rate = error_rate
-        self.label = '_'.join([
-            code.label, error_model.label, decoder.label, f'{error_rate}'
-        ])
 
         self._results = {
             **self._results,
@@ -108,10 +105,15 @@ class DirectSimulation(BaseSimulation):
         }
         self._inputs = {
             **self._inputs,
-            'decoder': self.decoder.id,
-            'decoder_params': self.decoder.params,
+            'decoder': {
+                'name': self.decoder.id,
+                'parameters': self.decoder.params
+            },
             'error_rate': self.error_rate,
-            'method': 'direct'
+            'method': {
+                'name': 'direct',
+                'parameters': {}
+            }
         }
 
     def _run(self, n_runs: int):
@@ -138,13 +140,6 @@ class DirectSimulation(BaseSimulation):
         else:
             n_fail = 0
         simulation_data = {
-            'size': self.code.size,
-            'code': self.code.label,
-            'n': self.code.n,
-            'k': self.code.k,
-            'd': self.code.d,
-            'error_model': self.error_model.label,
-            'probability': self.error_rate,
             'n_success': np.sum(success),
             'n_fail': n_fail,
             'n_runs': len(success),

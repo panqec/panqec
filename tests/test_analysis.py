@@ -376,11 +376,11 @@ def test_convert_missing_to_input():
     expected_entry = {
         'label': 'unlabelled',
         'code': {
-            'model': 'RhombicToricCode',
+            'name': 'RhombicToricCode',
             'parameters': {'L_x': 10}
         },
         'noise': {
-            'model': 'PauliErrorModel',
+            'name': 'PauliErrorModel',
             'parameters': {
                 'r_x': 0.3333333333333333,
                 'r_y': 0.33333333333333337,
@@ -390,7 +390,7 @@ def test_convert_missing_to_input():
             }
         },
         'decoder': {
-            'model': 'BeliefPropagationOSDDecoder',
+            'name': 'BeliefPropagationOSDDecoder',
             'parameters': {
                 'max_bp_iter': 1000,
                 'osd_order': 0

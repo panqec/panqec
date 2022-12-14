@@ -4,15 +4,15 @@
     {
       "label": "test_single",
       "code": {
-        "model": "Toric3DCode",
+        "name": "Toric3DCode",
         "parameters": {"L_x": 3}
       },
       "noise": {
-        "model": "PauliErrorModel",
+        "name": "PauliErrorModel",
         "parameters": {"r_x": 1, "r_y": 0, "r_z": 0}
       },
       "decoder": {
-        "model": "SweepMatchDecoder"
+        "name": "SweepMatchDecoder"
       },
       "probability": 0.1,
       "n_runs": 10
