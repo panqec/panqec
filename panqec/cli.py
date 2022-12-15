@@ -47,8 +47,8 @@ def start_gui(port: Optional[int]):
 
 @click.command()
 @click.pass_context
-@click.option('-f', '--file', 'file_')
-@click.option('-o', '--output_dir', type=click.STRING)
+@click.option('-i', '--input_file', type=str)
+@click.option('-o', '--output_file', type=click.STRING)
 @click.option('-t', '--trials', default=100, type=click.INT, show_default=True)
 @click.option('-s', '--start', default=None, type=click.INT, show_default=True)
 @click.option(
@@ -56,18 +56,17 @@ def start_gui(port: Optional[int]):
 )
 def run(
     ctx,
-    file_: Optional[str],
-    output_dir: Optional[str],
-    trials: int,
-    start: Optional[int] = None,
-    n_runs: Optional[int] = None
+    input_file: Optional[str],
+    output_file: str,
+    trials: int
 ):
     """Run a single job or run many jobs from input file."""
-    if file_ is not None:
+    if input_file is not None:
         run_file(
-            os.path.abspath(file_), trials,
-            start=start, n_runs=n_runs, progress=tqdm,
-            output_dir=output_dir
+            os.path.abspath(input_file),
+            os.path.abspath(output_file),
+            trials,
+            progress=tqdm
         )
     else:
         print(ctx.get_help())
