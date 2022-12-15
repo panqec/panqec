@@ -475,70 +475,47 @@ def slurm(ctx):
 
 
 @click.command()
-@click.option('-o', '--outdir', required=True, type=str, nargs=1)
-@click.argument('dirs', type=click.Path(exists=True), nargs=-1)
-def merge_dirs(outdir, dirs):
+@click.argument(
+    'result-files', type=click.Path(exists=True), nargs=-1, required=True
+)
+@click.option(
+    '-o', '--output_file', type=str, default='merged-results.json.gz',
+    show_default=True
+)
+def merge_results(
+    result_files: str,
+    output_file: str = 'merged-results.json.gz'
+):
     """Merge result directories that had been split into outdir."""
-    os.makedirs(outdir, exist_ok=True)
 
-    if len(dirs) == 0:
-        results_dirs = glob(os.path.join(os.path.dirname(outdir), 'results_*'))
-        results_dirs = [path for path in results_dirs if os.path.isdir(path)]
-        print(results_dirs)
+    # Check that the result files exist and are in the correct format
+    for file in result_files:
+        if not os.path.isfile(file):
+            raise ValueError(f"File {file} not found")
+        if os.path.splitext(file)[-1] not in ['.json', '.gz']:
+            raise ValueError(f"File {file} is not a .json or .json.gz file")
+
+    print(f'Merging {len(result_files)} files to {output_file}')
+    combined_results = []
+    for file in result_files:
+        try:
+            if os.path.splitext(file)[-1] == '.json':
+                with open(file) as f:
+                    combined_results.append(json.load(f))
+            else:
+                with gzip.open(file, 'rb') as gz:
+                    combined_results.append(
+                        json.loads(gz.read().decode('utf-8'))
+                    )
+        except JSONDecodeError:
+            print(f'Error reading {file}, skipping')
+
+    if os.path.splitext(output_file)[-1] == '.json':
+        with open(output_file, 'w') as f:
+            json.dump(combined_results, f)
     else:
-        results_dirs = list(dirs)
-
-    print(f'Merging {len(results_dirs)} dirs into {outdir}')
-    file_lists: Dict[Tuple[str, str], List[str]] = dict()
-    for res_dir in results_dirs:
-        print(res_dir)
-        file_list = glob(os.path.join(res_dir, '*.json'))
-        file_list += glob(os.path.join(res_dir, '*.json.gz'))
-
-        print(file_list)
-        for file_path in file_list:
-            base_name = os.path.basename(file_path)
-            key = (res_dir, base_name)
-            if key not in file_lists:
-                file_lists[key] = []
-            file_lists[key].append(file_path)
-    print(len(file_lists))
-
-    iterator = tqdm(file_lists.items(), total=len(file_lists))
-    for (res_dir, base_name), file_list in iterator:
-        os.makedirs(os.path.join(outdir, res_dir), exist_ok=True)
-        combined_file = os.path.join(outdir, res_dir, base_name)
-
-        results_dicts = []
-        for file_path in file_list:
-            try:
-                if os.path.splitext(file_path)[-1] == '.json':
-                    with open(file_path) as f:
-                        results_dicts.append(json.load(f))
-                else:
-                    with gzip.open(file_path, 'rb') as gz:
-                        results_dicts.append(
-                            json.loads(gz.read().decode('utf-8'))
-                        )
-            except JSONDecodeError:
-                print(f'Error reading {file_path}, skipping')
-
-        # If any combined files, flatten the lists of dicts into dicts.
-        if any(isinstance(element, list) for element in results_dicts):
-            print('test 1')
-            combined_results = merge_lists_of_results_dicts(results_dicts)
-
-        # Otherwise deal with it the old way.
-        else:
-            print('test 2')
-            combined_results = merge_results_dicts(results_dicts)
-
-        if os.path.splitext(file_path)[-1] == '.json':
-            with open(combined_file, 'w') as f:
-                json.dump(combined_results, f)
-        else:
-            with gzip.open(combined_file, 'wb') as gz:
-                gz.write(json.dumps(combined_results).encode('utf-8'))
+        with gzip.open(output_file, 'wb') as gz:
+            gz.write(json.dumps(combined_results).encode('utf-8'))
 
 
 @click.command()
@@ -959,7 +936,7 @@ cli.add_command(generate_input)
 cli.add_command(monitor_usage)
 cli.add_command(pi_sbatch)
 cli.add_command(cc_sbatch)
-cli.add_command(merge_dirs)
+cli.add_command(merge_results)
 cli.add_command(ad_sbatch)
 cli.add_command(generate_cluster_script)
 cli.add_command(umiacs_sbatch)
