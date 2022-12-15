@@ -407,7 +407,9 @@ def _parse_all_ranges(data: dict) -> Tuple[list, list, list, list]:
 
     noise_range: List[Dict] = [{}]
     if 'parameters' in data['error_model']:
-        params_range = _parse_parameters_range(data['error_model']['parameters'])
+        params_range = _parse_parameters_range(
+            data['error_model']['parameters']
+        )
         noise_range = []
         for params in params_range:
             noise_range.append(data['error_model'].copy())

@@ -8,7 +8,7 @@ from panqec.codes import Toric2DCode
 from panqec.decoders import BeliefPropagationOSDDecoder
 from panqec.simulation import (
     read_input_json, run_once, DirectSimulation, expand_input_ranges, run_file,
-    merge_results_dicts, BatchSimulation
+    BatchSimulation
 )
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
