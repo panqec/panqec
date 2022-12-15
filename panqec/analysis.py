@@ -25,8 +25,8 @@ from scipy.signal import argrelextrema
 from .config import SLURM_DIR, SHORT_NAMES, LONG_NAMES
 from .simulation import read_input_json, BatchSimulation
 from .utils import (
-    fmt_uncertainty, NumpyEncoder, identity, find_nearest,
-    get_direction_from_bias_ratio, rescale_prob, fmt_confidence_interval
+    fmt_uncertainty, NumpyEncoder, identity,
+    rescale_prob, fmt_confidence_interval
 )
 from .bpauli import int_to_bvector, bvector_to_pauli_string
 from .plots._threshold import plot_data_collapse, draw_tick_symbol
@@ -942,9 +942,11 @@ class Analysis:
             for sector in self.sectors
         ], axis=0).drop_duplicates().values))
 
-        self.trunc_results = self._results.groupby(self.POINT_KEYS).first().loc[
-            used_points
-        ].reset_index().sort_values(by=self.POINT_KEYS)
+        self.trunc_results = self._results.groupby(
+            self.POINT_KEYS
+        ).first().loc[used_points].reset_index().sort_values(
+            by=self.POINT_KEYS
+        )
 
     def replace_threshold(self, replacement):
         """Format override replace specification for threshold df."""
@@ -1499,6 +1501,7 @@ def infer_error_model_family(label: str) -> str:
     direction_pattern = r'X[\d.]+Y[\d.]+Z[\d.]+'
     family = re.sub(direction_pattern, '', family).strip()
     return family
+
 
 def get_standard_error(estimator, n_samples):
     """Get the standard error of mean estimator.
@@ -2418,32 +2421,6 @@ def get_bias_ratios(noise_direction):
     return eta_x, eta_y, eta_z
 
 
-def deduce_noise_direction(error_model: str) -> Tuple[float, float, float]:
-    """Deduce the noise direction given the error model label.
-
-    Parameters
-    ----------
-    error_model : str
-        Label of the error model.
-
-    Returns
-    -------
-    r_x : float
-        The component in the Pauli X direction.
-    r_y : float
-        The component in the Pauli Y direction.
-    r_z : float
-        The component in the Pauli Z direction.
-    """
-    direction = (0.0, 0.0, 0.0)
-    match = re.search(r'Pauli X([\d\.]+)Y([\d\.]+)Z([\d\.]+)', error_model)
-    if match:
-        direction = (
-            float(match.group(1)), float(match.group(2)), float(match.group(3))
-        )
-    return direction
-
-
 def get_error_model_df(results_df):
     """Get DataFrame error models and noise parameters.
 
@@ -2463,13 +2440,17 @@ def get_error_model_df(results_df):
     """
     if 'noise_direction' not in results_df.columns:
         results_df['noise_direction'] = results_df['error_model'].apply(
-            deduce_noise_direction
+            lambda x: (x['parameters']['r_x'],
+                       x['parameters']['r_y'],
+                       x['parameters']['r_z'])
         )
     error_model_df = results_df[[
         'code_family', 'error_model_family', 'error_model', 'decoder', 'bias'
     ]].drop_duplicates()
     error_model_df['noise_direction'] = error_model_df['error_model'].apply(
-        deduce_noise_direction
+        lambda x: (x['parameters']['r_x'],
+                   x['parameters']['r_y'],
+                   x['parameters']['r_z'])
     )
     error_model_df = error_model_df.sort_values(by='noise_direction')
 

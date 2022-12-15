@@ -119,9 +119,9 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
     @property
     def params(self) -> dict:
         return {
-            'max_bp_iter': self._max_bp_iter,
-            'alpha': self._channel_update,
-            'beta': self._osd_order
+            'max_bp_iter': self.max_bp_iter,
+            'alpha': self.alpha,
+            'beta': self.beta
         }
 
     def get_probabilities(self):

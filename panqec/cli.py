@@ -1,5 +1,5 @@
 import os
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List
 import click
 import panqec
 from tqdm import tqdm
@@ -12,11 +12,11 @@ import time
 import psutil
 import gzip
 from .simulation import (
-    run_file, merge_results_dicts, merge_lists_of_results_dicts
+    run_file
 )
-from .config import CODES, ERROR_MODELS, DECODERS, PANQEC_DIR, BASE_DIR
+from .config import CODES, ERROR_MODELS, DECODERS, PANQEC_DIR
 from .slurm import (
-    generate_sbatch, get_status, generate_sbatch_ad, count_input_runs,
+    get_status, count_input_runs,
     clear_out_folder, clear_sbatch_folder
 )
 from .utils import get_direction_from_bias_ratio
@@ -519,165 +519,6 @@ def merge_results(
 
 
 @click.command()
-@click.argument('sbatch_file', required=True)
-@click.option('-d', '--data_dir', type=click.Path(exists=True), required=True)
-@click.option('-n', '--n_array', default=6, type=click.INT, show_default=True)
-@click.option('-q', '--queue', default='defq', type=str, show_default=True)
-@click.option(
-    '-w', '--wall_time', default='0-20:00', type=str, show_default=True
-)
-@click.option(
-    '-t', '--trials', default='0-20:00', type=str, show_default=True
-)
-@click.option(
-    '-s', '--split', default=1, type=click.INT, show_default=True
-)
-def pi_sbatch(sbatch_file, data_dir, n_array, queue, wall_time, trials, split):
-    """Generate PI-style sbatch file with parallel and array job."""
-    template_file = os.path.join(
-        os.path.dirname(BASE_DIR), 'scripts', 'pi_template.sh'
-    )
-    with open(template_file) as f:
-        text = f.read()
-
-    inputs_dir = os.path.join(data_dir, 'inputs')
-    assert os.path.isdir(inputs_dir), (
-        f'{inputs_dir} missing, please create it and generate inputs'
-    )
-    name = os.path.basename(data_dir)
-    replace_map = {
-        '${TRIALS}': trials,
-        '${DATADIR}': data_dir,
-        '${TIME}': wall_time,
-        '${NAME}': name,
-        '${NARRAY}': str(n_array),
-        '${QUEUE}': queue,
-        '${SPLIT}': str(split),
-    }
-    for template_string, value in replace_map.items():
-        text = text.replace(template_string, value)
-
-    with open(sbatch_file, 'w') as f:
-        f.write(text)
-    print(f'Wrote to {sbatch_file}')
-
-
-@click.command()
-@click.argument('sbatch_file', required=True)
-@click.option('-d', '--data_dir', type=click.Path(exists=True), required=True)
-@click.option('-n', '--n_array', default=6, type=click.INT, show_default=True)
-@click.option(
-    '-a', '--account', default='def-raymond', type=str, show_default=True
-)
-@click.option(
-    '-e', '--email', default='mvasmer@pitp.ca', type=str, show_default=True
-)
-@click.option(
-    '-w', '--wall_time', default='04:00:00', type=str, show_default=True
-)
-@click.option(
-    '-m', '--memory', default='16GB', type=str, show_default=True
-)
-@click.option(
-    '-t', '--trials', default=1000, type=click.INT, show_default=True
-)
-@click.option(
-    '-s', '--split', default='auto', type=str, show_default=True
-)
-def cc_sbatch(
-    sbatch_file, data_dir, n_array, account, email, wall_time, memory, trials,
-    split
-):
-    """Generate Compute Canada-style sbatch file with parallel array jobs."""
-    template_file = os.path.join(
-        os.path.dirname(BASE_DIR), 'scripts', 'cc_template.sh'
-    )
-    with open(template_file) as f:
-        text = f.read()
-
-    inputs_dir = os.path.join(data_dir, 'inputs')
-    assert os.path.isdir(inputs_dir), (
-        f'{inputs_dir} missing, please create it and generate inputs'
-    )
-    name = os.path.basename(data_dir)
-    replace_map = {
-        '${ACCOUNT}': account,
-        '${EMAIL}': email,
-        '${TIME}': wall_time,
-        '${MEMORY}': memory,
-        '${NAME}': name,
-        '${NARRAY}': str(n_array),
-        '${DATADIR}': os.path.abspath(data_dir),
-        '${TRIALS}': str(trials),
-        '${SPLIT}': str(split),
-    }
-    for template_string, value in replace_map.items():
-        text = text.replace(template_string, value)
-
-    with open(sbatch_file, 'w') as f:
-        f.write(text)
-    print(f'Wrote to {sbatch_file}')
-
-
-@click.command()
-@click.argument('sbatch_file', required=True)
-@click.option('-d', '--data_dir', type=click.Path(exists=True), required=True)
-@click.option('-n', '--n_array', default=6, type=click.INT, show_default=True)
-@click.option(
-    '-w', '--wall_time', default='0-23:00', type=str, show_default=True
-)
-@click.option(
-    '-m', '--memory', default='32GB', type=str, show_default=True
-)
-@click.option(
-    '-t', '--trials', default=1000, type=click.INT, show_default=True
-)
-@click.option(
-    '-s', '--split', default='auto', type=str, show_default=True
-)
-@click.option('-p', '--partition', default='pml', type=str, show_default=True)
-@click.option(
-    '--max_sim_array', default=None, type=int, show_default=True,
-    help='Max number of simultaneous array jobs'
-)
-def ad_sbatch(
-    sbatch_file, data_dir, n_array, wall_time, memory, trials, split,
-    partition, max_sim_array
-):
-    """Generate AD-style sbatch file with parallel array jobs."""
-    template_file = os.path.join(
-        os.path.dirname(BASE_DIR), 'scripts', 'ad_template.sh'
-    )
-    with open(template_file) as f:
-        text = f.read()
-
-    inputs_dir = os.path.join(data_dir, 'inputs')
-    assert os.path.isdir(inputs_dir), (
-        f'{inputs_dir} missing, please create it and generate inputs'
-    )
-    name = os.path.basename(data_dir)
-    narray_str = str(n_array)
-    if max_sim_array is not None:
-        narray_str += '%' + str(max_sim_array)
-    replace_map = {
-        '${TIME}': wall_time,
-        '${MEMORY}': memory,
-        '${NAME}': name,
-        '${NARRAY}': narray_str,
-        '${DATADIR}': os.path.abspath(data_dir),
-        '${TRIALS}': str(trials),
-        '${SPLIT}': str(split),
-        '${QUEUE}': partition,
-    }
-    for template_string, value in replace_map.items():
-        text = text.replace(template_string, value)
-
-    with open(sbatch_file, 'w') as f:
-        f.write(text)
-    print(f'Wrote to {sbatch_file}')
-
-
-@click.command()
 @click.argument('header-file', required=True)
 @click.option('--output-file', '-o', type=str, required=True)
 @click.option('-d', '--data-dir', type=click.Path(exists=True), required=True)
@@ -784,99 +625,6 @@ def generate_cluster_script(
 
 
 @click.command()
-@click.argument('sbatch_file', required=True)
-@click.option('-d', '--data_dir', type=click.Path(exists=True), required=True)
-@click.option('-n', '--n_array', default=6, type=click.INT, show_default=True)
-@click.option(
-    '-w', '--wall_time', default='0-23:00', type=str, show_default=True
-)
-@click.option(
-    '-m', '--memory', default='32GB', type=str, show_default=True
-)
-@click.option(
-    '-t', '--trials', default=1000, type=click.INT, show_default=True
-)
-@click.option(
-    '-s', '--split', default='auto', type=str,
-    show_default=True
-)
-@click.option(
-    '-p', '--partition', default='dpart', type=str, show_default=True
-)
-@click.option(
-    '-q', '--qos', default='dpart', type=str, show_default=True
-)
-def umiacs_sbatch(
-    sbatch_file, data_dir, n_array, wall_time, memory, trials, split,
-    partition, qos
-):
-    """Generate UMIACS-style sbatch file with parallel array jobs."""
-    template_file = os.path.join(
-        os.path.dirname(BASE_DIR), 'scripts', 'umiacs_template.sh'
-    )
-    with open(template_file) as f:
-        text = f.read()
-
-    inputs_dir = os.path.join(data_dir, 'inputs')
-    assert os.path.isdir(inputs_dir), (
-        f'{inputs_dir} missing, please create it and generate inputs'
-    )
-    name = os.path.basename(data_dir)
-    replace_map = {
-        '${TIME}': wall_time,
-        '${MEMORY}': memory,
-        '${NAME}': name,
-        '${NARRAY}': str(n_array),
-        '${DATADIR}': os.path.abspath(data_dir),
-        '${TRIALS}': str(trials),
-        '${SPLIT}': str(split),
-        '${QOS}': qos,
-        '${QUEUE}': partition,
-    }
-    for template_string, value in replace_map.items():
-        text = text.replace(template_string, value)
-
-    with open(sbatch_file, 'w') as f:
-        f.write(text)
-    print(f'Wrote to {sbatch_file}')
-
-
-@click.command()
-@click.option('--n_trials', default=1000, type=click.INT, show_default=True)
-@click.option('--partition', default='defq', show_default=True)
-@click.option('--time', default='10:00:00', show_default=True)
-@click.option('--cores', default=1, type=click.INT, show_default=True)
-def gen(n_trials, partition, time, cores):
-    """Generate sbatch files."""
-    generate_sbatch(n_trials, partition, time, cores)
-
-
-@click.command()
-@click.argument('name', required=True)
-@click.option('--n_trials', default=1000, type=click.INT, show_default=True)
-@click.option('--nodes', default=1, type=click.INT, show_default=True)
-@click.option('--ntasks', default=1, type=click.INT, show_default=True)
-@click.option('--cpus_per_task', default=40, type=click.INT, show_default=True)
-@click.option('--mem', default=10000, type=click.INT, show_default=True)
-@click.option('--time', default='10:00:00', show_default=True)
-@click.option('--split', default=1, type=click.INT, show_default=True)
-@click.option('--partition', default='pml', show_default=True)
-@click.option(
-    '--cluster', default='ad', show_default=True,
-    type=click.Choice(['ad', 'symmetry'])
-)
-def gen_ad(
-    name, n_trials, nodes, ntasks, cpus_per_task, mem, time, split, partition,
-    cluster
-):
-    """Generate sbatch files for AD cluster."""
-    generate_sbatch_ad(
-        name, n_trials, nodes, ntasks, cpus_per_task, mem, time, split,
-        partition, cluster
-    )
-
-
-@click.command()
 @click.argument('folder', required=True, type=click.Choice(
     ['all', 'out', 'sbatch'],
     case_sensitive=False
@@ -922,8 +670,6 @@ def check_usage(data_dirs=None):
     summarize_usage(log_dirs)
 
 
-slurm.add_command(gen)
-slurm.add_command(gen_ad)
 slurm.add_command(status)
 slurm.add_command(count)
 slurm.add_command(clear)
@@ -934,11 +680,7 @@ cli.add_command(ls)
 cli.add_command(slurm)
 cli.add_command(generate_input)
 cli.add_command(monitor_usage)
-cli.add_command(pi_sbatch)
-cli.add_command(cc_sbatch)
 cli.add_command(merge_results)
-cli.add_command(ad_sbatch)
 cli.add_command(generate_cluster_script)
-cli.add_command(umiacs_sbatch)
 cli.add_command(check_usage)
 cli.add_command(analyze)
