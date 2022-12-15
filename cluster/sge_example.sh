@@ -12,7 +12,7 @@ prob="0.1:0.2:0.01" # Physical error rates (format start:end:step)
 trials=1000  # number of Monte Carlo runs
 
 # Cluster parameters
-slurm_script=$data_dir/run.qsub
+sge_script=$data_dir/run.qsub
 working_dir=/home/ucapacp/Scratch/output
 n_cores=8
 n_nodes=5
