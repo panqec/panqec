@@ -10,7 +10,6 @@ import multiprocessing
 import datetime
 import time
 import psutil
-import gzip
 from .simulation import (
     run_file
 )
@@ -19,7 +18,7 @@ from .slurm import (
     get_status, count_input_runs,
     clear_out_folder, clear_sbatch_folder
 )
-from .utils import get_direction_from_bias_ratio
+from .utils import get_direction_from_bias_ratio, load_json, save_json
 from panqec.gui import GUI
 from glob import glob
 from .usage import summarize_usage
@@ -488,34 +487,15 @@ def merge_results(
 ):
     """Merge result directories that had been split into outdir."""
 
-    # Check that the result files exist and are in the correct format
-    for file in result_files:
-        if not os.path.isfile(file):
-            raise ValueError(f"File {file} not found")
-        if os.path.splitext(file)[-1] not in ['.json', '.gz']:
-            raise ValueError(f"File {file} is not a .json or .json.gz file")
-
     print(f'Merging {len(result_files)} files to {output_file}')
     combined_results = []
     for file in result_files:
         try:
-            if os.path.splitext(file)[-1] == '.json':
-                with open(file) as f:
-                    combined_results.append(json.load(f))
-            else:
-                with gzip.open(file, 'rb') as gz:
-                    combined_results.append(
-                        json.loads(gz.read().decode('utf-8'))
-                    )
+            combined_results.append(load_json(file))
         except JSONDecodeError:
             print(f'Error reading {file}, skipping')
 
-    if os.path.splitext(output_file)[-1] == '.json':
-        with open(output_file, 'w') as f:
-            json.dump(combined_results, f)
-    else:
-        with gzip.open(output_file, 'wb') as gz:
-            gz.write(json.dumps(combined_results).encode('utf-8'))
+    save_json(combined_results, output_file)
 
 
 @click.command()

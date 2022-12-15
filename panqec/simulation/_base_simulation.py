@@ -2,16 +2,12 @@
 API for running simulations.
 """
 from abc import ABCMeta, abstractmethod
-import os
-import json
 from json import JSONDecodeError
 import datetime
 import numpy as np
-import gzip
 from panqec.codes import StabilizerCode
 from panqec.error_models import BaseErrorModel
-
-from ..utils import NumpyEncoder
+from panqec.utils import load_json, save_json
 
 
 class BaseSimulation(metaclass=ABCMeta):
@@ -98,18 +94,11 @@ class BaseSimulation(metaclass=ABCMeta):
 
         # Find the alternative compressed file path if it doesn't exist.
         try:
-            if os.path.exists(output_file):
-                if os.path.splitext(output_file)[-1] == '.gz':
-                    with gzip.open(output_file, 'rb') as gz:
-                        data = json.loads(gz.read().decode('utf-8'))
-                else:
-                    with open(output_file) as json_file:
-                        data = json.load(json_file)
+            data = load_json(output_file)
+            data_simulation = self._find_current_simulation(data)
 
-                data_simulation = self._find_current_simulation(data)
-
-                if data_simulation != {}:
-                    self.load_results_from_dict(data_simulation)
+            if data_simulation != {}:
+                self.load_results_from_dict(data_simulation)
 
         except JSONDecodeError as err:
             print(f'Error loading existing results file {output_file}')
@@ -141,12 +130,7 @@ class BaseSimulation(metaclass=ABCMeta):
     def save_results(self, output_file: str):
         """Save results to directory."""
         data = self.get_results_to_save()
-        if self.compress:
-            with gzip.open(output_file, 'wb') as gz:
-                gz.write(json.dumps(data, cls=NumpyEncoder).encode('utf-8'))
-        else:
-            with open(output_file, 'w') as json_file:
-                json.dump(data, json_file, indent=4, cls=NumpyEncoder)
+        save_json(output_file, data)
 
     @abstractmethod
     def get_results(self):

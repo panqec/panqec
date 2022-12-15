@@ -2,7 +2,6 @@
 
 import os
 import json
-import gzip
 from json import JSONDecodeError
 import itertools
 from typing import List, Dict, Callable, Union, Any, Optional, Tuple, Iterable
@@ -14,7 +13,7 @@ from panqec.error_models import BaseErrorModel
 from panqec.config import (
     CODES, ERROR_MODELS, DECODERS
 )
-from panqec.utils import identity, NumpyEncoder
+from panqec.utils import identity, load_json, save_json
 from . import (
     BaseSimulation, DirectSimulation, SplittingSimulation
 )
@@ -169,11 +168,6 @@ class BatchSimulation():
         self.verbose = verbose
         self._output_file = output_file
 
-        if os.path.splitext(output_file)[-1] == '.gz':
-            self.compressed_output = True
-        else:
-            self.compressed_output = False
-
     def __getitem__(self, *args):
         return self._simulations.__getitem__(*args)
 
@@ -283,14 +277,7 @@ class BatchSimulation():
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        json_data = json.dumps(
-            combined_data, cls=NumpyEncoder
-        ).encode('utf-8')
-
-        open_fn = gzip.open if self.compressed_output else open
-
-        with open_fn(self._output_file, 'wb') as f:
-            f.write(json_data)
+        save_json(combined_data, self._output_file)
 
     def _update_file(self, new_data: list) -> None:
         """Update only the results to one file."""
@@ -300,14 +287,7 @@ class BatchSimulation():
             self.save_file()
 
         # Write the updated list to the .json or .json.gz file.
-        json_data = json.dumps(
-            new_data, cls=NumpyEncoder
-        ).encode('utf-8')
-
-        open_fn = gzip.open if self.compressed_output else open
-
-        with open_fn(self._output_file, 'wb') as f:
-            f.write(json_data)
+        save_json(new_data, self._output_file)
 
     def load_file(self):
         pass
@@ -513,15 +493,11 @@ def _parse_decoder_dict(
 def read_input_json(input_file: str, output_file: str) -> BatchSimulation:
     """Read json input file or .json.gz file."""
     try:
-        if os.path.splitext(input_file)[-1] == '.json':
-            with open(input_file) as f:
-                data = json.load(f)
-        else:
-            with gzip.open(input_file, 'rb') as g:
-                data = json.loads(g.read().decode('utf-8'))
+        data = load_json(input_file)
     except JSONDecodeError as err:
         print(f'Error reading input file {input_file}')
         raise err
+
     return read_input_dict(data, output_file)
 
 

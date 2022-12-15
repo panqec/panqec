@@ -26,7 +26,8 @@ from .config import SLURM_DIR, SHORT_NAMES, LONG_NAMES
 from .simulation import read_input_json, BatchSimulation
 from .utils import (
     fmt_uncertainty, NumpyEncoder, identity,
-    rescale_prob, fmt_confidence_interval
+    rescale_prob, fmt_confidence_interval,
+    load_json, save_json
 )
 from .bpauli import int_to_bvector, bvector_to_pauli_string
 from .plots._threshold import plot_data_collapse, draw_tick_symbol
@@ -193,8 +194,7 @@ class Analysis:
 
     def load(self, path):
         """Load previous analysis from .json.gz file."""
-        with gzip.open(path, 'rb') as gz:
-            data = json.loads(gz.read().decode('utf-8'))
+        data = load_json(path)
         self._results = self._load_results_df(data['results'])
         self.trunc_results = self._load_results_df(data['trunc_results'])
         self.thresholds = pd.DataFrame(data['thresholds'])
@@ -232,8 +232,7 @@ class Analysis:
                 for sector, sector_data in self.sectors.items()
             }
         }
-        with gzip.open(path, 'wb') as gz:
-            gz.write(json.dumps(data, cls=NumpyEncoder).encode('utf-8'))
+        save_json(data, path)
 
     def apply_overrides(self):
         """Read manual overrides from .json file."""
@@ -422,14 +421,10 @@ class Analysis:
                 else:
                     with zf.open(results_file) as f:
                         data = json.load(f)
-            elif '.json.gz' in str(file_location):
-                nominal_path = os.path.abspath(file_location)
-                with gzip.open(file_location, 'rb') as g:
-                    data = json.loads(g.read().decode('utf-8'))
             else:
                 nominal_path = os.path.abspath(file_location)
-                with open(file_location) as jf:
-                    data = json.load(jf)
+                data = load_json(nominal_path)
+
             entries += read_entry(data, results_file=nominal_path)
 
         # Convert to DataFrame to conserve memory.
