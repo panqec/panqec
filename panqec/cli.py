@@ -3,7 +3,6 @@ from typing import Optional, List, Dict, Tuple
 import click
 import panqec
 from tqdm import tqdm
-import shutil
 import numpy as np
 import json
 from json.decoder import JSONDecodeError
@@ -702,53 +701,109 @@ def ad_sbatch(
 
 
 @click.command()
-@click.argument('qsub_file', required=True)
-@click.option('-d', '--data_dir', type=click.Path(exists=True), required=True)
-@click.option('-n', '--n_array', default=6, type=click.INT, show_default=True)
+@click.argument('header-file', required=True)
+@click.option('--output-file', '-o', type=str, required=True)
+@click.option('-d', '--data-dir', type=click.Path(exists=True), required=True)
 @click.option(
-    '-w', '--wall_time', default='0-23:00', type=str, show_default=True
+    '--cluster', type=click.Choice(['sge', 'slurm', 'pbs']), required=True
+)
+@click.option('-n', '--n-nodes', type=click.INT, required=True)
+@click.option('-w', '--wall-time', type=str, required=True)
+@click.option('-m', '--memory', type=str, required=True)
+@click.option(
+    '-t', '--trials', type=click.INT, show_default=True, required=True
 )
 @click.option(
-    '-m', '--memory', default='32GB', type=str, show_default=True
-)
-@click.option(
-    '-t', '--trials', default=1000, type=click.INT, show_default=True
-)
-@click.option(
-    '-c', '--cores', default=1, type=click.INT, show_default=True
+    '-c', '--n-cores', default=None, type=click.INT, show_default=True
 )
 @click.option('-p', '--partition', default='pml', type=str, show_default=True)
-def generate_qsub(
-    qsub_file, data_dir, n_array, wall_time, memory, trials, cores, partition
+@click.option('-q', '--qos', default='dpart', type=str, show_default=True)
+@click.option('--working-dir', default='.', type=str, show_default=True)
+@click.option(
+    '--delete-existing', is_flag=True, default=False, show_default=True
+)
+def generate_cluster_script(
+    header_file: str,
+    output_file: str,
+    data_dir: str,
+    cluster: str,
+    n_nodes: int,
+    wall_time: str,
+    memory: str,
+    trials: int,
+    n_cores: Optional[int] = None,
+    partition: str = 'pml',
+    qos: str = 'dpart',
+    working_dir: str = '.',
+    delete_existing: bool = False
 ):
-    """Generate qsub (PBS) file with parallel array jobs."""
-    template_file = os.path.join(
-        os.path.dirname(BASE_DIR), 'scripts', 'qsub_template.sh'
-    )
-    with open(template_file) as f:
+    """Generate a generic cluster script from a given header file"""
+
+    with open(header_file, 'r') as f:
         text = f.read()
 
     inputs_dir = os.path.join(data_dir, 'inputs')
     assert os.path.isdir(inputs_dir), (
         f'{inputs_dir} missing, please create it and generate inputs'
     )
+    log_dir = os.path.join(data_dir, 'logs')
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
     name = os.path.basename(data_dir)
+    data_dir = os.path.abspath(data_dir)
+    delete_option = "--delete-existing" if delete_existing else ""
+
+    i_node_dict = {
+        'sge': "$SGE_TASK_ID",
+        'slurm': "$SLURM_ARRAY_TASK_ID",
+        'pbs': "PBS_ARRAY_INDEX"
+    }
+    job_id_dict = {
+        'sge': '$JOB_ID',
+        'slurm': '$SLURM_JOB_ID',
+        'pbs': '$PBS_JOBID'
+    }
+
+    i_node = i_node_dict[cluster]
+    job_id = job_id_dict[cluster]
+
+    # If n_cores hasn't been specified, take the maximum number of cores
+    if n_cores is None:
+        n_cores = multiprocessing.cpu_count()
+
     replace_map = {
         '${TIME}': wall_time,
         '${MEMORY}': memory,
         '${NAME}': name,
-        '${NARRAY}': str(n_array),
-        '${DATADIR}': os.path.abspath(data_dir),
+        '${N_NODES}': str(n_nodes),
+        '${DATA_DIR}': data_dir,
         '${TRIALS}': str(trials),
-        '${CORES}': str(cores),
+        '${N_CORES}': str(n_cores),
         '${QUEUE}': partition,
+        '${QOS}': qos,
+        '${WORKING_DIR}': working_dir
     }
     for template_string, value in replace_map.items():
         text = text.replace(template_string, value)
 
-    with open(qsub_file, 'w') as f:
-        f.write(text)
-    print(f'Wrote to {qsub_file}')
+    monitor_command = "panqec monitor-usage " \
+        f"{log_dir}/usage_{job_id}_{i_node}.txt &"
+    run_command = "panqec run-parallel " \
+        f"-d {data_dir} " \
+        f"-n {n_nodes} " \
+        f"-j {i_node} " \
+        f"-c {n_cores} " \
+        f"-t {trials} " \
+        f"{delete_option}"
+
+    with open(output_file, 'w') as f:
+        f.write(text + "\n\n")
+        f.write(monitor_command + "\n\n")
+        f.write(run_command + "\n\n")
+        f.write("date")
+
+    print(f'Wrote to {output_file}')
 
 
 @click.command()
@@ -906,7 +961,7 @@ cli.add_command(pi_sbatch)
 cli.add_command(cc_sbatch)
 cli.add_command(merge_dirs)
 cli.add_command(ad_sbatch)
-cli.add_command(generate_qsub)
+cli.add_command(generate_cluster_script)
 cli.add_command(umiacs_sbatch)
 cli.add_command(check_usage)
 cli.add_command(analyze)
