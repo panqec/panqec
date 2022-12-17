@@ -25,8 +25,7 @@ class StabilizerCode(metaclass=ABCMeta):
     - get_stabilizer_coordinates() to define all the coordinates in the lattice
     that contain stabilizers
     - qubit_axis(location) to return the axis of a qubit at a given location
-      (when qubit have an orientation in space, for instance when they are
-      edges)
+    (when qubit have an orientation in space, for instance when they are edges)
 
     Using only those methods, a StabilizerCode will then automatically create
     the corresponding parity-check matrix (in self.stabilizers) and can be used
