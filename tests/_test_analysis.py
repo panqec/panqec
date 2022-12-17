@@ -111,7 +111,7 @@ class TestAnalysis:
                 'min': 0.06, 'max': 0.14,
             }}},
         ]})
-        analysis.analyze()
+        # analysis.analyze()
         save_path = os.path.join(tmpdir, 'myanalysis.json.gz')
         analysis.save(save_path)
 
