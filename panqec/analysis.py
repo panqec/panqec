@@ -22,10 +22,10 @@ import pandas as pd
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
 from scipy.signal import argrelextrema
-from .config import SLURM_DIR, SHORT_NAMES, LONG_NAMES
+from .config import SHORT_NAMES, LONG_NAMES
 from .simulation import read_input_json, BatchSimulation
 from .utils import (
-    fmt_uncertainty, NumpyEncoder, identity,
+    fmt_uncertainty, identity,
     rescale_prob, fmt_confidence_interval,
     load_json, save_json
 )
@@ -265,7 +265,7 @@ class Analysis:
                         else:
                             filter_index = filter_index & extra_index
                     parameter_sets = self._results[filter_index][[
-                        'code_family', 'error_model', 'decoder'
+                        'code', 'error_model', 'decoder'
                     ]].drop_duplicates().values
                     for triple in parameter_sets:
                         if 'truncate' in override:
@@ -1572,178 +1572,6 @@ def get_results_df_from_batch(
     results = batch_results
 
     results_df = pd.DataFrame(results)
-    return results_df
-
-
-def get_results_df(
-    job_list: List[str],
-    output_dir: str,
-    input_dir: Optional[str] = None,
-) -> pd.DataFrame:
-    """Get raw results in DataFrame from list of jobs in output dir.
-
-    This is an old legacy way of doing things,
-    because it requires the input files as well.
-    Use the Analysis object instead if possible.
-
-    Parameters
-    ----------
-    job_list : List[str]
-        List of folder names in output_dir to extract results from.
-    output_dir : str
-        The path to the output directory containing the directories with names
-        as listed in job_list.
-    input_dir : str
-        The directory where the input json files are stored.
-    """
-
-    if input_dir is None:
-        input_dir = os.path.join(SLURM_DIR, 'inputs')
-
-    input_files = [
-        os.path.join(input_dir, f'{name}.json')
-        for name in job_list
-    ]
-    output_dirs = [
-        os.path.join(output_dir, name)
-        for name in job_list
-    ]
-    batches = {}
-    for i in range(len(input_files)):
-
-        # Determine whether or not it's a onefile format.
-        onefile = False
-        output_file_list = os.listdir(output_dirs[i])
-        if len(output_file_list) == 1:
-            if '.json.gz' in output_file_list[0]:
-                results_onefile = os.path.join(
-                    output_dirs[i], output_file_list[0]
-                )
-                with gzip.open(results_onefile, 'rb') as g:
-                    data = json.loads(g.read().decode('utf-8'))
-                if isinstance(data, list):
-                    onefile = True
-
-        if onefile:
-            batch_sim = read_input_json(input_files[i])
-            input_jsons = [json.dumps(element['inputs']) for element in data]
-            for sim in batch_sim:
-                sim_input_json = json.dumps(
-                    sim.get_results_to_save()['inputs'],
-                    cls=NumpyEncoder
-                )
-                matching_indices = [
-                    i
-                    for i, value in enumerate(input_jsons)
-                    if value == sim_input_json
-                ]
-                if matching_indices:
-                    sim.load_results_from_dict(data[matching_indices[0]])
-            batches[batch_sim.label] = batch_sim
-
-        else:
-            batch_sim = read_input_json(input_files[i])
-            for sim in batch_sim:
-                sim.load_results(output_dirs[i])
-            batches[batch_sim.label] = batch_sim
-
-    results = []
-
-    for batch_label, batch_sim in batches.items():
-        batch_results = batch_sim.get_results()
-        # print(
-        #     'wall_time =',
-        #     str(datetime.timedelta(seconds=batch_sim.wall_time))
-        # )
-        # print('n_trials = ', min(sim.n_results for sim in batch_sim))
-        for sim, batch_result in zip(batch_sim, batch_results):
-            n_logicals = batch_result['k']
-
-            # Small fix for the current situation. TO REMOVE in later versions
-            if n_logicals == -1:
-                n_logicals = 1
-
-            batch_result['label'] = batch_label
-            batch_result['noise_direction'] = sim.error_model.direction
-
-            eta_x, eta_y, eta_z = get_bias_ratios(sim.error_model.direction)
-            batch_result['eta_x'] = eta_x
-            batch_result['eta_y'] = eta_y
-            batch_result['eta_z'] = eta_z
-            batch_result['wall_time'] = sim._results['wall_time']
-
-            if ('effective_error' in sim.results and
-                    len(sim.results['effective_error']) > 0):
-                codespace = np.array(sim.results['codespace'])
-                x_errors = np.array(
-                    sim.results['effective_error']
-                )[:, :n_logicals].any(axis=1)
-                batch_result['p_x'] = x_errors.mean()
-                batch_result['p_x_se'] = get_standard_error(
-                    batch_result['p_x'], sim.n_results
-                )
-
-                z_errors = np.array(
-                    sim.results['effective_error']
-                )[:, n_logicals:].any(axis=1)
-                batch_result['p_z'] = z_errors.mean()
-                batch_result['p_z_se'] = get_standard_error(
-                    batch_result['p_z'], sim.n_results
-                )
-                batch_result['p_undecodable'] = (~codespace).mean()
-
-                i_logical = 0
-
-                # Single-qubit rate estimates and uncertainties.
-                single_qubit_results = dict()
-                p_est, p_se = get_single_qubit_error_rate(
-                    sim.results['effective_error'], i=i_logical,
-                    error_type=None
-                )
-                single_qubit_results.update({
-                    f'p_{i_logical}_est': p_est,
-                    f'p_{i_logical}_se': p_se,
-                })
-                for pauli in 'XYZ':
-                    p_pauli_est, p_pauli_se = get_single_qubit_error_rate(
-                        sim.results['effective_error'], i=i_logical,
-                        error_type=pauli
-                    )
-                    single_qubit_results.update({
-                        f'p_{i_logical}_{pauli}_est': p_pauli_est,
-                        f'p_{i_logical}_{pauli}_se': p_pauli_se,
-                    })
-                batch_result.update(single_qubit_results)
-                assert np.isclose(
-                    single_qubit_results[f'p_{i_logical}_X_est']
-                    + single_qubit_results[f'p_{i_logical}_Y_est']
-                    + single_qubit_results[f'p_{i_logical}_Z_est'],
-                    single_qubit_results[f'p_{i_logical}_est']
-                )
-
-            else:
-                batch_result['p_x'] = np.nan
-                batch_result['p_x_se'] = np.nan
-                batch_result['p_z'] = np.nan
-                batch_result['p_z_se'] = np.nan
-                batch_result['p_undecodable'] = np.nan
-        results += batch_results
-
-    results_df = pd.DataFrame(results)
-
-    # Calculate the word error rate and standard error.
-    error_rate_labels = [
-        ('p_est', 'p_se'),
-        ('p_x', 'p_x_se'),
-        ('p_z', 'p_z_se'),
-    ]
-    for p_L, p_L_se in error_rate_labels:
-        (
-            results_df[f'{p_L}_word'], results_df[f'{p_L_se}_word']
-        ) = get_word_error_rate(
-            results_df[p_L], results_df[p_L_se], results_df['k']
-        )
-
     return results_df
 
 
