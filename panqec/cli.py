@@ -408,7 +408,7 @@ def generate_input(
     panqec generate-input -i data/toric-3d-code/ \\
             --code_class Toric3DCode \\
             --noise_class PauliErrorModel \\
-            -s (3,3,3),6,8 --decoder BeliefPropagationOSDDecoder \\
+            -s 3x3x3,5x5x5,7x7x7, --decoder BeliefPropagationOSDDecoder \\
             --bias Z --eta '10,100,1000,inf' \\
             --prob 0:0.5:0.005
     """
@@ -421,9 +421,13 @@ def generate_input(
     for eta in bias_ratios:
         direction = get_direction_from_bias_ratio(bias, eta)
 
-        L_list = [int(s) for s in sizes.split(',')]
+        L_list = [s.split('x') for s in sizes.split(',')]
         code_parameters = [
-            {"L_x": L, "L_y": L + 1, "L_z": L}
+            {
+                "L_x": int(L[0]),
+                "L_y": int(L[1]) if len(L) >= 2 else L[0],
+                "L_z": int(L[2]) if len(L) == 3 else L[0]
+            }
             for L in L_list
         ]
         code_dict = {
@@ -459,9 +463,7 @@ def generate_input(
                         "parameters": decoder_parameters}
 
         if label is None:
-            label = 'input'
-
-        label = label + f'_bias_{eta}'
+            label = 'experiment'
 
         ranges_dict = {"label": label,
                        "method": method_dict,
