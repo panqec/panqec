@@ -663,6 +663,7 @@ def check_usage(data_dirs: str):
 
     summarize_usage(log_dirs)
 
+
 @click.command
 @click.argument(
     'log_dir', type=click.Path(exists=True), required=True
@@ -696,10 +697,11 @@ def check_progress(log_dir: str, show_all: bool = False):
         if show_all:
             progress_bar(int(k), int(n))
 
-    if show_all:
-        print("\n")
-    print("Total progress:\n")
-    progress_bar(total_k, total_n)
+    if len(list_files) > 0:
+        if show_all:
+            print("\n")
+        print("Total progress:\n")
+        progress_bar(total_k, total_n)
 
 
 slurm.add_command(status)
