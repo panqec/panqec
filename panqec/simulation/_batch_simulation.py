@@ -77,6 +77,7 @@ def run_file(
     output_file: str,
     n_trials: int,
     progress: Callable = identity,
+    log_file: Optional[str] = None,
     verbose: bool = True,
 ):
     """Run an input json file.
@@ -99,7 +100,7 @@ def run_file(
     """
     print(f"Run file {input_file}")
 
-    batch_sim = read_input_json(input_file, output_file)
+    batch_sim = read_input_json(input_file, output_file, log_file=log_file)
 
     if verbose:
         print(f'running {len(batch_sim._simulations)} simulations:')
@@ -156,6 +157,7 @@ class BatchSimulation():
         update_frequency: int = 5,
         save_frequency: int = 1,
         method: str = "direct",
+        log_file: Optional[str] = None,
         verbose: bool = True,
     ):
         self._simulations = []
@@ -167,6 +169,7 @@ class BatchSimulation():
         self.method = method
         self.verbose = verbose
         self._output_file = output_file
+        self._log_file = log_file
 
     def __getitem__(self, *args):
         return self._simulations.__getitem__(*args)
@@ -256,6 +259,8 @@ class BatchSimulation():
                 self.on_update()
                 self.save_results()
 
+            self._log_progress(i_trial, n_trials)
+
         # for simulation in self._simulations:
         #     if self.verbose:
         #         print(f"\nPost-processing {simulation.label}")
@@ -278,6 +283,11 @@ class BatchSimulation():
             os.makedirs(output_dir)
 
         save_json(combined_data, self._output_file)
+
+    def _log_progress(self, i_trial, n_trials):
+        if self._log_file is not None:
+            with open(self._log_file, "w") as f:
+                f.write(f"{i_trial+1}/{n_trials}")
 
     def _update_file(self, new_data: list) -> None:
         """Update only the results to one file."""
@@ -442,7 +452,6 @@ def expand_input_ranges(data: dict) -> List[Dict]:
 
 
 def _parse_code_dict(code_dict: Dict[str, Any]) -> StabilizerCode:
-    print("Code dict", code_dict)
     code_name = code_dict['name']
     code_params: Union[list, dict] = []
     if 'parameters' in code_dict:
@@ -490,7 +499,11 @@ def _parse_decoder_dict(
     return decoder
 
 
-def read_input_json(input_file: str, output_file: str) -> BatchSimulation:
+def read_input_json(
+    input_file: str,
+    output_file: str,
+    log_file: Optional[str] = None
+) -> BatchSimulation:
     """Read json input file or .json.gz file."""
     try:
         data = load_json(input_file)
@@ -498,7 +511,7 @@ def read_input_json(input_file: str, output_file: str) -> BatchSimulation:
         print(f'Error reading input file {input_file}')
         raise err
 
-    return read_input_dict(data, output_file)
+    return read_input_dict(data, output_file, log_file=log_file)
 
 
 def get_runs(data: dict) -> List[dict]:

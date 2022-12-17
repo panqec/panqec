@@ -334,6 +334,15 @@ def find_nearest(array, value):
     return array[idx]
 
 
+def progress_bar(k, n, bar_length=20):
+    ratio = k / n
+    percentage = str(int(ratio * 100)) + "%"
+    n_progress = int(ratio * bar_length)
+    n_left = int((1-ratio) * bar_length)
+
+    print(f"{percentage}|" + "█" * n_progress + " " * n_left + f"| {k}/{n}")
+
+
 def load_json(file):
     if not os.path.isfile(file):
         raise ValueError(f"File {file} not found")
@@ -355,9 +364,12 @@ def save_json(data, file):
         raise ValueError(f"Specified file {file} should have extension"
                          ".json or .json.gz")
 
+    if isinstance(data, np.ndarray):
+        data = data.tolist()
+
     if os.path.splitext(file)[-1] == '.json':
         with open(file, 'w') as f:
-            json.dump(data, f)
+            json.dump(data, f, cls=NumpyEncoder)
     else:
         with gzip.open(file, 'wb') as gz:
-            gz.write(json.dumps(data).encode('utf-8'))
+            gz.write(json.dumps(data, cls=NumpyEncoder).encode('utf-8'))

@@ -5,6 +5,7 @@ import panqec
 from tqdm import tqdm
 import numpy as np
 import json
+import shutil
 from json.decoder import JSONDecodeError
 import multiprocessing
 import datetime
@@ -18,7 +19,9 @@ from .slurm import (
     get_status, count_input_runs,
     clear_out_folder, clear_sbatch_folder
 )
-from .utils import get_direction_from_bias_ratio, load_json, save_json
+from .utils import (
+    get_direction_from_bias_ratio, load_json, save_json, progress_bar
+)
 from panqec.gui import GUI
 from glob import glob
 from .usage import summarize_usage
@@ -96,14 +99,24 @@ def run_parallel(
     n_nodes: int,
     job_idx: int,
     n_cores: Optional[int],
-    delete_existing: bool
+    delete_existing: bool,
+    compressed_output: bool = True
 ):
     """Run panqec jobs in parallel"""
 
     input_dir = os.path.join(data_dir, "inputs")
     result_dir = os.path.join(data_dir, "results")
+    logs_dir = os.path.join(data_dir, "logs")
+    progress_dir = os.path.join(logs_dir, "progress")
+
+    if delete_existing:
+        if os.path.exists(result_dir):
+            shutil.rmtree(result_dir)
+        if os.path.exists(progress_dir):
+            shutil.rmtree(progress_dir)
 
     os.makedirs(result_dir, exist_ok=True)
+    os.makedirs(progress_dir, exist_ok=True)
 
     i_node = job_idx - 1
 
@@ -162,14 +175,25 @@ def run_parallel(
 
         # Split the results over files results_1.json, results_2.json, etc.
         max_n_digits = len(str(n_tasks))
-        result_file = os.path.abspath(os.path.join(
+        result_json_file = os.path.abspath(os.path.join(
             result_dir,
-            f"results_{str(i_task+1).zfill(max_n_digits)}.json.gz"
+            f"results_{str(i_task+1).zfill(max_n_digits)}.json"
         ))
+        result_gz_file = result_json_file + ".gz"
 
-        if delete_existing and os.path.exists(result_file):
-            os.remove(result_file)
+        for f in [result_json_file, result_gz_file]:
+            if delete_existing and os.path.exists(f):
+                os.remove(f)
 
+        if compressed_output:
+            result_file = result_gz_file
+        else:
+            result_file = result_json_file
+
+        log_file = os.path.abspath(os.path.join(
+            progress_dir,
+            f"progress_{str(i_task+1).zfill(max_n_digits)}.txt"
+        ))
         print(f"{input_name}\t{n_runs}")
 
         input_file = os.path.abspath(os.path.join(input_dir, input_name))
@@ -177,7 +201,10 @@ def run_parallel(
         proc = multiprocessing.Process(
             target=run_file,
             args=(input_file, result_file, n_runs),
-            kwargs={'progress': tqdm}
+            kwargs={
+                'progress': tqdm,
+                'log_file': log_file
+            }
         )
         procs.append(proc)
         proc.start()
@@ -317,10 +344,6 @@ def monitor_usage(log_file: str, interval: float = 10):
     '`[data_dir]/inputs/input_bias_[eta].json`'
 )
 @click.option(
-    '-r', '--ratio', default='equal', type=click.Choice(['equal', 'coprime']),
-    show_default=True, help='Lattice aspect ratio spec'
-)
-@click.option(
     '--decoder_class', default='BeliefPropagationOSDDecoder',
     show_default=True,
     type=click.Choice(list(DECODERS.keys())),
@@ -375,7 +398,7 @@ def monitor_usage(log_file: str, interval: float = 10):
     help='Label for the inputs'
 )
 def generate_input(
-    data_dir, ratio, sizes, decoder_class, bias, eta, prob,
+    data_dir, sizes, decoder_class, bias, eta, prob,
     code_class, noise_class, deformation_name, method, label
 ):
     """Generate the json files of every experiment.
@@ -384,9 +407,8 @@ def generate_input(
     Example:
     panqec generate-input -i data/toric-3d-code/ \\
             --code_class Toric3DCode \\
-            --noise_class PauliErrorModel
-            -r equal \\
-            -s 2,4,6,8 --decoder BeliefPropagationOSDDecoder \\
+            --noise_class PauliErrorModel \\
+            -s (3,3,3),6,8 --decoder BeliefPropagationOSDDecoder \\
             --bias Z --eta '10,100,1000,inf' \\
             --prob 0:0.5:0.005
     """
@@ -400,17 +422,10 @@ def generate_input(
         direction = get_direction_from_bias_ratio(bias, eta)
 
         L_list = [int(s) for s in sizes.split(',')]
-        if ratio == 'coprime':
-            code_parameters = [
-                {"L_x": L, "L_y": L + 1, "L_z": L}
-                for L in L_list
-            ]
-        else:
-            code_parameters = [
-                {"L_x": L, "L_y": L, "L_z": L}
-                for L in L_list
-            ]
-
+        code_parameters = [
+            {"L_x": L, "L_y": L + 1, "L_z": L}
+            for L in L_list
+        ]
         code_dict = {
             "name": code_class,
             "parameters": code_parameters
@@ -632,9 +647,10 @@ def status():
 
 @click.command
 @click.argument(
-    'data_dirs', default=None, type=click.Path(exists=True), nargs=-1
+    'data_dirs', type=click.Path(exists=True), nargs=-1,
+    required=True
 )
-def check_usage(data_dirs=None):
+def check_usage(data_dirs: str):
     """Check usage of resources."""
     log_dirs = []
     if data_dirs:
@@ -644,9 +660,46 @@ def check_usage(data_dirs=None):
                 print(f'{log_dir} not a directory')
             else:
                 log_dirs.append(log_dir)
-    else:
-        log_dirs = glob(os.path.join(PANQEC_DIR, 'paper', '*', 'logs'))
+
     summarize_usage(log_dirs)
+
+@click.command
+@click.argument(
+    'log_dir', type=click.Path(exists=True), required=True
+)
+@click.option(
+    '-a', '--show-all', is_flag=True, default=False,
+    help='Show progress on all the cores individually'
+)
+def check_progress(log_dir: str, show_all: bool = False):
+    """Check usage of resources."""
+    if not os.path.isdir(log_dir):
+        print(f'{log_dir} not a directory')
+
+    if 'progress' in os.listdir(log_dir):
+        progress_dir = os.path.join(log_dir, 'progress')
+    else:
+        progress_dir = log_dir
+
+    list_files = glob(os.path.join(progress_dir, 'progress_*.txt'))
+
+    total_n = 0
+    total_k = 0
+
+    for filename in list_files:
+        with open(filename, "r") as f:
+            k, n = f.read().split("/")
+
+            total_n += int(n)
+            total_k += int(k)
+
+        if show_all:
+            progress_bar(int(k), int(n))
+
+    if show_all:
+        print("\n")
+    print("Total progress:\n")
+    progress_bar(total_k, total_n)
 
 
 slurm.add_command(status)
@@ -662,4 +715,5 @@ cli.add_command(monitor_usage)
 cli.add_command(merge_results)
 cli.add_command(generate_cluster_script)
 cli.add_command(check_usage)
+cli.add_command(check_progress)
 cli.add_command(analyze)

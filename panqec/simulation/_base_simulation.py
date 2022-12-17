@@ -4,6 +4,7 @@ API for running simulations.
 from abc import ABCMeta, abstractmethod
 from json import JSONDecodeError
 import datetime
+import os
 import numpy as np
 from panqec.codes import StabilizerCode
 from panqec.error_models import BaseErrorModel
@@ -92,13 +93,13 @@ class BaseSimulation(metaclass=ABCMeta):
     def load_results(self, output_file: str):
         """Load previously written results from directory."""
 
-        # Find the alternative compressed file path if it doesn't exist.
         try:
-            data = load_json(output_file)
-            data_simulation = self._find_current_simulation(data)
+            if os.path.isfile(output_file):
+                data = load_json(output_file)
+                data_simulation = self._find_current_simulation(data)
 
-            if data_simulation != {}:
-                self.load_results_from_dict(data_simulation)
+                if data_simulation != {}:
+                    self.load_results_from_dict(data_simulation)
 
         except JSONDecodeError as err:
             print(f'Error loading existing results file {output_file}')
