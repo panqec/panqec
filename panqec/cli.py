@@ -347,17 +347,19 @@ def monitor_usage(log_file: str, interval: float = 10):
     '--decoder_class', default='BeliefPropagationOSDDecoder',
     show_default=True,
     type=click.Choice(list(DECODERS.keys())),
-    help='Decoder class name'
+    help='Decoder class name. '
+    'Use `panqec ls decoders` to find the list of all decoders.'
 )
 @click.option(
-    '-s', '--sizes', default='5,9,7,13', type=str,
+    '-s', '--sizes', default='3x3,5x5,7x7', type=str,
     show_default=True,
-    help='List of sizes'
+    help='List of sizes, separated by a comma, where each size'
+    'has the form [Lx]x[Ly]x[Lz]'
 )
 @click.option(
     '--bias', default='Z', type=click.Choice(['X', 'Y', 'Z']),
     show_default=True,
-    help='Pauli bias'
+    help='Pauli noise bias'
 )
 @click.option(
     '--eta', default='0.5,1,3,10,30,100,inf', type=str,
@@ -372,12 +374,14 @@ def monitor_usage(log_file: str, interval: float = 10):
 @click.option(
     '--code_class', default=None, type=str,
     show_default=True,
-    help='Code class name, e.g. Toric3DCode'
+    help='Code class name, e.g. Toric3DCode. '
+    'Use `panqec ls codes` to find the list of all codes'
 )
 @click.option(
     '--noise_class', default='PauliErrorModel', type=str,
     show_default=True,
-    help='Error model class name, e.g. PauliErrorModel'
+    help='Error model class name, e.g. PauliErrorModel. '
+    'Use `panqec ls error_models` to find the list of all error models'
 )
 @click.option(
     '--deformation_name', default=None, type=str,
@@ -389,7 +393,7 @@ def monitor_usage(log_file: str, interval: float = 10):
     show_default=True,
     type=click.Choice(['direct', 'splitting']),
     help='Simulation method, between "direct" (simple Monte-Carlo simulation)'
-         'and "splitting" (Metropolis-Hastings for low error rates)'
+    'and "splitting" (Metropolis-Hastings for low error rates)'
 )
 @click.option(
     '-l', '--label', default=None,
