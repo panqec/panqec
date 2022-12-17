@@ -109,12 +109,6 @@ def run_parallel(
     logs_dir = os.path.join(data_dir, "logs")
     progress_dir = os.path.join(logs_dir, "progress")
 
-    if delete_existing:
-        if os.path.exists(result_dir):
-            shutil.rmtree(result_dir)
-        if os.path.exists(progress_dir):
-            shutil.rmtree(progress_dir)
-
     os.makedirs(result_dir, exist_ok=True)
     os.makedirs(progress_dir, exist_ok=True)
 
@@ -362,7 +356,7 @@ def monitor_usage(log_file: str, interval: float = 10):
     help='Pauli noise bias'
 )
 @click.option(
-    '--eta', default='0.5,1,3,10,30,100,inf', type=str,
+    '--eta', default='0.5', type=str,
     show_default=True,
     help='Bias ratio'
 )
@@ -429,8 +423,8 @@ def generate_input(
         code_parameters = [
             {
                 "L_x": int(L[0]),
-                "L_y": int(L[1]) if len(L) >= 2 else L[0],
-                "L_z": int(L[2]) if len(L) == 3 else L[0]
+                "L_y": int(L[1]) if len(L) >= 2 else int(L[0]),
+                "L_z": int(L[2]) if len(L) == 3 else int(L[0])
             }
             for L in L_list
         ]
