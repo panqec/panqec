@@ -6,7 +6,7 @@ data_dir=/home/ucapacp/panqec/temp/toric-2d-code
 # Experiment parameters
 code="Toric2DCode" # code class
 decoder="MatchingDecoder" # decoder class
-sizes="5,7,9"  # lattice sizes
+sizes="5x5,7x7,9x9"  # lattice sizes
 eta="0.5"  # bias parameter
 prob="0.1:0.2:0.01" # Physical error rates (format start:end:step)
 trials=1000  # number of Monte Carlo runs
