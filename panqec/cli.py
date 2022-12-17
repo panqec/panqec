@@ -5,7 +5,6 @@ import panqec
 from tqdm import tqdm
 import numpy as np
 import json
-import shutil
 from json.decoder import JSONDecodeError
 import multiprocessing
 import datetime
@@ -53,10 +52,6 @@ def start_gui(port: Optional[int]):
 @click.option('-i', '--input_file', type=str)
 @click.option('-o', '--output_file', type=click.STRING)
 @click.option('-t', '--trials', default=100, type=click.INT, show_default=True)
-@click.option('-s', '--start', default=None, type=click.INT, show_default=True)
-@click.option(
-    '-n', '--n_runs', default=None, type=click.INT, show_default=True
-)
 def run(
     ctx,
     input_file: Optional[str],
