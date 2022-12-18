@@ -11,12 +11,12 @@ from .codes import (
     Toric2DCode, Planar2DCode, RotatedPlanar2DCode,
     Toric3DCode, RotatedPlanar3DCode, RotatedToric3DCode,
     Color666PlanarCode, Color666ToricCode, Color488Code,
-    Color3DCode, RhombicCode, XCubeCode, Quasi2DCode
+    Color3DCode, RhombicToricCode, RhombicPlanarCode,
+    XCubeCode, HollowPlanar3DCode, HollowRhombicCode
 )
 from .decoders import (
     SweepMatchDecoder, XCubeMatchingDecoder,
-    RotatedSweepMatchDecoder, RotatedInfiniteZBiasDecoder,
-    FoliatedMatchingDecoder
+    RotatedSweepMatchDecoder
 )
 from .decoders import BeliefPropagationOSDDecoder
 from .decoders import MemoryBeliefPropagationDecoder
@@ -63,9 +63,11 @@ CODES = {
     'Planar3DCode': RotatedPlanar3DCode,
     'RotatedPlanar3DCode': RotatedPlanar3DCode,
     'RotatedToric3DCode': RotatedToric3DCode,
-    'RhombicCode': RhombicCode,
+    'RhombicToricCode': RhombicToricCode,
+    'RhombicPlanarCode': RhombicPlanarCode,
     'XCubeCode': XCubeCode,
-    'Quasi2DCode': Quasi2DCode
+    'HollowPlanar3DCode': HollowPlanar3DCode,
+    'HollowRhombicCode': HollowRhombicCode
 }
 ERROR_MODELS = {
     'PauliErrorModel': PauliErrorModel
@@ -74,10 +76,8 @@ DECODERS: Dict[str, Any] = {
     'MatchingDecoder': MatchingDecoder,
     'SweepMatchDecoder': SweepMatchDecoder,
     'RotatedSweepMatchDecoder': RotatedSweepMatchDecoder,
-    'FoliatedMatchingDecoder': FoliatedMatchingDecoder,
     'BeliefPropagationOSDDecoder': BeliefPropagationOSDDecoder,
     'MemoryBeliefPropagationDecoder': MemoryBeliefPropagationDecoder,
-    'RotatedInfiniteZBiasDecoder': RotatedInfiniteZBiasDecoder,
     'XCubeMatchingDecoder': XCubeMatchingDecoder
 }
 

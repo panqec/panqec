@@ -9,11 +9,10 @@ import os
 import subprocess
 import re
 import datetime
-from typing import Dict, Optional
+from typing import Optional
 from glob import glob
-import numpy as np
 from .config import (
-    SLURM_DIR, SBATCH_TEMPLATE, SLURM_USERNAME, AD_TEMPLATE
+    SLURM_DIR, SLURM_USERNAME
 )
 from .simulation import read_input_json, count_runs
 
@@ -48,65 +47,6 @@ def count_input_runs(name: str) -> Optional[int]:
     return n_runs
 
 
-def generate_sbatch_ad(
-    name: str,
-    n_trials: int,
-    nodes: int,
-    ntasks: int,
-    cpus_per_task: int,
-    mem: int,
-    time: str,
-    split: int,
-    partition: str,
-    cluster: str,
-):
-    """Generate sbatch files for AD."""
-    input_dir = os.path.join(SLURM_DIR, 'inputs')
-    sbatch_dir = os.path.join(SLURM_DIR, 'sbatch')
-    output_dir = os.path.join(SLURM_DIR, 'out')
-
-    template_path = AD_TEMPLATE
-    if cluster == 'symmetry':
-        template_path = SBATCH_TEMPLATE
-
-    with open(template_path) as f:
-        template_text = f.read()
-
-    input_file = os.path.join(input_dir, f'{name}.json')
-    if not os.path.exists(input_file):
-        print(f'File {input_file} not found')
-    else:
-        print(f'Generating AD sbatch files for {name}')
-        run_count = count_runs(input_file)
-        if split == 1 or run_count is None:
-            split_label = ''
-            options = ''
-            _write_sbatch(
-                sbatch_dir, template_text,
-                name, output_dir, nodes, ntasks, cpus_per_task,
-                mem, time, input_file, n_trials, options, split_label,
-                partition
-            )
-        else:
-            split = min(split, run_count)
-            parts = np.array_split(range(run_count), split)
-            sbatch_files = []
-            for i_part, part in enumerate(parts):
-                split_label = f'_{i_part}'
-                start = part[0]
-                n_runs = len(part)
-                options = f' --start {start} --n_runs {n_runs}'
-                sbatch_file = _write_sbatch(
-                    sbatch_dir, template_text,
-                    name, output_dir, nodes, ntasks, cpus_per_task,
-                    mem, time, input_file, n_trials, options, split_label,
-                    partition
-                )
-                sbatch_files.append(sbatch_file)
-
-            write_submit_sh(name, sbatch_files)
-
-
 def write_submit_sh(name, sbatch_files, flags=''):
     """Write script to submit all sbatch files for a given run."""
     sbatch_dir = os.path.join(SLURM_DIR, 'sbatch')
@@ -125,83 +65,6 @@ def write_submit_sh(name, sbatch_files, flags=''):
     with open(sh_path, 'w') as f:
         f.write(sh_contents)
     print(f'Run {sh_path} to submit all jobs')
-
-
-def _write_sbatch(
-    sbatch_dir: str, template_text: str,
-    name: str, output_dir: str, nodes: int, ntasks: int, cpus_per_task: int,
-    mem: int, time: str, input_file: str, n_trials: int, options: str,
-    split_label: str, partition: str
-) -> str:
-    """Write sbatch file and return the path."""
-    sbatch_file = os.path.join(
-        sbatch_dir, f'{name}{split_label}.sbatch'
-    )
-    replacement: Dict[str, str] = {
-        'partition': partition,
-        'job_name': f'{name}{split_label}',
-        'output': os.path.join(output_dir, f'{name}{split_label}.out'),
-        'nodes': str(nodes),
-        'ntasks': str(ntasks),
-        'cpus_per_task': str(cpus_per_task),
-        'mem': str(mem),
-        'time': time,
-        'input_file': input_file,
-        'n_trials': str(n_trials),
-        'options': options,
-    }
-    modified_text = template_text
-    for field, value in replacement.items():
-        field_key = '${%s}' % field
-        assert field in modified_text, f'{field} missing from template'
-        assert field_key in modified_text
-        modified_text = modified_text.replace(field_key, value)
-    with open(sbatch_file, 'w') as f:
-        f.write(modified_text)
-    print(f'Generated {sbatch_file}')
-    return sbatch_file
-
-
-def generate_sbatch(
-    n_trials: int,
-    partition: str,
-    time: str,
-    cores: int,
-):
-    """Generate sbatch files."""
-    input_dir = os.path.join(SLURM_DIR, 'inputs')
-    sbatch_dir = os.path.join(SLURM_DIR, 'sbatch')
-    output_dir = os.path.join(SLURM_DIR, 'out')
-
-    with open(SBATCH_TEMPLATE) as f:
-        template_text = f.read()
-
-    input_files = glob(os.path.join(input_dir, '*.json'))
-    print(input_dir)
-    print(f'Found {len(input_files)} input files')
-    print('\n'.join(input_files))
-    for input_file in input_files:
-        name = os.path.splitext(os.path.split(input_file)[-1])[0]
-        print(f'Generating sbatch for {name}')
-        sbatch_file = os.path.join(sbatch_dir, f'{name}.sbatch')
-        replacement: Dict[str, str] = {
-            'partition': partition,
-            'job_name': name,
-            'nodes': str(cores),
-            'output': os.path.join(output_dir, f'{name}.out'),
-            'time': time,
-            'input_file': input_file,
-            'n_trials': str(n_trials)
-        }
-        modified_text = template_text
-        for field, value in replacement.items():
-            field_key = '${%s}' % field
-            assert field in modified_text
-            assert field_key in modified_text
-            modified_text = modified_text.replace(field_key, value)
-        with open(sbatch_file, 'w') as f:
-            f.write(modified_text)
-        print(f'Generated {sbatch_file}')
 
 
 def get_status():

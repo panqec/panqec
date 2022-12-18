@@ -8,6 +8,8 @@ Many of these are copied from the internet.
 """
 import numpy as np
 import json
+import os
+import gzip
 import hashlib
 from panqec.bsparse import is_sparse, to_array
 from typing import Callable
@@ -330,3 +332,44 @@ def find_nearest(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return array[idx]
+
+
+def progress_bar(k, n, bar_length=20):
+    ratio = k / n
+    percentage = str(int(ratio * 100)) + "%"
+    n_progress = int(ratio * bar_length)
+    n_left = int((1-ratio) * bar_length)
+
+    print(f"{percentage}|" + "█" * n_progress + " " * n_left + f"| {k}/{n}")
+
+
+def load_json(file):
+    if not os.path.isfile(file):
+        raise ValueError(f"File {file} not found")
+    if os.path.splitext(file)[-1] not in ['.json', '.gz']:
+        raise ValueError(f"File {file} is not a .json or .json.gz file")
+
+    if os.path.splitext(file)[-1] == '.json':
+        with open(file) as f:
+            data = json.load(f)
+    elif os.path.splitext(file)[-1] == '.gz':
+        with gzip.open(file, 'rb') as gz:
+            data = json.loads(gz.read().decode('utf-8'))
+
+    return data
+
+
+def save_json(data, file):
+    if os.path.splitext(file)[-1] not in ['.json', '.gz']:
+        raise ValueError(f"Specified file {file} should have extension"
+                         ".json or .json.gz")
+
+    if isinstance(data, np.ndarray):
+        data = data.tolist()
+
+    if os.path.splitext(file)[-1] == '.json':
+        with open(file, 'w') as f:
+            json.dump(data, f, cls=NumpyEncoder)
+    else:
+        with gzip.open(file, 'wb') as gz:
+            gz.write(json.dumps(data, cls=NumpyEncoder).encode('utf-8'))

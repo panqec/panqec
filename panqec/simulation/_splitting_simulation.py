@@ -49,9 +49,6 @@ class SplittingSimulation(BaseSimulation):
         self.decoders = decoders
         self.error_rates = np.sort(error_rates)[::-1]
         self.n_init_runs = n_init_runs
-        self.label = '_'.join([
-            code.label, error_model.label, decoders[0].label
-        ])
 
         self.current_error = []
         self.initial_logical_p = None
@@ -65,9 +62,18 @@ class SplittingSimulation(BaseSimulation):
         }
         self._inputs = {
             **self._inputs,
-            'decoder': self.decoders[0].label,
-            'probability': self.error_rates,
-            'method': 'splitting'
+            'decoder': {
+                'name': self.decoders[0].id,
+                'parameters': self.decoders[0].params,
+            },
+            'error_rates': self.error_rates,
+            'method': {
+                'name': 'splitting',
+                'parameters': {
+                    'n_init_runs': n_init_runs,
+                    'start_run': start_run
+                }
+            }
         }
 
     def _run(self, n_runs: int):

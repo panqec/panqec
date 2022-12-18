@@ -2,21 +2,18 @@
 
 import os
 import json
-import uuid
-import gzip
 from json import JSONDecodeError
 import itertools
 from typing import List, Dict, Callable, Union, Any, Optional, Tuple, Iterable
-import datetime
 import numpy as np
 import pandas as pd
 from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
 from panqec.error_models import BaseErrorModel
 from panqec.config import (
-    CODES, ERROR_MODELS, DECODERS, PANQEC_DIR
+    CODES, ERROR_MODELS, DECODERS
 )
-from panqec.utils import identity, NumpyEncoder
+from panqec.utils import identity, load_json, save_json
 from . import (
     BaseSimulation, DirectSimulation, SplittingSimulation
 )
@@ -76,42 +73,35 @@ def run_once(
 
 
 def run_file(
-    file_name: str, n_trials: int,
-    start: Optional[int] = None,
-    n_runs: Optional[int] = None,
+    input_file: str,
+    output_file: str,
+    n_trials: int,
     progress: Callable = identity,
-    output_dir: Optional[str] = None,
+    log_file: Optional[str] = None,
     verbose: bool = True,
-    onefile: bool = True,
 ):
     """Run an input json file.
 
     Parameters
     ----------
-    file_name : str
+    input_file : str
         Path to the input json file.
+    output_file: str
+        Path to the json file that will contain the results.
     n_trials : int
         The number of MCMC trials to do.
-    start : Optional[int]
-        If given, then instead of running all simulations in the sense of
-        `simulations` only run `simulations[start:start + n_runs]`.
-    n_runs : Optional[int]
-        If given, then instead of running all simulations in the sense of
-        `simulations` only run `simulations[start:start + n_runs]`.
     progress : Callable
         Callable function
-    onefile : bool
-        If set to True, then all outputs get written to one file.
-
+    verbose: bool,
+        Verbosity of the output
     Returns
     -------
     None
     """
-    batch_sim = read_input_json(
-        file_name, output_dir=output_dir,
-        start=start, n_runs=n_runs,
-        onefile=onefile
-    )
+    print(f"Run file {input_file}")
+
+    batch_sim = read_input_json(input_file, output_file, log_file=log_file)
+
     if verbose:
         print(f'running {len(batch_sim._simulations)} simulations:')
         for simulation in batch_sim._simulations:
@@ -128,251 +118,6 @@ def run_file(
     batch_sim.run(n_trials, progress=progress)
 
 
-class Simulation:
-    """Quantum Error Correction Simulation.
-
-    Parameters
-    ----------
-    code : StabilizerCode
-        The QEC code object to be run.
-    error_model : BaseErrorModel
-        The error model from which to sample errors from.
-    decoder : BaseDecoder
-        The decoder to use for correct the errors.
-    error_rate : float
-        The error probability that denotes severity of noise.
-    rng :
-        Numpy random number generator, used for deterministic seeding.
-    compress : bool
-        Will compress results in .json.gz files if True.
-        True by default.
-    """
-
-    start_time: datetime.datetime
-    code: StabilizerCode
-    error_model: BaseErrorModel
-    decoder: BaseDecoder
-    error_rate: float
-    label: str
-    _results: dict = {}
-    rng = None
-    compress: bool
-
-    def __init__(
-        self,
-        code: StabilizerCode,
-        error_model: BaseErrorModel,
-        decoder: BaseDecoder,
-        error_rate: float, rng=None,
-        compress: bool = True,
-    ):
-        self.code = code
-        self.error_model = error_model
-        self.decoder = decoder
-        self.error_rate = error_rate
-        self.rng = rng
-        self.label = '_'.join([
-            code.label, error_model.label, decoder.label, f'{error_rate}'
-        ])
-        self._results = {
-            'effective_error': [],
-            'success': [],
-            'codespace': [],
-            'wall_time': 0,
-        }
-        self.compress = compress
-
-    @property
-    def wall_time(self):
-        """total amount of time spent on this simulation."""
-        return self._results['wall_time']
-
-    def run(self, repeats: int):
-        """Run assuming perfect measurement.
-
-        Parameters
-        ----------
-        repeats : int
-            Number of times to run.
-        """
-        self.start_time = datetime.datetime.now()
-        for i_trial in range(repeats):
-            shot = run_once(
-                self.code, self.error_model, self.decoder,
-                error_rate=self.error_rate,
-                rng=self.rng
-            )
-            for key, value in shot.items():
-                if key in self._results.keys():
-                    self._results[key].append(value)
-        finish_time = datetime.datetime.now() - self.start_time
-        self._results['wall_time'] += finish_time.total_seconds()
-
-    @property
-    def n_results(self):
-        """Number of runs with results simulated already."""
-        return len(self._results['success'])
-
-    @property
-    def results(self):
-        """Raw results."""
-        res = self._results
-        return res
-
-    @property
-    def file_name(self) -> str:
-        """Name of results file to save to.
-        Not the full path.
-        """
-        if self.compress:
-            extension = '.json.gz'
-        else:
-            extension = '.json'
-        file_name = self.label + extension
-        return file_name
-
-    def get_file_path(self, output_dir: str) -> str:
-        """Get the file path to save to."""
-        file_path = os.path.join(output_dir, self.file_name)
-        return file_path
-
-    def load_results(self, output_dir: str):
-        """Load previously written results from directory.
-
-        Parameters
-        ----------
-        output_dir : str
-            Path to the output directory where previous output files were
-            saved.
-        """
-        file_path = self.get_file_path(output_dir)
-
-        # Find the alternative compressed file path if it doesn't exist.
-        if not os.path.exists(file_path):
-            alt_file_path = file_path
-            if os.path.splitext(file_path)[-1] == '.json':
-                alt_file_path = file_path + '.gz'
-            elif os.path.splitext(file_path)[-1] == '.gz':
-                alt_file_path = file_path.replace('.json.gz', '.json')
-            if os.path.exists(alt_file_path):
-                file_path = alt_file_path
-        try:
-            if os.path.exists(file_path):
-                if os.path.splitext(file_path)[-1] == '.gz':
-                    with gzip.open(file_path, 'rb') as gz:
-                        data = json.loads(gz.read().decode('utf-8'))
-                else:
-                    with open(file_path) as json_file:
-                        data = json.load(json_file)
-                self.load_results_from_dict(data)
-        except JSONDecodeError as err:
-            print(f'Error loading existing results file {file_path}')
-            print('Starting this from scratch')
-            print(err)
-
-    def load_results_from_dict(self, data):
-        """Directly load results from a parsed output file.
-
-        Parameters
-        ----------
-        data : Dict
-            The results that have been parsed from a previously saved output
-            file.
-        """
-        for key in self._results.keys():
-            if key in data['results'].keys():
-                self._results[key] = data['results'][key]
-                if (
-                    isinstance(self.results[key], list)
-                    and len(self.results[key]) > 0
-                    and isinstance(self._results[key][0], list)
-                ):
-                    self._results[key] = [
-                        np.array(array_value)
-                        for array_value in self._results[key]
-                    ]
-
-    def get_results_to_save(self) -> dict:
-        """Get the results to save as a dict.
-
-        Processed in a way to have a consistent format.
-        """
-        data = {
-            'results': self._results,
-            'inputs': {
-                'size': self.code.size,
-                'code': self.code.label,
-                'n': self.code.n,
-                'k': self.code.k,
-                'd': self.code.d,
-                'error_model': self.error_model.label,
-                'decoder': self.decoder.label,
-                'probability': self.error_rate,
-            }
-        }
-        return data
-
-    def save_results(self, output_dir: str):
-        """Save results to directory.
-
-        Parameters
-        ----------
-        output_dir : str
-            The directory to save output files to.
-        """
-        data = self.get_results_to_save()
-        if self.compress:
-            with gzip.open(self.get_file_path(output_dir), 'wb') as gz:
-                gz.write(json.dumps(data, cls=NumpyEncoder).encode('utf-8'))
-        else:
-            with open(self.get_file_path(output_dir), 'w') as json_file:
-                json.dump(data, json_file, indent=4, cls=NumpyEncoder)
-
-    def get_results(self):
-        """Return results as dictionary that might be useful for later
-        analysis.
-
-        Returns
-        -------
-        simulation_data : Dict[str, Any]
-            Data including both inputs and results.
-        """
-
-        success = np.array(self.results['success'])
-        if len(success) > 0:
-            n_fail = np.sum(~success)
-        else:
-            n_fail = 0
-        simulation_data = {
-            'size': self.code.size,
-            'code': self.code.label,
-            'n': self.code.n,
-            'k': self.code.k,
-            'd': self.code.d,
-            'error_model': self.error_model.label,
-            'probability': self.error_rate,
-            'n_success': np.sum(success),
-            'n_fail': n_fail,
-            'n_trials': len(success),
-        }
-
-        # Use sample mean as estimator for effective error rate.
-        if simulation_data['n_trials'] != 0:
-            simulation_data['p_est'] = (
-                simulation_data['n_fail']/simulation_data['n_trials']
-            )
-        else:
-            simulation_data['p_est'] = np.nan
-
-        # Use posterior Beta distribution of the effective error rate
-        # standard distribution as standard error.
-        simulation_data['p_se'] = np.sqrt(
-            simulation_data['p_est']*(1 - simulation_data['p_est'])
-            / (simulation_data['n_trials'] + 1)
-        )
-        return simulation_data
-
-
 class BatchSimulation():
     """Holds and controls many simulations.
 
@@ -380,35 +125,40 @@ class BatchSimulation():
     ----------
     label : str
         The label of the files.
+    output_file : str
+        Path to the file (.json or .json.gz) that will store
+        the simulation results
+    label: str
+        Label of the batch simulation
     on_update : Callable
         Function that gets called on every update.
     update_frequency : int
         Frequency at which to update results.
     save_frequency : int
         Frequency at which to write results to file on disk.
-    output_dir : Optional[str]
-        The directory to output to.
-    onefile : bool
-        Saves to one combined file if True, as opposed to a lot of smaller
-        files.
+    method: str
+        The method can be either "direct" or "splitting".
+        The direct method samples independent errors at each iteration,
+        while the splitting method (by Bravyi & Vargo) uses MCMC to
+        determine the next error to sample.
+        Ref: arXiv:1308.6270
     """
 
     _simulations: List[BaseSimulation]
     update_frequency: int
     save_frequency: int
-    _output_dir: str
-    onefile: bool
+    _output_file: str
 
     def __init__(
         self,
+        output_file: str,
         label='unlabelled',
         on_update: Callable = identity,
         update_frequency: int = 5,
         save_frequency: int = 1,
-        output_dir: Optional[str] = None,
         method: str = "direct",
+        log_file: Optional[str] = None,
         verbose: bool = True,
-        onefile: bool = False,
     ):
         self._simulations = []
         self.code: Dict = {}
@@ -418,15 +168,8 @@ class BatchSimulation():
         self.label = label
         self.method = method
         self.verbose = verbose
-        if output_dir is not None:
-            if onefile:
-                self._output_dir = output_dir
-            else:
-                self._output_dir = os.path.join(output_dir, self.label)
-        else:
-            self._output_dir = os.path.join(PANQEC_DIR, self.label)
-        os.makedirs(self._output_dir, exist_ok=True)
-        self.onefile = onefile
+        self._output_file = output_file
+        self._log_file = log_file
 
     def __getitem__(self, *args):
         return self._simulations.__getitem__(*args)
@@ -453,7 +196,7 @@ class BatchSimulation():
     def load_results(self):
         """Load results from disk."""
         for simulation in self._simulations:
-            simulation.load_results(self._output_dir)
+            simulation.load_results(self._output_file)
 
     def on_update(self):
         """Function that gets called on every update."""
@@ -499,12 +242,11 @@ class BatchSimulation():
         # Use the maximum remaining trials to overestimate how much is
         # remaining for purposes of reporting progress to give a conservative
         # estimate of what is left without disappointing the user.
-        max_remaining_trials = max([
-            max(0, n_trials - simulation.n_results)
-            for simulation in self._simulations
+        min_current_trial = min([
+            simulation.n_results for simulation in self._simulations
         ])
 
-        for i_trial in progress(list(range(max_remaining_trials))):
+        for i_trial in progress(list(range(min_current_trial, n_trials))):
             for simulation in self._simulations:
                 if simulation.n_results < n_trials:
                     simulation.run(1)
@@ -513,9 +255,11 @@ class BatchSimulation():
                     self.on_update()
                 if i_trial % self.save_frequency == 0:
                     self.save_results()
-            if i_trial == max_remaining_trials - 1:
+            if i_trial == n_trials - 1:
                 self.on_update()
                 self.save_results()
+
+            self._log_progress(i_trial, n_trials)
 
         # for simulation in self._simulations:
         #     if self.verbose:
@@ -523,51 +267,39 @@ class BatchSimulation():
         #     simulation.postprocess()
 
     def _save_results(self):
-        for i_simulation, simulation in enumerate(self._simulations):
-            if self.onefile:
-                self._update_onefile(
-                    i_simulation, simulation.get_results_to_save()
-                )
-            else:
-                simulation.save_results(self._output_dir)
+        self._update_file(
+            self.get_results_to_save()
+        )
 
-    def get_onefile_path(self) -> str:
-        """Get path of combined all-in-one output file."""
-        return os.path.join(self._output_dir, self.label + '.json.gz')
-
-    def save_onefile(self):
-        """Do a complete save of the onefile."""
-        out_file = self.get_onefile_path()
+    def save_file(self):
+        """Do a complete save of the file."""
         combined_data = []
         for simulation in self._simulations:
             combined_data.append(simulation.get_results_to_save())
-        with gzip.open(out_file, 'wb') as gz:
-            gz.write(
-                json.dumps(combined_data, cls=NumpyEncoder).encode('utf-8')
-            )
 
-    def _update_onefile(self, i_simulation: int, new_data: dict) -> None:
-        """Update only the i-th simulation's results to the onefile."""
-        out_file = self.get_onefile_path()
+        # Create output directory if it does not exist yet
+        output_dir = os.path.dirname(self._output_file)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
 
-        # First time file does not exist, so write it ot start.
-        if not os.path.isfile(out_file):
-            self.save_onefile()
+        save_json(combined_data, self._output_file)
 
-        # A bit slow, but just unzip the previously existing zip file.
-        with gzip.open(out_file, 'rb') as gz:
-            combined_data = json.loads(gz.read().decode('utf-8'))
+    def _log_progress(self, i_trial, n_trials):
+        if self._log_file is not None:
+            with open(self._log_file, "w") as f:
+                f.write(f"{i_trial+1}/{n_trials}")
 
-        # Update only the i-th simulation with the new data.
-        combined_data[i_simulation] = new_data
+    def _update_file(self, new_data: list) -> None:
+        """Update only the results to one file."""
 
-        # Write the updated list to the .json.gz file.
-        with gzip.open(out_file, 'wb') as gz:
-            gz.write(
-                json.dumps(combined_data, cls=NumpyEncoder).encode('utf-8')
-            )
+        # First time file does not exist, so write it to start.
+        if not os.path.isfile(self._output_file):
+            self.save_file()
 
-    def load_onefile(self):
+        # Write the updated list to the .json or .json.gz file.
+        save_json(new_data, self._output_file)
+
+    def load_file(self):
         pass
 
     def save_results(self):
@@ -585,6 +317,13 @@ class BatchSimulation():
         results = []
         for simulation in self._simulations:
             simulation_data = simulation.get_results()
+            results.append(simulation_data)
+        return results
+
+    def get_results_to_save(self):
+        results = []
+        for simulation in self._simulations:
+            simulation_data = simulation.get_results_to_save()
             results.append(simulation_data)
         return results
 
@@ -657,11 +396,13 @@ def _parse_all_ranges(data: dict) -> Tuple[list, list, list, list]:
             code_range[-1]['parameters'] = params
 
     noise_range: List[Dict] = [{}]
-    if 'parameters' in data['noise']:
-        params_range = _parse_parameters_range(data['noise']['parameters'])
+    if 'parameters' in data['error_model']:
+        params_range = _parse_parameters_range(
+            data['error_model']['parameters']
+        )
         noise_range = []
         for params in params_range:
-            noise_range.append(data['noise'].copy())
+            noise_range.append(data['error_model'].copy())
             noise_range[-1]['parameters'] = params
 
     decoder_range: List[Dict] = [{}]
@@ -675,35 +416,35 @@ def _parse_all_ranges(data: dict) -> Tuple[list, list, list, list]:
         decoder_range.append(data['decoder'].copy())
         decoder_range[-1]['parameters'] = params
 
-    probability_range = _parse_parameters_range(data['probability'])
+    error_rate_range = _parse_parameters_range(data['error_rate'])
 
-    return code_range, noise_range, decoder_range, probability_range
+    return code_range, noise_range, decoder_range, error_rate_range
 
 
 def expand_input_ranges(data: dict) -> List[Dict]:
     runs: List[Dict] = []
 
     (
-        code_range, noise_range, decoder_range, probability_range
+        code_range, error_model_range, decoder_range, error_rate_range
     ) = _parse_all_ranges(data)
 
     for (
-        noise_param, decoder_param, probability, code_param
+        error_model_param, decoder_param, error_rate, code_param
     ) in itertools.product(
-        noise_range, decoder_range, probability_range, code_range
+        error_model_range, decoder_range, error_rate_range, code_range
     ):
         run = {
             k: v for k, v in data.items()
-            if k not in ['code', 'noise', 'decoder', 'probability']
+            if k not in ['code', 'error_model', 'decoder', 'error_rate']
         }
-        for key in ['code', 'noise', 'decoder']:
+        for key in ['code', 'error_model', 'decoder']:
             run[key] = {
                 k: v for k, v in data[key].items() if k != 'parameters'
             }
         run['code']['parameters'] = code_param['parameters']
-        run['noise']['parameters'] = noise_param['parameters']
+        run['error_model']['parameters'] = error_model_param['parameters']
         run['decoder']['parameters'] = decoder_param['parameters']
-        run['probability'] = probability
+        run['error_rate'] = error_rate
 
         runs.append(run)
 
@@ -711,7 +452,7 @@ def expand_input_ranges(data: dict) -> List[Dict]:
 
 
 def _parse_code_dict(code_dict: Dict[str, Any]) -> StabilizerCode:
-    code_name = code_dict['model']
+    code_name = code_dict['name']
     code_params: Union[list, dict] = []
     if 'parameters' in code_dict:
         code_params = code_dict['parameters']
@@ -724,7 +465,7 @@ def _parse_code_dict(code_dict: Dict[str, Any]) -> StabilizerCode:
 
 
 def _parse_error_model_dict(noise_dict: Dict[str, Any]) -> BaseErrorModel:
-    error_model_name = noise_dict['model']
+    error_model_name = noise_dict['name']
     error_model_params: Union[list, dict] = []
     if 'parameters' in noise_dict:
         error_model_params = noise_dict['parameters']
@@ -742,7 +483,7 @@ def _parse_decoder_dict(
     error_model: BaseErrorModel,
     error_rate: float
 ) -> BaseDecoder:
-    decoder_name = decoder_dict['model']
+    decoder_name = decoder_dict['name']
     decoder_class = DECODERS[decoder_name]
     decoder_params: dict = {}
     if 'parameters' in decoder_dict:
@@ -758,24 +499,22 @@ def _parse_decoder_dict(
     return decoder
 
 
-def read_input_json(file_path: str, *args, **kwargs) -> BatchSimulation:
+def read_input_json(
+    input_file: str,
+    output_file: str,
+    log_file: Optional[str] = None
+) -> BatchSimulation:
     """Read json input file or .json.gz file."""
     try:
-        if os.path.splitext(file_path)[-1] == '.json':
-            with open(file_path) as f:
-                data = json.load(f)
-        else:
-            with gzip.open(file_path, 'rb') as g:
-                data = json.loads(g.read().decode('utf-8'))
+        data = load_json(input_file)
     except JSONDecodeError as err:
-        print(f'Error reading input file {file_path}')
+        print(f'Error reading input file {input_file}')
         raise err
-    return read_input_dict(data, *args, **kwargs)
+
+    return read_input_dict(data, output_file, log_file=log_file)
 
 
-def get_runs(
-    data: dict, start: Optional[int] = None, n_runs: Optional[int] = None
-) -> List[dict]:
+def get_runs(data: dict) -> List[dict]:
     """Get expanded runs from input dictionary."""
 
     runs = []
@@ -783,12 +522,6 @@ def get_runs(
         runs = data['runs']
     if 'ranges' in data:
         runs += expand_input_ranges(data['ranges'])
-
-    # Filter the range of runs.
-    if start is not None:
-        runs = runs[start:]
-        if n_runs is not None:
-            runs = runs[:n_runs]
 
     return runs
 
@@ -801,15 +534,12 @@ def count_runs(file_path: str) -> Optional[int]:
     n_runs = None
     with open(file_path) as f:
         data = json.load(f)
-    all_runs = get_runs(data, start=None, n_runs=None)
+    all_runs = get_runs(data)
     n_runs = len(all_runs)
     return n_runs
 
 
-def get_simulations(
-    data: dict, start: Optional[int] = None, n_runs: Optional[int] = None,
-    verbose: bool = True
-) -> List[BaseSimulation]:
+def get_simulations(data: dict, verbose: bool = True) -> List[BaseSimulation]:
     simulations: List[BaseSimulation] = []
 
     method = 'direct'
@@ -842,11 +572,12 @@ def get_simulations(
             method_params = data['ranges']['method']['parameters']
 
     elif 'runs' in data:
+        print("Run", data['runs'])
         codes = [_parse_code_dict(run['code']) for run in data['runs']]
         decoder_range = [run['decoder'] for run in data['runs']]
-        error_models = [_parse_error_model_dict(run['noise'])
+        error_models = [_parse_error_model_dict(run['error_model'])
                         for run in data['runs']]
-        error_rates = [run['probability'] for run in data['runs']]
+        error_rates = [run['error_rate'] for run in data['runs']]
         instances = zip(codes, error_models, decoder_range, error_rates)
 
     else:
@@ -872,18 +603,12 @@ def get_simulations(
                 verbose=verbose, **method_params
             ))
 
-    if start is not None:
-        simulations = simulations[start:]
-    if n_runs is not None:
-        simulations = simulations[:n_runs]
-
     return simulations
 
 
 def read_input_dict(
     data: dict,
-    start: Optional[int] = None,
-    n_runs: Optional[int] = None,
+    output_file: str,
     verbose: bool = True,
     *args, **kwargs
 ) -> BatchSimulation:
@@ -893,13 +618,6 @@ def read_input_dict(
     ----------
     data : dict
         Data that has been parsed from an input json file.
-    start : Optional[int]
-        Restrict the BatchSimulation skip this number of simulations.
-        This is useful if you want a batch simulation with
-        `simulations[start:start + n_runs]`.
-    n_runs : Optional[int]
-        Return this many simulations in the returned BatchSimulation.
-
     Returns
     -------
     batch_simulation : BatchSimulation
@@ -910,7 +628,6 @@ def read_input_dict(
     method = 'direct'
 
     if 'ranges' in data:
-
         # If many ranges are given label is 'combined', but if there is
         # only one unique label, then we can just use that label.
         if isinstance(data['ranges'], list):
@@ -930,129 +647,17 @@ def read_input_dict(
         if 'method' in data['ranges']:
             method = data['ranges']['method']['name']
 
-    # If writing to one combined .json.gz file for everything, then the
-    # label should be a random UUID.
-    if 'onefile' in kwargs and kwargs['onefile']:
-        label = str(uuid.uuid4().hex)
-
     kwargs['label'] = label
     kwargs['method'] = method
     kwargs['verbose'] = verbose
 
-    batch_sim = BatchSimulation(*args, **kwargs)
+    print("Start batch simulation instance")
+    batch_sim = BatchSimulation(output_file, *args, **kwargs)
     assert len(batch_sim._simulations) == 0
 
-    simulations = get_simulations(data, start=start, n_runs=n_runs,
-                                  verbose=verbose)
+    simulations = get_simulations(data, verbose=verbose)
 
     for sim in simulations:
         batch_sim.append(sim)
 
     return batch_sim
-
-
-def merge_results_dicts(results_dicts: List[Dict]) -> Dict:
-    """Merge results dicts into one dict.
-
-    The input attribute must be the same for each dict in the list.
-
-    Parameters
-    ----------
-    results_dicts : List[Dict]
-        List of data dicts to merge into one.
-
-    Returns
-    -------
-    merged_dict : Dict
-        Dictionary that contains the merged data.
-
-    """
-
-    # If splitting method
-    if 'log_p_errors' in results_dicts[0]['results'].keys():
-        error_rates = results_dicts[0]['results']['error_rates']
-        results: Dict[str, Any] = {
-            'log_p_errors': [[] for _ in error_rates],
-            'n_runs': 0,
-            'wall_time': 0.0
-        }
-        inputs = results_dicts[0]['inputs']
-        for results_dict in results_dicts:
-            assert results_dict['inputs'] == inputs, (
-                'Warning: attempting to merge results of different inputs'
-            )
-            results['n_runs'] += results_dict['results']['n_runs']
-            results['wall_time'] += results_dict['results']['wall_time']
-
-            for i, p in enumerate(results_dict['results']['log_p_errors']):
-                results['log_p_errors'][i].append(p)
-
-        results['error_rates'] = error_rates
-
-    # If direct method
-    else:
-        results = {
-            'effective_error': [],
-            'success': [],
-            'codespace': [],
-            'wall_time': 0.0
-        }
-        # For backward compatibilities (when n_runs was not in results)
-        if 'n_runs' in results_dicts[0]['results'].keys():
-            results['n_runs'] = 0
-        inputs = results_dicts[0]['inputs']
-        for results_dict in results_dicts:
-            for key in results.keys():
-                results[key] += results_dict['results'][key]
-            assert results_dict['inputs'] == inputs, (
-                'Warning: attempting to merge results of different inputs'
-            )
-
-    merged_dict = {
-        'results': results,
-        'inputs': inputs,
-    }
-    return merged_dict
-
-
-def merge_lists_of_results_dicts(
-    results_dicts: List[Union[dict, list]]
-) -> List[dict]:
-    """List of results lists of dicts produced by BatchSimulation onefile.
-
-    A more general version of `merge_results_dicts()` that can allow merging
-    lists of results dicts that may not necessarily have the same inputs.
-
-    Parameters
-    ----------
-    results_dicts : List[Union[dict, list]]
-        List of dicts or list of lists of dicts that are to be merge.
-
-    Returns
-    -------
-    combined_results : List[dict]
-        The combined results as a list of dicts.
-    """
-    flattened_results_dicts = []
-    for element in results_dicts:
-        if isinstance(element, dict):
-            flattened_results_dicts.append(element)
-        elif isinstance(element, list):
-            for value in element:
-                flattened_results_dicts.append(value)
-
-    # Combine results by sorting unique inputs.
-    input_jsons = [
-        json.dumps(element['inputs'])
-        for element in flattened_results_dicts
-    ]
-
-    # The combined results is a list.
-    combined_results = []
-    for unique_input in set(input_jsons):
-        combined_results.append(merge_results_dicts([
-            flattened_results_dicts[i]
-            for i, value in enumerate(input_jsons)
-            if value == unique_input
-        ]))
-    return combined_results

@@ -116,6 +116,14 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
         # Initialize [stabilizer to qubit] messages (delta)
         self.delta_s2q = np.zeros((n_stabs, n_qubits))
 
+    @property
+    def params(self) -> dict:
+        return {
+            'max_bp_iter': self.max_bp_iter,
+            'alpha': self.alpha,
+            'beta': self.beta
+        }
+
     def get_probabilities(self):
         error_rate = 0.5
         pi, px, py, pz = self.error_model.probability_distribution(

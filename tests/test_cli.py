@@ -40,8 +40,8 @@ class TestLS:
         assert 'Error Models (Noise):' not in result.output
         assert 'Decoders:' not in result.output
 
-    def test_ls_noise(self, runner):
-        result = runner.invoke(cli, ['ls', 'noise'])
+    def test_ls_error_models(self, runner):
+        result = runner.invoke(cli, ['ls', 'error_models'])
         assert result.exit_code == 0
         assert 'Codes:' not in result.output
         assert 'Error Models (Noise):' in result.output

@@ -5,15 +5,15 @@ from flask import (
 )
 from panqec.codes import (
     Toric2DCode, RotatedPlanar2DCode, Planar2DCode,
-    Toric3DCode, RotatedPlanar3DCode, RhombicCode,
-    Planar3DCode, RotatedToric3DCode, XCubeCode, Quasi2DCode,
+    Toric3DCode, RotatedPlanar3DCode, RhombicToricCode, RhombicPlanarCode,
+    Planar3DCode, RotatedToric3DCode, XCubeCode,
+    HollowPlanar3DCode, HollowRhombicCode,
     Color3DCode, Color666PlanarCode, Color666ToricCode, Color488Code
 )
 from panqec.decoders import (
     MatchingDecoder, RotatedSweepMatchDecoder,
-    ZMatchingDecoder, SweepMatchDecoder,
-    BeliefPropagationOSDDecoder, MemoryBeliefPropagationDecoder,
-    XCubeMatchingDecoder
+    SweepMatchDecoder, BeliefPropagationOSDDecoder,
+    MemoryBeliefPropagationDecoder, XCubeMatchingDecoder
 )
 from panqec.error_models import PauliErrorModel
 
@@ -27,12 +27,14 @@ codes = {'Toric 2D': Toric2DCode,
          '6.6.6 Color Code (planar)': Color666PlanarCode,
          '4.8.8 Color Code': Color488Code,
          'Toric 3D': Toric3DCode,
+         'Planar 3D': Planar3DCode,
          'Rotated Toric 3D': RotatedToric3DCode,
          'Rotated Planar 3D': RotatedPlanar3DCode,
-         'Rhombic': RhombicCode,
-         'Planar 3D': Planar3DCode,
+         'Rhombic Toric 3D': RhombicToricCode,
+         'Rhombic Planar 3D': RhombicPlanarCode,
          'XCube': XCubeCode,
-         'Quasi 2D': Quasi2DCode,
+         'Hollow Planar 3D': HollowPlanar3DCode,
+         'Hollow Rhombic Code': HollowRhombicCode,
          '3D Color Code': Color3DCode}
 
 noise_directions = {'Pure X': (1, 0, 0),
@@ -45,7 +47,6 @@ decoders = {'BP-OSD': BeliefPropagationOSDDecoder,
             'SweepMatch': SweepMatchDecoder,
             'RotatedSweepMatch': RotatedSweepMatchDecoder,
             'Matching': MatchingDecoder,
-            'Optimal ∞ bias': ZMatchingDecoder,
             'XCube Matching': XCubeMatchingDecoder}
 
 

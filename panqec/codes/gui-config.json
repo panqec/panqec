@@ -857,7 +857,7 @@
         }
     },
 
-    "Quasi2DCode": {
+    "HollowPlanar3DCode": {
         "qubits": {
             "kitaev": {
                 "object": "cylinder",
@@ -1141,7 +1141,281 @@
         }
     },
 
-    "RhombicCode": {
+    "RhombicToricCode": {
+        "qubits": {
+            "kitaev": {
+                "object": "cylinder",
+                "color": {
+                    "I": "pink",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.6
+                    }
+                },
+                "params": {
+                    "length": 2,
+                    "radius": 0.1,
+                    "angle": 0
+                }
+            },
+            "rotated": {
+                "object": "sphere",
+                "color": {
+                    "I": "white",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.7
+                    }
+                },
+                "params": {
+                    "radius": 0.2
+                }
+            }
+        },
+        "stabilizers": {
+            "kitaev": {
+                "cube": {
+                    "object": "cube",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "white"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.6,
+                            "max": 0.6
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.3
+                        }
+                    },
+                    "params": {"length": 1.5}
+                },
+                "triangle": {
+                    "object": "triangle",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "light-yellow"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 1,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0.2,
+                            "max": 0.6
+                        }
+                    },
+                    "params": {
+                        "vertices": [[1, 0, 0],
+                                     [0, 1, 0],
+                                     [0, 0, 1]]
+                    }
+                }
+            },
+            "rotated": {
+                "cube": {
+                    "object": "cuboctahedron",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "white"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.9,
+                            "max": 0.9
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.3
+                        }
+                    },
+                    "params": {"length": 1.5}
+                },
+                "triangle": {
+                    "object": "triangle",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "light-yellow"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 1,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.6
+                        }
+                    },
+                    "params": {
+                        "vertices": [[1, 0, 0],
+                                     [0, 1, 0],
+                                     [0, 0, 1]]
+                    }
+                }
+            }
+        }
+    },
+
+    "RhombicPlanarCode": {
+        "qubits": {
+            "kitaev": {
+                "object": "cylinder",
+                "color": {
+                    "I": "pink",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.6
+                    }
+                },
+                "params": {
+                    "length": 2,
+                    "radius": 0.1,
+                    "angle": 0
+                }
+            },
+            "rotated": {
+                "object": "sphere",
+                "color": {
+                    "I": "white",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.7
+                    }
+                },
+                "params": {
+                    "radius": 0.2
+                }
+            }
+        },
+        "stabilizers": {
+            "kitaev": {
+                "cube": {
+                    "object": "cube",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "white"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.6,
+                            "max": 0.6
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.3
+                        }
+                    },
+                    "params": {"length": 1.5}
+                },
+                "triangle": {
+                    "object": "triangle",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "light-yellow"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 1,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0.2,
+                            "max": 0.6
+                        }
+                    },
+                    "params": {
+                        "vertices": [[1, 0, 0],
+                                     [0, 1, 0],
+                                     [0, 0, 1]]
+                    }
+                }
+            },
+            "rotated": {
+                "cube": {
+                    "object": "cuboctahedron",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "white"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.9,
+                            "max": 0.9
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.3
+                        }
+                    },
+                    "params": {"length": 1.5}
+                },
+                "triangle": {
+                    "object": "triangle",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "light-yellow"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 1,
+                            "max": 1
+                        },
+                        "deactivated": {
+                            "min": 0.1,
+                            "max": 0.6
+                        }
+                    },
+                    "params": {
+                        "vertices": [[1, 0, 0],
+                                     [0, 1, 0],
+                                     [0, 0, 1]]
+                    }
+                }
+            }
+        }
+    },
+
+    "HollowRhombicCode": {
         "qubits": {
             "kitaev": {
                 "object": "cylinder",

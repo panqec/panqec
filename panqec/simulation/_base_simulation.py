@@ -2,16 +2,13 @@
 API for running simulations.
 """
 from abc import ABCMeta, abstractmethod
-import os
-import json
 from json import JSONDecodeError
 import datetime
+import os
 import numpy as np
-import gzip
 from panqec.codes import StabilizerCode
 from panqec.error_models import BaseErrorModel
-
-from ..utils import NumpyEncoder
+from panqec.utils import load_json, save_json
 
 
 class BaseSimulation(metaclass=ABCMeta):
@@ -37,19 +34,24 @@ class BaseSimulation(metaclass=ABCMeta):
         self.compress = compress
         self.verbose = verbose
         self.rng = rng
-        self.label = ''
+        self.label = 'results'
 
         self._results = {
             'n_runs': 0,
             'wall_time': 0,
         }
         self._inputs = {
-            'size': self.code.size,
-            'code': self.code.label,
-            'n': self.code.n,
-            'k': self.code.k,
-            'd': self.code.d,
-            'error_model': self.error_model.label,
+            'code': {
+                'name': self.code.id,
+                'parameters': self.code.params,
+                'n': self.code.n,
+                'k': self.code.k,
+                'd': self.code.d,
+            },
+            'error_model': {
+                'name': self.error_model.id,
+                'parameters':  self.error_model.params
+            }
         }
 
     @property
@@ -82,34 +84,25 @@ class BaseSimulation(metaclass=ABCMeta):
         finish_time = datetime.datetime.now() - self.start_time
         self._results['wall_time'] += finish_time.total_seconds()
 
-    def get_file_path(self, output_dir: str) -> str:
-        file_path = os.path.join(output_dir, self.file_name)
-        return file_path
+    def _find_current_simulation(self, data: list) -> dict:
+        for sim in data:
+            if sim['inputs'] == self._inputs:
+                return sim
+        return {}
 
-    def load_results(self, output_dir: str):
+    def load_results(self, output_file: str):
         """Load previously written results from directory."""
-        file_path = self.get_file_path(output_dir)
 
-        # Find the alternative compressed file path if it doesn't exist.
-        if not os.path.exists(file_path):
-            alt_file_path = file_path
-            if os.path.splitext(file_path)[-1] == '.json':
-                alt_file_path = file_path + '.gz'
-            elif os.path.splitext(file_path)[-1] == '.gz':
-                alt_file_path = file_path.replace('.json.gz', '.json')
-            if os.path.exists(alt_file_path):
-                file_path = alt_file_path
         try:
-            if os.path.exists(file_path):
-                if os.path.splitext(file_path)[-1] == '.gz':
-                    with gzip.open(file_path, 'rb') as gz:
-                        data = json.loads(gz.read().decode('utf-8'))
-                else:
-                    with open(file_path) as json_file:
-                        data = json.load(json_file)
-                self.load_results_from_dict(data)
+            if os.path.isfile(output_file):
+                data = load_json(output_file)
+                data_simulation = self._find_current_simulation(data)
+
+                if data_simulation != {}:
+                    self.load_results_from_dict(data_simulation)
+
         except JSONDecodeError as err:
-            print(f'Error loading existing results file {file_path}')
+            print(f'Error loading existing results file {output_file}')
             print('Starting this from scratch')
             print(err)
 
@@ -128,21 +121,17 @@ class BaseSimulation(metaclass=ABCMeta):
                     ]
 
     def get_results_to_save(self):
-        data = {'results': self._results,
-                'inputs': self._inputs
-                }
+        data = {
+            'results': self._results,
+            'inputs': self._inputs
+        }
 
         return data
 
-    def save_results(self, output_dir: str):
+    def save_results(self, output_file: str):
         """Save results to directory."""
         data = self.get_results_to_save()
-        if self.compress:
-            with gzip.open(self.get_file_path(output_dir), 'wb') as gz:
-                gz.write(json.dumps(data, cls=NumpyEncoder).encode('utf-8'))
-        else:
-            with open(self.get_file_path(output_dir), 'w') as json_file:
-                json.dump(data, json_file, indent=4, cls=NumpyEncoder)
+        save_json(output_file, data)
 
     @abstractmethod
     def get_results(self):

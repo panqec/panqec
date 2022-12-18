@@ -22,6 +22,10 @@ class SweepMatchDecoder(BaseDecoder):
         self.matcher = MatchingDecoder(code, error_model, error_rate,
                                        error_type='X')
 
+    @property
+    def params(self) -> dict:
+        return {}
+
     def decode(self, syndrome: np.ndarray, **kwargs) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
