@@ -5,3 +5,4 @@ sphinx>=4.5.0
 nbsphinx>=0.8.8
 sphinx-rtd-theme>=1.0.0
 myst-parser>=0.17.0
+-e .
