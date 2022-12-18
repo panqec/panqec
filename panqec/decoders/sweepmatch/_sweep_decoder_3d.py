@@ -24,6 +24,14 @@ class SweepDecoder3D(BaseDecoder):
         super().__init__(code, error_model, error_rate)
         self._rng = np.random.default_rng(seed)
         self.max_sweep_factor = max_sweep_factor
+        self.seed = seed
+
+    @property
+    def params(self) -> dict:
+        return {
+            'seed': self.seed,
+            'max_sweep_factor': self.max_sweep_factor
+        }
 
     def get_face_syndromes(
         self, full_syndrome: np.ndarray

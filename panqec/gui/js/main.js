@@ -288,7 +288,7 @@ async function updateMenu() {
             controller.remove();
         }
     });
-    
+
     codeFolder.add(params, 'codeDeformationName', deformationNames).name('Clifford deformation').onChange(changeLatticeSize);
 
     if ('Error Model' in menu.__folders) {
@@ -353,8 +353,8 @@ function buildInstructions() {
         instructions.innerHTML =
         "\
             <table style='border-spacing: 10px'>\
-            <tr><td><b>Ctrl-left click</b></td><td>X error</td></tr>\
-            <tr><td><b>Ctrl-right click</b></td><td>Z error</td></tr>\
+            <tr><td><b>Ctrl click</b></td><td>X error</td></tr>\
+            <tr><td><b>Shift click</b></td><td>Z error</td></tr>\
             <tr><td><b>Backspace</b></td><td>Remove errors</td></tr>\
             <tr><td><b>R</b></td><td>Random errors</td></tr>\
             <tr><td><b>D</b></td><td>Decode</td></tr>\
@@ -368,8 +368,8 @@ function buildInstructions() {
         instructions.innerHTML =
         "\
             <table style='border-spacing: 10px'>\
-            <tr><td><b>Left click</b></td><td>X error</td></tr>\
-            <tr><td><b>Right click</b></td><td>Z error</td></tr>\
+            <tr><td><b>Ctrl click</b></td><td>X error</td></tr>\
+            <tr><td><b>Shift click</b></td><td>Z error</td></tr>\
             <tr><td><b>Backspace</b></td><td>Remove errors</td></tr>\
             <tr><td><b>R</b></td><td>Random errors</td></tr>\
             <tr><td><b>D</b></td><td>Decode</td></tr>\
@@ -392,7 +392,7 @@ function buildReturnArrow() {
 }
 
 function onDocumentMouseDown(event) {
-    if (event.ctrlKey || event.shiftKey || codeDimension == 2) {
+    if (event.ctrlKey || event.shiftKey) {
         mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
         mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 
@@ -403,24 +403,19 @@ function onDocumentMouseDown(event) {
 
         let selectedQubit = intersects[0].object;
 
-        if (event.ctrlKey || codeDimension == 2) {
-            switch (event.button) {
-                case 0: // left click
-                    var x = selectedQubit.location[0]
-                    var y = selectedQubit.location[1]
-                    var z = selectedQubit.location[2]
-                    console.log('Selected qubit', selectedQubit.index, 'at', x, y, z);
-                    code.insertError(selectedQubit, 'X');
-                    break;
-                case 2:
-                    var x = selectedQubit.location[0]
-                    var y = selectedQubit.location[1]
-                    var z = selectedQubit.location[2]
-                    console.log('Selected qubit', selectedQubit.index, 'at', x, y, z);
-                    code.insertError(selectedQubit, 'Z');
-                    break;
+        if (event.button == 0) {
+            var x = selectedQubit.location[0]
+            var y = selectedQubit.location[1]
+            var z = selectedQubit.location[2]
+
+            if (event.ctrlKey) {
+                console.log('Selected qubit', selectedQubit.index, 'at', x, y, z);
+                code.insertError(selectedQubit, 'X');
             }
-        } else {
+            if (event.shiftKey) {
+                console.log('Selected qubit', selectedQubit.index, 'at', x, y, z);
+                code.insertError(selectedQubit, 'Z');
+            }
         }
     }
 }

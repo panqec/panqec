@@ -10,13 +10,6 @@ from .sweepmatch._sweep_match_decoder import SweepMatchDecoder  # noqa
 from .sweepmatch._rotated_sweep_decoder import RotatedSweepDecoder3D  # noqa
 from .sweepmatch._rotated_sweep_match_decoder import RotatedSweepMatchDecoder  # noqa
 
-from .optimal._rotated_infzbias_decoder import (  # noqa
-    ZMatchingDecoder, RotatedInfiniteZBiasDecoder,
-    split_posts_at_active_fences
-)
-
-from .foliated._foliated_decoder import FoliatedMatchingDecoder  # noqa
-
 __all__ = [
     "BaseDecoder",
     "BeliefPropagationOSDDecoder",
@@ -27,8 +20,5 @@ __all__ = [
     "SweepDecoder3D",
     "SweepMatchDecoder",
     "MatchingDecoder",
-    "ZMatchingDecoder",
-    "RotatedInfiniteZBiasDecoder",
-    "FoliatedMatchingDecoder",
     "XCubeMatchingDecoder"
 ]

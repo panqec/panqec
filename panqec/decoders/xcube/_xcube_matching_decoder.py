@@ -231,6 +231,10 @@ class XCubeMatchingDecoder(BaseDecoder):
                                                      self.error_model,
                                                      self.error_rate)
 
+    @property
+    def params(self) -> dict:
+        return {}
+
     def decode(self, syndrome: np.ndarray, **kwargs) -> np.ndarray:
         """Get X corrections given code and measured syndrome."""
 

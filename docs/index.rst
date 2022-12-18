@@ -24,10 +24,12 @@ To make a feature request or report a bug, please visit the PanQEC `GitHub repos
 .. toctree::
    :maxdepth: 2
    :caption: Tutorials:
-   
+
    tutorials/Panqec basics
    tutorials/Adding new code
    tutorials/Computing threshold
+   tutorials/Running experiments on a cluster
+
 
 Indices and tables
 ==================

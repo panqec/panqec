@@ -23,14 +23,30 @@ class BaseDecoder(metaclass=ABCMeta):
     def allowed_codes(self) -> Optional[List[str]]:
         """List of codes concerned by the decoders (by id).
         Takes the value None if all codes are allowed.
+
         Example: ['Toric2DCode', 'Planar2DCode', 'RotatedPlanar2DCode']
         """
 
     @property
     @abstractmethod
-    def label(self):
+    def label(self) -> str:
         """Label used in plots and result files
         E.g. 'Toric 2D Matching'
+        """
+
+    @property
+    def id(self) -> str:
+        """Class name"""
+        return self.__class__.__name__
+
+    @property
+    @abstractmethod
+    def params(self) -> dict:
+        """List of class arguments (as a dictionary), that can be saved
+        and reused to instantiate the same decoder.
+        It should not include `code`, `error_model` and `error_rate`
+
+        Example: `{'num_iterations': 10}`
         """
 
     @abstractmethod

@@ -1,7 +1,5 @@
 import os
 import json
-import shutil
-from glob import glob
 import pytest
 import gzip
 import numpy as np
@@ -10,9 +8,8 @@ from panqec.codes import Toric2DCode
 from panqec.decoders import BeliefPropagationOSDDecoder
 from panqec.simulation import (
     read_input_json, run_once, DirectSimulation, expand_input_ranges, run_file,
-    merge_results_dicts, BatchSimulation
+    BatchSimulation
 )
-from panqec.cli import merge_dirs
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 
@@ -35,14 +32,15 @@ def required_fields():
 )
 def test_read_json_input(file_name, expected_runs):
     input_json = os.path.join(DATA_DIR, file_name)
-    batch_simulation = read_input_json(input_json)
+    output_json = os.path.join(DATA_DIR, 'results.json')
+    batch_simulation = read_input_json(input_json, output_json)
     assert batch_simulation is not None
     assert len(batch_simulation._simulations) == expected_runs
     parameters = [
         {
             'code': list(s.code.size),
-            'noise': s.error_model.direction,
-            'probability': s.error_rate
+            'error_model': s.error_model.direction,
+            'error_rate': s.error_rate
         }
         for s in batch_simulation._simulations
     ]
@@ -115,17 +113,13 @@ class TestBatchSimulationOneFile():
     n_trials: int = 5
 
     @pytest.fixture
-    def output_dir(self, tmpdir):
-        out_dir = os.path.join(tmpdir, 'output_dir')
-        os.mkdir(out_dir)
-        assert os.path.isdir(out_dir)
+    def output_file(self, tmpdir):
+        out_file = os.path.join(tmpdir, 'results.json.gz')
 
-        assert len(os.listdir(out_dir)) == 0
         batch_sim = BatchSimulation(
             label='mylabel',
             save_frequency=1,
-            output_dir=out_dir,
-            onefile=True
+            output_file=out_file,
         )
 
         for size, error_rate in [(3, 0.1), (4, 0.5)]:
@@ -144,23 +138,19 @@ class TestBatchSimulationOneFile():
         batch_sim.run(self.n_trials)
         batch_sim.save_results()
 
-        return out_dir
+        return out_file
 
-    def test_output_to_one_file(self, output_dir):
+    def test_output_to_one_file(self, output_file):
+        assert os.path.isfile(output_file)
 
-        # Make sure this is the only file produced.
-        combined_outfile = os.path.join(
-            output_dir, 'mylabel.json.gz'
-        )
-        assert os.path.isfile(combined_outfile)
-        with gzip.open(combined_outfile, 'rb') as gz:
+        with gzip.open(output_file, 'rb') as gz:
             results = json.loads(gz.read().decode('utf-8'))
 
         # Check integrity of results.
         assert len(results) == 2
         expected_input_keys = [
-            'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
-            'probability'
+            'code', 'error_model', 'decoder',
+            'error_rate', 'method'
         ]
         expected_results_keys = [
             'effective_error', 'success', 'codespace', 'wall_time',
@@ -177,22 +167,6 @@ class TestBatchSimulationOneFile():
         assert len(results[0]['results']['effective_error']) == self.n_trials
         assert len(results[0]['results']['success']) == self.n_trials
         assert len(results[0]['results']['codespace']) == self.n_trials
-
-    @pytest.mark.skip
-    def test_merge_output_dirs(self, tmpdir, output_dir):
-        shutil.copytree(output_dir, os.path.join(tmpdir, 'results_1'))
-        shutil.copytree(output_dir, os.path.join(tmpdir, 'results_2'))
-        assert set(os.listdir(tmpdir)) == set([
-            'output_dir', 'results_1', 'results_2'
-        ])
-        merge_dirs(
-            os.path.join(tmpdir, 'results'),
-            ' '.join([
-                os.path.join(tmpdir, 'results_1'),
-                os.path.join(tmpdir, 'results_2'),
-            ])
-        )
-        assert os.path.exists(os.path.join(tmpdir, 'results'))
 
 
 @pytest.fixture
@@ -211,80 +185,18 @@ def test_expand_inputs_ranges(example_ranges):
 
 def test_run_file_range_input(tmpdir):
     input_json = os.path.join(DATA_DIR, 'range_input.json')
+    output_json = os.path.join(DATA_DIR, 'results', 'results.json')
     n_trials = 2
-    assert os.listdir(tmpdir) == []
-    run_file(input_json, n_trials, output_dir=tmpdir)
-    assert len(os.listdir(tmpdir)) == 1
-    out_files = glob(os.path.join(tmpdir, '*.json.gz'))
-    assert len(out_files) == 1
+    run_file(input_json, output_json, n_trials)
 
-
-def test_merge_results():
-    results_dicts = [
-        {
-            'results': {
-                'effective_error': [[0, 0]],
-                'success': [True],
-                'codespace': [True],
-                'wall_time': 0.018024
-            },
-            'inputs': {
-                'size': [2, 2, 2],
-                'code': 'Rotated Planar 2x2x2',
-                'n': 99,
-                'k': 1,
-                'd': -1,
-                'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
-                'decoder': 'BP-OSD decoder',
-                'probability': 0.05
-            }
-        },
-        {
-            'results': {
-                'effective_error': [[0, 1]],
-                'success': [False],
-                'codespace': [False],
-                'wall_time': 0.017084
-            },
-            'inputs': {
-                'size': [2, 2, 2],
-                'code': 'Rotated Planar 2x2x2',
-                'n': 99,
-                'k': 1,
-                'd': -1,
-                'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
-                'decoder': 'BP-OSD decoder',
-                'probability': 0.05
-            }
-        }
-    ]
-    expected_merged_results = {
-        'results': {
-            'effective_error': [[0, 0], [0, 1]],
-            'success': [True, False],
-            'codespace': [True, False],
-            'wall_time': 0.035108
-        },
-        'inputs': {
-            'size': [2, 2, 2],
-            'code': 'Rotated Planar 2x2x2',
-            'n': 99,
-            'k': 1,
-            'd': -1,
-            'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
-            'decoder': 'BP-OSD decoder',
-            'probability': 0.05
-        }
-    }
-
-    merged_results = merge_results_dicts(results_dicts)
-
-    assert merged_results == expected_merged_results
+    assert os.path.isfile(output_json)
 
 
 class TestReadInputJson:
 
     def test_multiple_ranges(self):
-        json_file = os.path.join(DATA_DIR, 'toric_input.json')
-        batch_sim = read_input_json(json_file)
+        input_json = os.path.join(DATA_DIR, 'toric_input.json')
+        output_json = os.path.join(DATA_DIR, 'toric_output.json')
+
+        batch_sim = read_input_json(input_json, output_json)
         assert len(batch_sim) == 126

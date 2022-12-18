@@ -1,6 +1,5 @@
 import os
 import json
-from typing import Tuple, List
 import pytest
 import numpy as np
 from panqec.codes import RotatedToric3DCode
@@ -278,7 +277,7 @@ class TestBPOSDOnRotatedToric3DCodeOddTimesEven:
         error_rate = 0.1
         decoder = BeliefPropagationOSDDecoder(code, error_model, error_rate)
 
-        failing_cases: List[Tuple[int, int, int]] = []
+        failing_cases = []
         for site in code.qubit_coordinates:
             error_pauli = dict()
             error_pauli[site] = pauli

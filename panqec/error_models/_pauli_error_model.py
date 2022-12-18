@@ -79,6 +79,18 @@ class PauliErrorModel(BaseErrorModel):
 
         return label
 
+    @property
+    def params(self) -> dict:
+        """List of class arguments (as a dictionary), that can be saved
+        and reused to instantiate the same code"""
+        return {
+            'r_x': self.direction[0],
+            'r_y': self.direction[1],
+            'r_z': self.direction[2],
+            'deformation_name': self._deformation_name,
+            'deformation_kwargs': self._deformation_kwargs
+        }
+
     def generate(self, code: StabilizerCode, error_rate: float, rng=None):
         rng = np.random.default_rng() if rng is None else rng
 

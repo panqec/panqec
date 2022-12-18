@@ -22,11 +22,12 @@ import pandas as pd
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
 from scipy.signal import argrelextrema
-from .config import SLURM_DIR, SHORT_NAMES, LONG_NAMES
+from .config import SHORT_NAMES, LONG_NAMES
 from .simulation import read_input_json, BatchSimulation
 from .utils import (
-    fmt_uncertainty, NumpyEncoder, identity, find_nearest,
-    get_direction_from_bias_ratio, rescale_prob, fmt_confidence_interval
+    fmt_uncertainty, identity,
+    rescale_prob, fmt_confidence_interval,
+    load_json, save_json
 )
 from .bpauli import int_to_bvector, bvector_to_pauli_string
 from .plots._threshold import plot_data_collapse, draw_tick_symbol
@@ -90,8 +91,8 @@ class Analysis:
 
     # Set of parameters that are unique to each input.
     INPUT_KEYS: List[str] = [
-        'size', 'code', 'n', 'k', 'd', 'error_model', 'decoder',
-        'probability'
+        'code_str', 'error_model_str', 'error_rate', 'decoder_str',
+        'method_str'
     ]
 
     # Set of parameters that identifies a family for the threshold vs bias
@@ -109,14 +110,14 @@ class Analysis:
     # which is visualized as a point with error bars in the logical vs physical
     # error rate crossing plots to extract thresholds from.
     POINT_KEYS: List[str] = [
-        'code', 'error_model', 'decoder', 'probability'
+        'code', 'error_model', 'decoder', 'error_rate'
     ]
 
     SECTOR_KEYS: List[str] = ['total', 'X', 'Z']
 
     # Quality targets that are to be met.
     targets: Dict[str, Any] = {
-        'n_probability': 8,
+        'n_error_rates': 8,
         'n_trials': 10000,
     }
 
@@ -141,13 +142,18 @@ class Analysis:
 
     def __init__(
         self, results: Union[str, List[str]] = [], verbose: bool = True,
-        overrides: Optional[Union[str, dict]] = None
+        overrides: Optional[Union[str, dict]] = None,
+        progress: Optional[Callable] = identity
     ):
         self.results_paths = []
         if isinstance(results, list):
             self.results_paths += results
         else:
             self.results_paths.append(results)
+
+        for results_path in self.results_paths:
+            if not os.path.exists(results_path):
+                raise ValueError(f"The path {results_path} does not exist")
 
         self.overrides_spec = dict()
         if overrides:
@@ -166,6 +172,19 @@ class Analysis:
 
         self.sectors = dict()
 
+        self.find_files()
+        self.count_files()
+        self.read_files(progress=progress)
+        self.aggregate()
+        self.apply_overrides()
+        self.calculate_total_error_rates()
+        self.calculate_word_error_rates()
+        self.calculate_single_qubit_error_rates()
+        self.reorder_columns()
+
+    def get_results(self, progress: Optional[Callable] = identity):
+        return self._results
+
     def _load_results_df(self, data: dict) -> pd.DataFrame:
         """Load dict into results DataFrame."""
         results = pd.DataFrame(data)
@@ -175,9 +194,8 @@ class Analysis:
 
     def load(self, path):
         """Load previous analysis from .json.gz file."""
-        with gzip.open(path, 'rb') as gz:
-            data = json.loads(gz.read().decode('utf-8'))
-        self.results = self._load_results_df(data['results'])
+        data = load_json(path)
+        self._results = self._load_results_df(data['results'])
         self.trunc_results = self._load_results_df(data['trunc_results'])
         self.thresholds = pd.DataFrame(data['thresholds'])
         for k in ['fss_params', 'params_bs']:
@@ -202,7 +220,7 @@ class Analysis:
             'trunc_results': self.trunc_results.drop(
                 drop_columns, axis=1
             ).to_dict(),
-            'results': self.results.drop(drop_columns, axis=1).to_dict(),
+            'results': self._results.drop(drop_columns, axis=1).to_dict(),
             'thresholds': self.thresholds.to_dict(),
             'sectors': {
                 sector: {
@@ -214,8 +232,7 @@ class Analysis:
                 for sector, sector_data in self.sectors.items()
             }
         }
-        with gzip.open(path, 'wb') as gz:
-            gz.write(json.dumps(data, cls=NumpyEncoder).encode('utf-8'))
+        save_json(data, path)
 
     def apply_overrides(self):
         """Read manual overrides from .json file."""
@@ -242,13 +259,13 @@ class Analysis:
                 if 'filters' in override and override['filters']:
                     filter_index = None
                     for key, value in override['filters'].items():
-                        extra_index = self.results[key] == value
+                        extra_index = self._results[key] == value
                         if filter_index is None:
                             filter_index = extra_index
                         else:
                             filter_index = filter_index & extra_index
-                    parameter_sets = self.results[filter_index][[
-                        'code_family', 'error_model', 'decoder'
+                    parameter_sets = self._results[filter_index][[
+                        'code', 'error_model', 'decoder'
                     ]].drop_duplicates().values
                     for triple in parameter_sets:
                         if 'truncate' in override:
@@ -342,7 +359,6 @@ class Analysis:
         file_locations: List[str, Tuple[str, str]] = []
 
         for results_path in self.results_paths:
-
             # Look for .zip files that may contain .json.gz or .json files
             # inside.
             zip_files: List[Any] = []
@@ -405,29 +421,33 @@ class Analysis:
                 else:
                     with zf.open(results_file) as f:
                         data = json.load(f)
-            elif '.json.gz' in str(file_location):
-                nominal_path = os.path.abspath(file_location)
-                with gzip.open(file_location, 'rb') as g:
-                    data = json.loads(g.read().decode('utf-8'))
             else:
                 nominal_path = os.path.abspath(file_location)
-                with open(file_location) as jf:
-                    data = json.load(jf)
+                data = load_json(nominal_path)
+
             entries += read_entry(data, results_file=nominal_path)
 
         # Convert to DataFrame to conserve memory.
         self.raw = pd.DataFrame(entries)
 
-        # Round probability to six digits, because anything smaller than that
+        # Round error_rate to six digits, because anything smaller than that
         # is likely numerical error.
-        self.raw['probability'] = self.raw['probability'].round(6)
+        self.raw['error_rate'] = self.raw['error_rate'].round(6)
 
     def aggregate(self):
         """Aggregate the raw data into results attribute."""
         self.log('Aggregating data')
 
         # Input keys by which data is to be grouped.
-        grouped_df = self.raw.groupby(self.INPUT_KEYS)
+        grouped_df = self.raw.assign(
+            code_str=self.raw['code'].astype('str'),
+            decoder_str=self.raw['decoder'].astype('str'),
+            error_model_str=self.raw['error_model'].astype('str'),
+            method_str=self.raw['method'].astype('str'),
+        ).groupby(
+            self.INPUT_KEYS
+        )
+        # grouped_df = self.raw.groupby(self.INPUT_KEYS)
 
         # Columns for which grouped values are to be summed.
         added_columns = grouped_df[[
@@ -442,28 +462,58 @@ class Analysis:
         # Columns to be grouped and turned into lists.
         list_columns = grouped_df[['results_file']].aggregate(list)
 
+        remaining_columns = grouped_df[
+            ['code', 'error_model', 'decoder', 'method']
+        ].first()
+
         # Stack the columns together side by side to form a big table.
-        self.results = pd.concat([
-            added_columns, concat_columns, list_columns
+        self._results = pd.concat([
+            added_columns, concat_columns, list_columns,
+            remaining_columns
         ], axis=1).reset_index()
 
         # Count the number of fails, later used for error bars.
-        self.results['n_fail'] = (
-            self.results['n_trials'] - self.results['success'].apply(sum)
+        self._results['n_fail'] = (
+            self._results['n_trials'] - self._results['success'].apply(sum)
         )
 
-        # Classify codes by code family for threshold analysis.
-        self.results['code_family'] = self.results['code'].apply(
-            infer_code_family
-        )
-
-        # Classify the error model by family for threshold analysis.
-        self.results['error_model_family'] = self.results['error_model'].apply(
-            infer_error_model_family
+        self._results.drop(
+            ['code_str', 'decoder_str', 'error_model_str', 'method_str'],
+            axis=1, inplace=True
         )
 
         # Deduce the bias.
-        self.results['bias'] = self.results['error_model'].apply(deduce_bias)
+        self._results['bias'] = self._results['error_model'].apply(deduce_bias)
+
+        # Put useful parameters as their own columns
+        for col in ['n', 'k', 'd']:
+            self._results[col] = self._results['code'].apply(lambda x: x[col])
+
+        # Separate model names from parameters
+        for s in ['code', 'decoder', 'error_model', 'method']:
+            self._results[f'{s}_params'] = self._results[s].apply(
+                lambda x: x['parameters']
+            )
+            self._results[s] = self._results[s].apply(lambda x: x['name'])
+
+    def reorder_columns(self):
+        """Reorder the columns of the results dataframe for a more
+        relevant display when printing it"""
+
+        ordered_columns = [
+            'code', 'n', 'k', 'd', 'bias',
+            'error_rate', 'n_trials', 'p_est', 'p_se', 'p_word_est',
+            'p_word_se', 'single_qubit_p_est', 'single_qubit_p_se',
+            'success', 'codespace', 'code_params', 'decoder',
+            'decoder_params', 'error_model', 'error_model_params',
+            'method', 'method_params', 'results_file', 'wall_time'
+        ]
+
+        # Intersection of the proposed columns and the existing ones
+        for col in ordered_columns:
+            if col not in self._results.columns:
+                ordered_columns.remove(col)
+        self._results = self._results[ordered_columns]
 
     def calculate_total_error_rates(self):
         """Calculate the total error rate.
@@ -473,13 +523,13 @@ class Analysis:
         self.log('Calculating total error rates')
         estimates_list = []
         uncertainties_list = []
-        for i_entry, entry in self.results.iterrows():
+        for i_entry, entry in self._results.iterrows():
             estimator = 1 - entry['success'].mean()
             uncertainty = get_standard_error(estimator, entry['n_trials'])
             estimates_list.append(estimator)
             uncertainties_list.append(uncertainty)
-        self.results['p_est'] = estimates_list
-        self.results['p_se'] = uncertainties_list
+        self._results['p_est'] = estimates_list
+        self._results['p_se'] = uncertainties_list
 
     def calculate_word_error_rates(self):
         """Calculate the word error rate using the formula.
@@ -487,12 +537,12 @@ class Analysis:
         The formula assumes a uniform error rate across all logical qubits.
         """
         self.log('Calculating word error rates')
-        p_est = self.results['p_est']
-        p_se = self.results['p_se']
-        k = self.results['k']
+        p_est = self._results['p_est']
+        p_se = self._results['p_se']
+        k = self._results['k']
         p_word_est, p_word_se = get_word_error_rate(p_est, p_se, k)
-        self.results['p_word_est'] = p_word_est
-        self.results['p_word_se'] = p_word_se
+        self._results['p_word_est'] = p_word_est
+        self._results['p_word_se'] = p_word_se
 
     def calculate_single_qubit_error_rates(self):
         """Add single error rate estimates and uncertainties to results.
@@ -513,7 +563,7 @@ class Analysis:
         # Calculate single-qubit error rates.
         estimates_list = []
         uncertainties_list = []
-        for i_entry, entry in self.results.iterrows():
+        for i_entry, entry in self._results.iterrows():
             estimates = np.zeros((entry['k'], 4))
             uncertainties = np.zeros((entry['k'], 4))
             for i in range(entry['k']):
@@ -525,8 +575,8 @@ class Analysis:
                     uncertainties[i, i_pauli] = uncertainty
             estimates_list.append(estimates)
             uncertainties_list.append(estimates)
-        self.results['single_qubit_p_est'] = estimates_list
-        self.results['single_qubit_p_se'] = uncertainties_list
+        self._results['single_qubit_p_est'] = estimates_list
+        self._results['single_qubit_p_se'] = uncertainties_list
 
     def calculate_thresholds(
         self,
@@ -575,17 +625,17 @@ class Analysis:
         """
         sector = 'total' if sector is None else sector
 
-        results_df = self.results
+        results_df = self._results
 
         # Intialize the lists.
         entries = []
         df_trunc_list = []
 
         # List of triples that identifies each parameter set,
-        param_keys = ['code_family', 'error_model', 'decoder']
+        param_keys = ['code', 'error_model', 'decoder']
         parameter_sets: List[Tuple] = [
             tuple(param_set)
-            for param_set in self.results[
+            for param_set in self._results[
                 param_keys
             ].drop_duplicates().sort_values(by=param_keys).values
         ]
@@ -648,15 +698,15 @@ class Analysis:
 
                 # Initialize to max limits and reuse crossover.
                 entry.update({
-                    'p_left': df_filt['probability'].min(),
-                    'p_right': df_filt['probability'].max(),
+                    'p_left': df_filt['error_rate'].min(),
+                    'p_right': df_filt['error_rate'].max(),
                     'p_th_sd': entry['p_th_nearest'],
                 })
 
                 # Use the overrides to refine limits if available.
-                if 'probability' in self.overrides[sector][param_set]:
+                if 'error_rate' in self.overrides[sector][param_set]:
                     tolerance = 1e-9
-                    p_trunc = self.overrides[sector][param_set]['probability']
+                    p_trunc = self.overrides[sector][param_set]['error_rate']
                     if 'min' in p_trunc and p_trunc['min'] is not None:
                         entry['p_left'] = p_trunc['min'] - tolerance
                     if 'max' in p_trunc and p_trunc['max'] is not None:
@@ -827,23 +877,23 @@ class Analysis:
             # symplectic matrix in the corresponding sector,
             # that is the number of valid trials times the number of logical
             # qubits.
-            self.results[n_trials_label] = self.results['k']*(
-                self.results['codespace'].apply(sum)
+            self._results[n_trials_label] = self._results['k']*(
+                self._results['codespace'].apply(sum)
             )
 
             # Count the number of fails.
-            self.results[n_fail_label] = self.results[[
+            self._results[n_fail_label] = self._results[[
                 'effective_error', 'codespace'
             ]].apply(lambda row: count_fails(*row, sector), axis=1)
 
             # Use the mean as best estimator.
-            self.results[p_est_label] = self.results[n_fail_label]/(
-                self.results[n_trials_label]
+            self._results[p_est_label] = self._results[n_fail_label]/(
+                self._results[n_trials_label]
             )
 
             # Get the standard error as well.
-            self.results[p_se_label] = get_standard_error(
-                self.results[p_est_label], self.results[n_trials_label]
+            self._results[p_se_label] = get_standard_error(
+                self._results[p_est_label], self._results[n_trials_label]
             )
 
             # Calculate the thresholds for this sector only.
@@ -887,9 +937,11 @@ class Analysis:
             for sector in self.sectors
         ], axis=0).drop_duplicates().values))
 
-        self.trunc_results = self.results.groupby(self.POINT_KEYS).first().loc[
-            used_points
-        ].reset_index().sort_values(by=self.POINT_KEYS)
+        self.trunc_results = self._results.groupby(
+            self.POINT_KEYS
+        ).first().loc[used_points].reset_index().sort_values(
+            by=self.POINT_KEYS
+        )
 
     def replace_threshold(self, replacement):
         """Format override replace specification for threshold df."""
@@ -916,295 +968,27 @@ class Analysis:
         quality : pd.DataFrame
             Summary of data quality metric for each input family as index,
             in particular the minimum number of trials for any data point in
-            the input family and the number of probability values for that
+            the input family and the number of error_rate values for that
             input family that actually got used in the analysis.
         """
 
         # Quality of data as measured by number of trials and number
-        # of unique probability values for this family of inputs.
+        # of unique error_rate values for this family of inputs.
         quality = pd.concat([
             self.trunc_results.groupby(self.FAMILY_KEYS)['n_trials'].min(),
             self.trunc_results.groupby(self.FAMILY_KEYS)[[
-                'probability'
+                'error_rate'
             ]].aggregate(pd.Series.nunique).rename(
-                columns={'probability': 'n_probability'}
+                columns={'error_rates': 'n_error_rates'}
             ),
         ], axis=1)
 
         # Check whether the quality targets are met for each input.
         quality['pass'] = (
             (quality['n_trials'] >= self.targets['n_trials'])
-            & (quality['n_probability'] >= self.targets['n_probability'])
+            & (quality['n_error_rates'] >= self.targets['n_error_rates'])
         )
         return quality
-
-    def get_missing_points(self, digits: int = 3):
-        """Table with missing data points.
-
-        Parameters
-        ----------
-        digits : int
-            Number of digits to round to for missing values of probability.
-
-        Returns
-        -------
-        missing : pd.DataFrame
-            Index is (code, error_model, decoder, probability),
-            columns are 'code_family', 'error_model_family', 'bias', 'd',
-            'n_trials', 'n_missing'.
-            n_missing is the number of missing trials that must be sampled in
-            order to meet the quality targets.
-        """
-
-        # Start with table of all available data points so far.
-        missing = self.trunc_results[[
-            'code_family', 'error_model_family', 'bias',
-            'code', 'error_model', 'decoder',
-            'probability', 'd', 'n_trials'
-        ]].copy()
-        missing = missing.groupby(self.POINT_KEYS).first()
-
-        # Extra probability values that are missing due to insufficient range.
-        extra_missing_entries = []
-        quality = self.get_quality_metrics()
-        bad_quality_family_keys = quality[
-            quality['n_probability'] < self.targets['n_probability']
-        ].index
-        for index in bad_quality_family_keys:
-            decoder, code_family, error_model_family, bias = index
-            existing_results = self.trunc_results[
-                (self.trunc_results[self.FAMILY_KEYS] == index).all(axis=1)
-            ]
-            d_values = existing_results['d'].unique()
-
-            # Sorted list of existing probability values.
-            probability_values = sorted(
-                existing_results['probability'].unique().tolist()
-            )
-
-            # Fill probability values in between if not enough.
-            new_probability_values = fill_between_values(
-                probability_values, self.targets['n_probability'],
-                digits=digits
-            )
-
-            for d, probability in product(d_values, new_probability_values):
-                code = existing_results[
-                    existing_results['d'] == d
-                ]['code'].iloc[0]
-                error_model = existing_results['error_model'].iloc[0]
-                missing_index = (code, error_model, decoder, probability)
-                if missing_index not in missing.index:
-                    extra_missing_entries.append({
-                        'code': code,
-                        'error_model': error_model,
-                        'decoder': decoder,
-                        'probability': probability,
-                        'code_family': code_family,
-                        'error_model_family': error_model_family,
-                        'bias': bias,
-                        'd': d,
-                        'n_trials': 0,
-                    })
-        if extra_missing_entries:
-            extra_missing = pd.DataFrame(extra_missing_entries)
-            extra_missing = extra_missing.groupby(self.POINT_KEYS).first()
-            missing = pd.concat([missing, extra_missing], axis=0)
-
-        # Calculate the number of missing trials for each data point.
-        missing['n_missing'] = missing['n_trials'].apply(
-            lambda n: max(self.targets['n_trials'] - n, 0)
-        )
-
-        # Calculate the remaining run times too.
-        times = self.get_run_times()
-        missing['time_per_trial'] = missing.reset_index()[[
-            'code', 'error_model', 'decoder'
-        ]].apply(tuple, axis=1).map(
-            dict(zip(times.index, times.time_per_trial))
-        ).values
-
-        missing['time_remaining'] = pd.to_timedelta(
-            missing['time_per_trial']*missing['n_missing'], unit='s'
-        )
-        return missing
-
-    def get_run_times(self) -> pd.DataFrame:
-        """Table of run times for each parameter set."""
-        times_group = self.results.groupby([
-            'code', 'error_model', 'decoder', 'probability'
-        ])
-        times_df = pd.concat([
-            times_group['wall_time'].sum(),
-            times_group['n_trials'].sum(),
-        ], axis=1)
-        times_df['time_per_trial'] = times_df['wall_time']/times_df['n_trials']
-        times_df = times_df.reset_index().groupby([
-            'code', 'error_model', 'decoder'
-        ]).max()[['time_per_trial']]
-        return times_df
-
-    def generate_missing_inputs(
-        self, path: str, missing: Optional[pd.DataFrame] = None
-    ):
-        """Generate input json files for missing data.
-
-        Parameters
-        ----------
-        path : str
-            Path to input json where missing inputs are to be saved.
-        missing :
-            Filtered DataFrame of missing data points.
-            If not given, input for all missing data points will be generated.
-        """
-
-        if missing is None:
-            missing = self.get_missing_points()
-
-        # Only generate inputs for the actual missing files.
-        missing = missing[missing['n_missing'] > 0]
-
-        # Print number of parameter sets with missing data.
-        n_missing_param_sets = missing.shape[0]
-        self.log(f'{n_missing_param_sets} parameter sets missing data.')
-
-        # Single trial over all missing parameter sets.
-        single_run_time = pd.to_timedelta(
-            missing['time_per_trial'].sum(),
-            unit='s'
-        )
-        self.log(f'Estimated time to run 1 trial: {single_run_time}.')
-
-        n_trials = self.targets['n_trials']
-        self.log(f'Target number of trials per parameter set: {n_trials}')
-
-        # Total run time.
-        total_run_time = single_run_time*n_trials
-        self.log(f'Estimated total run time remaining {total_run_time}')
-
-        # Convert the table to input format.
-        runs = missing.reset_index().apply(
-            lambda entry: self.convert_missing_to_input(dict(entry)),
-            axis=1
-        ).tolist()
-        data = {
-            'comments': 'Autogenerated runs for missing data.',
-            'runs': runs
-        }
-        with open(path, 'w') as f:
-            json.dump(data, f)
-
-    def convert_missing_to_input(self, entry: dict) -> Dict[str, Any]:
-        """Convert entry in missing dictionary to input specification.
-
-        Parameters
-        ----------
-        entry : dict
-            The row of the missing DataFrame.
-
-        Returns
-        -------
-        run : Dict[str, Any]
-            Run that is to be appended to the 'runs' list of an input json
-            file.
-
-        """
-        run: Dict[str, Any] = {
-            'label': 'unlabelled',
-            'code': self._infer_code_input(
-                entry['code_family'], entry['code'], entry['d']
-            ),
-            'noise': self._infer_noise_input(
-                entry['error_model_family'], entry['error_model'],
-                entry['bias']
-            ),
-            'decoder': self._infer_decoder_input(entry['decoder']),
-            'probability': entry['probability'],
-            'trials': entry['n_missing'],
-        }
-        return run
-
-    def _infer_decoder_input(self, decoder: str) -> dict:
-        decoder_class = 'BeliefPropagationOSDDecoder'
-        if decoder == 'Deformed Toric 3D Sweep Pymatching Decoder':
-            decoder_class = 'DeformedSweepMatchDecoder'
-        elif decoder == 'Toric 3D Sweep Pymatching Decoder':
-            decoder_class = 'SweepMatchDecoder'
-        inputs: Dict[str, Any] = {
-            'model': decoder_class
-        }
-        if decoder_class == 'BeliefPropagationOSDDecoder':
-            inputs['parameters'] = {
-                'max_bp_iter': 1000,
-                'osd_order': 0,
-            }
-        return inputs
-
-    def _infer_noise_input(
-        self, error_model_family: str, error_model: str,
-        bias: Union[str, float, int]
-    ) -> dict:
-
-        # Determine the class.
-        error_model_class = 'PauliErrorModel'
-
-        # Determine the parameters using the bias ratio as hint.
-        rounded_noise_direction = deduce_noise_direction(error_model)
-        most_biased_direction = {
-            0: 'X', 1: 'Y', 2: 'Z'
-        }[int(np.argmax(rounded_noise_direction))]
-        eta = np.inf
-        if bias != 'inf':
-            eta = float(bias)
-        parameters = get_direction_from_bias_ratio(
-            most_biased_direction, eta
-        )
-        return {
-            'model': error_model_class,
-            'parameters': parameters,
-        }
-
-    def _infer_code_input(self, code_family: str, code: str, d: int) -> dict:
-        size_match_2d = re.search(r'(\d+)x(\d+)$', code)
-        size_match_3d = re.search(r'(\d+)x(\d+)x(\d+)$', code)
-        code_size = []
-        if size_match_3d:
-            code_size = [size_match_3d.group(i) for i in [1, 2, 3]]
-        elif size_match_2d:
-            code_size = [size_match_2d.group(i) for i in [1, 2]]
-
-        parameters = {'L_x': d}
-        if size_match_3d and (
-            code_size[0] != code_size[1] or code_size[0] != code_size[2]
-        ):
-            parameters = {
-                'L_x': int(code_size[0]),
-                'L_y': int(code_size[1]),
-                'L_z': int(code_size[2]),
-            }
-        if not size_match_3d and size_match_2d and (
-            code_size[0] != code_size[2]
-        ):
-            parameters = {
-                'L_x': int(code_size[0]),
-                'L_y': int(code_size[1])
-            }
-
-        code_class = 'Toric3DCode'
-        if code_family == 'Rhombic':
-            code_class = 'RhombicCode'
-        elif code_family == 'Toric':
-            if size_match_3d:
-                code_class = 'Toric3DCode'
-            else:
-                code_class = 'Toric2DCode'
-        elif code_family == 'XCube':
-            code_class = 'XCubeCode'
-
-        return {
-            'model': code_class,
-            'parameters': parameters,
-        }
 
     def make_plots(self, plot_dir: str, include_date=True):
         """Make and display the plots while saving to directory."""
@@ -1377,12 +1161,12 @@ class Analysis:
             f'Plotting {code_family}, {error_model}, {decoder}, {sector_key}'
         )
 
-        df = self.results
+        df = self._results
         df_filt_1 = df[
             (df['code_family'] == code_family)
             & (df['error_model'] == error_model)
             & (df['decoder'] == decoder)
-        ].sort_values(by='probability')
+        ].sort_values(by='error_rate')
         bias = df_filt_1['bias'].iloc[0]
 
         if sector is None:
@@ -1396,24 +1180,24 @@ class Analysis:
         plt.sca(ax[0])
         for size in np.sort(df_filt_1['size'].unique()):
             df_filt = df_filt_1[
-                df_filt_1['size'] == size
-            ].sort_values(by='probability')
+                df_filt_1['code_params'] == size
+            ].sort_values(by='error_rate')
             trunc_results = self.sectors[sector_key]['trunc_results']
             df_filt_trunc = trunc_results[
                 (trunc_results['size'] == size)
                 & (trunc_results['code_family'] == code_family)
                 & (trunc_results['error_model'] == error_model)
                 & (trunc_results['decoder'] == decoder)
-            ].sort_values(by='probability')
+            ].sort_values(by='error_rate')
 
             # Draw gray circle underneath plots which are actually used for
             # the finite-size scaling.
             plt.plot(
-                df_filt_trunc['probability'],
+                df_filt_trunc['error_rate'],
                 df_filt_trunc[p_est_label], 'o', color='gray'
             )
             plt.errorbar(
-                df_filt['probability'], df_filt[p_est_label],
+                df_filt['error_rate'], df_filt[p_est_label],
                 yerr=df_filt[p_se_label],
                 capsize=5,
                 label=f'$L={size[0]}$'
@@ -1494,12 +1278,12 @@ class Analysis:
         """
         import matplotlib.pyplot as plt
 
-        df = self.results
+        df = self._results
         df_filt_1 = df[
             (df['code_family'] == code_family)
             & (df['error_model'] == error_model)
             & (df['decoder'] == decoder)
-        ].sort_values(by='probability')
+        ].sort_values(by='error_rate')
         bias = df_filt_1['bias'].iloc[0]
 
         fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 4))
@@ -1507,22 +1291,22 @@ class Analysis:
         for size in np.sort(df_filt_1['size'].unique()):
             df_filt = df_filt_1[
                 df_filt_1['size'] == size
-            ].sort_values(by='probability')
+            ].sort_values(by='error_rate')
             df_filt_trunc = self.trunc_results[
                 (self.trunc_results['size'] == size)
                 & (self.trunc_results['code_family'] == code_family)
                 & (self.trunc_results['error_model'] == error_model)
                 & (self.trunc_results['decoder'] == decoder)
-            ].sort_values(by='probability')
+            ].sort_values(by='error_rate')
 
             # Draw gray circle underneath plots which are actually used for the
             # finite-size scaling.
             plt.plot(
-                df_filt_trunc['probability'],
+                df_filt_trunc['error_rate'],
                 df_filt_trunc['p_est'], 'o', color='gray'
             )
             plt.errorbar(
-                df_filt['probability'], df_filt['p_est'],
+                df_filt['error_rate'], df_filt['p_est'],
                 yerr=df_filt['p_se'],
                 capsize=5,
                 label=f'$L={size[0]}$'
@@ -1714,34 +1498,6 @@ def infer_error_model_family(label: str) -> str:
     return family
 
 
-def infer_code_family(label: str) -> str:
-    """Infer the code family from the code label.
-
-    Parameters
-    ----------
-    label : str
-        The code label.
-
-    Returns
-    -------
-    family : str
-        The code family.
-        If the code family cannot be inferred,
-        the original code label is returned.
-
-    Examples
-    --------
-    >>> infer_code_family('Toric 4x4')
-    'Toric'
-    >>> infer_code_family('Rhombic 10x10x10')
-    'Rhombic'
-    """
-    family = label
-    dimension_pattern = r'\d+x\d+(x\d+)?'
-    family = re.sub(dimension_pattern, '', family).strip()
-    return family
-
-
 def get_standard_error(estimator, n_samples):
     """Get the standard error of mean estimator.
 
@@ -1816,178 +1572,6 @@ def get_results_df_from_batch(
     results = batch_results
 
     results_df = pd.DataFrame(results)
-    return results_df
-
-
-def get_results_df(
-    job_list: List[str],
-    output_dir: str,
-    input_dir: Optional[str] = None,
-) -> pd.DataFrame:
-    """Get raw results in DataFrame from list of jobs in output dir.
-
-    This is an old legacy way of doing things,
-    because it requires the input files as well.
-    Use the Analysis object instead if possible.
-
-    Parameters
-    ----------
-    job_list : List[str]
-        List of folder names in output_dir to extract results from.
-    output_dir : str
-        The path to the output directory containing the directories with names
-        as listed in job_list.
-    input_dir : str
-        The directory where the input json files are stored.
-    """
-
-    if input_dir is None:
-        input_dir = os.path.join(SLURM_DIR, 'inputs')
-
-    input_files = [
-        os.path.join(input_dir, f'{name}.json')
-        for name in job_list
-    ]
-    output_dirs = [
-        os.path.join(output_dir, name)
-        for name in job_list
-    ]
-    batches = {}
-    for i in range(len(input_files)):
-
-        # Determine whether or not it's a onefile format.
-        onefile = False
-        output_file_list = os.listdir(output_dirs[i])
-        if len(output_file_list) == 1:
-            if '.json.gz' in output_file_list[0]:
-                results_onefile = os.path.join(
-                    output_dirs[i], output_file_list[0]
-                )
-                with gzip.open(results_onefile, 'rb') as g:
-                    data = json.loads(g.read().decode('utf-8'))
-                if isinstance(data, list):
-                    onefile = True
-
-        if onefile:
-            batch_sim = read_input_json(input_files[i])
-            input_jsons = [json.dumps(element['inputs']) for element in data]
-            for sim in batch_sim:
-                sim_input_json = json.dumps(
-                    sim.get_results_to_save()['inputs'],
-                    cls=NumpyEncoder
-                )
-                matching_indices = [
-                    i
-                    for i, value in enumerate(input_jsons)
-                    if value == sim_input_json
-                ]
-                if matching_indices:
-                    sim.load_results_from_dict(data[matching_indices[0]])
-            batches[batch_sim.label] = batch_sim
-
-        else:
-            batch_sim = read_input_json(input_files[i])
-            for sim in batch_sim:
-                sim.load_results(output_dirs[i])
-            batches[batch_sim.label] = batch_sim
-
-    results = []
-
-    for batch_label, batch_sim in batches.items():
-        batch_results = batch_sim.get_results()
-        # print(
-        #     'wall_time =',
-        #     str(datetime.timedelta(seconds=batch_sim.wall_time))
-        # )
-        # print('n_trials = ', min(sim.n_results for sim in batch_sim))
-        for sim, batch_result in zip(batch_sim, batch_results):
-            n_logicals = batch_result['k']
-
-            # Small fix for the current situation. TO REMOVE in later versions
-            if n_logicals == -1:
-                n_logicals = 1
-
-            batch_result['label'] = batch_label
-            batch_result['noise_direction'] = sim.error_model.direction
-
-            eta_x, eta_y, eta_z = get_bias_ratios(sim.error_model.direction)
-            batch_result['eta_x'] = eta_x
-            batch_result['eta_y'] = eta_y
-            batch_result['eta_z'] = eta_z
-            batch_result['wall_time'] = sim._results['wall_time']
-
-            if ('effective_error' in sim.results and
-                    len(sim.results['effective_error']) > 0):
-                codespace = np.array(sim.results['codespace'])
-                x_errors = np.array(
-                    sim.results['effective_error']
-                )[:, :n_logicals].any(axis=1)
-                batch_result['p_x'] = x_errors.mean()
-                batch_result['p_x_se'] = get_standard_error(
-                    batch_result['p_x'], sim.n_results
-                )
-
-                z_errors = np.array(
-                    sim.results['effective_error']
-                )[:, n_logicals:].any(axis=1)
-                batch_result['p_z'] = z_errors.mean()
-                batch_result['p_z_se'] = get_standard_error(
-                    batch_result['p_z'], sim.n_results
-                )
-                batch_result['p_undecodable'] = (~codespace).mean()
-
-                i_logical = 0
-
-                # Single-qubit rate estimates and uncertainties.
-                single_qubit_results = dict()
-                p_est, p_se = get_single_qubit_error_rate(
-                    sim.results['effective_error'], i=i_logical,
-                    error_type=None
-                )
-                single_qubit_results.update({
-                    f'p_{i_logical}_est': p_est,
-                    f'p_{i_logical}_se': p_se,
-                })
-                for pauli in 'XYZ':
-                    p_pauli_est, p_pauli_se = get_single_qubit_error_rate(
-                        sim.results['effective_error'], i=i_logical,
-                        error_type=pauli
-                    )
-                    single_qubit_results.update({
-                        f'p_{i_logical}_{pauli}_est': p_pauli_est,
-                        f'p_{i_logical}_{pauli}_se': p_pauli_se,
-                    })
-                batch_result.update(single_qubit_results)
-                assert np.isclose(
-                    single_qubit_results[f'p_{i_logical}_X_est']
-                    + single_qubit_results[f'p_{i_logical}_Y_est']
-                    + single_qubit_results[f'p_{i_logical}_Z_est'],
-                    single_qubit_results[f'p_{i_logical}_est']
-                )
-
-            else:
-                batch_result['p_x'] = np.nan
-                batch_result['p_x_se'] = np.nan
-                batch_result['p_z'] = np.nan
-                batch_result['p_z_se'] = np.nan
-                batch_result['p_undecodable'] = np.nan
-        results += batch_results
-
-    results_df = pd.DataFrame(results)
-
-    # Calculate the word error rate and standard error.
-    error_rate_labels = [
-        ('p_est', 'p_se'),
-        ('p_x', 'p_x_se'),
-        ('p_z', 'p_z_se'),
-    ]
-    for p_L, p_L_se in error_rate_labels:
-        (
-            results_df[f'{p_L}_word'], results_df[f'{p_L_se}_word']
-        ) = get_word_error_rate(
-            results_df[p_L], results_df[p_L_se], results_df['k']
-        )
-
     return results_df
 
 
@@ -2126,7 +1710,7 @@ def extract_logical_rates(input_file, output_dir):
         entry = {
             'label': batch_sim.label,
             'noise_direction': sim.error_model.direction,
-            'probability': batch_result['probability'],
+            'error_rate': batch_result['error_rate'],
             'size': batch_result['size'],
             'n': batch_result['n'],
             'k': batch_result['k'],
@@ -2182,12 +1766,12 @@ def get_p_th_sd_interp(
     Parameters
     ----------
     df_filt : pd.DataFrame
-        Results with columns: 'probability', 'code', `p_est`.
-        The 'probability' column is the physical error rate p.
+        Results with columns: 'error_rate', 'code', `p_est`.
+        The 'error_rate' column is the physical error rate p.
         The 'code' column is the code label.
         The `p_est` column is the logical error rate.
     p_nearest : Optional[float]
-        A hint for the nearest 'probability' value that is close to the
+        A hint for the nearest 'error_rate' value that is close to the
         threshold, to be used as a starting point for searching.
     p_est : str
         The column in the `df_filt` DataFrame that is to be used as the logical
@@ -2210,8 +1794,8 @@ def get_p_th_sd_interp(
 
     # Points to interpolate at.
     interp_res = 0.001
-    p_min = df_filt['probability'].min()
-    p_max = df_filt['probability'].max()
+    p_min = df_filt['error_rate'].min()
+    p_max = df_filt['error_rate'].max()
     if p_nearest is not None:
         if p_nearest > p_min:
             p_max = min(p_max, p_nearest*2)
@@ -2225,11 +1809,11 @@ def get_p_th_sd_interp(
     curves = {}
     for code in df_filt['code'].unique():
         df_filt_code = df_filt[df_filt['code'] == code].sort_values(
-            by='probability'
+            by='error_rate'
         )
         if df_filt_code.shape[0] > 1:
             interpolator = interp1d(
-                df_filt_code['probability'], df_filt_code[p_est],
+                df_filt_code['error_rate'], df_filt_code[p_est],
                 fill_value="extrapolate"
             )
             curves[code] = interpolator(p_interp)
@@ -2367,8 +1951,8 @@ def get_p_th_nearest(df_filt: pd.DataFrame, p_est: str = 'p_est') -> float:
     Parameters
     ----------
     df_filt : pd.DataFrame
-        Results with columns: 'probability', 'code', `p_est`.
-        The 'probability' column is the physical error rate p.
+        Results with columns: 'error_rate', 'code', `p_est`.
+        The 'error_rate' column is the physical error rate p.
         The 'code' column is the code label.
         The `p_est` column is the logical error rate.
     p_est : str
@@ -2378,7 +1962,7 @@ def get_p_th_nearest(df_filt: pd.DataFrame, p_est: str = 'p_est') -> float:
     Returns
     -------
     p_th_nearest : float
-        The value in the `probability` that is apparently the closes to the
+        The value in the `error_rate` that is apparently the closes to the
         threshold.
     """
     code_df = get_code_df(df_filt)
@@ -2386,7 +1970,7 @@ def get_p_th_nearest(df_filt: pd.DataFrame, p_est: str = 'p_est') -> float:
     # Estimate the threshold by where the order of the lines change.
     p_est_df = pd.DataFrame({
         code: dict(df_filt[df_filt['code'] == code][[
-            'probability', p_est
+            'error_rate', p_est
         ]].values)
         for code in code_df['code']
     })
@@ -2505,17 +2089,17 @@ def fit_fss_params(
     Parameters
     ----------
     df_filt : pd.DataFrame
-        Results with columns: 'probability', 'code', `p_est`, `n_trials_label`,
+        Results with columns: 'error_rate', 'code', `p_est`, `n_trials_label`,
         `n_fail_label`.
-        The 'probability' column is the physical error rate p.
+        The 'error_rate' column is the physical error rate p.
         The 'code' column is the code label.
         The `p_est` column is the logical error rate.
     p_left_val : float
-        The left left value of 'probability' to truncate.
+        The left left value of 'error_rate' to truncate.
     p_right_val : float
-        The left right value of 'probability' to truncate.
+        The left right value of 'error_rate' to truncate.
     p_nearest : float
-        The nearest value of 'probability' to what was previously roughly
+        The nearest value of 'error_rate' to what was previously roughly
         estimated to be the threshold.
     n_bs : int
         The number of bootstrap samples to take.
@@ -2543,19 +2127,19 @@ def fit_fss_params(
         The truncated DataFrame used for performing the curve fitting.
     """
 
-    # Truncate error probability between values.
+    # Truncate error rate between values.
     df_trunc = df_filt[
-        (p_left_val <= df_filt['probability'])
-        & (df_filt['probability'] <= p_right_val)
+        (p_left_val <= df_filt['error_rate'])
+        & (df_filt['error_rate'] <= p_right_val)
     ].copy()
     df_trunc = df_trunc.dropna(subset=[p_est])
 
     d_list = df_trunc['d'].values
-    p_list = df_trunc['probability'].values
+    p_list = df_trunc['error_rate'].values
     f_list = df_trunc[p_est].values
 
     # Initial parameters to optimize.
-    f_0 = df_trunc[df_trunc['probability'] == p_nearest][p_est].mean()
+    f_0 = df_trunc[df_trunc['error_rate'] == p_nearest][p_est].mean()
     if pd.isna(f_0):
         f_0 = df_trunc[p_est].mean()
     params_0 = [p_nearest, 2, f_0, 1, 1]
@@ -2660,32 +2244,6 @@ def get_bias_ratios(noise_direction):
     return eta_x, eta_y, eta_z
 
 
-def deduce_noise_direction(error_model: str) -> Tuple[float, float, float]:
-    """Deduce the noise direction given the error model label.
-
-    Parameters
-    ----------
-    error_model : str
-        Label of the error model.
-
-    Returns
-    -------
-    r_x : float
-        The component in the Pauli X direction.
-    r_y : float
-        The component in the Pauli Y direction.
-    r_z : float
-        The component in the Pauli Z direction.
-    """
-    direction = (0.0, 0.0, 0.0)
-    match = re.search(r'Pauli X([\d\.]+)Y([\d\.]+)Z([\d\.]+)', error_model)
-    if match:
-        direction = (
-            float(match.group(1)), float(match.group(2)), float(match.group(3))
-        )
-    return direction
-
-
 def get_error_model_df(results_df):
     """Get DataFrame error models and noise parameters.
 
@@ -2705,13 +2263,17 @@ def get_error_model_df(results_df):
     """
     if 'noise_direction' not in results_df.columns:
         results_df['noise_direction'] = results_df['error_model'].apply(
-            deduce_noise_direction
+            lambda x: (x['parameters']['r_x'],
+                       x['parameters']['r_y'],
+                       x['parameters']['r_z'])
         )
     error_model_df = results_df[[
         'code_family', 'error_model_family', 'error_model', 'decoder', 'bias'
     ]].drop_duplicates()
     error_model_df['noise_direction'] = error_model_df['error_model'].apply(
-        deduce_noise_direction
+        lambda x: (x['parameters']['r_x'],
+                   x['parameters']['r_y'],
+                   x['parameters']['r_z'])
     )
     error_model_df = error_model_df.sort_values(by='noise_direction')
 
@@ -2939,11 +2501,11 @@ def subthreshold_scaling(results_df, chosen_probabilities=None):
     This was a legacy method where we tried many different fitting ansatzs.
     """
     if chosen_probabilities is None:
-        chosen_probabilities = np.sort(results_df['probability'].unique())
+        chosen_probabilities = np.sort(results_df['error_rate'].unique())
     sts_properties = []
-    for probability in chosen_probabilities:
+    for error_rate in chosen_probabilities:
         df_filt = results_df[
-            np.isclose(results_df['probability'], probability)
+            np.isclose(results_df['error_rate'], error_rate)
         ].copy()
         df_filt['d'] = df_filt['size'].apply(lambda x: min(x))
         df_filt = df_filt[df_filt['d'] > 2]
@@ -2991,7 +2553,7 @@ def subthreshold_scaling(results_df, chosen_probabilities=None):
         # The slope of the linear fit.
         linear_fit_gradient = linear_coefficients[-1]
         sts_properties.append({
-            'probability': probability,
+            'error_rate': error_rate,
             'd': d_values,
             'p_est': p_est_values,
             'p_se': p_se_values,
@@ -2999,7 +2561,7 @@ def subthreshold_scaling(results_df, chosen_probabilities=None):
             'quadratic_coefficients': quadratic_coefficients,
             'cubic_coefficients': cubic_coefficients,
             'linear_fit_gradient': linear_fit_gradient,
-            'log_p_on_1_minus_p': np.log(probability/(1 - probability)),
+            'log_p_on_1_minus_p': np.log(error_rate/(1 - error_rate)),
         })
 
     gradient_coefficients = polyfit(
@@ -3014,7 +2576,7 @@ def subthreshold_scaling(results_df, chosen_probabilities=None):
 def fit_subthreshold_scaling_cubic(results_df, order=3, ansatz='poly'):
     """Get fit parameters for subthreshold scaling ansatz."""
     log_p_L = np.log(results_df['p_est'].values)
-    log_p = np.log(results_df['probability'].values)
+    log_p = np.log(results_df['error_rate'].values)
     L = results_df['size'].apply(lambda x: min(x))
 
     if ansatz == 'free_power':
@@ -3117,14 +2679,13 @@ def read_entry(
             entries += read_entry(sub_data, results_file=results_file)
 
     elif isinstance(data, dict):
-
-        # If requires keys are not there, return empty list.
-        if 'inputs' not in data or 'results' not in data:
-            return []
+        if 'inputs' not in data:
+            raise ValueError('Inputs missing in data')
+        if 'results' not in data:
+            raise ValueError('Results missing in data')
 
         # Add the inputs.
         entry = data['inputs']
-        entry['size'] = tuple(entry['size'])
 
         # Add the results, converting to np arrays where possible.
         entry.update(data['results'])
@@ -3142,20 +2703,12 @@ def read_entry(
         # Count the number of samples
         entry['n_trials'] = len(entry['effective_error'])
 
-        # Deal with legacy names for things.
-        if 'n_k_d' in entry:
-            n_k_d = entry.pop('n_k_d')
-            entry['n'], entry['k'], entry['d'] = n_k_d
-        if 'error_probability' in entry:
-            entry['probability'] = entry.pop('error_probability')
-
         entries.append(entry)
     return entries
 
 
 def deduce_bias(
-    error_model: str, rtol: float = 0.1,
-    results_path: Optional[str] = None
+    error_model: dict, rtol: float = 0.1
 ) -> Union[str, float, int]:
     """Deduce the eta ratio from the noise model label.
 
@@ -3173,87 +2726,28 @@ def deduce_bias(
     """
     eta: Union[str, float, int] = 0
 
-    # Infer the bias from the file path if possible.
-    file_path_match = None
-    if results_path:
-        file_path_match = re.search(r'bias-([\d\.]+|inf)-', results_path)
-
-    if file_path_match:
-        if file_path_match.group(1) == 'inf':
-            eta = 'inf'
-        else:
-            eta = float(file_path_match.group(1))
-            if np.isclose(eta % 1, 0):
-                eta = int(np.round(eta))
-        return eta
-
     # Commonly occuring eta values to snap to.
     common_eta_values = [0.5, 3, 10, 30, 100, 300, 1000]
-    error_model_match = re.search(
-        r'Pauli X([\d\.]+)Y([\d\.]+)Z([\d\.]+)', error_model
+
+    direction = (
+        error_model['parameters']['r_x'],
+        error_model['parameters']['r_y'],
+        error_model['parameters']['r_z'],
     )
-    if error_model_match:
-        direction = np.array([
-            float(error_model_match.group(i))
-            for i in [1, 2, 3]
-        ])
-        r_max = np.max(direction)
-        if r_max == 1:
-            eta = 'inf'
-        else:
-            eta_f: float = r_max/(1 - r_max)
-            common_matches = np.isclose(eta_f, common_eta_values, rtol=rtol)
-            if any(common_matches):
-                eta_f = common_eta_values[
-                    int(np.argwhere(common_matches).flat[0])
-                ]
-            elif np.isclose(eta_f, np.round(eta_f), rtol=rtol):
-                eta_f = int(np.round(eta_f))
-            else:
-                eta_f = np.round(eta_f, 3)
-            eta = eta_f
-    return eta
-
-
-def fill_between_values(old_values, n_target, digits=3):
-    """List of n_target values filled between the given old values.
-
-    Used for suggesting data points to use when missing data,
-    where we want to reuse the old values as much as possible.
-
-    Parameters
-    ----------
-    old_values : list
-        Old values with len < n_target
-    n_target : int
-        The target number of values
-
-    Returns
-    -------
-    new_values : list
-        List of length at least n_target with old_values reused as much as
-        possible.
-    """
-
-    if len(old_values) >= n_target:
-        new_values = list(old_values)
-
+    r_max = np.max(direction)
+    if r_max == 1:
+        eta = 'inf'
     else:
+        eta_f: float = r_max/(1 - r_max)
+        common_matches = np.isclose(eta_f, common_eta_values, rtol=rtol)
+        if any(common_matches):
+            eta_f = common_eta_values[
+                int(np.argwhere(common_matches).flat[0])
+            ]
+        elif np.isclose(eta_f, np.round(eta_f), rtol=rtol):
+            eta_f = int(np.round(eta_f))
+        else:
+            eta_f = np.round(eta_f, 3)
+        eta = eta_f
 
-        # Equally spaced values.
-        linspace_values = np.linspace(
-            min(old_values), max(old_values), n_target
-        ).round(digits).tolist()
-
-        # Add the old values one by one, removing closest linspace value.
-        new_values = []
-        for old_value in old_values:
-            nearest_linspace_value = find_nearest(linspace_values, old_value)
-            linspace_values.remove(nearest_linspace_value)
-            new_values.append(old_value)
-
-        # Add the remaining linspace values not yet removed.
-        new_values += linspace_values
-        new_values.sort()
-
-    return new_values
+    return eta
