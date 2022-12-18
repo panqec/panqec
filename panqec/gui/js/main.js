@@ -368,8 +368,8 @@ function buildInstructions() {
         instructions.innerHTML =
         "\
             <table style='border-spacing: 10px'>\
-            <tr><td><b>Left click</b></td><td>X error</td></tr>\
-            <tr><td><b>Right click</b></td><td>Z error</td></tr>\
+            <tr><td><b>Ctrl click</b></td><td>X error</td></tr>\
+            <tr><td><b>Shift click</b></td><td>Z error</td></tr>\
             <tr><td><b>Backspace</b></td><td>Remove errors</td></tr>\
             <tr><td><b>R</b></td><td>Random errors</td></tr>\
             <tr><td><b>D</b></td><td>Decode</td></tr>\
@@ -392,7 +392,7 @@ function buildReturnArrow() {
 }
 
 function onDocumentMouseDown(event) {
-    if (event.ctrlKey || event.shiftKey || codeDimension == 2) {
+    if (event.ctrlKey || event.shiftKey) {
         mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
         mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 
@@ -408,7 +408,7 @@ function onDocumentMouseDown(event) {
             var y = selectedQubit.location[1]
             var z = selectedQubit.location[2]
 
-            if (event.ctrlKey || codeDimension == 2) {
+            if (event.ctrlKey) {
                 console.log('Selected qubit', selectedQubit.index, 'at', x, y, z);
                 code.insertError(selectedQubit, 'X');
             }
