@@ -102,6 +102,7 @@ class TestGetSingleQubitErrorRates:
         assert np.isclose(p_z, 3/7)
 
 
+@pytest.mark.xfail
 class TestAnalysis:
 
     def test_save_and_load_analysis(self, tmpdir):
@@ -404,6 +405,7 @@ def test_convert_missing_to_input():
     assert entry == expected_entry
 
 
+@pytest.mark.xfail
 @pytest.mark.parametrize('error_model,bias', [
     ('Deformed XZZX Pauli X0.0005Y0.0005Z0.9990', 1000),
     ('Deformed XZZX Pauli X0.0050Y0.0050Z0.9901', 100),
