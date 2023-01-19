@@ -146,3 +146,5 @@ gui/static/package-lock.json
 
 temp/
 .tmuxinator
+
+tests/data/results/

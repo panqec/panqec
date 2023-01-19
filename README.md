@@ -102,10 +102,15 @@ It will also run `mypy` to do type checking.
 
 Within the root directory of the repository, run
 ```
-sphinx-build -b html docs/ docs/_build/html
+make doc
 ```
-You can then read it by opening the file `docs/_build/html/index.html` on
-your web browser.
+You can then read it by running the command
+```
+python -m http.server 9000 --directory docs/_build/html
+```
+and going to `localhost:9000` in your browser.
+Alternatively, you can just open `docs/_build/html/index.html` with your
+browser.
 
 # The team
 
