@@ -429,3 +429,12 @@ class TestCountFails:
         codespace = np.array([True, True, False, True], dtype=bool)
         assert count_fails(effective_error, codespace, 'X') == 6
         assert count_fails(effective_error, codespace, 'Z') == 4
+
+
+class TestAnalysisClusterTutorial:
+
+    @pytest.mark.xfail
+    def test_analyze_cluster_example(self):
+        results_json = os.path.join(DATA_DIR, 'merged-results.json.gz')
+        analysis = Analysis(results_json)
+        analysis.analyze()
