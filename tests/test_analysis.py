@@ -433,7 +433,6 @@ class TestCountFails:
 
 class TestAnalysisClusterTutorial:
 
-    @pytest.mark.xfail
     def test_analyze_cluster_example(self):
         results_json = os.path.join(DATA_DIR, 'merged-results.json.gz')
         analysis = Analysis(results_json)
