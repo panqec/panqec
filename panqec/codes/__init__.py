@@ -20,6 +20,7 @@ from .surface_3d._hollow_rhombic_code import HollowRhombicCode
 from .surface_3d._rotated_toric_3d_code import RotatedToric3DCode  # noqa
 from .fractons._xcube_code import XCubeCode  # noqa
 from .color_3d._color_3d_code import Color3DCode  # noqa
+from .cluster_state._foliated_code import FoliatedCode  # noqa
 from .bacon_shor._bacon_shor_code import BaconShorCode  # noqa
 
 
@@ -43,5 +44,6 @@ __all__ = [
     "HollowRhombicCode",
     "XCubeCode",
     "Color3DCode",
+    "FoliatedCode",
     "BaconShorCode"
 ]
