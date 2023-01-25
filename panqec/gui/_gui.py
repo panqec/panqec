@@ -7,7 +7,7 @@ from panqec.codes import (
     Toric2DCode, RotatedPlanar2DCode, Planar2DCode,
     Toric3DCode, RotatedPlanar3DCode, RhombicToricCode, RhombicPlanarCode,
     Planar3DCode, RotatedToric3DCode, XCubeCode,
-    HollowPlanar3DCode, HollowRhombicCode,
+    HollowPlanar3DCode, HollowRhombicCode, BaconShorCode,
     Color3DCode, Color666PlanarCode, Color666ToricCode, Color488Code
 )
 from panqec.decoders import (
@@ -35,7 +35,8 @@ codes = {'Toric 2D': Toric2DCode,
          'XCube': XCubeCode,
          'Hollow Planar 3D': HollowPlanar3DCode,
          'Hollow Rhombic Code': HollowRhombicCode,
-         '3D Color Code': Color3DCode}
+         '3D Color Code': Color3DCode,
+         'Bacon-Shor Code': BaconShorCode}
 
 noise_directions = {'Pure X': (1, 0, 0),
                     'Pure Y': (0, 1, 0),
@@ -310,7 +311,7 @@ def run_gui():
 
     gui = GUI()
     # gui.add_all_endpoints()
-    gui.run(port=port)
+    gui.run(host='0.0.0.0', port=port)
 
 
 if __name__ == '__main__':
