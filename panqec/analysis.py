@@ -27,7 +27,7 @@ from .simulation import read_input_json, BatchSimulation
 from .utils import (
     fmt_uncertainty, identity,
     rescale_prob, fmt_confidence_interval,
-    load_json, save_json
+    load_json, save_json, get_label
 )
 from .bpauli import int_to_bvector, bvector_to_pauli_string
 from .plots._threshold import plot_data_collapse, draw_tick_symbol
@@ -346,6 +346,7 @@ class Analysis:
         self.calculate_total_error_rates()
         self.calculate_word_error_rates()
         self.calculate_single_qubit_error_rates()
+        self.assign_labels()
         self.calculate_thresholds(sector=None)
         self.calculate_sector_thresholds()
         self.use_min_thresholds()
@@ -578,6 +579,24 @@ class Analysis:
         self._results['single_qubit_p_est'] = estimates_list
         self._results['single_qubit_p_se'] = uncertainties_list
 
+    def assign_labels(self):
+        """Assign labels to each entry for filtering."""
+        self._results['code_label'] = (
+            self._results[['code', 'code_params']].apply(
+                lambda x: get_label(*x), axis=1
+            )
+        )
+        self._results['error_model_label'] = (
+            self._results[['error_model', 'error_model_params']].apply(
+                lambda x: get_label(*x), axis=1
+            )
+        )
+        self._results['decoder_label'] = (
+            self._results[['decoder', 'decoder_params']].apply(
+                lambda x: get_label(*x), axis=1
+            )
+        )
+
     def calculate_thresholds(
         self,
         ftol_est: float = 1e-5,
@@ -587,6 +606,7 @@ class Analysis:
         n_trials_label: str = 'n_trials',
         n_fail_label: str = 'n_fail',
         sector: Optional[str] = None,
+        autotruncate: bool = False,
     ):
         """Extract thresholds using heuristics or manual override limits.
 
@@ -622,6 +642,13 @@ class Analysis:
         sector : Optional[str]
             The Pauli sector use to calculate the threshold for.
             Will use overall error if None given.
+        autotruncate : bool
+            Automatically truncate the p range so that only the regime where
+            finite-size scaling is likely to work is used for the fitting.
+            It uses a heuristic algorithm that may or may not be appropriate
+            for the situation.
+            By default it is set false so all data is used unless manually
+            specified otherwise.
         """
         sector = 'total' if sector is None else sector
 
@@ -632,7 +659,7 @@ class Analysis:
         df_trunc_list = []
 
         # List of triples that identifies each parameter set,
-        param_keys = ['code', 'error_model', 'decoder']
+        param_keys = ['code', 'error_model_label', 'decoder_label']
         parameter_sets: List[Tuple] = [
             tuple(param_set)
             for param_set in self._results[
@@ -668,14 +695,16 @@ class Analysis:
             code_family, error_model, decoder = param_set
 
             entry = {
-                'code_family': code_family,
-                'error_model': error_model,
-                'decoder': decoder,
+                'code': code_family,
+                'error_model_label': error_model,
+                'decoder_label': decoder,
             }
 
             df_filt = results_df[
                 (results_df[param_keys] == param_set).all(axis=1)
             ]
+            entry['error_model'] = df_filt['error_model'].iloc[0]
+            entry['bias'] = df_filt['bias'].iloc[0]
 
             # Use the replacement values if there are any manually given.
             if param_set in self.replaces:
@@ -735,12 +764,18 @@ class Analysis:
                     entry['p_th_sd'] = (entry['p_left'] + entry['p_right'])/2
 
             # Use auto heuristic for getting limits of p to truncate.
-            else:
+            elif autotruncate:
                 (
                     entry['p_th_sd'], entry['p_left'], entry['p_right']
                 ) = get_p_th_sd_interp(
                     df_filt, p_nearest=entry['p_th_nearest'], p_est=p_est
                 )
+
+            else:
+                # Actually, override, use all data if no manual trucation.
+                entry['p_th_sd'] = entry['p_th_nearest']
+                entry['p_left'] = df_filt[p_est].min()
+                entry['p_right'] = df_filt[p_est].max()
 
             if param_set not in self.replaces:
 
@@ -776,10 +811,10 @@ class Analysis:
             entries.append(entry)
 
         thresholds = pd.DataFrame(entries)
-        thresholds['error_model_family'] = (
-            thresholds['error_model'].apply(infer_error_model_family)
-        )
-        thresholds['bias'] = thresholds['error_model'].apply(deduce_bias)
+        # thresholds['error_model_family'] = (
+        #     thresholds['error_model'].apply(infer_error_model_family)
+        # )
+        # thresholds['bias'] = thresholds['error_model'].apply(deduce_bias)
         if self.extra_thresholds:
             thresholds = pd.concat(
                 [thresholds, pd.DataFrame(self.extra_thresholds)]
@@ -1190,8 +1225,10 @@ class Analysis:
             pdf_writer = PdfPages(pdf)
 
         plot_parameters = self.trunc_results.sort_values(
-            by=['code_family', 'error_model', 'bias']
-        )[['code_family', 'error_model', 'decoder']].drop_duplicates().values
+            by=['code', 'error_model_label', 'bias']
+        )[[
+            'code', 'error_model_label', 'decoder_label'
+        ]].drop_duplicates().values
 
         for code_family, error_model, decoder in plot_parameters:
             for sector in [None, 'X', 'Z']:
@@ -1325,11 +1362,12 @@ class Analysis:
 
         df = self._results
         df_filt_1 = df[
-            (df['code_family'] == code_family)
-            & (df['error_model'] == error_model)
-            & (df['decoder'] == decoder)
+            (df['code'] == code_family)
+            & (df['error_model_label'] == error_model)
+            & (df['decoder_label'] == decoder)
         ].sort_values(by='error_rate')
         bias = df_filt_1['bias'].iloc[0]
+        decoder_family = df_filt_1['decoder'].iloc[0]
 
         if sector is None:
             p_est_label = 'p_est'
@@ -1340,16 +1378,16 @@ class Analysis:
 
         fig, ax = plt.subplots(ncols=2, figsize=(10, 5))
         plt.sca(ax[0])
-        for size in np.sort(df_filt_1['size'].unique()):
+        for code_label in np.sort(df_filt_1['code_label'].unique()):
             df_filt = df_filt_1[
-                df_filt_1['code_params'] == size
+                df_filt_1['code_label'] == code_label
             ].sort_values(by='error_rate')
             trunc_results = self.sectors[sector_key]['trunc_results']
             df_filt_trunc = trunc_results[
-                (trunc_results['size'] == size)
-                & (trunc_results['code_family'] == code_family)
-                & (trunc_results['error_model'] == error_model)
-                & (trunc_results['decoder'] == decoder)
+                (trunc_results['code_label'] == code_label)
+                & (trunc_results['code'] == code_family)
+                & (trunc_results['error_model_label'] == error_model)
+                & (trunc_results['decoder_label'] == decoder)
             ].sort_values(by='error_rate')
 
             # Draw gray circle underneath plots which are actually used for
@@ -1358,19 +1396,20 @@ class Analysis:
                 df_filt_trunc['error_rate'],
                 df_filt_trunc[p_est_label], 'o', color='gray'
             )
+            L = df_filt.iloc[0]['code_params']['L_x']
             plt.errorbar(
                 df_filt['error_rate'], df_filt[p_est_label],
                 yerr=df_filt[p_se_label],
                 capsize=5,
-                label=f'$L={size[0]}$'
+                label=f'$L={L}$'
             )
 
         # Find the threshold estimate and uncertainty.
         thresh = self.sectors[sector_key]['thresholds']
         thresh_match = thresh[
-            (thresh['code_family'] == code_family)
-            & (thresh['error_model'] == error_model)
-            & (thresh['decoder'] == decoder)
+            (thresh['code'] == code_family)
+            & (thresh['error_model_label'] == error_model)
+            & (thresh['decoder_label'] == decoder)
         ]
         if thresh_match.shape[0] == 0:
             return
@@ -1390,21 +1429,21 @@ class Analysis:
         plt.yscale('linear')
         plt.xlabel('Physical error rate $p$', fontsize=16)
         plt.ylabel('Logical error rate $p_L$', fontsize=16)
-        deformation = df_filt_1['error_model_family'].iloc[0]
+        deformation = df_filt_1['error_model'].iloc[0]
         bias_label = str(bias).replace('inf', '\\infty')
         sector_name = 'All errors' if sector is None else f'${sector}$ errors'
         plt.suptitle(
             f'{shorten(deformation)} {lengthen(code_family, caps=False)}\n'
-            f'$\\eta_Z={bias_label}$, {shorten(decoder)}, '
+            f'$\\eta_Z={bias_label}$, {shorten(decoder_family)}, '
             f'{sector_name}{fit_title}',
             fontsize=16
         )
         plt.sca(ax[1])
 
         df_trunc = trunc_results[
-            (trunc_results['code_family'] == code_family)
-            & (trunc_results['error_model'] == error_model)
-            & (trunc_results['decoder'] == decoder)
+            (trunc_results['code'] == code_family)
+            & (trunc_results['error_model_label'] == error_model)
+            & (trunc_results['decoder_label'] == decoder)
         ]
         params_opt = thresh_data['fss_params']
         params_bs = thresh_data['params_bs']
@@ -1969,8 +2008,8 @@ def get_p_th_sd_interp(
 
     # Interpolate lines.
     curves = {}
-    for code in df_filt['code'].unique():
-        df_filt_code = df_filt[df_filt['code'] == code].sort_values(
+    for code in df_filt['code_label'].unique():
+        df_filt_code = df_filt[df_filt['code_label'] == code].sort_values(
             by='error_rate'
         )
         if df_filt_code.shape[0] > 1:

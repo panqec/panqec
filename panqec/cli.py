@@ -567,8 +567,8 @@ def generate_cluster_script(
         'pbs': "PBS_ARRAY_INDEX"
     }
     job_id_dict = {
-        'sge': '$JOB_ID',
-        'slurm': '$SLURM_JOB_ID',
+        'sge': '${JOB_ID}',
+        'slurm': '${SLURM_JOB_ID}',
         'pbs': '$PBS_JOBID'
     }
 

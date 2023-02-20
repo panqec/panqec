@@ -185,7 +185,7 @@ def test_expand_inputs_ranges(example_ranges):
 
 def test_run_file_range_input(tmpdir):
     input_json = os.path.join(DATA_DIR, 'range_input.json')
-    output_json = os.path.join(DATA_DIR, 'results', 'results.json')
+    output_json = os.path.join(tmpdir, 'results', 'results.json')
     n_trials = 2
     run_file(input_json, output_json, n_trials)
 

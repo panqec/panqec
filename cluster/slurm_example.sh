@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # General parameters
-data_dir=/home/ucapacp/panqec/temp/toric-2d-code
+data_dir=/nfshomes/ehuang18/panqec/temp/toric-2d-code
 
 # Experiment parameters
 code="Toric2DCode" # code class
@@ -13,10 +13,12 @@ trials=1000  # number of Monte Carlo runs
 
 # Cluster parameters
 slurm_script=$data_dir/run.sbatch
-n_cores=8
-n_nodes=5
+n_cores=1
+n_nodes=1
 wall_time="00:30:00"
 memory="2G"
+partition="tron"
+qos="high"
 
 echo "Generating input"
 panqec generate-input -d $data_dir \
@@ -38,6 +40,8 @@ panqec generate-cluster-script \
     -c $n_cores \
     -w $wall_time \
     -m $memory \
+    -p $partition \
+    -q $qos \
     --delete-existing
 
 echo "Running cluster script"
