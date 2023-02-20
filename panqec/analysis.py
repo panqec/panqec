@@ -680,7 +680,6 @@ class Analysis:
             # Use the replacement values if there are any manually given.
             if param_set in self.replaces:
                 if 'p_th_fss' in self.replaces[param_set]:
-
                     self.log('Using given threshold values')
                     self.log(pformat({
                         **entry,
@@ -695,7 +694,6 @@ class Analysis:
 
             # Using the manual override to get truncation limits.
             if param_set in self.overrides[sector]:
-
                 # Initialize to max limits and reuse crossover.
                 entry.update({
                     'p_left': df_filt['error_rate'].min(),
@@ -989,6 +987,170 @@ class Analysis:
             & (quality['n_error_rates'] >= self.targets['n_error_rates'])
         )
         return quality
+
+    def plot_threshold(
+        self, plot_dir: Optional[str] = None, include_date=True,
+        sectors: List[str] = ['total']
+    ):
+        """Plot intersecting error curves and threshold value
+
+        Parameters
+        ----------
+        plot_dir : Optional[str], optional
+            Directory to save the plot, by default None
+        include_date : bool, optional
+            Whether to include the date in filename, by default True
+        sectors : Optional[List[str]], optional
+            List of sectors to plot in the same row.
+            Each sector can take the value 'total' (all errors combines),
+            'X' (only Pauli X errors) or 'Z' (only Pauli Z errors).
+            By default ['total']
+        """
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_pdf import PdfPages
+
+        if sectors is None:
+            sectors = ['all']
+
+        date = ''
+        if include_date:
+            date = pd.Timestamp.now().strftime('%Y-%m-%d') + '_'
+
+        pdf: Optional[str] = None
+
+        if plot_dir is not None:
+            os.makedirs(plot_dir, exist_ok=True)
+            pdf = os.path.join(plot_dir, f'{date}threshold.pdf')
+            pdf_writer = PdfPages(pdf)
+
+        self.log('Making threshold plot.')
+
+        self.calculate_thresholds()
+
+        plot_parameters = self.trunc_results.sort_values(
+            by=['code_family', 'error_model', 'bias']
+        )[['code_family', 'error_model', 'decoder']].drop_duplicates().values
+
+        for code_family, error_model, decoder in plot_parameters:
+            for sector in sectors:
+                self._plot_threshold(
+                    code_family, error_model, decoder, sector
+                )
+                if pdf is not None:
+                    pdf_writer.savefig(plt.gcf(), bbox_inches='tight')
+                plt.show()
+
+        if pdf is not None:
+            pdf_writer.close()
+
+    def _plot_threshold(
+        self, code_family: str, error_model: str, decoder: str,
+        sector: Optional[str] = None
+    ):
+        """Plot the data collapse for a given parameter set for both sectors.
+
+        Parameters
+        ----------
+        code_family : str
+            The code family.
+        error_model : str
+            The error model label.
+        decoder : str
+            The decoder label.
+        """
+        import matplotlib.pyplot as plt
+
+        sector_key = 'total' if sector is None else sector
+        self.log(
+            f'Plotting {code_family}, {error_model}, {decoder}, {sector_key}'
+        )
+
+        df = self._results
+        df_filt_1 = df[
+            (df['code_family'] == code_family)
+            & (df['error_model'] == error_model)
+            & (df['decoder'] == decoder)
+        ].sort_values(by='error_rate')
+        bias = df_filt_1['bias'].iloc[0]
+
+        if sector is None:
+            p_est_label = 'p_est'
+            p_se_label = 'p_se'
+        else:
+            p_est_label = f'p_est_{sector}'
+            p_se_label = f'p_se_{sector}'
+
+        fig, ax = plt.subplots(ncols=1, figsize=(10, 5))
+        plt.sca(ax[0])
+        for size in np.sort(df_filt_1['size'].unique()):
+            df_filt = df_filt_1[
+                df_filt_1['code_params'] == size
+            ].sort_values(by='error_rate')
+            trunc_results = self.sectors[sector_key]['trunc_results']
+            df_filt_trunc = trunc_results[
+                (trunc_results['size'] == size)
+                & (trunc_results['code_family'] == code_family)
+                & (trunc_results['error_model'] == error_model)
+                & (trunc_results['decoder'] == decoder)
+            ].sort_values(by='error_rate')
+
+            # Draw gray circle underneath plots which are actually used for
+            # the finite-size scaling.
+            plt.plot(
+                df_filt_trunc['error_rate'],
+                df_filt_trunc[p_est_label], 'o', color='gray'
+            )
+            plt.errorbar(
+                df_filt['error_rate'], df_filt[p_est_label],
+                yerr=df_filt[p_se_label],
+                capsize=5,
+                label=f'$L={size[0]}$'
+            )
+
+        # Find the threshold estimate and uncertainty.
+        thresh = self.sectors[sector_key]['thresholds']
+        thresh_match = thresh[
+            (thresh['code_family'] == code_family)
+            & (thresh['error_model'] == error_model)
+            & (thresh['decoder'] == decoder)
+        ]
+        if thresh_match.shape[0] == 0:
+            return
+        thresh_data = thresh_match.iloc[0]
+
+        fit_title = '' if thresh_data['fit_found'] else ' (fit failed)'
+
+        # Draw the threshold and uncertainty bounds.
+        plt.axvline(thresh_data['p_th_fss'], color='red', linestyle='--')
+        plt.axvspan(
+            thresh_data['p_th_fss_left'], thresh_data['p_th_fss_right'],
+            alpha=0.5, color='pink'
+        )
+        plt.legend(title=r'$p_{\mathrm{th}}=(%.2f\pm %.2f)\%%$' % (
+            100*thresh_data['p_th_fss'], 100*thresh_data['p_th_fss_se'],
+        ))
+        plt.yscale('linear')
+        plt.xlabel('Physical error rate $p$', fontsize=16)
+        plt.ylabel('Logical error rate $p_L$', fontsize=16)
+        deformation = df_filt_1['error_model_family'].iloc[0]
+        bias_label = str(bias).replace('inf', '\\infty')
+        sector_name = 'All errors' if sector is None else f'${sector}$ errors'
+        plt.suptitle(
+            f'{shorten(deformation)} {lengthen(code_family, caps=False)}\n'
+            f'$\\eta_Z={bias_label}$, {shorten(decoder)}, '
+            f'{sector_name}{fit_title}',
+            fontsize=16
+        )
+        plt.sca(ax[1])
+
+        if not thresh_data['fit_found']:
+            for i in range(2):
+                plt.sca(ax[i])
+                plt.text(
+                    0.5, 0.5, 'INVALID', transform=ax[i].transAxes,
+                    fontsize=40, color='gray', alpha=0.5, ha='center',
+                    va='center', rotation=30
+                )
 
     def make_plots(self, plot_dir: str, include_date=True):
         """Make and display the plots while saving to directory."""
@@ -1825,8 +1987,14 @@ def get_p_th_sd_interp(
     interp_df = pd.DataFrame(curves)
     interp_df.index = p_interp
 
+    # Drop rows with NaN and infinity (due to extrapolation issues)
+    interp_df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    interp_df.dropna(inplace=True)
+
     # SD of p_est interpolated.
-    interp_std = interp_df.std(axis=1)
+    interp_std = np.std(interp_df, axis=1)
+
+    print(interp_std)
 
     # Local minima and local maxima indices.
     i_minima = argrelextrema(interp_std.values, np.less)[0]
