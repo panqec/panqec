@@ -279,6 +279,9 @@ class BatchSimulation():
 
         # Create output directory if it does not exist yet
         output_dir = os.path.dirname(self._output_file)
+        if output_dir == '':
+            output_dir = os.getcwd()
+
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
