@@ -34,8 +34,11 @@ To make a feature request or report a bug, please visit the PanQEC `GitHub repos
    :maxdepth: 2
    :caption: Documentation:
 
-   core
+   codes
+   error_models
+   decoders
    simulation
+   analysis
    misc
 
 
