@@ -34,7 +34,9 @@ To make a feature request or report a bug, please visit the PanQEC `GitHub repos
    :maxdepth: 2
    :caption: Documentation:
 
-   documentation
+   core
+   simulation
+   misc
 
 
 Indices and tables
