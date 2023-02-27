@@ -1,8 +1,3 @@
-.. PanQEC documentation master file, created by
-   sphinx-quickstart on Thu Mar 31 12:27:46 2022.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 PanQEC
 ==================================
 
@@ -13,6 +8,9 @@ Once a 2D or 3D quantum code is created, it can be visualized and manipulated on
 helping to verify the correct implementation of a code or understand the behavior of a decoder
 
 To make a feature request or report a bug, please visit the PanQEC `GitHub repository <https://github.com/ehua7365/bn3d>`_.
+
+
+.. image:: https://user-images.githubusercontent.com/1157968/180657086-48ea0da0-6da4-4f9c-88e5-4a3f1233db40.png
 
 .. toctree::
    :maxdepth: 2
