@@ -1,4 +1,4 @@
-Documentation
+Core Classes
 =============
 
 Codes
@@ -21,4 +21,3 @@ Decoders
 .. automodule:: panqec.decoders
     :members:
     :special-members: __init__
-
