@@ -13,25 +13,21 @@ import re
 import gzip
 from zipfile import ZipFile
 from itertools import product
-from multiprocessing import Pool, cpu_count
 from pathlib import Path
 from pprint import pformat
 import numpy as np
 from numpy.polynomial.polynomial import polyfit
 import pandas as pd
 from scipy.interpolate import interp1d
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, fsolve
 from scipy.signal import argrelextrema
 from .config import SHORT_NAMES, LONG_NAMES
-from .simulation import read_input_json, BatchSimulation
 from .utils import (
     fmt_uncertainty, identity,
     rescale_prob, fmt_confidence_interval,
-    load_json, save_json, get_label
+    load_json, save_json, get_label,
+    quadratic
 )
-from .bpauli import int_to_bvector, bvector_to_pauli_string
-from .plots._threshold import plot_data_collapse, draw_tick_symbol
-from .plots._hashing_bound import get_hashing_bound
 
 Numerical = Union[Iterable, float, int]
 
@@ -80,14 +76,11 @@ class Analysis:
     # Raw data extracted from files.
     raw: pd.DataFrame
 
-    # Results of each code, error_modle and decoder.
+    # Results of each code, error_model and decoder.
     results: pd.DataFrame
 
-    # Thresholds for each code family, error modle and decoder.
-    thresholds: pd.DataFrame
-
     # Prints more details if true.
-    verbose: bool = True
+    verbose: bool = False
 
     # Set of parameters that are unique to each input.
     INPUT_KEYS: List[str] = [
@@ -141,10 +134,11 @@ class Analysis:
     sectors: Dict[str, Any]
 
     def __init__(
-        self, results: Union[str, List[str]] = [], verbose: bool = True,
+        self, results: Union[str, List[str]] = [], verbose: bool = False,
         overrides: Optional[Union[str, dict]] = None,
         progress: Optional[Callable] = identity
     ):
+        self.verbose = verbose
         self.results_paths = []
         if isinstance(results, list):
             self.results_paths += results
@@ -170,7 +164,10 @@ class Analysis:
         self.skips = []
         self.extra_thresholds = []
 
-        self.sectors = dict()
+        self._thresholds: Optional[pd.DataFrame] = None
+        self._sector_thresholds: Optional[Dict[str, pd.DataFrame]] = None
+        self._min_thresholds: Optional[pd.DataFrame] = None
+        self._trunc_results: Optional[Dict[str, pd.DataFrame]] = None
 
         self.find_files()
         self.count_files()
@@ -180,7 +177,39 @@ class Analysis:
         self.calculate_total_error_rates()
         self.calculate_word_error_rates()
         self.calculate_single_qubit_error_rates()
+        self.assign_labels()
         self.reorder_columns()
+
+    @property
+    def thresholds(self):
+        if (self.sector_thresholds is None or
+                'total' not in self.sector_thresholds):
+            self.calculate_thresholds()
+
+        return self.sector_thresholds['total']
+
+    @property
+    def sector_thresholds(self):
+        if self._sector_thresholds is None:
+            self.calculate_sector_thresholds()
+
+        return self._sector_thresholds
+
+    @property
+    def min_thresholds(self):
+        if self._min_thresholds is None:
+            self.calculate_min_thresholds()
+
+        return self._min_thresholds
+
+    @property
+    def trunc_results(self):
+        if self._trunc_results is None:
+            # TODO: replace by something more fine-grained
+            self.calculate_thresholds()
+            self.calculate_sector_thresholds()
+
+        return self._trunc_results
 
     def get_results(self, progress: Optional[Callable] = identity):
         return self._results
@@ -197,17 +226,16 @@ class Analysis:
         data = load_json(path)
         self._results = self._load_results_df(data['results'])
         self.trunc_results = self._load_results_df(data['trunc_results'])
-        self.thresholds = pd.DataFrame(data['thresholds'])
+        self._thresholds = pd.DataFrame(data['thresholds'])
         for k in ['fss_params', 'params_bs']:
-            self.thresholds[k] = self.thresholds[k].apply(np.array)
-        self.sectors = {
-            sector: {
-                'thresholds': pd.DataFrame(sector_data['thresholds']),
-                'trunc_results': self._load_results_df(
-                    sector_data['trunc_results']
-                ),
-            }
-            for sector, sector_data in data['sectors'].items()
+            self._thresholds[k] = self._thresholds[k].apply(np.array)
+        self._sector_thresholds = {
+            sector: pd.DataFrame(sector_data['thresholds'])
+            for sector, sector_data in data['sector_thresholds'].items()
+        }
+        self._trunc_results = {
+            sector: self._load_results_df(sector_data)
+            for sector, sector_data in data['trunc_results'].items()
         }
 
     def save(self, path):
@@ -217,19 +245,17 @@ class Analysis:
             'effective_error', 'codespace', 'success', 'results_file'
         ]
         data = {
-            'trunc_results': self.trunc_results.drop(
-                drop_columns, axis=1
-            ).to_dict(),
+            'trunc_results': {
+                sector: self.trunc_results[sector].drop(
+                    drop_columns, axis=1
+                ).to_dict()
+                for sector in self.trunc_results.keys()
+            },
             'results': self._results.drop(drop_columns, axis=1).to_dict(),
             'thresholds': self.thresholds.to_dict(),
-            'sectors': {
-                sector: {
-                    'thresholds': sector_data['thresholds'].to_dict(),
-                    'trunc_results': sector_data['trunc_results'].drop(
-                        drop_columns, axis=1
-                    ).to_dict(),
-                }
-                for sector, sector_data in self.sectors.items()
+            'sector_thresholds': {
+                sector: sector_data.to_dict()
+                for sector, sector_data in self.sector_thresholds.items()
             }
         }
         save_json(data, path)
@@ -329,27 +355,6 @@ class Analysis:
         """
         if self.verbose:
             print(message, flush=True)
-
-    def analyze(self, progress: Optional[Callable] = identity):
-        """Perform the full analysis.
-
-        Parameters
-        ----------
-        progress : Optional[Callable]
-            Progress bar indicator such as tqdm or its notebook variant.
-        """
-        self.find_files()
-        self.count_files()
-        self.read_files(progress=progress)
-        self.aggregate()
-        self.apply_overrides()
-        self.calculate_total_error_rates()
-        self.calculate_word_error_rates()
-        self.calculate_single_qubit_error_rates()
-        self.assign_labels()
-        self.calculate_thresholds(sector=None)
-        self.calculate_sector_thresholds()
-        self.use_min_thresholds()
 
     def find_files(self):
         """Find where the results files are."""
@@ -510,10 +515,17 @@ class Analysis:
             'method', 'method_params', 'results_file', 'wall_time'
         ]
 
-        # Intersection of the proposed columns and the existing ones
+        # Remove ordered columns that don't exist in results
         for col in ordered_columns:
             if col not in self._results.columns:
+                print("test", col)
                 ordered_columns.remove(col)
+
+        # Add ordered columns that do exist in results
+        for col in self._results.columns:
+            if col not in ordered_columns:
+                ordered_columns.append(col)
+
         self._results = self._results[ordered_columns]
 
     def calculate_total_error_rates(self):
@@ -709,6 +721,7 @@ class Analysis:
             # Use the replacement values if there are any manually given.
             if param_set in self.replaces:
                 if 'p_th_fss' in self.replaces[param_set]:
+
                     self.log('Using given threshold values')
                     self.log(pformat({
                         **entry,
@@ -723,6 +736,7 @@ class Analysis:
 
             # Using the manual override to get truncation limits.
             if param_set in self.overrides[sector]:
+
                 # Initialize to max limits and reuse crossover.
                 entry.update({
                     'p_left': df_filt['error_rate'].min(),
@@ -811,10 +825,7 @@ class Analysis:
             entries.append(entry)
 
         thresholds = pd.DataFrame(entries)
-        # thresholds['error_model_family'] = (
-        #     thresholds['error_model'].apply(infer_error_model_family)
-        # )
-        # thresholds['bias'] = thresholds['error_model'].apply(deduce_bias)
+
         if self.extra_thresholds:
             thresholds = pd.concat(
                 [thresholds, pd.DataFrame(self.extra_thresholds)]
@@ -822,11 +833,16 @@ class Analysis:
 
         trunc_results = pd.concat(df_trunc_list, axis=0)
 
-        # Save data to sectors attribute.
-        if sector not in self.sectors:
-            self.sectors[sector] = dict()
-        self.sectors[sector]['thresholds'] = thresholds
-        self.sectors[sector]['trunc_results'] = trunc_results
+        if self._sector_thresholds is None:
+            self._sector_thresholds = dict()
+
+        if self._trunc_results is None:
+            self._trunc_results = dict()
+
+        sector_key = 'total' if sector is None else sector
+
+        self._sector_thresholds[sector_key] = thresholds
+        self._trunc_results[sector_key] = trunc_results
 
     def get_fit_status(self, entry: Dict[str, Any]) -> str:
         """Status of the fit. 'success' if successful, comment if not.
@@ -892,7 +908,7 @@ class Analysis:
         at least check whether we are above or below threshold
         by giving upper or lower bounds on the threshold.
         """
-        self.log('Calculating single-qubit sector thresholds thresholds')
+        self.log('Calculating single-qubit sector thresholds')
 
         # Note that in the case the final state is not in the code space,
         # it is impossible to determine what the effective error is,
@@ -934,11 +950,11 @@ class Analysis:
                 p_est=p_est_label,
                 n_trials_label=n_trials_label,
                 n_fail_label=n_fail_label,
-                sector=sector,
+                sector=sector
             )
 
-    def use_min_thresholds(self):
-        """Use the minimum thresholds for `thresholds` DataFrame attribute.
+    def calculate_min_thresholds(self):
+        """Use the minimum thresholds for `min_thresholds` DataFrame attribute.
 
         Go through all the sector thresholds in the `sectors` attribute and
         take the minimum for each parameter set.
@@ -946,8 +962,8 @@ class Analysis:
 
         # Stack all the sector threshold DataFrames with a 'sector' column.
         all_thresholds = []
-        for sector in self.sectors:
-            df = self.sectors[sector]['thresholds'].copy()
+        for sector in self.sector_thresholds:
+            df = self.sector_thresholds[sector].copy()
             df['sector'] = sector
             all_thresholds.append(df)
         thresholds = pd.concat(all_thresholds, axis=0)
@@ -958,19 +974,19 @@ class Analysis:
         # Reset the index.
         thresholds = thresholds.reset_index(drop=True)
 
-        # Group by input keys, taking the minimum setors.
-        self.thresholds = thresholds.loc[
+        # Group by input keys, taking the minimum sectors.
+        self._min_thresholds = thresholds.loc[
             thresholds.groupby(self.THRESHOLD_KEYS)['p_th_fss_left']
             .idxmin().values
         ].reset_index(drop=True)
 
         # Stack all the truncated results together and reset index.
         used_points = list(map(tuple, pd.concat([
-            self.sectors[sector]['trunc_results'][self.POINT_KEYS]
-            for sector in self.sectors
+            self.trunc_results[sector][self.POINT_KEYS]
+            for sector in self.sector_thresholds
         ], axis=0).drop_duplicates().values))
 
-        self.trunc_results = self._results.groupby(
+        self.trunc_results['min'] = self._results.groupby(
             self.POINT_KEYS
         ).first().loc[used_points].reset_index().sort_values(
             by=self.POINT_KEYS
@@ -1023,66 +1039,68 @@ class Analysis:
         )
         return quality
 
-    def plot_threshold(
-        self, plot_dir: Optional[str] = None, include_date=True,
-        sectors: List[str] = ['total']
-    ):
-        """Plot intersecting error curves and threshold value
-
-        Parameters
-        ----------
-        plot_dir : Optional[str], optional
-            Directory to save the plot, by default None
-        include_date : bool, optional
-            Whether to include the date in filename, by default True
-        sectors : Optional[List[str]], optional
-            List of sectors to plot in the same row.
-            Each sector can take the value 'total' (all errors combines),
-            'X' (only Pauli X errors) or 'Z' (only Pauli Z errors).
-            By default ['total']
-        """
-        import matplotlib.pyplot as plt
-        from matplotlib.backends.backend_pdf import PdfPages
-
-        if sectors is None:
-            sectors = ['all']
-
+    def make_plots(self, plot_dir: str, include_date=True):
+        """Make and display the plots while saving to directory."""
         date = ''
         if include_date:
             date = pd.Timestamp.now().strftime('%Y-%m-%d') + '_'
 
-        pdf: Optional[str] = None
+        os.makedirs(plot_dir, exist_ok=True)
+        self.log('Making collapse plots.')
+        self.make_collapse_plots(
+            pdf=os.path.join(plot_dir, f'{date}collapse.pdf')
+        )
+        self.log('Making threshold vs bias plots.')
+        self.make_threshold_vs_bias_plots(
+            pdf=os.path.join(plot_dir, f'{date}thresholds-vs-bias.pdf')
+        )
 
-        if plot_dir is not None:
-            os.makedirs(plot_dir, exist_ok=True)
-            pdf = os.path.join(plot_dir, f'{date}threshold.pdf')
+    def plot_thresholds(
+        self,
+        sector=None,
+        pdf=None,
+        show=False,
+        include_threshold_estimate=True,
+        include_main_title=True,
+        include_sector_title=True
+    ):
+        """Make all the threshold plots."""
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_pdf import PdfPages
+        if pdf is not None:
             pdf_writer = PdfPages(pdf)
 
-        self.log('Making threshold plot.')
+        plt.subplots_adjust(top=0.8)
 
-        self.calculate_thresholds()
+        sector_key = 'total' if sector is None else sector
 
-        plot_parameters = self.trunc_results.sort_values(
-            by=['code_family', 'error_model', 'bias']
-        )[['code_family', 'error_model', 'decoder']].drop_duplicates().values
+        plot_parameters = self.trunc_results[sector_key].sort_values(
+            by=['code', 'error_model_label', 'bias']
+        )[[
+            'code', 'error_model_label', 'decoder_label'
+        ]].drop_duplicates().values
 
         for code_family, error_model, decoder in plot_parameters:
-            for sector in sectors:
-                self._plot_threshold(
-                    code_family, error_model, decoder, sector
-                )
-                if pdf is not None:
-                    pdf_writer.savefig(plt.gcf(), bbox_inches='tight')
-                plt.show()
+            self._plot_thresholds(
+                code_family, error_model, decoder, sector,
+                include_threshold_estimate, include_main_title,
+                include_sector_title
+            )
+            if pdf is not None:
+                pdf_writer.savefig(plt.gcf(), bbox_inches='tight')
+
+        if show:
+            plt.show()
 
         if pdf is not None:
             pdf_writer.close()
 
-    def _plot_threshold(
+    def _plot_thresholds(
         self, code_family: str, error_model: str, decoder: str,
-        sector: Optional[str] = None
+        sector: Optional[str] = None, include_threshold_estimate: bool = True,
+        include_main_title: bool = True, include_sector_title: bool = True
     ):
-        """Plot the data collapse for a given parameter set for both sectors.
+        """Plot the threshold for a given parameter set for both sectors.
 
         Parameters
         ----------
@@ -1102,106 +1120,102 @@ class Analysis:
 
         df = self._results
         df_filt_1 = df[
-            (df['code_family'] == code_family)
-            & (df['error_model'] == error_model)
-            & (df['decoder'] == decoder)
+            (df['code'] == code_family)
+            & (df['error_model_label'] == error_model)
+            & (df['decoder_label'] == decoder)
         ].sort_values(by='error_rate')
         bias = df_filt_1['bias'].iloc[0]
+        decoder_family = df_filt_1['decoder'].iloc[0]
 
-        if sector is None:
+        if sector_key == 'total':
             p_est_label = 'p_est'
             p_se_label = 'p_se'
         else:
             p_est_label = f'p_est_{sector}'
             p_se_label = f'p_se_{sector}'
 
-        fig, ax = plt.subplots(ncols=1, figsize=(10, 5))
-        plt.sca(ax[0])
-        for size in np.sort(df_filt_1['size'].unique()):
+        cmap = plt.get_cmap('tab10')
+        code_labels = np.sort(df_filt_1['code_label'].unique())
+        for i, code_label in enumerate(code_labels):
             df_filt = df_filt_1[
-                df_filt_1['code_params'] == size
+                df_filt_1['code_label'] == code_label
             ].sort_values(by='error_rate')
-            trunc_results = self.sectors[sector_key]['trunc_results']
+            trunc_results = self.trunc_results[sector_key]
             df_filt_trunc = trunc_results[
-                (trunc_results['size'] == size)
-                & (trunc_results['code_family'] == code_family)
-                & (trunc_results['error_model'] == error_model)
-                & (trunc_results['decoder'] == decoder)
+                (trunc_results['code_label'] == code_label)
+                & (trunc_results['code'] == code_family)
+                & (trunc_results['error_model_label'] == error_model)
+                & (trunc_results['decoder_label'] == decoder)
             ].sort_values(by='error_rate')
 
             # Draw gray circle underneath plots which are actually used for
             # the finite-size scaling.
             plt.plot(
                 df_filt_trunc['error_rate'],
-                df_filt_trunc[p_est_label], 'o', color='gray'
+                df_filt_trunc[p_est_label], 'o',
+                color=cmap(i)
             )
+            L = df_filt.iloc[0]['code_params']['L_x']
             plt.errorbar(
                 df_filt['error_rate'], df_filt[p_est_label],
                 yerr=df_filt[p_se_label],
                 capsize=5,
-                label=f'$L={size[0]}$'
+                label=f'$L={L}$',
+                color=cmap(i)
             )
 
         # Find the threshold estimate and uncertainty.
-        thresh = self.sectors[sector_key]['thresholds']
-        thresh_match = thresh[
-            (thresh['code_family'] == code_family)
-            & (thresh['error_model'] == error_model)
-            & (thresh['decoder'] == decoder)
-        ]
-        if thresh_match.shape[0] == 0:
-            return
-        thresh_data = thresh_match.iloc[0]
+        fit_title = ''
+        if include_threshold_estimate:
+            thresh = self.sector_thresholds[sector_key]
+            thresh_match = thresh[
+                (thresh['code'] == code_family)
+                & (thresh['error_model_label'] == error_model)
+                & (thresh['decoder_label'] == decoder)
+            ]
+            if thresh_match.shape[0] == 0:
+                return
+            thresh_data = thresh_match.iloc[0]
 
-        fit_title = '' if thresh_data['fit_found'] else ' (fit failed)'
+            fit_title = '' if thresh_data['fit_found'] else ' (fit failed)'
 
-        # Draw the threshold and uncertainty bounds.
-        plt.axvline(thresh_data['p_th_fss'], color='red', linestyle='--')
-        plt.axvspan(
-            thresh_data['p_th_fss_left'], thresh_data['p_th_fss_right'],
-            alpha=0.5, color='pink'
-        )
-        plt.legend(title=r'$p_{\mathrm{th}}=(%.2f\pm %.2f)\%%$' % (
-            100*thresh_data['p_th_fss'], 100*thresh_data['p_th_fss_se'],
-        ))
+            # Draw the threshold and uncertainty bounds.
+            plt.axvline(thresh_data['p_th_fss'], color='red', linestyle='--')
+            plt.axvspan(
+                thresh_data['p_th_fss_left'], thresh_data['p_th_fss_right'],
+                alpha=0.5, color='pink'
+            )
+            plt.legend(title=r'$p_{\mathrm{th}}=(%.2f\pm %.2f)\%%$' % (
+                100*thresh_data['p_th_fss'], 100*thresh_data['p_th_fss_se'],
+            ))
+        else:
+            plt.legend()
+
         plt.yscale('linear')
         plt.xlabel('Physical error rate $p$', fontsize=16)
         plt.ylabel('Logical error rate $p_L$', fontsize=16)
-        deformation = df_filt_1['error_model_family'].iloc[0]
-        bias_label = str(bias).replace('inf', '\\infty')
-        sector_name = 'All errors' if sector is None else f'${sector}$ errors'
-        plt.suptitle(
-            f'{shorten(deformation)} {lengthen(code_family, caps=False)}\n'
-            f'$\\eta_Z={bias_label}$, {shorten(decoder)}, '
-            f'{sector_name}{fit_title}',
-            fontsize=16
-        )
-        plt.sca(ax[1])
 
-        if not thresh_data['fit_found']:
-            for i in range(2):
-                plt.sca(ax[i])
-                plt.text(
-                    0.5, 0.5, 'INVALID', transform=ax[i].transAxes,
-                    fontsize=40, color='gray', alpha=0.5, ha='center',
-                    va='center', rotation=30
-                )
+        if include_main_title:
+            deformation = df_filt_1['error_model'].iloc[0]
+            bias_label = str(bias).replace('inf', '\\infty')
+            plt.suptitle(
+                f'{shorten(deformation)} {lengthen(code_family, caps=False)}\n'
+                f'$\\eta_Z={bias_label}$, {shorten(decoder_family)}'
+                f'{fit_title}\n',
+                fontsize=16
+            )
 
-    def make_plots(self, plot_dir: str, include_date=True):
-        """Make and display the plots while saving to directory."""
-        date = ''
-        if include_date:
-            date = pd.Timestamp.now().strftime('%Y-%m-%d') + '_'
+        if include_sector_title:
+            sector_name = ('All errors' if sector is None
+                           else f'${sector}$ errors')
+            plt.title(f'{sector_name}')
 
-        os.makedirs(plot_dir, exist_ok=True)
-        self.log('Making collapse plots.')
-        self.make_collapse_plots(
-            pdf=os.path.join(plot_dir, f'{date}collapse.pdf')
-        )
-        self.log('Making threshold vs bias plots.')
-        self.make_threshold_vs_bias_plots(
-            pdf=os.path.join(plot_dir, f'{date}thresholds-vs-bias.pdf')
-        )
+        if fit_title != '':
+            plt.text(
+                0.5, 0.5, 'INVALID', transform=plt.gca().transAxes,
+                fontsize=40, color='gray', alpha=0.5, ha='center',
+                va='center', rotation=30
+            )
 
     def make_threshold_vs_bias_plots(self, pdf=None):
         """Make and save threshold vs bias plots."""
@@ -1224,7 +1238,7 @@ class Analysis:
         if pdf is not None:
             pdf_writer = PdfPages(pdf)
 
-        plot_parameters = self.trunc_results.sort_values(
+        plot_parameters = self.trunc_results['total'].sort_values(
             by=['code', 'error_model_label', 'bias']
         )[[
             'code', 'error_model_label', 'decoder_label'
@@ -1369,20 +1383,23 @@ class Analysis:
         bias = df_filt_1['bias'].iloc[0]
         decoder_family = df_filt_1['decoder'].iloc[0]
 
-        if sector is None:
+        if sector_key == 'total':
             p_est_label = 'p_est'
             p_se_label = 'p_se'
         else:
             p_est_label = f'p_est_{sector}'
             p_se_label = f'p_se_{sector}'
 
-        fig, ax = plt.subplots(ncols=2, figsize=(10, 5))
+        fig, ax = plt.subplots(ncols=2, figsize=(15, 5))
+
+        plt.subplots_adjust(top=0.8)
+
         plt.sca(ax[0])
         for code_label in np.sort(df_filt_1['code_label'].unique()):
             df_filt = df_filt_1[
                 df_filt_1['code_label'] == code_label
             ].sort_values(by='error_rate')
-            trunc_results = self.sectors[sector_key]['trunc_results']
+            trunc_results = self.trunc_results[sector_key]
             df_filt_trunc = trunc_results[
                 (trunc_results['code_label'] == code_label)
                 & (trunc_results['code'] == code_family)
@@ -1405,7 +1422,7 @@ class Analysis:
             )
 
         # Find the threshold estimate and uncertainty.
-        thresh = self.sectors[sector_key]['thresholds']
+        thresh = self.sector_thresholds[sector_key]
         thresh_match = thresh[
             (thresh['code'] == code_family)
             & (thresh['error_model_label'] == error_model)
@@ -1434,10 +1451,11 @@ class Analysis:
         sector_name = 'All errors' if sector is None else f'${sector}$ errors'
         plt.suptitle(
             f'{shorten(deformation)} {lengthen(code_family, caps=False)}\n'
-            f'$\\eta_Z={bias_label}$, {shorten(decoder_family)}, '
-            f'{sector_name}{fit_title}',
+            f'$\\eta_Z={bias_label}$, {shorten(decoder_family)} '
+            f'{fit_title}',
             fontsize=16
         )
+        plt.title(f'{sector_name}')
         plt.sca(ax[1])
 
         df_trunc = trunc_results[
@@ -1718,64 +1736,6 @@ def get_standard_error(estimator, n_samples):
     return np.sqrt(estimator*(1 - estimator)/(n_samples + 1))
 
 
-def get_results_df_from_batch(
-    batch_sim: BatchSimulation, batch_label: str
-) -> pd.DataFrame:
-    """Get results DataFrame directly from a BatchSimulation.
-    (As opposed to from a file saved to disk.)
-
-    Parameters
-    ----------
-    batch_sim : BatchSimulation
-        The object to extract data from.
-    batch_label : str
-        The label to put in the table.
-
-    Returns
-    ------
-    results_df : pd.DataFrame
-        The results for each (code, error_model, decoder).
-    """
-    batch_results = batch_sim.get_results()
-    # print(
-    #     'wall_time =',
-    #     str(datetime.timedelta(seconds=batch_sim.wall_time))
-    # )
-    # print('n_trials = ', min(sim.n_results for sim in batch_sim))
-    for sim, batch_result in zip(batch_sim, batch_results):
-        n_logicals = batch_result['k']
-
-        # Small fix for the current situation. TO REMOVE in later versions
-        if n_logicals == -1:
-            n_logicals = 1
-
-        batch_result['label'] = batch_label
-        batch_result['noise_direction'] = sim.error_model.direction
-        if len(sim.results['effective_error']) > 0:
-            batch_result['p_x'] = np.array(
-                sim.results['effective_error']
-            )[:, :n_logicals].any(axis=1).mean()
-            batch_result['p_x_se'] = get_standard_error(
-                batch_result['p_x'], sim.n_results
-            )
-            batch_result['p_z'] = np.array(
-                sim.results['effective_error']
-            )[:, n_logicals:].any(axis=1).mean()
-            batch_result['p_z_se'] = get_standard_error(
-                batch_result['p_z'], sim.n_results
-            )
-        else:
-            batch_result['p_x'] = np.nan
-            batch_result['p_x_se'] = np.nan
-            batch_result['p_z'] = np.nan
-            batch_result['p_z_se'] = np.nan
-
-    results = batch_results
-
-    results_df = pd.DataFrame(results)
-    return results_df
-
-
 def get_single_qubit_error_rate(
     effective_error_list: Union[List[List[int]], np.ndarray],
     i: int = 0,
@@ -1863,89 +1823,6 @@ def get_word_error_rate(p_est, p_se, k) -> Tuple:
     return p_est_word, p_se_word
 
 
-def get_logical_rates_df(
-    job_list, input_dir, output_dir, progress: Optional[Callable] = None
-):
-    """Get DataFrame of logical error rates for each logical error.
-
-    This is superseded by the Analysis class.
-    """
-    if progress is None:
-        def progress_func(x, total: int = 0):
-            return x
-    else:
-        progress_func = progress
-
-    input_files = [
-        os.path.join(input_dir, f'{name}.json')
-        for name in job_list
-    ]
-    output_dirs = [
-        os.path.join(output_dir, name)
-        for name in job_list
-    ]
-
-    arguments = list(zip(input_files, output_dirs))
-
-    with Pool(cpu_count()) as pool:
-        data = pool.starmap(
-            extract_logical_rates,
-            progress_func(arguments, total=len(arguments))
-        )
-
-    data = [entry for entries in data for entry in entries]
-    df = pd.DataFrame(data)
-    return df
-
-
-def extract_logical_rates(input_file, output_dir):
-    """Extract logical error rates from results.
-    Superseded by Analysis class.
-    """
-    batch_sim = read_input_json(input_file)
-
-    data = []
-    for sim in batch_sim:
-        sim.load_results(output_dir)
-        batch_result = sim.get_results()
-        entry = {
-            'label': batch_sim.label,
-            'noise_direction': sim.error_model.direction,
-            'error_rate': batch_result['error_rate'],
-            'size': batch_result['size'],
-            'n': batch_result['n'],
-            'k': batch_result['k'],
-            'd': batch_result['d'],
-        }
-
-        n_logicals = batch_result['k']
-
-        # Small fix for the current situation. TO REMOVE in later versions
-        if n_logicals == -1:
-            n_logicals = 1
-
-        # All possible logical errors.
-        possible_logical_errors = [
-            int_to_bvector(int_rep, n_logicals)
-            for int_rep in range(1, 2**(2*n_logicals))
-        ]
-
-        for logical_error in possible_logical_errors:
-            pauli_string = bvector_to_pauli_string(logical_error)
-            p_est_label = f'p_est_{pauli_string}'
-            p_se_label = f'p_se_{pauli_string}'
-            p_est_logical = (
-                np.array(sim.results['effective_error'])
-                == logical_error
-            ).all(axis=1).mean()
-            entry[p_est_label] = p_est_logical
-            entry[p_se_label] = get_standard_error(
-                p_est_logical, sim.n_results
-            )
-        data.append(entry)
-    return data
-
-
 def get_p_th_sd_interp(
     df_filt: pd.DataFrame,
     p_nearest: Optional[float] = None,
@@ -2026,14 +1903,8 @@ def get_p_th_sd_interp(
     interp_df = pd.DataFrame(curves)
     interp_df.index = p_interp
 
-    # Drop rows with NaN and infinity (due to extrapolation issues)
-    interp_df.replace([np.inf, -np.inf], np.nan, inplace=True)
-    interp_df.dropna(inplace=True)
-
     # SD of p_est interpolated.
-    interp_std = np.std(interp_df, axis=1)
-
-    print(interp_std)
+    interp_std = interp_df.std(axis=1)
 
     # Local minima and local maxima indices.
     i_minima = argrelextrema(interp_std.values, np.less)[0]
@@ -2113,38 +1984,6 @@ def get_code_df(results_df: pd.DataFrame) -> pd.DataFrame:
     return code_df
 
 
-def longest_sequence(arr, char):
-    """Find longest continuous sequence of chars in an array.
-
-    Parameters
-    ----------
-    arr : Iterable
-        An array possibly containing `char`.
-    char : Any
-        We are looking for sequences of this char.
-
-    Returns
-    -------
-    best_seq_start : int
-        Where the longest sequence of `char` starts.
-    best_seq_end : int
-        Where the longest sequence of `char` ends.
-    """
-    curr_seq_start = 0
-    curr_seq_stop = 0
-    best_seq = (curr_seq_start, curr_seq_stop)
-    for i in range(len(arr)):
-        if arr[i] == char:
-            curr_seq_stop += 1
-            if curr_seq_stop - curr_seq_start > best_seq[1] - best_seq[0]:
-                best_seq = (curr_seq_start, curr_seq_stop)
-        else:
-            curr_seq_start = i+1
-            curr_seq_stop = i+1
-
-    return best_seq
-
-
 def get_p_th_nearest(df_filt: pd.DataFrame, p_est: str = 'p_est') -> float:
     """Estimate which p in the results is nearest to the threshold.
 
@@ -2203,21 +2042,6 @@ def fit_function(x_data, *params):
     x = (p - p_th)*d**nu
 
     return A + B*x + C*x**2
-
-
-def grad_fit_function(x_data, *params):
-    p, d = x_data
-    p_th, nu, A, B, C = params
-    x = (p - p_th)*d**nu
-
-    grad_p_th = - B * d**nu - 2*C*(p - p_th) * d**(2*nu)
-    grad_nu = x * np.log(d) * (B + 2*C*x)
-    grad_A = 1 * np.ones(grad_nu.shape)
-    grad_B = x * np.ones(grad_nu.shape)
-    grad_C = x**2 * np.ones(grad_nu.shape)
-
-    jac = np.vstack([grad_p_th, grad_nu, grad_A, grad_B, grad_C]).T
-    return jac
 
 
 def get_fit_params(
@@ -2449,182 +2273,6 @@ def get_bias_ratios(noise_direction):
         eta_z = np.inf
 
     return eta_x, eta_y, eta_z
-
-
-def get_error_model_df(results_df):
-    """Get DataFrame error models and noise parameters.
-
-    Parameters
-    ----------
-    results_df : pd.DataFrame
-        Results with columns 'error_model'
-
-    Returns
-    -------
-    error_model_df : pd.DataFrame
-        DataFrame with columns:
-        'code_family', 'error_model', 'decoder',
-        'noise_direction',
-        'r_x', 'r_y', 'r_z',
-        'eta_x', 'eta_y', 'eta_z'
-    """
-    if 'noise_direction' not in results_df.columns:
-        results_df['noise_direction'] = results_df['error_model'].apply(
-            lambda x: (x['parameters']['r_x'],
-                       x['parameters']['r_y'],
-                       x['parameters']['r_z'])
-        )
-    error_model_df = results_df[[
-        'code_family', 'error_model_family', 'error_model', 'decoder', 'bias'
-    ]].drop_duplicates()
-    error_model_df['noise_direction'] = error_model_df['error_model'].apply(
-        lambda x: (x['parameters']['r_x'],
-                   x['parameters']['r_y'],
-                   x['parameters']['r_z'])
-    )
-    error_model_df = error_model_df.sort_values(by='noise_direction')
-
-    r_xyz = pd.DataFrame(
-        error_model_df['noise_direction'].tolist(),
-        index=error_model_df.index,
-        columns=['r_x', 'r_y', 'r_z']
-    )
-
-    error_model_df = pd.concat([
-        error_model_df, r_xyz
-    ], axis=1)
-
-    error_model_df['eta_x'] = error_model_df['r_x']/(
-        error_model_df['r_y'] + error_model_df['r_z']
-    )
-    error_model_df['eta_y'] = error_model_df['r_y']/(
-        error_model_df['r_x'] + error_model_df['r_z']
-    )
-    error_model_df['eta_z'] = error_model_df['r_z']/(
-        error_model_df['r_x'] + error_model_df['r_y']
-    )
-    return error_model_df
-
-
-def get_thresholds_df(
-    results_df: pd.DataFrame,
-    ftol_est: float = 1e-5,
-    ftol_std: float = 1e-5,
-    maxfev: int = 2000,
-    logical_type: str = 'total',
-    n_fail_label: str = 'n_fail',
-):
-    """Extract thresholds from table of results using heuristics.
-
-    Parameters
-    ----------
-    results_df : pd.DataFrame
-        The results for each (code, error_model, decoder).
-        Should have at least the columns:
-        'code', 'error_model', 'decoder', 'n', 'k', 'd',
-        'n_fail', 'n_trials'.
-        If the `logical_type` keyword argument is given,
-        then then either 'p_0_est' and 'p_est_word' should be columns too.
-    ftol_est : float
-        Tolerance for the best fit.
-    ftol_std : float
-        Tolerance for the bootstrap fits.
-    maxfev : int
-        Maximum number of iterations for the curve fitting.
-    logical_type : str
-        Pick from 'total', 'single', or 'word',
-        which will take `p_est` to be 'p_est', 'p_0_est', 'p_est_word'
-        respectively.
-        This is used to adjust which error rate is used as 'the' logical error
-        rate for purposes of extracting thresholds with finite-size scaling.
-    n_fail_label : str
-        The column that is 'n_fail'.
-    """
-
-    # Initialize with unique error models and their parameters.
-    thresholds_df = get_error_model_df(results_df)
-
-    # Intialize the lists.
-    p_th_sd = []
-    p_th_nearest = []
-    p_left = []
-    p_right = []
-    fss_params = []
-    p_th_fss = []
-    p_th_fss_left = []
-    p_th_fss_right = []
-    p_th_fss_se = []
-    df_trunc_list = []
-    params_bs_list = []
-
-    p_est = 'p_est'
-    if logical_type == 'single':
-        p_est = 'p_0_est'
-    elif logical_type == 'word':
-        p_est = 'p_est_word'
-
-    parameter_sets = thresholds_df[[
-        'code_family', 'error_model', 'decoder'
-    ]].values
-    for code_family, error_model, decoder in parameter_sets:
-        df_filt = results_df[
-            (results_df['code_family'] == code_family)
-            & (results_df['error_model'] == error_model)
-            & (results_df['decoder'] == decoder)
-        ]
-
-        # Find nearest value where crossover changes.
-        p_th_nearest_val = get_p_th_nearest(df_filt, p_est=p_est)
-        p_th_nearest.append(p_th_nearest_val)
-
-        # More refined crossover using standard deviation heuristic.
-        p_th_sd_val, p_left_val, p_right_val = get_p_th_sd_interp(
-            df_filt, p_nearest=p_th_nearest_val, p_est=p_est
-        )
-        p_th_sd.append(p_th_sd_val)
-
-        # Left and right bounds to truncate.
-        p_left.append(p_left_val)
-        p_right.append(p_right_val)
-
-        # Finite-size scaling fitting.
-        params_opt, params_bs, df_trunc = fit_fss_params(
-            df_filt, p_left_val, p_right_val, p_th_nearest_val,
-            ftol_est=ftol_est, ftol_std=ftol_std, maxfev=maxfev,
-            p_est=p_est, n_fail_label=n_fail_label,
-        )
-        fss_params.append(params_opt)
-
-        # 1-sigma error bar bounds.
-        p_th_fss_left.append(np.quantile(params_bs[:, 0], 0.16))
-        p_th_fss_right.append(np.quantile(params_bs[:, 0], 0.84))
-
-        # Standard error.
-        p_th_fss_se.append(params_bs[:, 0].std())
-
-        # Use the median as the estimator.
-        p_th_fss.append(np.median(params_bs[:, 0]))
-
-        # Trucated data.
-        df_trunc_list.append(df_trunc)
-
-        # Bootstrap parameters sample list.
-        params_bs_list.append(params_bs)
-
-    thresholds_df['p_th_sd'] = p_th_sd
-    thresholds_df['p_th_nearest'] = p_th_nearest
-    thresholds_df['p_left'] = p_left
-    thresholds_df['p_right'] = p_right
-    # thresholds_df['p_th_fss'] = np.array(fss_params)[:, 0]
-    thresholds_df['p_th_fss'] = p_th_fss
-    thresholds_df['p_th_fss_left'] = p_th_fss_left
-    thresholds_df['p_th_fss_right'] = p_th_fss_right
-
-    thresholds_df['p_th_fss_se'] = p_th_fss_se
-    thresholds_df['fss_params'] = list(map(tuple, fss_params))
-
-    trunc_results_df = pd.concat(df_trunc_list, axis=0)
-    return thresholds_df, trunc_results_df, params_bs_list
 
 
 def export_summary_table_latex(
@@ -2924,7 +2572,7 @@ def deduce_bias(
     noise_model : str
         The noise model.
     rtol : float
-        Relative tolearnce to consider rounding eta value to int.
+        Relative tolerance to consider rounding eta value to int.
 
     Returns
     -------
@@ -2958,3 +2606,129 @@ def deduce_bias(
         eta = eta_f
 
     return eta
+
+
+def plot_data_collapse(
+    plt, df_trunc, params_opt, params_bs, title=None,
+    x_label=None, y_label=None,
+    p_est_label='p_est',
+):
+    rescaled_p_fit = np.linspace(
+        df_trunc['rescaled_p'].min(), df_trunc['rescaled_p'].max(), 101
+    )
+    f_fit = quadratic(rescaled_p_fit, *params_opt)
+
+    f_fit_bs = np.array([
+        quadratic(rescaled_p_fit, *params)
+        for params in params_bs
+    ])
+
+    for d_val in np.sort(df_trunc['d'].unique()):
+        df_trunc_filt = df_trunc[df_trunc['d'] == d_val]
+        plt.errorbar(
+            df_trunc_filt['rescaled_p'], df_trunc_filt[p_est_label],
+            yerr=df_trunc_filt['p_se'], fmt='o', capsize=5,
+            label=r'$L={}$'.format(d_val)
+        )
+    plt.plot(
+        rescaled_p_fit, f_fit, color='black', linewidth=1, label='Best fit'
+    )
+    plt.fill_between(
+        rescaled_p_fit,
+        np.quantile(f_fit_bs, 0.16, axis=0),
+        np.quantile(f_fit_bs, 0.84, axis=0),
+        color='gray', alpha=0.2, label=r'$1\sigma$ fit'
+    )
+    if x_label is None:
+        x_label = (
+            r'Rescaled error probability $(p - p_{\mathrm{th}})d^{1/\nu}$'
+        )
+    if y_label is None:
+        y_label = r'Logical failure rate $p_{\mathrm{fail}}$'
+    plt.xlabel(x_label, fontsize=16)
+    plt.ylabel(y_label, fontsize=16)
+
+    error_model = df_trunc['error_model'].iloc[0]
+    if title is None:
+        title = get_error_model_format(error_model)
+    plt.title(title)
+    plt.legend()
+
+
+def get_error_model_format(error_model: str, eta=None) -> str:
+    if 'deformed' in error_model.lower():
+        fmt = 'Deformed'
+    else:
+        fmt = 'Undeformed'
+
+    if eta is None:
+        match = re.search(r'Pauli X(.+)Y(.+)Z(.+)', error_model)
+        if match:
+            r_x = np.round(float(match.group(1)), 4)
+            r_y = np.round(float(match.group(2)), 4)
+            r_z = np.round(float(match.group(3)), 4)
+            fmt += ' $(r_X, r_Y, r_Z)=({},{},{})$'.format(r_x, r_y, r_z)
+        else:
+            fmt = error_model
+    else:
+        fmt += r' $\eta={}$'.format(eta)
+    return fmt
+
+
+def plot_threshold_nearest(plt, p_th_nearest):
+    plt.axvline(
+        p_th_nearest, color='green', linestyle='-.',
+        label=r'$p_{\mathrm{th}}=(%.2f)\%%$' % (
+            100*p_th_nearest
+        )
+    )
+
+
+def draw_tick_symbol(
+    plt, Line2D,
+    log=False, axis='x',
+    tick_height=0.03, tick_width=0.1, tick_location=2.5,
+    axis_offset=0,
+):
+    """Draw a section cut tick symbol on the x axis."""
+
+    # The actual line.
+    x_points = np.array([
+        -0.5,
+        -0.25,
+        0.25,
+        0.5,
+    ])*tick_width + tick_location
+    if log:
+        x_points = 10**np.array(x_points)
+    y_points = np.array([
+        0,
+        0.5,
+        -0.5,
+        0,
+    ])*tick_height + axis_offset
+    points = (x_points, y_points)
+    if axis != 'x':
+        points = (y_points, x_points)
+    line = Line2D(
+        *points,
+        lw=1, color='k',
+    )
+    line.set_clip_on(False)
+    plt.gca().add_line(line)
+
+
+def get_hashing_bound(point):
+    r_x, r_y, r_z = point
+
+    def max_rate(p):
+        p_array = np.array([1 - p, p*r_x, p*r_y, p*r_z])
+        h_array = np.zeros(4)
+        for i in range(4):
+            if p_array[i] != 0:
+                h_array[i] = -p_array[i]*np.log2(p_array[i])
+        entropy = h_array.sum()
+        return 1 - entropy
+
+    solutions = fsolve(max_rate, 0)
+    return solutions[0]
