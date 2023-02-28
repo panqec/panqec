@@ -69,7 +69,25 @@ def calculate_logical_error_rate(
 
 
 class DirectSimulation(BaseSimulation):
-    """Quantum Error Correction Simulation."""
+    """Quantum Error Correction Simulation.
+
+    Parameters
+    -----------
+    code : StabilizerCode
+        The code to simulate.
+    error_model : BaseErrorModel
+        The error model to use.
+    decoder: BaseDecoder
+        The decoder to use.
+    error_rate : float
+        The error rate parameter.
+    compress : bool
+        Set False to not compress the output files and save as plain json.
+    verbose : bool
+        Set False to suppress output.
+    rng :
+        Set Random number generator if you want to seed it.
+    """
 
     start_time: datetime.datetime
     code: StabilizerCode

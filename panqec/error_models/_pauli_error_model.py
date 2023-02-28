@@ -22,7 +22,17 @@ def fast_choice(options, probs, rng=None):
 
 
 class PauliErrorModel(BaseErrorModel):
-    """Pauli channel IID noise model."""
+    """Pauli channel IID noise model.
+
+    The overal quantum channel takes the form
+
+    .. math::
+
+        \\mathcal{\\rho}(\\rho) =
+        (1 - p)\\rho + p(r_X X \\rho X + r_Y Y \\rho Y + r_Z Z \\rho Z)
+
+    where it is required that :math:`r_X + r_Y + r_Z =1`.
+    """
 
     def __init__(
         self,
@@ -31,9 +41,11 @@ class PauliErrorModel(BaseErrorModel):
         deformation_kwargs: Optional[dict] = None
     ):
         """Initialize Pauli error model at a given rate of X, Y and Z errors,
-        i.e. $P(u) = p * r_u$ for $u \\in \\{X, Y, Z\\}$, $p$ the total error
-        rate, and $P(u)$ the probability of getting the error $u$ on each
-        qubit.
+        i.e. :math:`p_\\sigma = p r_\\sigma` for
+        :math:`\\sigma \\in \\{X, Y, Z\\}`,
+        :math:`p` the total error rate,
+        and :math:`p_\\sigma` the probability of getting
+        the error :math:`\\sigma` on each qubit.
 
         Parameters
         ----------
