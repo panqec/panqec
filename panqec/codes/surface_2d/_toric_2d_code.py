@@ -12,6 +12,8 @@ class Toric2DCode(StabilizerCode):
     There are two types of stabilizer generators:
     vertex operators on vertices, and face operators faces.
 
+    The coordinate system used is shown below.
+
     .. image:: toric_2d_code.svg
         :scale: 200 %
         :align: center

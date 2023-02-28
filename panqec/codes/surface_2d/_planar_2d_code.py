@@ -14,6 +14,16 @@ class Planar2DCode(StabilizerCode):
     As in the Kitaev toric code,
     the qubits live on edges of the lattice,
     while stabilizers are defined on faces and vertices.
+    As such, on rough boundaries the edge-most qubits are on
+    edges orthogonal to the boundary forming a 'rough' look.
+    On smooth boundaries the edge-most qubits are on
+    edges parallel to the boundary forming a 'smooth' look.
+    The boundary conditions and coordinate system used are
+    shown below.
+
+    .. image:: planar_2d_code.svg
+        :scale: 200 %
+        :align: center
 
     Parameters
     ----------
