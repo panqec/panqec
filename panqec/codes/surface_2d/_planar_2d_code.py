@@ -7,6 +7,22 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class Planar2DCode(StabilizerCode):
+    """2D surface code with open boundary conditions.
+    In this variant of the 2D surface code,
+    there are two types of boundaries: rough and smooth.
+
+    As in the Kitaev toric code,
+    the qubits live on edges of the lattice,
+    while stabilizers are defined on faces and vertices.
+
+    Parameters
+    ----------
+    Lx : int
+        The size in the x direction.
+    Ly : Optional[int]
+        The size in the y direction.
+        If it is not given, it is assumed to be a square lattice with Lx=Ly.
+    """
     dimension = 2
     deformation_names = ['XZZX', 'XY']
 
