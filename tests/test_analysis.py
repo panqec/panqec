@@ -436,4 +436,7 @@ class TestAnalysisClusterTutorial:
     def test_analyze_cluster_example(self):
         results_json = os.path.join(DATA_DIR, 'merged-results.json.gz')
         analysis = Analysis(results_json)
-        analysis.analyze()
+        analysis.get_results()
+        analysis.thresholds
+        analysis.sector_thresholds
+        analysis.min_thresholds

@@ -5,19 +5,19 @@ import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat
 
 import { TopologicalCode } from './topologicalCode.js';
 
-var defaultCode = codeDimension == 2 ? '6.6.6 Color Code (toric)' : 'Hollow Rhombic Code';
-var defaultSize = codeDimension == 2 ? 1 : 6;
+var defaultCode = codeDimension == 2 ? 'Toric 2D' : 'Toric 3D';
+var defaultSize = codeDimension == 2 ? 6 : 4;
 
 const params = {
     errorProbability: 0.1,
     L: defaultSize,
-    noiseDeformationName: 'X3Z3',
+    noiseDeformationName: 'None',
     decoder: 'BP-OSD',
-    max_bp_iter: 10,
+    max_bp_iter: 20,
     alpha: 0.4,
     beta: 0,
     channel_update: false,
-    errorModel: 'Pure Z',
+    errorModel: 'Depolarizing',
     codeName: defaultCode,
     rotated: false,
     coprime: false,
