@@ -1,8 +1,5 @@
 """
-Routines for analysing output data.
-
-:Author:
-    Eric Huang
+Routines for analyzing output data.
 """
 
 import os
