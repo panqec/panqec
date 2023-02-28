@@ -7,6 +7,7 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class RotatedPlanar3DCode(StabilizerCode):
+    """3D surface code on lattice rotated about z axis."""
     dimension = 3
     deformation_names = ['XZZX']
 
