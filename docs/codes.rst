@@ -1,6 +1,14 @@
 Codes
 ======
 
+Quantum error correcting codes are represented as classes.
+As stabilizer codes defined on lattices have much in common,
+the specific classes for each code are inherited from the abstract class
+:class:`panqec.codes.base.StabilizerCode`.
+See
+`Adding a new code to PanQEC <tutorials/Adding%20new%20code.html>`_
+for example usage.
+
 Abstract Classes
 -----------------
 .. automodule:: panqec.codes.base

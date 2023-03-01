@@ -7,6 +7,30 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class Planar3DCode(StabilizerCode):
+    """3D surface code on cubic lattice with open boundary conditions.
+
+    Parameters
+    ----------
+    Lx : int
+        Number of edges along the x direction (on edges parallel to x).
+    Ly : Optional[int]
+        Number of qubits in the y direction (on edges parallel to x).
+    Lz : Optional[int]
+        Number of qubits in the z direction (on edges parallel to x).
+
+    Notes
+    -----
+    Qubits live on edges.
+    Boundaries parallel to the xy plane (i.e. orthogonal to z) are smooth.
+    Boundaries parallel to the zx plane (i.e. orthogonal to y) are rough.
+    Boundaries parallel to the yz plane (i.e. orthogonal to x) are smooth.
+    Similar to :class:`panqec.codes.surface_2d.Planar2DCode`
+    but extruded in z direction with smooth open boundaries and vertical z
+    edges (with qubits) in between each layers' vertices.
+    Stabilizers are otherwise the same as that of
+    :class:`panqec.codes.surface_3d.Toric3DCode`
+    but truncated at the boundaries.
+    """
     dimension = 3
     deformation_names = ['XZZX']
 

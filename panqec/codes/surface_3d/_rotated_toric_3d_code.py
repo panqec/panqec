@@ -19,7 +19,31 @@ def on_defect_boundary(Lx, Ly, x, y):
 
 
 class RotatedToric3DCode(StabilizerCode):
-    """Rotated Toric Code for good subthreshold scaling."""
+    """Rotated Toric Code for good subthreshold scaling with certain Lx, Ly.
+
+    Parameters
+    ----------
+    Lx : int
+        Number of qubits in the x direction.
+    Ly : int
+        Number of qubits in the y direction.
+    Lz : int
+        Number of qubits in the z direction.
+
+    Notes
+    -----
+    Similar to :class:`panqec.codes.surface_2d.RotatedPlanar2DCode` but with
+    periodic boundaries in x and y direction on each layer,
+    conected with vertical (z) edge qubits in between each layer except for the
+    top and bottom where the are smooth boundaries on the boundary planes
+    orthogonal to z.
+
+    Subthreshold scaling is better in this code with certain values of Lx and
+    Ly in the x and y directions if there are only Z errors because the
+    smallest logical error made of Zs only is of very high weight.
+    See the `the paper <https://arxiv.org/abs/2211.02116>`_ for more details of
+    the exact conditions for Lx and Ly.
+    """
 
     dimension = 3
     deformation_names = ['XZZX']

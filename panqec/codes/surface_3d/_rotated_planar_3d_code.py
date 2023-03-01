@@ -7,7 +7,26 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class RotatedPlanar3DCode(StabilizerCode):
-    """3D surface code on lattice rotated about z axis."""
+    """3D surface code with open boundaries on lattice rotated about z axis.
+
+    Uses roughly half as many qubits as
+    :class:`panqec.codes.surface_3d.Planar3DCode`.
+
+    Parameters
+    ----------
+    Lx : int
+        Number of qubits in the x direction.
+    Ly : Optional[int
+        Number of qubits in the y direction.
+    Lz : Optional[int]
+        Number of qubits in the z direction.
+
+    Notes
+    -----
+    The lattice is stacked with lattices like those in
+    :class:`panqec.codes.surface_2d.RotatedPlanar2DCode`
+    glued with vertical qubits in between each layer.
+    """
     dimension = 3
     deformation_names = ['XZZX']
 

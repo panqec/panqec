@@ -6,7 +6,7 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class Toric3DCode(StabilizerCode):
-    """The 3D toric code.
+    """3D surface code on periodic cubic lattice with qubits on edges.
 
     Parameters
     ----------
