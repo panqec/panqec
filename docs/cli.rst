@@ -2,5 +2,5 @@ Command line interface
 =======================
 
 .. click:: panqec.cli:cli
-   :prog: run
+   :prog: panqec
    :nested: full
