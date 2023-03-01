@@ -27,6 +27,7 @@ To make a feature request or report a bug, please visit the PanQEC `GitHub repos
    tutorials/Adding new code
    tutorials/Computing threshold
    tutorials/Running experiments on a cluster
+   tutorials/XZZX threshold vs bias
 
 .. toctree::
    :maxdepth: 2
