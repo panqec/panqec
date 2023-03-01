@@ -8,6 +8,27 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class RhombicToricCode(StabilizerCode):
+    """Toric code on periodic checkerboard lattice.
+
+    Parameters
+    ----------
+    L_x : int
+        Size of lattice along x direction. Must be even.
+    L_y : Optional[int]
+        Size of lattice along y direction. Must be even.
+    L_z : Optional[int]
+        Size of lattice along z direction. Must be even.
+
+    Notes
+    -----
+    A checkerboard lattice is a cubic lattice for which there are two types of
+    cells: colored and uncolored.
+    For each colored cell, there is a 12-body stabilizer generator with support
+    over the neighbour edges.
+    For each uncolored cell, there is a stabilizer generator for each corner,
+    each of which is a 3-body term with support over the 3 edges adjacent to
+    both that corner vertex and the cell.
+    """
     dimension = 3
     deformation_names = ['Checkerboard XZZX']
 

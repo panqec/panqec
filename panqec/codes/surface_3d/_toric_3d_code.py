@@ -6,6 +6,28 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class Toric3DCode(StabilizerCode):
+    """3D surface code on periodic cubic lattice with qubits on edges.
+
+    Parameters
+    ----------
+    L_x : int
+        Size in the x direction.
+    L_y : Optional[int]
+        Size in the y direction, assumed same as Lx if not given.
+    L_z : Optional[int]
+        Size in the z direction, assumed same as Lx if not given.
+
+    Notes
+    -----
+    The qubits live on the edges of the 3D lattice.
+    There are two types of stabilizer generators:
+    6-body vertex operators living on vertices,
+    and 4-body face operators living on faces.
+
+    In the coordinate system used in this implementation,
+    the origin (0, 0, 0) is a vertex,
+    and each unit cell is a cube of linear size 2.
+    """
     dimension = 3
     deformation_names = ['XZZX']
 

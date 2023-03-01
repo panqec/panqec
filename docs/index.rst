@@ -9,6 +9,9 @@ helping to verify the correct implementation of a code or understand the behavio
 
 To make a feature request or report a bug, please visit the PanQEC `GitHub repository <https://github.com/ehua7365/bn3d>`_.
 
+See this `paper on the arXiv <https://arxiv.org/abs/2211.02116>`_
+for more information about some of these codes.
+
 
 .. image:: https://user-images.githubusercontent.com/1157968/180657086-48ea0da0-6da4-4f9c-88e5-4a3f1233db40.png
 
@@ -32,6 +35,7 @@ To make a feature request or report a bug, please visit the PanQEC `GitHub repos
    :maxdepth: 2
    :caption: Documentation:
 
+   cli
    codes
    error_models
    decoders
