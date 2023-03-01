@@ -10,7 +10,7 @@ Coordinates = List[Tuple]  # List of locations
 class RhombicPlanarCode(StabilizerCode):
     """Toric code on checkerboard lattice with open boundaries.
 
-    Similar to :class:`panqec.codes.surface_3d.RhombicPlanarCode`
+    Similar to :class:`panqec.codes.surface_3d.RhombicToricCode`
     but with smooth boundaries on planes orthogonal to the x and z directions
     and rough boundaries on planes orthogonal to the y direction.
 
