@@ -13,9 +13,9 @@ class RotatedPlanar2DCode(StabilizerCode):
 
     Parameters
     ----------
-    Lx : int
+    L_x : int
         Number of qubits in the x direction.
-    Ly : Optional[int]
+    L_y : Optional[int]
         Number of qubits in the y direction.
         Assumed square if not given.
 

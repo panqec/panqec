@@ -10,11 +10,11 @@ class Toric3DCode(StabilizerCode):
 
     Parameters
     ----------
-    Lx : int
+    L_x : int
         Size in the x direction.
-    Ly : Optional[int]
+    L_y : Optional[int]
         Size in the y direction, assumed same as Lx if not given.
-    Lz : Optional[int]
+    L_z : Optional[int]
         Size in the z direction, assumed same as Lx if not given.
 
     Notes

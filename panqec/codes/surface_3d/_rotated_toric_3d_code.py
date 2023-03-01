@@ -23,11 +23,11 @@ class RotatedToric3DCode(StabilizerCode):
 
     Parameters
     ----------
-    Lx : int
+    L_x : int
         Number of qubits in the x direction.
-    Ly : int
+    L_y : int
         Number of qubits in the y direction.
-    Lz : int
+    L_z : int
         Number of qubits in the z direction.
 
     Notes

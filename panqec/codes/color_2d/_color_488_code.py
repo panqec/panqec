@@ -6,6 +6,27 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class Color488Code(StabilizerCode):
+    """2D color code on periodic 4,8,8 lattice.
+
+    Parameters
+    ----------
+    L_x : int
+        Number of unit cells in x direction.
+    L_y : Optional[int]
+        Number of unit cells in y direction.
+
+    Notes
+    -----
+    The 4,8,8 lattice is a tessallation of red squares (4),
+    green octagons (8) and blue octagons (8).
+    Qubits live on the vertices.
+    For each colored shape, there are two stabilizer generators,
+    one of all X over the qubits on its corners,
+    and one of all Z over the qubits on its corners.
+
+    See `EC zoo article <https://errorcorrectionzoo.org/c/color>`_
+    for further reading.
+    """
     dimension = 2
     deformation_names = ['XXZZ']
 

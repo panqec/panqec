@@ -11,11 +11,11 @@ class Planar3DCode(StabilizerCode):
 
     Parameters
     ----------
-    Lx : int
+    L_x : int
         Number of edges along the x direction (on edges parallel to x).
-    Ly : Optional[int]
+    L_y : Optional[int]
         Number of qubits in the y direction (on edges parallel to x).
-    Lz : Optional[int]
+    L_z : Optional[int]
         Number of qubits in the z direction (on edges parallel to x).
 
     Notes

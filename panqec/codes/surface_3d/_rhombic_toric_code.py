@@ -12,11 +12,11 @@ class RhombicToricCode(StabilizerCode):
 
     Parameters
     ----------
-    Lx : int
+    L_x : int
         Size of lattice along x direction. Must be even.
-    Ly : Optional[int]
+    L_y : Optional[int]
         Size of lattice along y direction. Must be even.
-    Lz : Optional[int]
+    L_z : Optional[int]
         Size of lattice along z direction. Must be even.
 
     Notes

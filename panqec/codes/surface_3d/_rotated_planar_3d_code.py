@@ -14,11 +14,11 @@ class RotatedPlanar3DCode(StabilizerCode):
 
     Parameters
     ----------
-    Lx : int
+    L_x : int
         Number of qubits in the x direction.
-    Ly : Optional[int
+    L_y : Optional[int
         Number of qubits in the y direction.
-    Lz : Optional[int]
+    L_z : Optional[int]
         Number of qubits in the z direction.
 
     Notes

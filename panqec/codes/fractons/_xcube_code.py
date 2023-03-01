@@ -7,6 +7,31 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class XCubeCode(StabilizerCode):
+    """X-Cube model of Vijay, Haah and Fu 2016 on periodic 3D cubic lattice.
+
+    Parameters
+    ----------
+    L_x : int
+        Size of lattice in x direction
+    L_y : int
+        Size of lattice in y direction
+    L_z : int
+        Size of lattice in z direction
+
+    Notes
+    -----
+    The qubits live on edges of the cubic lattice with periodic boundaries.
+    There are two types of stabilizer generators:
+    cubes at each cell and Xs (cruciforms) at each vertex.
+    A cube stabilizer generator has support over the 12 edges on the cube.
+    Each vertex has 3 cruciform stabilizer generators (one for each direction).
+
+    (note in this implementation the cruciform generators are called faces in
+    the :meth:`XCubeCode.stabilizer_type` method)
+
+    See `Vijay, Haah and Fu 2016 <https://arxiv.org/abs/1603.04442>`_
+    for the original introduction.
+    """
     dimension = 3
     deformation_names = ['XZZX']
 

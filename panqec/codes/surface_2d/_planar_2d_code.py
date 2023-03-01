@@ -27,9 +27,9 @@ class Planar2DCode(StabilizerCode):
 
     Parameters
     ----------
-    Lx : int
+    L_x : int
         The size in the x direction.
-    Ly : Optional[int]
+    L_y : Optional[int]
         The size in the y direction.
         If it is not given, it is assumed to be a square lattice with Lx=Ly.
     """

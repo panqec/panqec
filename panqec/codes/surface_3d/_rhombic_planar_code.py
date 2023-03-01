@@ -16,13 +16,13 @@ class RhombicPlanarCode(StabilizerCode):
 
     Parameters
     ----------
-    Lx : int
+    L_x : int
         Size of lattice along x direction,
         which is actually the number of x-edges in the x direction.
-    Ly : Optional[int]
+    L_y : Optional[int]
         Size of lattice along y direction,
         which is actually the number of x-edges in the y direction.
-    Lz : Optional[int]
+    L_z : Optional[int]
         Size of lattice along z direction,
         which is actually the number of x-edges in the z direction.
 
