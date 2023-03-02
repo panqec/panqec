@@ -30,6 +30,7 @@ for more information about some of these codes.
    tutorials/Adding new code
    tutorials/Computing threshold
    tutorials/Running experiments on a cluster
+   tutorials/XZZX threshold vs bias
 
 .. toctree::
    :maxdepth: 2

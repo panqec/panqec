@@ -785,8 +785,8 @@ class Analysis:
             else:
                 # Actually, override, use all data if no manual trucation.
                 entry['p_th_sd'] = entry['p_th_nearest']
-                entry['p_left'] = df_filt[p_est].min()
-                entry['p_right'] = df_filt[p_est].max()
+                entry['p_left'] = df_filt['error_rate'].min()
+                entry['p_right'] = df_filt['error_rate'].max()
 
             if param_set not in self.replaces:
 
@@ -837,6 +837,12 @@ class Analysis:
             self._trunc_results = dict()
 
         sector_key = 'total' if sector is None else sector
+
+        thresholds['deformation'] = thresholds['error_model_label'].apply(
+            get_deformation
+        )
+        trunc_results['deformation'] = \
+            trunc_results['error_model_label'].apply(get_deformation)
 
         self._sector_thresholds[sector_key] = thresholds
         self._trunc_results[sector_key] = trunc_results
@@ -1085,9 +1091,8 @@ class Analysis:
             )
             if pdf is not None:
                 pdf_writer.savefig(plt.gcf(), bbox_inches='tight')
-
-        if show:
-            plt.show()
+            if show:
+                plt.show()
 
         if pdf is not None:
             pdf_writer.close()
@@ -1220,15 +1225,15 @@ class Analysis:
         from matplotlib.backends.backend_pdf import PdfPages
         if pdf is not None:
             pdf_writer = PdfPages(pdf)
-        for code_family in self.thresholds['code_family'].unique():
-            self.plot_threshold_vs_bias(code_family)
+        for code in self.thresholds['code'].unique():
+            self.plot_threshold_vs_bias(code)
             if pdf is not None:
                 pdf_writer.savefig(plt.gcf(), bbox_inches='tight')
             plt.show()
         if pdf is not None:
             pdf_writer.close()
 
-    def make_collapse_plots(self, pdf=None):
+    def make_collapse_plots(self, pdf=None, sector=None):
         """Make all the collapse plots."""
         import matplotlib.pyplot as plt
         from matplotlib.backends.backend_pdf import PdfPages
@@ -1241,8 +1246,13 @@ class Analysis:
             'code', 'error_model_label', 'decoder_label'
         ]].drop_duplicates().values
 
+        if sector is None:
+            sector_list = [None, 'X', 'Z']
+        elif sector == 'total':
+            sector_list = [None]
+
         for code_family, error_model, decoder in plot_parameters:
-            for sector in [None, 'X', 'Z']:
+            for sector in sector_list:
                 self.plot_sector_collapse(
                     code_family, error_model, decoder, sector
                 )
@@ -1254,14 +1264,14 @@ class Analysis:
             pdf_writer.close()
 
     def plot_threshold_vs_bias(
-        self, code_family: str, inf_bias_replacement: float = 1e3,
+        self, code: str, inf_bias_replacement: float = 1e3,
         hashing: bool = True,
     ):
         """Plot the threshold vs bias plots.
 
         Parameters
         ----------
-        code_family : str
+        code : str
             The code family to plot threshold vs bias for.
         inf_bias_replacement : float
             The fintite value of bias at which to plot the infinite bias points
@@ -1274,18 +1284,18 @@ class Analysis:
 
         plt.figure(figsize=(10, 4))
         line_params = self.thresholds[
-            self.thresholds['code_family'] == code_family
+            self.thresholds['code'] == code
         ][
-            ['decoder', 'error_model_family']
+            ['decoder_label', 'error_model', 'deformation']
         ].drop_duplicates().sort_values(
-            by=['decoder', 'error_model_family'], ascending=False
+            by=['decoder_label', 'error_model'], ascending=False
         ).values
-        for decoder, error_model_family in line_params:
+        for decoder, error_model, deformation in line_params:
             thresh_df_filt = self.thresholds[(
                 self.thresholds[[
-                    'code_family', 'error_model_family', 'decoder'
+                    'code', 'error_model', 'decoder_label', 'deformation'
                 ]]
-                == (code_family, error_model_family, decoder)
+                == (code, error_model, decoder, deformation)
             ).all(axis=1)].copy()
             thresh_df_filt['bias_plot'] = thresh_df_filt['bias'].replace({
                 'inf': inf_bias_replacement
@@ -1308,7 +1318,7 @@ class Analysis:
                 ],
                 fmt='o',
                 capsize=5,
-                label=f'{shorten(error_model_family)}, {shorten(decoder)}'
+                label=f'{shorten(error_model)}, {shorten(decoder)}'
             )
             plt.fill_between(
                 thresh_df_filt['bias_plot'],
@@ -1338,7 +1348,7 @@ class Analysis:
                      label='Hashing bound', alpha=0.5, linewidth=2)
 
         plt.legend()
-        plt.title(lengthen(code_family, caps=True), fontsize=16)
+        plt.title(lengthen(code, caps=True), fontsize=16)
         plt.xscale('log')
         plt.xlabel('Bias ratio $\\eta_Z$', fontsize=16)
         plt.ylabel('Threshold error rate $p_{\\rm{th}}$', fontsize=16)
@@ -1443,7 +1453,7 @@ class Analysis:
         plt.yscale('linear')
         plt.xlabel('Physical error rate $p$', fontsize=16)
         plt.ylabel('Logical error rate $p_L$', fontsize=16)
-        deformation = df_filt_1['error_model'].iloc[0]
+        deformation = get_deformation(df_filt_1['error_model_label'].iloc[0])
         bias_label = str(bias).replace('inf', '\\infty')
         sector_name = 'All errors' if sector is None else f'${sector}$ errors'
         plt.suptitle(
@@ -1671,6 +1681,9 @@ def count_fails(
 def shorten(long_name):
     if long_name in SHORT_NAMES:
         return SHORT_NAMES[long_name]
+    pattern = r'\(.*\)'
+    if re.search(pattern, long_name):
+        return re.sub(pattern, '', long_name)
     return long_name
 
 
@@ -2729,3 +2742,44 @@ def get_hashing_bound(point):
 
     solutions = fsolve(max_rate, 0)
     return solutions[0]
+
+
+def get_deformation(error_model_label):
+    """Get the deformation given the error model label.
+
+    Parameters
+    ----------
+    error_model_label : str
+        The label specifying how the error model object is intialized.
+
+    Returns
+    -------
+    deformation : str
+        The name of the deformation.
+
+    Examples
+    --------
+    >>> error_model_label = "PauliErrorModel()"
+    >>> get_deformation(error_model_label)
+    'undeformed'
+
+    >>> error_model_label = "PauliErrorModel(r_x=0.00495, r_y=0.00495, " \
+            "r_z=0.990099, deformation_name=None, deformation_kwargs={})"
+    >>> get_deformation(error_model_label)
+    'undeformed'
+
+    >>> error_model_label = "PauliErrorModel(r_x=0.333333, r_y=0.333333, " \
+            "r_z=0.333333, deformation_name='XZZX', deformation_kwargs={})"
+    >>> get_deformation(error_model_label)
+    'XZZX'
+
+    >>> error_model_label = "PauliErrorModel(r_x=0, r_y=1, r_z=0, " \
+            "deformation_name='XY')"
+    >>> get_deformation(error_model_label)
+    'XY'
+    """
+    deformation = 'undeformed'
+    matches = re.search(r"deformation_name='([\w\d]+)'", error_model_label)
+    if matches:
+        deformation = matches.group(1)
+    return deformation
