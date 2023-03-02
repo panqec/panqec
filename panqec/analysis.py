@@ -1137,7 +1137,8 @@ class Analysis:
             p_se_label = f'p_se_{sector}'
 
         cmap = plt.get_cmap('tab10')
-        code_labels = np.sort(df_filt_1['code_label'].unique())
+        code_labels = df_filt_1.sort_values(by='d')['code_label'].unique()
+        print(code_labels)
         for i, code_label in enumerate(code_labels):
             df_filt = df_filt_1[
                 df_filt_1['code_label'] == code_label
