@@ -28,13 +28,13 @@ class BaconShorCode(SubsystemCode):
         Lx, Ly = self.size
 
         # XX on horizontal edges
-        for x in range(1, 2*Lx+1, 2):
+        for x in range(1, 2*Lx+3, 2):
             for y in range(0, 2*Ly+1, 2):
                 coordinates.append((x, y))
 
         # ZZ on vertical edges
         for x in range(0, 2*Lx+1, 2):
-            for y in range(1, 2*Ly+1, 2):
+            for y in range(1, 2*Ly+3, 2):
                 coordinates.append((x, y))
 
         return coordinates
@@ -44,11 +44,11 @@ class BaconShorCode(SubsystemCode):
         Lx, Ly = self.size
 
         # Vertical X rectangular patch
-        for x in range(1, 2*Lx+1, 2):
+        for x in range(1, 2*Lx+3, 2):
             coordinates.append((x, Ly, 0))
 
         # Horizontal Z rectangular patch
-        for y in range(1, 2*Ly+1, 2):
+        for y in range(1, 2*Ly+3, 2):
             coordinates.append((Lx, y, 1))
 
         return coordinates
@@ -102,11 +102,11 @@ class BaconShorCode(SubsystemCode):
         operator: Operator = dict()
 
         if pauli == 'X':
-            operator[(x-1, y)] = pauli
-            operator[(x+1, y)] = pauli
+            operator[((x-1) % (2*Lx+2), y)] = pauli
+            operator[((x+1) % (2*Lx+2), y)] = pauli
         else:
-            operator[(x, y-1)] = pauli
-            operator[(x, y+1)] = pauli
+            operator[(x, (y-1) % (2*Ly+2))] = pauli
+            operator[(x, (y+1) % (2*Ly+2))] = pauli
 
         return operator
 
