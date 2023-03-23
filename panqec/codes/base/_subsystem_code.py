@@ -79,7 +79,9 @@ class SubsystemCode(metaclass=ABCMeta):
         self._stabilizer_index: Dict[Tuple, int] = {}
         self._gauge_index: Dict[Tuple, int] = {}
 
-        self._stabilizer_matrix = bsparse.empty_row(2*self.n)
+        self._stabilizer_matrix: Optional[csr_matrix] = None
+        self._gauge_matrix: Optional[csr_matrix] = None
+        self._stabilizer_gauge_matrix: Optional[csr_matrix] = None
         self._Hx = bsparse.empty_row(self.n)
         self._Hz = bsparse.empty_row(self.n)
         self._logicals_x: Optional[np.ndarray] = None
@@ -230,6 +232,11 @@ class SubsystemCode(metaclass=ABCMeta):
         return len(self.stabilizer_index)
 
     @property
+    def n_gauges(self) -> int:
+        """Number of gauge generators"""
+        return len(self.gauge_index)
+
+    @property
     def logicals_x(self) -> np.ndarray:
         """Logical X operator, as a k x 2n matrix in the binary
         symplectic format, where k is the number of logical X operators,
@@ -274,41 +281,75 @@ class SubsystemCode(metaclass=ABCMeta):
         return self._is_css
 
     @property
-    def stabilizer_matrix(self) -> csr_matrix:
-        """Parity-check matrix of the code in the binary symplectic format.
-        It is a sparse matrix of dimension k x 2n, where k is the total number
-        of stabilizers and n the number of qubits
-        """
-
-        if bsparse.is_empty(self._stabilizer_matrix):
+    def gauge_matrix(self) -> csr_matrix:
+        if self._gauge_matrix is None:
             sparse_dict: Dict = dict()
-            self._stabilizer_matrix = dok_matrix(
-                (self.n_stabilizers, 2*self.n),
+            self._gauge_matrix = dok_matrix(
+                (self.n_gauges, 2*self.n),
+                dtype='uint8'
+            )
+
+            for i_gauge, gauge_location in enumerate(self.gauge_coordinates):
+                gauge_op = self.get_gauge_operator(gauge_location)
+
+                for qubit_location in gauge_op.keys():
+                    if gauge_op[qubit_location] in ['X', 'Y']:
+                        i_qubit = self.qubit_index[qubit_location]
+                        if (i_gauge, i_qubit) in sparse_dict.keys():
+                            sparse_dict[(i_gauge, i_qubit)] += 1
+                        else:
+                            sparse_dict[(i_gauge, i_qubit)] = 1
+                    if gauge_op[qubit_location] in ['Y', 'Z']:
+                        i_qubit = self.n + self.qubit_index[qubit_location]
+                        if (i_gauge, i_qubit) in sparse_dict.keys():
+                            sparse_dict[(i_gauge, i_qubit)] += 1
+                        else:
+                            sparse_dict[(i_gauge, i_qubit)] = 1
+
+            self._gauge_matrix._update(sparse_dict)
+            self._gauge_matrix = self._gauge_matrix.tocsr()
+            self._gauge_matrix.data %= 2
+
+        return self._gauge_matrix
+
+    @property
+    def stabilizer_gauge_matrix(self) -> csr_matrix:
+        if self._stabilizer_gauge_matrix is None:
+            sparse_dict: Dict = dict()
+            self._stabilizer_gauge_matrix = dok_matrix(
+                (self.n_stabilizers, self.n_gauges),
                 dtype='uint8'
             )
 
             for i_stab, stabilizer_location in enumerate(
                 self.stabilizer_coordinates
             ):
-                stabilizer_op = self.get_stabilizer(stabilizer_location)
+                gauge_locations = self.get_stabilizer_gauge_operators(
+                    stabilizer_location
+                )
 
-                for qubit_location in stabilizer_op.keys():
-                    if stabilizer_op[qubit_location] in ['X', 'Y']:
-                        i_qubit = self.qubit_index[qubit_location]
-                        if (i_stab, i_qubit) in sparse_dict.keys():
-                            sparse_dict[(i_stab, i_qubit)] += 1
-                        else:
-                            sparse_dict[(i_stab, i_qubit)] = 1
-                    if stabilizer_op[qubit_location] in ['Y', 'Z']:
-                        i_qubit = self.n + self.qubit_index[qubit_location]
-                        if (i_stab, i_qubit) in sparse_dict.keys():
-                            sparse_dict[(i_stab, i_qubit)] += 1
-                        else:
-                            sparse_dict[(i_stab, i_qubit)] = 1
+                for gauge_loc in gauge_locations:
+                    i_gauge = self.gauge_index[gauge_loc]
+                    sparse_dict[(i_stab, i_gauge)] = 1
 
-            self._stabilizer_matrix._update(sparse_dict)
-            self._stabilizer_matrix = self._stabilizer_matrix.tocsr()
-            self._stabilizer_matrix.data %= 2
+            self._stabilizer_gauge_matrix._update(sparse_dict)
+            self._stabilizer_gauge_matrix = self._stabilizer_gauge_matrix.tocsr()
+            self._stabilizer_gauge_matrix.data %= 2
+
+        return self._stabilizer_gauge_matrix
+
+    @property
+    def stabilizer_matrix(self) -> csr_matrix:
+        """Parity-check matrix of the code in the binary symplectic format.
+        It is a sparse matrix of dimension k x 2n, where k is the total number
+        of stabilizers and n the number of qubits
+        """
+
+        if self._stabilizer_matrix is None:
+            self._stabilizer_matrix = np.dot(
+                self.stabilizer_gauge_matrix,
+                self.gauge_matrix
+            )
 
         return self._stabilizer_matrix
 
@@ -662,7 +703,7 @@ class SubsystemCode(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def get_stabilizer_gauge_operators(self, location: Tuple) -> Operator:
+    def get_stabilizer_gauge_operators(self, location: Tuple) -> List[Tuple]:
         """ Returns the decomposition of a stabilizer at a given location into
         gauge operators, formatted as a list of gauge operator coordinates
 
@@ -673,9 +714,9 @@ class SubsystemCode(metaclass=ABCMeta):
 
         Returns
         -------
-        stabilizer: Dict[Tuple, str]
-            Dictionary that assigns a Pauli operator ('X', 'Y' or 'Z') to each
-            qubit location in the support of the stabilizer
+        list_gauge_ops: List
+            List of gauge locations
+
         """
 
     def get_stabilizer(self, location: Tuple) -> Operator:
