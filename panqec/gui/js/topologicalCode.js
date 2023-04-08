@@ -25,6 +25,8 @@ class TopologicalCode {
         this.qubits = new Array(this.n);
         this.errors = nj.zeros(2*this.n);
         this.stabilizers = new Array(this.m);
+
+        this.qubitMap = {};
     }
 
     updateStabilizers() {
@@ -34,6 +36,8 @@ class TopologicalCode {
             this.toggleStabilizer(this.stabilizers[iStab], syndrome[iStab]);
         }
     }
+
+    getQubitFromCoordinate
 
     getSyndrome() {
         let Hx = this.H.slice(null, [0, this.n]);
@@ -47,6 +51,11 @@ class TopologicalCode {
     }
 
     insertError(qubit, pauli) {
+        // 'qubit' can either be a three.js object or a list of coordinates
+
+        if (Array.isArray(qubit)) {
+            qubit = this.qubitMap[qubit];
+        }
         qubit.hasError[pauli] = !qubit.hasError[pauli];
 
         if (pauli == 'X' || pauli == 'Y') {
@@ -170,6 +179,7 @@ class TopologicalCode {
             qubit.index = index;
             qubit.location = this.qubitData[index]['location'];
             this.qubits[index] = qubit;
+            this.qubitMap[qubit.location] = qubit;
 
             maxQubitCoordinates['x'] = Math.max(qubit.position.x, maxQubitCoordinates['x']);
             maxQubitCoordinates['y'] = Math.max(qubit.position.y, maxQubitCoordinates['y']);
@@ -177,6 +187,7 @@ class TopologicalCode {
 
             scene.add(qubit);
         }
+
         for (let index=0; index < this.m; index++) {
             let stabilizer = this.buildStabilizer(index);
 

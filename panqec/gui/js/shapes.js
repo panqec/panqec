@@ -32,7 +32,6 @@ function sphere(location, params) {
 }
 
 function rectangle(location, params) {
-    console.log('Rectangle', location)
     var x = location[0];
     var y = location[1];
     var z = (location.length == 3) ? location[2] : 0;

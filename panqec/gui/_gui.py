@@ -3,6 +3,7 @@ import numpy as np
 from flask import (
     Flask, send_from_directory, request, json, render_template
 )
+from flask_cors import CORS
 from panqec.codes import (
     Toric2DCode, RotatedPlanar2DCode, Planar2DCode,
     Toric3DCode, RotatedPlanar3DCode, RhombicToricCode, RhombicPlanarCode,
@@ -56,6 +57,7 @@ class GUI():
 
     def __init__(self):
         self.app = Flask(__name__)
+        CORS(self.app)
 
         self.codes = codes
         self.decoders = decoders
@@ -136,11 +138,11 @@ class GUI():
         )
         self.app.add_url_rule(
             "/code-names", "code-names",
-            self.send_code_names, methods=['POST']
+            self.send_code_names, methods=['POST', 'GET']
         )
         self.app.add_url_rule(
             "/decoder-names", "decoder-names",
-            self.send_decoder_names, methods=['POST']
+            self.send_decoder_names, methods=['POST', 'GET']
         )
         self.app.add_url_rule(
             "/deformation-names", "deformation-names",
