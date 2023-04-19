@@ -143,3 +143,33 @@ class Planar2DCode(StabilizerCode):
                              "does not exist")
 
         return deformation
+
+    def stabilizer_representation(
+        self,
+        location: Tuple,
+        rotated_picture=False,
+        json_file=None
+    ) -> Dict:
+        rep = super().stabilizer_representation(
+            location, rotated_picture, json_file
+        )
+
+        Lx, Ly = self.size
+        x, y = location
+
+        if rotated_picture:
+            if x == 1 or x == 2*Lx - 1 or y == 0 or y == 2*Ly - 2:
+                rep['object'] = 'triangle'
+
+                if x == 1:
+                    vertices = [[0, 1, 0], [1, 0, 0], [0, -1, 0]]
+                elif x == 2*Lx - 1:
+                    vertices = [[0, 1, 0], [-1, 0, 0], [0, -1, 0]]
+                elif y == 0:
+                    vertices = [[-1, 0, 0], [0, 1, 0], [1, 0, 0]]
+                elif y == 2*Ly - 2:
+                    vertices = [[-1, 0, 0], [0, -1, 0], [1, 0, 0]]
+
+                rep['params'] = {'vertices': vertices}
+
+        return rep

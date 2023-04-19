@@ -138,3 +138,43 @@ class RotatedPlanar2DCode(StabilizerCode):
                              "does not exist")
 
         return deformation
+
+    def stabilizer_representation(
+        self,
+        location: Tuple,
+        rotated_picture=False,
+        json_file=None
+    ) -> Dict:
+        rep = super().stabilizer_representation(
+            location, rotated_picture, json_file
+        )
+
+        Lx, Ly = self.size
+        x, y = location
+
+        if rotated_picture:
+            if x == 0 or x == 2*Lx or y == 0 or y == 2*Ly:
+                rep['object'] = 'semicircle'
+
+                rep['params'] = {
+                    'radius': 1,
+                    'normal': [0, 0, 1],
+                    'angle': 0
+                }
+
+                if x == 0:
+                    rep['location'] = (x + 1, y)
+                    rep['params']['angle'] = np.pi / 2
+
+                if y == 0:
+                    rep['location'] = (x, y + 1)
+                    rep['params']['angle'] = np.pi
+
+                if x == 2*Lx:
+                    rep['location'] = (x - 1, y)
+                    rep['params']['angle'] = - np.pi / 2
+
+                if y == 2*Ly:
+                    rep['location'] = (x, y - 1)
+
+        return rep

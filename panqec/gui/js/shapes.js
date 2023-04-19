@@ -1,10 +1,14 @@
 import * as THREE from 'https://cdn.skypack.dev/three@v0.130.1';
+import { BufferGeometryUtils } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/utils/BufferGeometryUtils.js';
 
 export {create_shape}
 
 var create_shape = {'sphere': sphere,
                     'rectangle': rectangle,
+                    'circle': circle,
+                    'semicircle': semicircle,
                     'cylinder': cylinder,
+                    'group': group,
                     'octahedron': octahedron,
                     'box': box,
                     'cube': cube,
@@ -24,9 +28,7 @@ function sphere(location, params) {
     const material = new THREE.MeshToonMaterial({transparent: true});
     const sphere = new THREE.Mesh(geometry, material);
 
-    sphere.position.x = x;
-    sphere.position.y = y;
-    sphere.position.z = z;
+    sphere.geometry.translate(x, y, z)
 
     return sphere;
 }
@@ -38,13 +40,32 @@ function rectangle(location, params) {
 
     const geometry = new THREE.PlaneGeometry(params['w'], params['h']);
 
+    var normal = {'x': params['normal'][0], 'y': params['normal'][1], 'z': params['normal'][2]};
+    var norm = Math.sqrt(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
+    var norm_xz = Math.sqrt(normal.x*normal.x + normal.z*normal.z);
+
+    var theta = (norm_xz == 0) ? 0 : Math.acos(normal.x / norm_xz);
+    var alpha = Math.acos(norm_xz / norm);
+
+    geometry.rotateY(theta + Math.PI / 2);
+    geometry.rotateX(alpha);
+    geometry.rotateZ(params['angle']);
+
+    geometry.translate(x, y, z);
+
     const material = new THREE.MeshToonMaterial({transparent: true,
                                                  side: THREE.DoubleSide});
     const face = new THREE.Mesh(geometry, material);
 
-    face.position.x = x;
-    face.position.y = y;
-    face.position.z = z;
+    return face
+}
+
+function circle(location, params) {
+    var x = location[0];
+    var y = location[1];
+    var z = (location.length == 3) ? location[2] : 0;
+
+    const geometry = new THREE.CircleGeometry(params['radius']);
 
     var normal = {'x': params['normal'][0], 'y': params['normal'][1], 'z': params['normal'][2]};
     var norm = Math.sqrt(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
@@ -53,11 +74,43 @@ function rectangle(location, params) {
     var theta = (norm_xz == 0) ? 0 : Math.acos(normal.x / norm_xz);
     var alpha = Math.acos(norm_xz / norm);
 
-    face.rotateY(theta + Math.PI / 2);
-    face.rotateX(alpha);
-    face.rotateZ(params['angle']);
+    geometry.rotateY(theta + Math.PI / 2);
+    geometry.rotateX(alpha);
 
-    return face
+    geometry.translate(x, y, z);
+
+    const material = new THREE.MeshToonMaterial({transparent: true,
+                                                 side: THREE.DoubleSide});
+    const circle = new THREE.Mesh(geometry, material);
+
+    return circle
+}
+
+function semicircle(location, params) {
+    var x = location[0];
+    var y = location[1];
+    var z = (location.length == 3) ? location[2] : 0;
+
+    const geometry = new THREE.CircleGeometry(params['radius'], 32, 0, Math.PI);
+
+    var normal = {'x': params['normal'][0], 'y': params['normal'][1], 'z': params['normal'][2]};
+    var norm = Math.sqrt(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
+    var norm_xz = Math.sqrt(normal.x*normal.x + normal.z*normal.z);
+
+    var theta = (norm_xz == 0) ? 0 : Math.acos(normal.x / norm_xz);
+    var alpha = Math.acos(norm_xz / norm);
+
+    geometry.rotateY(theta + Math.PI / 2);
+    geometry.rotateX(alpha);
+    geometry.rotateZ(params['angle']);
+
+    geometry.translate(x, y, z);
+
+    const material = new THREE.MeshToonMaterial({transparent: true,
+                                                 side: THREE.DoubleSide});
+    const semicircle = new THREE.Mesh(geometry, material);
+
+    return semicircle
 }
 
 function cylinder(location, params) {
@@ -67,22 +120,20 @@ function cylinder(location, params) {
 
     const geometry = new THREE.CylinderGeometry(params['radius'], params['radius'], params['length'], 32);
 
+    geometry.rotateZ(params['angle']);
+
+    if (params['axis'] == 'x') {
+        geometry.rotateZ(Math.PI / 2);
+    }
+else if (params['axis'] == 'z') {
+        geometry.rotateX(Math.PI / 2);
+    }
+
+    geometry.translate(x, y, z)
+
     const material = new THREE.MeshPhongMaterial({transparent: true});
 
     const cylinder = new THREE.Mesh(geometry, material);
-
-    cylinder.position.x = x;
-    cylinder.position.y = y;
-    cylinder.position.z = z;
-
-    cylinder.rotateZ(params['angle']);
-
-    if (params['axis'] == 'x') {
-        cylinder.rotateZ(Math.PI / 2);
-    }
-    else if (params['axis'] == 'z') {
-        cylinder.rotateX(Math.PI / 2);
-    }
 
     return cylinder;
 }
@@ -94,15 +145,12 @@ function octahedron(location, params) {
 
     const geometry = new THREE.OctahedronGeometry(params['length']);
 
+    geometry.rotateZ(params['angle']);
+    geometry.translate(x, y, z);
+
     const material = new THREE.MeshToonMaterial({transparent: true,
                                                  side: THREE.DoubleSide});
     const octahedron = new THREE.Mesh(geometry, material);
-
-    octahedron.position.x = x;
-    octahedron.position.y = y;
-    octahedron.position.z = z;
-
-    octahedron.rotateZ(params['angle'])
 
     return octahedron;
 }
@@ -215,9 +263,11 @@ function triangle(location, params) {
     var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1,
                                            transparent: true});
 
-    var wireframe = new THREE.LineSegments(geo, mat);
-    wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
-    triangle.add(wireframe);
+    if ('wireframe' in params && params['wireframe']) {
+        var wireframe = new THREE.LineSegments(geo, mat);
+        wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
+        triangle.add(wireframe);
+    }
 
     return triangle;
 }
@@ -288,6 +338,40 @@ function hexagon(location, params) {
     hexagon.add(wireframe);
 
     return hexagon;
+}
+
+function group(location, params) {
+    // Group of objects
+    // Examples: params = [{object: 'cylinder', location: loc1, params: params1},
+    //                     {object: 'cylinder', location: loc2, params: params2}]
+
+    var x = location[0];
+    var y = location[1];
+    var z = (location.length == 3) ? location[2] : 0;
+
+    const allGeometries = [];
+    const children = [];
+    var material = null;
+
+    params.forEach(p => {
+        const shape = create_shape[p['object']](p['location'], p['params']);
+
+        allGeometries.push(shape.geometry)
+        material = shape.material
+        children.push(shape.children)
+    });
+
+    const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries(allGeometries);
+
+    const mergedShape = new THREE.Mesh(mergedGeometry, material);
+
+    children.forEach(child => {
+        if (child.length > 0) {
+            mergedShape.add(child[0]);
+        }
+    })
+
+    return mergedShape;
 }
 
 function polygon(location, params) {

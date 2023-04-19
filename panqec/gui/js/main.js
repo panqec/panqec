@@ -1,7 +1,7 @@
 import { Interface } from './gui.js'
 
-var defaultCode = codeDimension == 2 ? 'Toric 2D' : 'Toric 3D';
-var defaultSize = codeDimension == 2 ? 4 : 6;
+var defaultCode = codeDimension == 2 ? 'Planar 2D' : 'Toric 3D';
+var defaultSize = codeDimension == 2 ? 4 : 4;
 
 const params = {
     dimension: codeDimension,
@@ -17,7 +17,7 @@ const params = {
     channel_update: false,
     errorModel: 'Depolarizing',
     codeName: defaultCode,
-    rotated: false,
+    rotated: true,
     coprime: false,
     codeDeformationName: 'None'
 };

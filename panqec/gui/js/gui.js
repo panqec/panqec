@@ -40,7 +40,7 @@ class Interface {
         colors=defaultColors,
         keycode=defaultKeyCode,
         url='',
-        container=null
+        containerId=''
     ) {
         this.params = defaultParams;
         this.colors = defaultColors;
@@ -62,9 +62,11 @@ class Interface {
         }, this);
 
         this.url = url;
-        this.container = container;
-        if (container === null) {
+        if (containerId === '') {
             this.container = document.body;
+        }
+        else {
+            this.container = document.getElementById(containerId);
         }
 
         this.width = this.container.clientWidth;
