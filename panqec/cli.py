@@ -1,21 +1,30 @@
 import os
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List
 import click
 import panqec
 from tqdm import tqdm
 import numpy as np
 import json
 from json.decoder import JSONDecodeError
-from .simulation import run_file, merge_results_dicts
-from .config import CODES, ERROR_MODELS, DECODERS, PANQEC_DIR, BASE_DIR
+import multiprocessing
+import datetime
+import time
+import psutil
+from .simulation import (
+    run_file
+)
+from .config import CODES, ERROR_MODELS, DECODERS, PANQEC_DIR
 from .slurm import (
-    generate_sbatch, get_status, generate_sbatch_nist, count_input_runs,
+    get_status, count_input_runs,
     clear_out_folder, clear_sbatch_folder
 )
-from .statmech.cli import statmech
-from .utils import get_direction_from_bias_ratio
+from .utils import (
+    get_direction_from_bias_ratio, load_json, save_json, progress_bar
+)
 from panqec.gui import GUI
 from glob import glob
+from .usage import summarize_usage
+from .analysis import Analysis
 
 
 @click.group(invoke_without_command=True)
@@ -40,48 +49,173 @@ def start_gui(port: Optional[int]):
 
 @click.command()
 @click.pass_context
-@click.option('-f', '--file', 'file_')
+@click.option('-i', '--input_file', type=str)
+@click.option('-o', '--output_file', type=click.STRING)
 @click.option('-t', '--trials', default=100, type=click.INT, show_default=True)
-@click.option('-s', '--start', default=None, type=click.INT, show_default=True)
-@click.option(
-    '-o', '--output_dir', default=PANQEC_DIR, type=click.STRING,
-    show_default=True
-)
-@click.option(
-    '-n', '--n_runs', default=None, type=click.INT, show_default=True
-)
 def run(
     ctx,
-    file_: Optional[str],
-    trials: int,
-    start: Optional[int],
-    n_runs: Optional[int],
-    output_dir: Optional[str]
+    input_file: Optional[str],
+    output_file: str,
+    trials: int
 ):
     """Run a single job or run many jobs from input file."""
-    if file_ is not None:
+    if input_file is not None:
         run_file(
-            os.path.abspath(file_), trials,
-            start=start, n_runs=n_runs, progress=tqdm,
-            output_dir=output_dir
+            os.path.abspath(input_file),
+            os.path.abspath(output_file),
+            trials,
+            progress=tqdm
         )
     else:
         print(ctx.get_help())
 
 
 @click.command()
+@click.option('-d', '--data_dir')
+@click.option(
+    '-t', '--trials', default=1000, type=click.INT, show_default=True
+)
+@click.option(
+    '-n', '--n_nodes', default=1, type=click.INT, show_default=True
+)
+@click.option(
+    '-j', '--job_idx', default=1, type=click.INT, show_default=True
+)
+@click.option(
+    '-c', '--n_cores', default=None, type=click.INT, show_default=True
+)
+@click.option(
+    '--delete-existing', is_flag=True, default=False, show_default=True,
+    help="Delete existing results folder in the data directory"
+)
+def run_parallel(
+    data_dir: str,
+    trials: int,
+    n_nodes: int,
+    job_idx: int,
+    n_cores: Optional[int],
+    delete_existing: bool,
+    compressed_output: bool = True
+):
+    """Run panqec jobs in parallel"""
+
+    input_dir = os.path.join(data_dir, "inputs")
+    result_dir = os.path.join(data_dir, "results")
+    logs_dir = os.path.join(data_dir, "logs")
+    progress_dir = os.path.join(logs_dir, "progress")
+
+    os.makedirs(result_dir, exist_ok=True)
+    os.makedirs(progress_dir, exist_ok=True)
+
+    i_node = job_idx - 1
+
+    assert 1 <= job_idx <= n_nodes, \
+        f"job_id={job_idx} is invalid. It must be between 1 and {n_nodes}"
+
+    n_cpu = multiprocessing.cpu_count()
+
+    if not n_cores:
+        n_cores = n_cpu
+
+    assert n_cores <= n_cpu, \
+        f"The number of cores requested ({n_cores}) is higher than" \
+        f"the total number of cores ({n_cpu})"
+
+    print(f"Running job {job_idx}/{n_nodes} on {n_cores} cores")
+
+    n_tasks = n_nodes * n_cores
+
+    print(f"Total number of tasks: {n_tasks}\n")
+
+    list_inputs = glob(f"{input_dir}/*.json")
+
+    print("List inputs", list_inputs)
+
+    n_inputs = len(list_inputs)
+
+    if n_inputs == 0:
+        raise ValueError(f"No input files in {input_dir}")
+
+    procs = []
+    for i_core in range(n_cores):
+        i_task = n_cores * i_node + i_core
+
+        n_tasks_per_input = n_tasks // n_inputs
+
+        i_input = i_task // n_tasks_per_input
+        if i_input >= n_inputs:
+            i_input = n_inputs - 1
+
+        if i_input == n_inputs - 1:
+            n_tasks_per_input = n_tasks_per_input + n_tasks % n_inputs
+
+        i_task_in_input = i_task % n_tasks_per_input
+
+        if i_input == n_inputs - 1:
+            i_task_in_input = i_task - n_tasks // n_inputs * (n_inputs - 1)
+
+        n_runs = trials // n_tasks_per_input
+
+        if i_task_in_input == n_tasks_per_input - 1:
+            n_runs += trials % n_runs
+
+        filename = list_inputs[i_input]
+        input_name = os.path.basename(filename)
+
+        # Split the results over files results_1.json, results_2.json, etc.
+        max_n_digits = len(str(n_tasks))
+        result_json_file = os.path.abspath(os.path.join(
+            result_dir,
+            f"results_{str(i_task+1).zfill(max_n_digits)}.json"
+        ))
+        result_gz_file = result_json_file + ".gz"
+
+        for f in [result_json_file, result_gz_file]:
+            if delete_existing and os.path.exists(f):
+                os.remove(f)
+
+        if compressed_output:
+            result_file = result_gz_file
+        else:
+            result_file = result_json_file
+
+        log_file = os.path.abspath(os.path.join(
+            progress_dir,
+            f"progress_{str(i_task+1).zfill(max_n_digits)}.txt"
+        ))
+        print(f"{input_name}\t{n_runs}")
+
+        input_file = os.path.abspath(os.path.join(input_dir, input_name))
+
+        proc = multiprocessing.Process(
+            target=run_file,
+            args=(input_file, result_file, n_runs),
+            kwargs={
+                'progress': tqdm,
+                'log_file': log_file
+            }
+        )
+        procs.append(proc)
+        proc.start()
+
+    # complete the processes
+    for proc in procs:
+        proc.join()
+
+
+@click.command()
 @click.argument('model_type', required=False, type=click.Choice(
-    ['codes', 'noise', 'decoders'],
+    ['codes', 'error_models', 'decoders'],
     case_sensitive=False
 ))
 def ls(model_type=None):
-    """List available codes, noise models and decoders."""
+    """List available codes, error models and decoders."""
     if model_type is None or model_type == 'codes':
         print('Codes:')
         print('\n'.join([
             '    ' + name for name in sorted(CODES.keys())
         ]))
-    if model_type is None or model_type == 'noise':
+    if model_type is None or model_type == 'error_models':
         print('Error Models (Noise):')
         print('\n'.join([
             '    ' + name for name in sorted(ERROR_MODELS.keys())
@@ -127,49 +261,97 @@ def read_range_input(specification: str) -> List[float]:
 
 @click.command()
 @click.option(
-    '-i', '--input_dir', required=True, type=str,
-    help='Directory to save input .json files'
+    '-o', '--overrides', type=click.Path(exists=True),
+    default=None,
+    help='Overrides specification .json file.'
 )
 @click.option(
-    '-l', '--lattice', default='kitaev',
+    '-p', '--plot_dir', type=click.Path(),
+    default=os.path.join(PANQEC_DIR, 'plots'),
+    help='Directory to save plots in.'
+)
+@click.argument(
+    'paths', nargs=-1, type=click.Path(exists=True),
+)
+def analyze(paths, overrides, plot_dir):
+    """Analyze the data at given paths."""
+
+    # Use headless plotting and ignore warnings from matplotlib.
+    import matplotlib
+    matplotlib.use('Agg')
+    import warnings
+    warnings.filterwarnings('ignore')
+
+    analysis = Analysis(list(paths), overrides=overrides, verbose=True)
+    analysis.analyze(progress=tqdm)
+    analysis.make_plots(plot_dir)
+    analysis.save(os.path.join(plot_dir, 'analysis.json.gz'))
+
+
+@click.command()
+@click.argument('log_file', type=str, required=True)
+@click.option(
+    '-i', '--interval', default=10, type=click.INT,
+    show_default=True
+)
+def monitor_usage(log_file: str, interval: float = 10):
+    """Continously monitor CPU usage by logging to file at intervals.
+
+    Parameters
+    ----------
+    log_file : str
+        Path to log file where messages are saved.
+    interval : int
+        Interval at which to check usage, in seconds.
+    """
+    ppid = os.getppid()
+    if not os.path.isfile(log_file):
+        with open(log_file, 'w') as f:
+            f.write(f'Log file for {ppid}\n')
+    while True:
+        cpu_usage = psutil.cpu_percent(percpu=True)
+        mean_cpu_usage = np.mean(cpu_usage)
+        n_cores = len(cpu_usage)
+        time_now = datetime.datetime.now()
+        mem = psutil.virtual_memory()
+        ram_usage = mem.percent
+        ram_total = mem.total/2**30
+        message = (
+            f'{time_now} CPU usage {mean_cpu_usage:.2f}% '
+            f'({n_cores} cores) '
+            f'RAM {ram_usage:.2f}% ({ram_total:.2f} GiB tot)'
+        )
+        with open(log_file, 'a') as f:
+            f.write(message + '\n')
+        time.sleep(interval)
+
+
+@click.command()
+@click.option(
+    '-d', '--data_dir', required=True, type=str,
+    help='Directory to save input .json files, as'
+    '`[data_dir]/inputs/input_bias_[eta].json`'
+)
+@click.option(
+    '--decoder_class', default='BeliefPropagationOSDDecoder',
     show_default=True,
-    type=click.Choice(['rotated', 'kitaev']),
-    help='Lattice rotation'
+    type=click.Choice(list(DECODERS.keys())),
+    help='Decoder class name. '
+    'Use `panqec ls decoders` to find the list of all decoders.'
 )
 @click.option(
-    '-b', '--boundary', default='toric',
+    '-s', '--sizes', default='3x3,5x5,7x7', type=str,
     show_default=True,
-    type=click.Choice(['toric', 'planar']),
-    help='Boundary conditions'
-)
-@click.option(
-    '-d', '--deformation', default='none',
-    show_default=True,
-    type=click.Choice(['none', 'xzzx', 'xy']),
-    help='Deformation'
-)
-@click.option(
-    '-r', '--ratio', default='equal', type=click.Choice(['equal', 'coprime']),
-    show_default=True, help='Lattice aspect ratio spec'
-)
-@click.option(
-    '--decoder', default='BeliefPropagationOSDDecoder',
-    show_default=True,
-    type=click.Choice(DECODERS.keys()),
-    help='Decoder name'
-)
-@click.option(
-    '-s', '--sizes', default='5,9,7,13', type=str,
-    show_default=True,
-    help='List of sizes'
+    help='List of sizes, separated by a comma, where each size'
+    'has the form [Lx]x[Ly]x[Lz]'
 )
 @click.option(
     '--bias', default='Z', type=click.Choice(['X', 'Y', 'Z']),
     show_default=True,
-    help='Pauli bias'
+    help='Pauli noise bias'
 )
 @click.option(
-    '--eta', default='0.5,1,3,10,30,100,inf', type=str,
+    '--eta', default='0.5', type=str,
     show_default=True,
     help='Bias ratio'
 )
@@ -181,124 +363,115 @@ def read_range_input(specification: str) -> List[float]:
 @click.option(
     '--code_class', default=None, type=str,
     show_default=True,
-    help='Explicitly specify the code class, e.g. Toric3DCode'
+    help='Code class name, e.g. Toric3DCode. '
+    'Use `panqec ls codes` to find the list of all codes'
 )
 @click.option(
-    '--noise_class', default=None, type=str,
+    '--noise_class', default='PauliErrorModel', type=str,
     show_default=True,
-    help='Explicitly specify the noise class, e.g. DeformedXZZXErrorModel'
+    help='Error model class name, e.g. PauliErrorModel. '
+    'Use `panqec ls error_models` to find the list of all error models'
+)
+@click.option(
+    '--deformation_name', default=None, type=str,
+    show_default=True,
+    help='Name of the Clifford deformation to use in our noise, e.g. XZZX'
+)
+@click.option(
+    '-m', '--method', default='direct',
+    show_default=True,
+    type=click.Choice(['direct', 'splitting']),
+    help='Simulation method, between "direct" (simple Monte-Carlo simulation)'
+    'and "splitting" (Metropolis-Hastings for low error rates)'
+)
+@click.option(
+    '-l', '--label', default=None,
+    show_default=True,
+    type=str,
+    help='Label for the inputs'
 )
 def generate_input(
-    input_dir, lattice, boundary, deformation, ratio, sizes, decoder, bias,
-    eta, prob, code_class, noise_class
+    data_dir, sizes, decoder_class, bias, eta, prob,
+    code_class, noise_class, deformation_name, method, label
 ):
     """Generate the json files of every experiment.
 
     \b
     Example:
-    panqec generate-input -i /path/to/inputdir \\
-            -l rotated -b planar -d xzzx -r equal \\
-            -s 2,4,6,8 --decoder BeliefPropagationOSDDecoder \\
+    panqec generate-input -i data/toric-3d-code/ \\
+            --code_class Toric3DCode \\
+            --noise_class PauliErrorModel \\
+            -s 3x3x3,5x5x5,7x7x7, --decoder BeliefPropagationOSDDecoder \\
             --bias Z --eta '10,100,1000,inf' \\
             --prob 0:0.5:0.005
     """
-    if lattice == 'kitaev' and boundary == 'planar':
-        raise NotImplementedError("Kitaev planar lattice not implemented")
-
+    input_dir = os.path.join(data_dir, 'inputs')
     os.makedirs(input_dir, exist_ok=True)
 
-    delta = 0.005
-    probabilities = np.arange(0, 0.5+delta, delta).tolist()
-    probabilities = read_range_input(prob)
+    error_rates = read_range_input(prob)
     bias_ratios = read_bias_ratios(eta)
 
     for eta in bias_ratios:
         direction = get_direction_from_bias_ratio(bias, eta)
-        for p in probabilities:
-            label = "regular" if deformation == "none" else deformation
-            label += f"-{lattice}"
-            label += f"-{boundary}"
-            if eta == np.inf:
-                label += "-bias-inf"
-            else:
-                label += f"-bias-{eta:.2f}"
-            label += f"-p-{p:.3f}"
 
-            code_model = ''
-            if lattice == 'rotated':
-                code_model += 'Rotated'
-            if boundary == 'toric':
-                code_model += 'Toric'
-            else:
-                code_model += 'Planar'
-            code_model += '3DCode'
-
-            # Explicit override.
-            if code_class is not None:
-                code_model = code_class
-
-            L_list = [int(s) for s in sizes.split(',')]
-            if ratio == 'coprime':
-                code_parameters = [
-                    {"L_x": L, "L_y": L + 1, "L_z": L}
-                    for L in L_list
-                ]
-            else:
-                if code_model == 'RotatedPlanar3DCode':
-                    code_parameters = [
-                        {"L_x": L, "L_y": L, "L_z": L}
-                        for L in L_list
-                    ]
-                else:
-                    code_parameters = [
-                        {"L_x": L, "L_y": L, "L_z": L}
-                        for L in L_list
-                    ]
-            code_dict = {
-                "model": code_model,
-                "parameters": code_parameters
+        L_list = [s.split('x') for s in sizes.split(',')]
+        code_parameters = [
+            {
+                "L_x": int(L[0]),
+                "L_y": int(L[1]) if len(L) >= 2 else int(L[0]),
+                "L_z": int(L[2]) if len(L) == 3 else int(L[0])
             }
+            for L in L_list
+        ]
+        code_dict = {
+            "name": code_class,
+            "parameters": code_parameters
+        }
 
-            if deformation == "none":
-                noise_model = "PauliErrorModel"
-            elif deformation == "xzzx":
-                noise_model = 'DeformedXZZXErrorModel'
-            elif deformation == "xy":
-                noise_model = 'DeformedXYErrorModel'
+        noise_parameters = direction
+        if deformation_name is not None:
+            noise_parameters['deformation_name'] = deformation_name
 
-            # Explicit override option for noise model.
-            if noise_class is not None:
-                noise_model = noise_class
+        error_model_dict = {
+            "name": noise_class,
+            "parameters": noise_parameters
+        }
 
-            noise_parameters = direction
-            noise_dict = {
-                "model": noise_model,
-                "parameters": noise_parameters
-            }
+        if decoder_class == "BeliefPropagationOSDDecoder":
+            decoder_parameters = {'max_bp_iter': 1000,
+                                  'osd_order': 100}
+        else:
+            decoder_parameters = {}
 
-            if decoder == "BeliefPropagationOSDDecoder":
-                decoder_model = "BeliefPropagationOSDDecoder"
-                decoder_parameters = {'max_bp_iter': 1000,
-                                      'osd_order': 0}
-            else:
-                decoder_model = decoder
-                decoder_parameters = {}
+        method_parameters = {}
+        if method == 'splitting':
+            method_parameters['n_init_runs'] = 20000
 
-            decoder_dict = {"model": decoder_model,
-                            "parameters": decoder_parameters}
+        method_dict = {
+            'name': method,
+            'parameters': method_parameters
+        }
 
-            ranges_dict = {"label": label,
-                           "code": code_dict,
-                           "noise": noise_dict,
-                           "decoder": decoder_dict,
-                           "probability": [p]}
+        decoder_dict = {"name": decoder_class,
+                        "parameters": decoder_parameters}
 
-            json_dict = {"comments": "",
-                         "ranges": ranges_dict}
+        if label is None:
+            label = 'experiment'
 
-            filename = os.path.join(input_dir, f'{label}.json')
-            with open(filename, 'w') as json_file:
-                json.dump(json_dict, json_file, indent=4)
+        ranges_dict = {"label": label,
+                       "method": method_dict,
+                       "code": code_dict,
+                       "error_model": error_model_dict,
+                       "decoder": decoder_dict,
+                       "error_rate": error_rates}
+
+        json_dict = {"comments": "",
+                     "ranges": ranges_dict}
+
+        filename = os.path.join(input_dir, f'{label}.json')
+
+        with open(filename, 'w') as json_file:
+            json.dump(json_dict, json_file, indent=4)
 
 
 @click.group(invoke_without_command=True)
@@ -310,348 +483,134 @@ def slurm(ctx):
 
 
 @click.command()
-@click.option('-o', '--outdir', required=True, type=str, nargs=1)
-@click.argument('dirs', type=click.Path(exists=True), nargs=-1)
-def merge_dirs(outdir, dirs):
+@click.argument(
+    'result-files', type=click.Path(exists=True), nargs=-1, required=True
+)
+@click.option(
+    '-o', '--output_file', type=str, default='merged-results.json.gz',
+    show_default=True
+)
+def merge_results(
+    result_files: str,
+    output_file: str = 'merged-results.json.gz'
+):
     """Merge result directories that had been split into outdir."""
-    os.makedirs(outdir, exist_ok=True)
 
-    if len(dirs) == 0:
-        results_dirs = glob(os.path.join(os.path.dirname(outdir), 'results_*'))
-        results_dirs = [path for path in results_dirs if os.path.isdir(path)]
-    else:
-        results_dirs = list(dirs)
+    print(f'Merging {len(result_files)} files to {output_file}')
+    combined_results = []
+    for file in result_files:
+        try:
+            combined_results.append(load_json(file))
+        except JSONDecodeError:
+            print(f'Error reading {file}, skipping')
 
-    print(f'Merging {len(results_dirs)} dirs into {outdir}')
-    file_lists: Dict[Tuple[str, str], List[str]] = dict()
-    for sep_dir in results_dirs:
-        for sub_dir in os.listdir(sep_dir):
-            for file_path in glob(os.path.join(sep_dir, sub_dir, '*.json')):
-                base_name = os.path.basename(file_path)
-                key = (sub_dir, base_name)
-                if key not in file_lists:
-                    file_lists[key] = []
-                file_lists[key].append(file_path)
-    print(len(file_lists))
-
-    iterator = tqdm(file_lists.items(), total=len(file_lists))
-    for (sub_dir, base_name), file_list in iterator:
-        os.makedirs(os.path.join(outdir, sub_dir), exist_ok=True)
-        combined_file = os.path.join(outdir, sub_dir, base_name)
-
-        results_dicts = []
-        for file_path in file_list:
-            try:
-                with open(file_path) as f:
-                    results_dicts.append(json.load(f))
-            except JSONDecodeError:
-                print(f'Error reading {file_path}, skipping')
-
-        combined_results = merge_results_dicts(results_dicts)
-
-        with open(combined_file, 'w') as f:
-            json.dump(combined_results, f)
+    save_json(combined_results, output_file)
 
 
 @click.command()
-@click.argument('sbatch_file', required=True)
-@click.option('-d', '--data_dir', type=click.Path(exists=True), required=True)
-@click.option('-n', '--n_array', default=6, type=click.INT, show_default=True)
-@click.option('-q', '--queue', default='defq', type=str, show_default=True)
+@click.argument('header-file', required=True)
+@click.option('--output-file', '-o', type=str, required=True)
+@click.option('-d', '--data-dir', type=click.Path(exists=True), required=True)
 @click.option(
-    '-w', '--wall_time', default='0-20:00', type=str, show_default=True
+    '--cluster', type=click.Choice(['sge', 'slurm', 'pbs']), required=True
+)
+@click.option('-n', '--n-nodes', type=click.INT, required=True)
+@click.option('-w', '--wall-time', type=str, required=True)
+@click.option('-m', '--memory', type=str, required=True)
+@click.option(
+    '-t', '--trials', type=click.INT, show_default=True, required=True
 )
 @click.option(
-    '-t', '--trials', default='0-20:00', type=str, show_default=True
-)
-@click.option(
-    '-s', '--split', default=1, type=click.INT, show_default=True
-)
-def pi_sbatch(sbatch_file, data_dir, n_array, queue, wall_time, trials, split):
-    """Generate PI-style sbatch file with parallel and array job."""
-    template_file = os.path.join(
-        os.path.dirname(BASE_DIR), 'scripts', 'pi_template.sh'
-    )
-    with open(template_file) as f:
-        text = f.read()
-
-    inputs_dir = os.path.join(data_dir, 'inputs')
-    assert os.path.isdir(inputs_dir), (
-        f'{inputs_dir} missing, please create it and generate inputs'
-    )
-    name = os.path.basename(data_dir)
-    replace_map = {
-        '${TRIALS}': trials,
-        '${DATADIR}': data_dir,
-        '${TIME}': wall_time,
-        '${NAME}': name,
-        '${NARRAY}': str(n_array),
-        '${QUEUE}': queue,
-        '${SPLIT}': str(split),
-    }
-    for template_string, value in replace_map.items():
-        text = text.replace(template_string, value)
-
-    with open(sbatch_file, 'w') as f:
-        f.write(text)
-    print(f'Wrote to {sbatch_file}')
-
-
-@click.command()
-@click.argument('sbatch_file', required=True)
-@click.option('-d', '--data_dir', type=click.Path(exists=True), required=True)
-@click.option('-n', '--n_array', default=6, type=click.INT, show_default=True)
-@click.option(
-    '-a', '--account', default='def-raymond', type=str, show_default=True
-)
-@click.option(
-    '-e', '--email', default='mvasmer@pitp.ca', type=str, show_default=True
-)
-@click.option(
-    '-w', '--wall_time', default='04:00:00', type=str, show_default=True
-)
-@click.option(
-    '-m', '--memory', default='16GB', type=str, show_default=True
-)
-@click.option(
-    '-t', '--trials', default=1000, type=click.INT, show_default=True
-)
-@click.option(
-    '-s', '--split', default=1, type=click.INT, show_default=True
-)
-def cc_sbatch(
-    sbatch_file, data_dir, n_array, account, email, wall_time, memory, trials,
-    split
-):
-    """Generate Compute Canada-style sbatch file with parallel array jobs."""
-    template_file = os.path.join(
-        os.path.dirname(BASE_DIR), 'scripts', 'cc_template.sh'
-    )
-    with open(template_file) as f:
-        text = f.read()
-
-    inputs_dir = os.path.join(data_dir, 'inputs')
-    assert os.path.isdir(inputs_dir), (
-        f'{inputs_dir} missing, please create it and generate inputs'
-    )
-    name = os.path.basename(data_dir)
-    replace_map = {
-        '${ACCOUNT}': account,
-        '${EMAIL}': email,
-        '${TIME}': wall_time,
-        '${MEMORY}': memory,
-        '${NAME}': name,
-        '${NARRAY}': str(n_array),
-        '${DATADIR}': os.path.abspath(data_dir),
-        '${TRIALS}': str(trials),
-        '${SPLIT}': str(split),
-    }
-    for template_string, value in replace_map.items():
-        text = text.replace(template_string, value)
-
-    with open(sbatch_file, 'w') as f:
-        f.write(text)
-    print(f'Wrote to {sbatch_file}')
-
-
-@click.command()
-@click.argument('sbatch_file', required=True)
-@click.option('-d', '--data_dir', type=click.Path(exists=True), required=True)
-@click.option('-n', '--n_array', default=6, type=click.INT, show_default=True)
-@click.option(
-    '-w', '--wall_time', default='0-23:00', type=str, show_default=True
-)
-@click.option(
-    '-m', '--memory', default='32GB', type=str, show_default=True
-)
-@click.option(
-    '-t', '--trials', default=1000, type=click.INT, show_default=True
-)
-@click.option(
-    '-s', '--split', default=1, type=click.INT, show_default=True
+    '-c', '--n-cores', default=None, type=click.INT, show_default=True
 )
 @click.option('-p', '--partition', default='pml', type=str, show_default=True)
+@click.option('-q', '--qos', default='dpart', type=str, show_default=True)
+@click.option('--working-dir', default='.', type=str, show_default=True)
 @click.option(
-    '--max_sim_array', default=None, type=int, show_default=True,
-    help='Max number of simultaneous array jobs'
+    '--delete-existing', is_flag=True, default=False, show_default=True
 )
-def nist_sbatch(
-    sbatch_file, data_dir, n_array, wall_time, memory, trials, split,
-    partition, max_sim_array
+def generate_cluster_script(
+    header_file: str,
+    output_file: str,
+    data_dir: str,
+    cluster: str,
+    n_nodes: int,
+    wall_time: str,
+    memory: str,
+    trials: int,
+    n_cores: Optional[int] = None,
+    partition: str = 'pml',
+    qos: str = 'dpart',
+    working_dir: str = '.',
+    delete_existing: bool = False
 ):
-    """Generate NIST-style sbatch file with parallel array jobs."""
-    template_file = os.path.join(
-        os.path.dirname(BASE_DIR), 'scripts', 'nist_template.sh'
-    )
-    with open(template_file) as f:
+    """Generate a generic cluster script from a given header file"""
+
+    with open(header_file, 'r') as f:
         text = f.read()
 
     inputs_dir = os.path.join(data_dir, 'inputs')
     assert os.path.isdir(inputs_dir), (
         f'{inputs_dir} missing, please create it and generate inputs'
     )
+    log_dir = os.path.join(data_dir, 'logs')
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
     name = os.path.basename(data_dir)
-    narray_str = str(n_array)
-    if max_sim_array is not None:
-        narray_str += '%' + str(max_sim_array)
-    replace_map = {
-        '${TIME}': wall_time,
-        '${MEMORY}': memory,
-        '${NAME}': name,
-        '${NARRAY}': narray_str,
-        '${DATADIR}': os.path.abspath(data_dir),
-        '${TRIALS}': str(trials),
-        '${SPLIT}': str(split),
-        '${QUEUE}': partition,
+    data_dir = os.path.abspath(data_dir)
+    delete_option = "--delete-existing" if delete_existing else ""
+
+    i_node_dict = {
+        'sge': "$SGE_TASK_ID",
+        'slurm': "$SLURM_ARRAY_TASK_ID",
+        'pbs': "PBS_ARRAY_INDEX"
     }
-    for template_string, value in replace_map.items():
-        text = text.replace(template_string, value)
-
-    with open(sbatch_file, 'w') as f:
-        f.write(text)
-    print(f'Wrote to {sbatch_file}')
-
-
-@click.command()
-@click.argument('qsub_file', required=True)
-@click.option('-d', '--data_dir', type=click.Path(exists=True), required=True)
-@click.option('-n', '--n_array', default=6, type=click.INT, show_default=True)
-@click.option(
-    '-w', '--wall_time', default='0-23:00', type=str, show_default=True
-)
-@click.option(
-    '-m', '--memory', default='32GB', type=str, show_default=True
-)
-@click.option(
-    '-t', '--trials', default=1000, type=click.INT, show_default=True
-)
-@click.option(
-    '-s', '--split', default=1, type=click.INT, show_default=True
-)
-@click.option('-p', '--partition', default='pml', type=str, show_default=True)
-def generate_qsub(
-    qsub_file, data_dir, n_array, wall_time, memory, trials, split, partition
-):
-    """Generate qsub (PBS) file with parallel array jobs."""
-    template_file = os.path.join(
-        os.path.dirname(BASE_DIR), 'scripts', 'qsub_template.sh'
-    )
-    with open(template_file) as f:
-        text = f.read()
-
-    inputs_dir = os.path.join(data_dir, 'inputs')
-    assert os.path.isdir(inputs_dir), (
-        f'{inputs_dir} missing, please create it and generate inputs'
-    )
-    name = os.path.basename(data_dir)
-    replace_map = {
-        '${TIME}': wall_time,
-        '${MEMORY}': memory,
-        '${NAME}': name,
-        '${NARRAY}': str(n_array),
-        '${DATADIR}': os.path.abspath(data_dir),
-        '${TRIALS}': str(trials),
-        '${SPLIT}': str(split),
-        '${QUEUE}': partition,
+    job_id_dict = {
+        'sge': '${JOB_ID}',
+        'slurm': '${SLURM_JOB_ID}',
+        'pbs': '$PBS_JOBID'
     }
-    for template_string, value in replace_map.items():
-        text = text.replace(template_string, value)
 
-    with open(qsub_file, 'w') as f:
-        f.write(text)
-    print(f'Wrote to {qsub_file}')
+    i_node = i_node_dict[cluster]
+    job_id = job_id_dict[cluster]
 
+    # If n_cores hasn't been specified, take the maximum number of cores
+    if n_cores is None:
+        n_cores = multiprocessing.cpu_count()
 
-@click.command()
-@click.argument('sbatch_file', required=True)
-@click.option('-d', '--data_dir', type=click.Path(exists=True), required=True)
-@click.option('-n', '--n_array', default=6, type=click.INT, show_default=True)
-@click.option(
-    '-w', '--wall_time', default='0-23:00', type=str, show_default=True
-)
-@click.option(
-    '-m', '--memory', default='32GB', type=str, show_default=True
-)
-@click.option(
-    '-t', '--trials', default=1000, type=click.INT, show_default=True
-)
-@click.option(
-    '-s', '--split', default=1, type=click.INT, show_default=True
-)
-@click.option(
-    '-p', '--partition', default='dpart', type=str, show_default=True
-)
-@click.option(
-    '-q', '--qos', default='dpart', type=str, show_default=True
-)
-def umiacs_sbatch(
-    sbatch_file, data_dir, n_array, wall_time, memory, trials, split,
-    partition, qos
-):
-    """Generate UMIACS-style sbatch file with parallel array jobs."""
-    template_file = os.path.join(
-        os.path.dirname(BASE_DIR), 'scripts', 'umiacs_template.sh'
-    )
-    with open(template_file) as f:
-        text = f.read()
-
-    inputs_dir = os.path.join(data_dir, 'inputs')
-    assert os.path.isdir(inputs_dir), (
-        f'{inputs_dir} missing, please create it and generate inputs'
-    )
-    name = os.path.basename(data_dir)
     replace_map = {
         '${TIME}': wall_time,
         '${MEMORY}': memory,
         '${NAME}': name,
-        '${NARRAY}': str(n_array),
-        '${DATADIR}': os.path.abspath(data_dir),
+        '${N_NODES}': str(n_nodes),
+        '${DATA_DIR}': data_dir,
         '${TRIALS}': str(trials),
-        '${SPLIT}': str(split),
+        '${N_CORES}': str(n_cores),
+        '${QUEUE}': partition,
         '${QOS}': qos,
-        '${QUEUE}': partition,
+        '${WORKING_DIR}': working_dir
     }
     for template_string, value in replace_map.items():
         text = text.replace(template_string, value)
 
-    with open(sbatch_file, 'w') as f:
-        f.write(text)
-    print(f'Wrote to {sbatch_file}')
+    monitor_command = "panqec monitor-usage " \
+        f"{log_dir}/usage_{job_id}_{i_node}.txt &"
+    run_command = "panqec run-parallel " \
+        f"-d {data_dir} " \
+        f"-n {n_nodes} " \
+        f"-j {i_node} " \
+        f"-c {n_cores} " \
+        f"-t {trials} " \
+        f"{delete_option}"
 
+    with open(output_file, 'w') as f:
+        f.write(text + "\n\n")
+        f.write(monitor_command + "\n\n")
+        f.write(run_command + "\n\n")
+        f.write("date")
 
-@click.command()
-@click.option('--n_trials', default=1000, type=click.INT, show_default=True)
-@click.option('--partition', default='defq', show_default=True)
-@click.option('--time', default='10:00:00', show_default=True)
-@click.option('--cores', default=1, type=click.INT, show_default=True)
-def gen(n_trials, partition, time, cores):
-    """Generate sbatch files."""
-    generate_sbatch(n_trials, partition, time, cores)
-
-
-@click.command()
-@click.argument('name', required=True)
-@click.option('--n_trials', default=1000, type=click.INT, show_default=True)
-@click.option('--nodes', default=1, type=click.INT, show_default=True)
-@click.option('--ntasks', default=1, type=click.INT, show_default=True)
-@click.option('--cpus_per_task', default=40, type=click.INT, show_default=True)
-@click.option('--mem', default=10000, type=click.INT, show_default=True)
-@click.option('--time', default='10:00:00', show_default=True)
-@click.option('--split', default=1, type=click.INT, show_default=True)
-@click.option('--partition', default='pml', show_default=True)
-@click.option(
-    '--cluster', default='nist', show_default=True,
-    type=click.Choice(['nist', 'symmetry'])
-)
-def gennist(
-    name, n_trials, nodes, ntasks, cpus_per_task, mem, time, split, partition,
-    cluster
-):
-    """Generate sbatch files for NIST cluster."""
-    generate_sbatch_nist(
-        name, n_trials, nodes, ntasks, cpus_per_task, mem, time, split,
-        partition, cluster
-    )
+    print(f'Wrote to {output_file}')
 
 
 @click.command()
@@ -681,20 +640,77 @@ def status():
     get_status()
 
 
-slurm.add_command(gen)
-slurm.add_command(gennist)
+@click.command
+@click.argument(
+    'data_dirs', type=click.Path(exists=True), nargs=-1,
+    required=True
+)
+def check_usage(data_dirs: str):
+    """Check usage of resources."""
+    log_dirs = []
+    if data_dirs:
+        for data_dir in data_dirs:
+            log_dir = os.path.join(data_dir, 'logs')
+            if not os.path.isdir(log_dir):
+                print(f'{log_dir} not a directory')
+            else:
+                log_dirs.append(log_dir)
+
+    summarize_usage(log_dirs)
+
+
+@click.command
+@click.argument(
+    'log_dir', type=click.Path(exists=True), required=True
+)
+@click.option(
+    '-a', '--show-all', is_flag=True, default=False,
+    help='Show progress on all the cores individually'
+)
+def check_progress(log_dir: str, show_all: bool = False):
+    """Check usage of resources."""
+    if not os.path.isdir(log_dir):
+        print(f'{log_dir} not a directory')
+
+    if 'progress' in os.listdir(log_dir):
+        progress_dir = os.path.join(log_dir, 'progress')
+    else:
+        progress_dir = log_dir
+
+    list_files = glob(os.path.join(progress_dir, 'progress_*.txt'))
+
+    total_n = 0
+    total_k = 0
+
+    for filename in list_files:
+        with open(filename, "r") as f:
+            k, n = f.read().split("/")
+
+            total_n += int(n)
+            total_k += int(k)
+
+        if show_all:
+            progress_bar(int(k), int(n))
+
+    if len(list_files) > 0:
+        if show_all:
+            print("\n")
+        print("Total progress:\n")
+        progress_bar(total_k, total_n)
+
+
 slurm.add_command(status)
 slurm.add_command(count)
 slurm.add_command(clear)
 cli.add_command(start_gui)
 cli.add_command(run)
+cli.add_command(run_parallel)
 cli.add_command(ls)
 cli.add_command(slurm)
 cli.add_command(generate_input)
-cli.add_command(statmech)
-cli.add_command(pi_sbatch)
-cli.add_command(cc_sbatch)
-cli.add_command(merge_dirs)
-cli.add_command(nist_sbatch)
-cli.add_command(generate_qsub)
-cli.add_command(umiacs_sbatch)
+cli.add_command(monitor_usage)
+cli.add_command(merge_results)
+cli.add_command(generate_cluster_script)
+cli.add_command(check_usage)
+cli.add_command(check_progress)
+cli.add_command(analyze)

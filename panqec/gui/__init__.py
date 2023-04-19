@@ -1,1 +1,1 @@
-from ._gui import GUI
+from ._gui import GUI  # noqa

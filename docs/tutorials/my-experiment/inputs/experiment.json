@@ -1,0 +1,56 @@
+{
+    "comments": "",
+    "ranges": {
+        "label": "experiment",
+        "method": {
+            "name": "direct",
+            "parameters": {}
+        },
+        "code": {
+            "name": "Toric2DCode",
+            "parameters": [
+                {
+                    "L_x": 5,
+                    "L_y": 5,
+                    "L_z": null
+                },
+                {
+                    "L_x": 7,
+                    "L_y": 7,
+                    "L_z": null
+                },
+                {
+                    "L_x": 9,
+                    "L_y": 9,
+                    "L_z": null
+                }
+            ]
+        },
+        "error_model": {
+            "name": "PauliErrorModel",
+            "parameters": {
+                "r_x": 0.0,
+                "r_y": 0.0,
+                "r_z": 1.0
+            }
+        },
+        "decoder": {
+            "name": "MatchingDecoder",
+            "parameters": {}
+        },
+        "error_rate": [
+            0.1,
+            0.11,
+            0.12,
+            0.13,
+            0.13999999999999999,
+            0.14999999999999997,
+            0.15999999999999998,
+            0.16999999999999998,
+            0.17999999999999997,
+            0.18999999999999995,
+            0.19999999999999996,
+            0.20999999999999996
+        ]
+    }
+}

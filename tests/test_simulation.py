@@ -1,13 +1,14 @@
 import os
 import json
 import pytest
+import gzip
 import numpy as np
 from panqec.error_models import PauliErrorModel
 from panqec.codes import Toric2DCode
 from panqec.decoders import BeliefPropagationOSDDecoder
 from panqec.simulation import (
-    read_input_json, run_once, Simulation, expand_input_ranges, run_file,
-    merge_results_dicts, filter_legacy_params
+    read_input_json, run_once, DirectSimulation, expand_input_ranges, run_file,
+    BatchSimulation
 )
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
@@ -25,18 +26,21 @@ def required_fields():
     [
         ('single_input.json', 1),
         ('range_input.json', 27),
+        ('single_input.json.gz', 1),
+        ('range_input.json.gz', 27),
     ]
 )
 def test_read_json_input(file_name, expected_runs):
     input_json = os.path.join(DATA_DIR, file_name)
-    batch_simulation = read_input_json(input_json)
+    output_json = os.path.join(DATA_DIR, 'results.json')
+    batch_simulation = read_input_json(input_json, output_json)
     assert batch_simulation is not None
     assert len(batch_simulation._simulations) == expected_runs
     parameters = [
         {
             'code': list(s.code.size),
-            'noise': s.error_model.direction,
-            'probability': s.error_rate
+            'error_model': s.error_model.direction,
+            'error_rate': s.error_rate
         }
         for s in batch_simulation._simulations
     ]
@@ -72,7 +76,9 @@ class TestRunOnce:
 
     def test_run_once_invalid_probability(self, code, error_model):
         error_rate = -1
-        decoder = BeliefPropagationOSDDecoder(code, error_model, error_rate=0.5)
+        decoder = BeliefPropagationOSDDecoder(
+            code, error_model, error_rate=error_rate
+        )
         with pytest.raises(ValueError):
             run_once(code, error_model, decoder, error_rate=error_rate)
 
@@ -96,10 +102,71 @@ class TestSimulationToric2DCode():
 
     def test_run(self, code, error_model, decoder, required_fields):
         error_rate = 0.5
-        simulation = Simulation(code, error_model, decoder, error_rate)
+        simulation = DirectSimulation(code, error_model, decoder, error_rate)
         simulation.run(10)
         assert len(simulation._results['success']) == 10
         assert set(required_fields).issubset(simulation._results.keys())
+
+
+class TestBatchSimulationOneFile():
+
+    n_trials: int = 5
+
+    @pytest.fixture
+    def output_file(self, tmpdir):
+        out_file = os.path.join(tmpdir, 'results.json.gz')
+
+        batch_sim = BatchSimulation(
+            label='mylabel',
+            save_frequency=1,
+            output_file=out_file,
+        )
+
+        for size, error_rate in [(3, 0.1), (4, 0.5)]:
+            code = Toric2DCode(size, size)
+            error_model = PauliErrorModel(1/3, 1/3, 1/3)
+            decoder = BeliefPropagationOSDDecoder(
+                code, error_model, error_rate
+            )
+            simulation = DirectSimulation(
+                code, error_model, decoder, error_rate
+            )
+            batch_sim.append(simulation)
+
+        assert len(batch_sim) == 2
+
+        batch_sim.run(self.n_trials)
+        batch_sim.save_results()
+
+        return out_file
+
+    def test_output_to_one_file(self, output_file):
+        assert os.path.isfile(output_file)
+
+        with gzip.open(output_file, 'rb') as gz:
+            results = json.loads(gz.read().decode('utf-8'))
+
+        # Check integrity of results.
+        assert len(results) == 2
+        expected_input_keys = [
+            'code', 'error_model', 'decoder',
+            'error_rate', 'method'
+        ]
+        expected_results_keys = [
+            'effective_error', 'success', 'codespace', 'wall_time',
+        ]
+        for key in expected_input_keys:
+            assert key in results[0]['inputs']
+            assert key in results[1]['inputs']
+
+        for key in expected_results_keys:
+            assert key in results[0]['results']
+            assert key in results[1]['results']
+
+        # Numerical tests on the results.
+        assert len(results[0]['results']['effective_error']) == self.n_trials
+        assert len(results[0]['results']['success']) == self.n_trials
+        assert len(results[0]['results']['codespace']) == self.n_trials
 
 
 @pytest.fixture
@@ -118,79 +185,18 @@ def test_expand_inputs_ranges(example_ranges):
 
 def test_run_file_range_input(tmpdir):
     input_json = os.path.join(DATA_DIR, 'range_input.json')
+    output_json = os.path.join(tmpdir, 'results', 'results.json')
     n_trials = 2
-    assert os.listdir(tmpdir) == []
-    run_file(input_json, n_trials, output_dir=tmpdir)
-    assert os.listdir(tmpdir) == ['test_range']
-    assert len(os.listdir(os.path.join(tmpdir, 'test_range'))) > 0
+    run_file(input_json, output_json, n_trials)
+
+    assert os.path.isfile(output_json)
 
 
-def test_merge_results():
-    results_dicts = [
-        {
-            'results': {
-                'effective_error': [[0, 0]],
-                'success': [True],
-                'codespace': [True],
-                'wall_time': 0.018024
-            },
-            'inputs': {
-                'size': [2, 2, 2],
-                'code': 'Rotated Planar 2x2x2',
-                'n': 99,
-                'k': 1,
-                'd': -1,
-                'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
-                'decoder': 'BP-OSD decoder',
-                'probability': 0.05
-            }
-        },
-        {
-            'results': {
-                'effective_error': [[0, 1]],
-                'success': [False],
-                'codespace': [False],
-                'wall_time': 0.017084
-            },
-            'inputs': {
-                'size': [2, 2, 2],
-                'code': 'Rotated Planar 2x2x2',
-                'n': 99,
-                'k': 1,
-                'd': -1,
-                'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
-                'decoder': 'BP-OSD decoder',
-                'probability': 0.05
-            }
-        }
-    ]
-    expected_merged_results = {
-        'results': {
-            'effective_error': [[0, 0], [0, 1]],
-            'success': [True, False],
-            'codespace': [True, False],
-            'wall_time': 0.035108
-        },
-        'inputs': {
-            'size': [2, 2, 2],
-            'code': 'Rotated Planar 2x2x2',
-            'n': 99,
-            'k': 1,
-            'd': -1,
-            'error_model': 'Pauli X0.2500Y0.2500Z0.5000',
-            'decoder': 'BP-OSD decoder',
-            'probability': 0.05
-        }
-    }
+class TestReadInputJson:
 
-    merged_results = merge_results_dicts(results_dicts)
+    def test_multiple_ranges(self):
+        input_json = os.path.join(DATA_DIR, 'toric_input.json')
+        output_json = os.path.join(DATA_DIR, 'toric_output.json')
 
-    assert merged_results == expected_merged_results
-
-
-def test_filter_legacy_params():
-    old_params = {
-        'joschka': True
-    }
-    filtered_params = filter_legacy_params(old_params)
-    assert 'joschka' not in filtered_params
+        batch_sim = read_input_json(input_json, output_json)
+        assert len(batch_sim) == 126

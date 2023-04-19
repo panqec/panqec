@@ -5,27 +5,22 @@ Settings from environmental variables and config files.
     Eric Huang
 """
 import os
+from typing import Dict, Any
 from dotenv import load_dotenv
 from .codes import (
-    Toric3DCode, Toric2DCode,
-    RotatedPlanar3DCode, XCubeCode,
-    RotatedToric3DCode, RhombicCode
+    Toric2DCode, Planar2DCode, RotatedPlanar2DCode,
+    Toric3DCode, RotatedPlanar3DCode, RotatedToric3DCode,
+    Color666PlanarCode, Color666ToricCode, Color488Code,
+    Color3DCode, RhombicToricCode, RhombicPlanarCode,
+    XCubeCode, HollowPlanar3DCode, HollowRhombicCode
 )
 from .decoders import (
-    Toric3DMatchingDecoder, SweepMatchDecoder,
-    RotatedSweepMatchDecoder, RotatedInfiniteZBiasDecoder
+    SweepMatchDecoder, XCubeMatchingDecoder,
+    RotatedSweepMatchDecoder
 )
-from .decoders.bposd.bposd_decoder import BeliefPropagationOSDDecoder
-from .decoders.bposd.mbp_decoder import MemoryBeliefPropagationDecoder
-from .decoders.sweepmatch._toric_2d_match_decoder import Toric2DMatchingDecoder
-from .error_models import (
-    DeformedXZZXErrorModel, DeformedXYErrorModel,
-    DeformedRhombicErrorModel, DeformedRandomErrorModel
-)
-from .decoders import (
-    DeformedSweepMatchDecoder, FoliatedMatchingDecoder,
-    DeformedRotatedSweepMatchDecoder
-)
+from .decoders import BeliefPropagationOSDDecoder
+from .decoders import MemoryBeliefPropagationDecoder
+from .decoders.matching._matching_decoder import MatchingDecoder
 from .error_models import PauliErrorModel
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -52,34 +47,38 @@ if os.getenv('PANQEC_DIR') is not None:
             f'PANQEC_DIR={PANQEC_DIR} is not a valid directory. '
             'Check .env configuration.'
         )
+else:
+    os.makedirs(PANQEC_DIR, exist_ok=True)
 
 # Register your models here.
 CODES = {
     'Toric2DCode': Toric2DCode,
+    'Planar2DCode': Planar2DCode,
+    'RotatedPlanar2DCode': RotatedPlanar2DCode,
+    'Color666PlanarCode': Color666PlanarCode,
+    'Color666ToricCode': Color666ToricCode,
+    'Color488Code': Color488Code,
+    'Color3DCode': Color3DCode,
     'Toric3DCode': Toric3DCode,
-    'RhombicCode': RhombicCode,
+    'Planar3DCode': RotatedPlanar3DCode,
     'RotatedPlanar3DCode': RotatedPlanar3DCode,
     'RotatedToric3DCode': RotatedToric3DCode,
-    'XCubeCode': XCubeCode
+    'RhombicToricCode': RhombicToricCode,
+    'RhombicPlanarCode': RhombicPlanarCode,
+    'XCubeCode': XCubeCode,
+    'HollowPlanar3DCode': HollowPlanar3DCode,
+    'HollowRhombicCode': HollowRhombicCode
 }
 ERROR_MODELS = {
-    'PauliErrorModel': PauliErrorModel,
-    'DeformedXZZXErrorModel': DeformedXZZXErrorModel,
-    'DeformedRandomErrorModel': DeformedRandomErrorModel,
-    'DeformedXYErrorModel': DeformedXYErrorModel,
-    'DeformedRhombicErrorModel': DeformedRhombicErrorModel,
+    'PauliErrorModel': PauliErrorModel
 }
-DECODERS = {
-    'Toric2DMatchingDecoder': Toric2DMatchingDecoder,
-    'Toric3DMatchingDecoder': Toric3DMatchingDecoder,
+DECODERS: Dict[str, Any] = {
+    'MatchingDecoder': MatchingDecoder,
     'SweepMatchDecoder': SweepMatchDecoder,
     'RotatedSweepMatchDecoder': RotatedSweepMatchDecoder,
-    'DeformedSweepMatchDecoder': DeformedSweepMatchDecoder,
-    'FoliatedMatchingDecoder': FoliatedMatchingDecoder,
-    'DeformedRotatedSweepMatchDecoder': DeformedRotatedSweepMatchDecoder,
     'BeliefPropagationOSDDecoder': BeliefPropagationOSDDecoder,
     'MemoryBeliefPropagationDecoder': MemoryBeliefPropagationDecoder,
-    'RotatedInfiniteZBiasDecoder': RotatedInfiniteZBiasDecoder
+    'XCubeMatchingDecoder': XCubeMatchingDecoder
 }
 
 # Slurm automation config.
@@ -90,8 +89,8 @@ if os.getenv('SLURM_DIR') is not None:
 SBATCH_TEMPLATE = os.path.join(
     os.path.dirname(BASE_DIR), 'scripts', 'template.sbatch'
 )
-NIST_TEMPLATE = os.path.join(
-    os.path.dirname(BASE_DIR), 'scripts', 'nist.sbatch'
+AD_TEMPLATE = os.path.join(
+    os.path.dirname(BASE_DIR), 'scripts', 'ad.sbatch'
 )
 
 # Slurm username for reporting status.
@@ -115,3 +114,19 @@ def register_error_model(error_model_class):
 def register_decoder(decoder_class):
     label = decoder_class.__class__.__name__
     DECODERS[label] = decoder_class
+
+
+# Shortened names for analysis and plot labelling purposes.
+SHORT_NAMES = {
+    'Pauli': 'CSS',
+    'Deformed XZZX Pauli': 'Clifford-deformed',
+    'Deformed Rhombic Pauli': 'Clifford-deformed',
+    'BP-OSD decoder': 'BP-OSD',
+    'Toric 3D Sweep Pymatching Decoder': 'sweep-matching',
+    'Deformed Toric 3D Sweep Pymatching Decoder': 'sweep-matching',
+}
+LONG_NAMES = {
+    'Rhombic': 'surface code on checkerboard lattice',
+    'Toric': 'surface code on cubic lattice',
+    'XCube': 'X-cube model',
+}

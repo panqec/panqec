@@ -2,7 +2,7 @@ from typing import Tuple, Dict
 import numpy as np
 from panqec.decoders import BaseDecoder
 from panqec.error_models import BaseErrorModel
-from panqec.codes import Toric3DCode
+from panqec.codes import StabilizerCode
 
 Operator = Dict[Tuple, str]
 
@@ -10,11 +10,13 @@ Operator = Dict[Tuple, str]
 class SweepDecoder3D(BaseDecoder):
 
     label: str = 'Toric 3D Sweep Decoder'
+    allowed_codes = ["Toric3DCode", "Planar3DCode"]
+
     _rng: np.random.Generator
     max_sweep_factor: int
 
     def __init__(self,
-                 code: Toric3DCode,
+                 code: StabilizerCode,
                  error_model: BaseErrorModel,
                  error_rate: float,
                  seed: int = 0,
@@ -22,6 +24,14 @@ class SweepDecoder3D(BaseDecoder):
         super().__init__(code, error_model, error_rate)
         self._rng = np.random.default_rng(seed)
         self.max_sweep_factor = max_sweep_factor
+        self.seed = seed
+
+    @property
+    def params(self) -> dict:
+        return {
+            'seed': self.seed,
+            'max_sweep_factor': self.max_sweep_factor
+        }
 
     def get_face_syndromes(
         self, full_syndrome: np.ndarray
@@ -81,8 +91,6 @@ class SweepDecoder3D(BaseDecoder):
     def get_initial_state(self, syndrome: np.ndarray) -> np.ndarray:
         """Get initial cellular automaton state from syndrome."""
         signs = syndrome.copy()
-        print("Syndrome", syndrome.shape)
-        print("Indices", len(self.code.z_indices))
         signs[self.code.z_indices] = 0
 
         return signs

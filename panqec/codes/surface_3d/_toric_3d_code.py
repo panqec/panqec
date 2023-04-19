@@ -1,20 +1,42 @@
 from typing import Tuple, Dict, List
-import numpy as np
 from panqec.codes import StabilizerCode
 
-Operator = Dict[Tuple[int, int, int], str]  # Location to pauli ('X', 'Y' or 'Z')
-Coordinates = List[Tuple[int, int, int]]  # List of locations
+Operator = Dict[Tuple, str]  # Location to pauli ('X','Y','Z')
+Coordinates = List[Tuple]  # List of locations
 
 
 class Toric3DCode(StabilizerCode):
+    """3D surface code on periodic cubic lattice with qubits on edges.
+
+    Parameters
+    ----------
+    L_x : int
+        Size in the x direction.
+    L_y : Optional[int]
+        Size in the y direction, assumed same as Lx if not given.
+    L_z : Optional[int]
+        Size in the z direction, assumed same as Lx if not given.
+
+    Notes
+    -----
+    The qubits live on the edges of the 3D lattice.
+    There are two types of stabilizer generators:
+    6-body vertex operators living on vertices,
+    and 4-body face operators living on faces.
+
+    In the coordinate system used in this implementation,
+    the origin (0, 0, 0) is a vertex,
+    and each unit cell is a cube of linear size 2.
+    """
     dimension = 3
+    deformation_names = ['XZZX']
 
     @property
     def label(self) -> str:
         return 'Toric {}x{}x{}'.format(*self.size)
 
     def get_qubit_coordinates(self) -> Coordinates:
-        coordinates = []
+        coordinates: Coordinates = []
         Lx, Ly, Lz = self.size
 
         # Qubits along e_x
@@ -38,7 +60,7 @@ class Toric3DCode(StabilizerCode):
         return coordinates
 
     def get_stabilizer_coordinates(self) -> Coordinates:
-        coordinates = []
+        coordinates: Coordinates = []
         Lx, Ly, Lz = self.size
 
         # Vertices
@@ -67,7 +89,7 @@ class Toric3DCode(StabilizerCode):
 
         return coordinates
 
-    def stabilizer_type(self, location: Tuple[int, int, int]) -> str:
+    def stabilizer_type(self, location: Tuple) -> str:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location} for a stabilizer")
 
@@ -77,7 +99,7 @@ class Toric3DCode(StabilizerCode):
         else:
             return 'face'
 
-    def get_stabilizer(self, location, deformed_axis=None) -> Operator:
+    def get_stabilizer(self, location) -> Operator:
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location} for a stabilizer")
 
@@ -86,12 +108,11 @@ class Toric3DCode(StabilizerCode):
         else:
             pauli = 'X'
 
-        deformed_pauli = {'X': 'Z', 'Z': 'X'}[pauli]
-
         x, y, z = location
 
         if self.stabilizer_type(location) == 'vertex':
-            delta = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
+            delta = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1),
+                     (0, 0, 1)]
         else:
             # Face in xy-plane.
             if z % 2 == 0:
@@ -103,14 +124,14 @@ class Toric3DCode(StabilizerCode):
             elif (y % 2 == 0):
                 delta = [(-1, 0, 0), (1, 0, 0), (0, 0, -1), (0, 0, 1)]
 
-        operator = dict()
+        operator: Operator = dict()
         for d in delta:
             Lx, Ly, Lz = self.size
-            qubit_location = ((x + d[0]) % (2*Lx), (y + d[1]) % (2*Ly), (z + d[2]) % (2*Lz))
+            qubit_location = ((x + d[0]) % (2*Lx), (y + d[1]) % (2*Ly),
+                              (z + d[2]) % (2*Lz))
 
             if self.is_qubit(qubit_location):
-                is_deformed = (self.qubit_axis(qubit_location) == deformed_axis)
-                operator[qubit_location] = deformed_pauli if is_deformed else pauli
+                operator[qubit_location] = pauli
 
         return operator
 
@@ -124,18 +145,19 @@ class Toric3DCode(StabilizerCode):
         elif (z % 2 == 1) and (x % 2 == 0) and (y % 2 == 0):
             axis = 'z'
         else:
-            raise ValueError(f'Location {location} does not correspond to a qubit')
+            raise ValueError(f"Location {location} does not correspond"
+                             "to a qubit")
 
         return axis
 
-    def get_logicals_x(self) -> Operator:
+    def get_logicals_x(self) -> List[Operator]:
         """The 3 logical X operators."""
 
         Lx, Ly, Lz = self.size
         logicals = []
 
         # X operators along x edges in x direction.
-        operator = dict()
+        operator: Operator = dict()
         for x in range(1, 2*Lx, 2):
             operator[(x, 0, 0)] = 'X'
         logicals.append(operator)
@@ -154,13 +176,13 @@ class Toric3DCode(StabilizerCode):
 
         return logicals
 
-    def get_logicals_z(self) -> Operator:
+    def get_logicals_z(self) -> List[Operator]:
         """Get the 3 logical Z operators."""
         Lx, Ly, Lz = self.size
         logicals = []
 
         # Z operators on x edges forming surface normal to x (yz plane).
-        operator = dict()
+        operator: Operator = dict()
         for y in range(0, 2*Ly, 2):
             for z in range(0, 2*Lz, 2):
                 operator[(1, y, z)] = 'Z'
@@ -182,8 +204,12 @@ class Toric3DCode(StabilizerCode):
 
         return logicals
 
-    def stabilizer_representation(self, location, rotated_picture=False) -> Dict:
-        representation = super().stabilizer_representation(location, rotated_picture)
+    def stabilizer_representation(
+        self, location, rotated_picture=False, json_file=None
+    ) -> Dict:
+        representation = super().stabilizer_representation(
+            location, rotated_picture, json_file=json_file
+        )
 
         x, y, z = location
         if not rotated_picture and self.stabilizer_type(location) == 'face':
@@ -203,3 +229,29 @@ class Toric3DCode(StabilizerCode):
                 representation['params']['normal'] = [0, 1, 0]
 
         return representation
+
+    def get_deformation(
+        self, location: Tuple,
+        deformation_name: str,
+        deformation_axis: str = 'y',
+        **kwargs
+    ) -> Dict:
+
+        if deformation_axis not in ['x', 'y', 'z']:
+            raise ValueError(f"{deformation_axis} is not a valid "
+                             "deformation axis")
+
+        if deformation_name == 'XZZX':
+            undeformed_dict = {'X': 'X', 'Y': 'Y', 'Z': 'Z'}
+            deformed_dict = {'X': 'Z', 'Y': 'Y', 'Z': 'X'}
+
+            if self.qubit_axis(location) == deformation_axis:
+                deformation = deformed_dict
+            else:
+                deformation = undeformed_dict
+
+        else:
+            raise ValueError(f"The deformation {deformation_name}"
+                             "does not exist")
+
+        return deformation

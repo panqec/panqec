@@ -1,0 +1,95 @@
+{
+  "comments": "Some comments about this run.",
+  "ranges": [
+    {
+      "label": "toric2d_bitflip",
+      "code": {
+        "name": "Toric2DCode",
+        "parameters": [
+          {"L_x": 4},
+          {"L_x": 6},
+          {"L_x": 8}
+        ]
+      },
+      "error_model": {
+        "name": "PauliErrorModel",
+        "parameters": [
+          {"r_x": 1, "r_y": 0, "r_z": 0}
+        ]
+      },
+      "decoder": {
+        "name": "BeliefPropagationOSDDecoder",
+        "parameters": {
+          "max_bp_iter": 1000,
+          "osd_order": 0
+        }
+      },
+      "error_rate": [
+        0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14
+      ],
+      "trials": 1000
+    },
+    {
+      "label": "toric3d_bias_10",
+      "code": {
+        "name": "Toric3DCode",
+        "parameters": [
+          {"L_x": 4},
+          {"L_x": 6},
+          {"L_x": 8}
+        ]
+      },
+      "error_model": {
+        "name": "PauliErrorModel",
+        "parameters": [
+          {
+            "r_x": 0.04545454545454547,
+            "r_y": 0.04545454545454547,
+            "r_z": 0.9090909090909091
+          }
+        ]
+      },
+      "decoder": {
+        "name": "BeliefPropagationOSDDecoder",
+        "parameters": {
+          "max_bp_iter": 1000,
+          "osd_order": 0
+        }
+      },
+      "error_rate": [
+        0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20,
+        0.22, 0.24, 0.26, 0.28, 0.30, 0.32, 0.34, 0.36, 0.38, 0.40,
+        0.42, 0.44, 0.46, 0.48
+      ],
+      "trials": 1000
+    },
+    {
+      "label": "toric2d_depolarizing",
+      "code": {
+        "name": "Toric2DCode",
+        "parameters": [
+          {"L_x": 4},
+          {"L_x": 6},
+          {"L_x": 8}
+        ]
+      },
+      "error_model": {
+        "name": "PauliErrorModel",
+        "parameters": [
+          {"r_x": 0.333333333, "r_y": 0.333333333, "r_z": 0.333333333}
+        ]
+      },
+      "decoder": {
+        "name": "BeliefPropagationOSDDecoder",
+        "parameters": {
+          "max_bp_iter": 1000,
+          "osd_order": 0
+        }
+      },
+      "error_rate": [
+        0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.20
+      ],
+      "trials": 1000
+    }
+  ]
+}

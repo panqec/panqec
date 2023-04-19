@@ -10,6 +10,8 @@ Operator = Dict[Tuple, str]
 class RotatedSweepDecoder3D(BaseDecoder):
 
     label = 'Rotated Code 3D Sweep Decoder'
+    allowed_codes = ["RotatedToric3DCode", "RotatedPlanar3DCode"]
+
     _rng: np.random.Generator
     max_rounds: int
 
@@ -20,7 +22,15 @@ class RotatedSweepDecoder3D(BaseDecoder):
                  max_rounds: int = 32):
         super().__init__(code, error_model, error_rate)
         self._rng = np.random.default_rng(seed)
+        self.seed = seed
         self.max_rounds = max_rounds
+
+    @property
+    def params(self) -> dict:
+        return {
+            'seed': self.seed,
+            'max_rounds': self.max_rounds
+        }
 
     def get_face_syndromes(
         self, full_syndrome: np.ndarray
@@ -244,7 +254,8 @@ class RotatedSweepDecoder3D(BaseDecoder):
             ]
 
         # Only keep faces that are actually on the cut lattice.
-        faces = [face for face in faces if self.code.is_stabilizer(face, 'face')]
+        faces = [face for face in faces
+                 if self.code.is_stabilizer(face, 'face')]
 
         # Flip the state of the faces.
         for face in faces:

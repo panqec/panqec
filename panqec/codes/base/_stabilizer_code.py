@@ -1,4 +1,6 @@
 from typing import Dict, Tuple, Optional, List
+from types import MethodType
+from copy import copy
 import os
 from abc import ABCMeta, abstractmethod
 import numpy as np
@@ -6,7 +8,7 @@ import json
 from scipy.sparse import csr_matrix, dok_matrix
 
 import panqec
-from panqec.bpauli import bcommute, get_effective_error
+from panqec.bpauli import bs_prod, get_effective_error
 from panqec import bsparse
 
 os.environ['PANQEC_ROOT_DIR'] = os.path.dirname(panqec.__file__)
@@ -23,8 +25,7 @@ class StabilizerCode(metaclass=ABCMeta):
     - get_stabilizer_coordinates() to define all the coordinates in the lattice
     that contain stabilizers
     - qubit_axis(location) to return the axis of a qubit at a given location
-      (when qubit have an orientation in space, for instance when they are
-      edges)
+    (when qubit have an orientation in space, for instance when they are edges)
 
     Using only those methods, a StabilizerCode will then automatically create
     the corresponding parity-check matrix (in self.stabilizers) and can be used
@@ -35,11 +36,12 @@ class StabilizerCode(metaclass=ABCMeta):
     Y_AXIS = 1
     Z_AXIS = 2
 
+    deformation_names: List[str] = []
+
     def __init__(
         self, L_x: int,
         L_y: Optional[int] = None,
         L_z: Optional[int] = None,
-        deformed_axis: Optional[str] = None
     ):
         """Constructor for the StabilizerCode class
 
@@ -52,20 +54,16 @@ class StabilizerCode(metaclass=ABCMeta):
             Dimension of the lattice in the y direction
         L_z: int, optional
             Dimension of the lattice in the z direction
-        deformed_axis: str, optional
-            If given, will determine whether to apply a Clifford deformation on
-            this axis.
-            The axis is a string in ['x', 'y', 'z'].
-            Can be used to easily create codes such as the XZZX surface code
-            (arXiv: 2009.07851)
         """
 
         if L_y is None:
             L_y = L_x
-        if L_z is None:
+        if L_z is None and self.dimension == 3:
             L_z = L_x
 
-        self._deformed_axis = deformed_axis
+        self.L_x = L_x
+        self.L_y = L_y
+        self.L_z = L_z
 
         self._size: Tuple
         if self.dimension == 2:
@@ -89,6 +87,9 @@ class StabilizerCode(metaclass=ABCMeta):
         self._z_indices: Optional[np.ndarray] = None
         self._d: Optional[int] = None
         self._stabilizer_types: Optional[List[str]] = None
+        self.is_deformed: bool = False
+        self.deformation_name: Optional[str] = None
+        self.deformation_kwargs: Optional[dict] = None
 
         self.colormap = {'red': '0xFF4B3E',
                          'blue': '0x48BEFF',
@@ -118,6 +119,16 @@ class StabilizerCode(metaclass=ABCMeta):
     def id(self) -> str:
         """Returns a string identifying the class (usually the code name)"""
         return self.__class__.__name__
+
+    @property
+    def params(self) -> dict:
+        """List of class arguments (as a dictionary), that can be saved
+        and reused to instantiate the same code"""
+        return {
+            'L_x': self.L_x,
+            'L_y': self.L_y,
+            'L_z': self.L_z,
+        }
 
     @property
     def n(self) -> int:
@@ -198,7 +209,7 @@ class StabilizerCode(metaclass=ABCMeta):
 
     @property
     def logicals_x(self) -> np.ndarray:
-        """Logical X operator, as a k x 2n sparse matrix in the binary
+        """Logical X operator, as a k x 2n matrix in the binary
         symplectic format, where k is the number of logical X operators,
         and n the number of qubits.
         """
@@ -214,9 +225,9 @@ class StabilizerCode(metaclass=ABCMeta):
 
     @property
     def logicals_z(self) -> np.ndarray:
-        """Logical Z operators in the binary symplectic format.
-        It is a sparse matrix of dimension k x 2n, where k is the number
-        of Z logicals and n the number of qubits.
+        """Logical Z operator, as a k x 2n matrix in the binary
+        symplectic format, where k is the number of logical Z operators,
+        and n the number of qubits.
         """
         if self._logicals_z is None:
             logical_ops = self.get_logicals_z()
@@ -257,9 +268,7 @@ class StabilizerCode(metaclass=ABCMeta):
             for i_stab, stabilizer_location in enumerate(
                 self.stabilizer_coordinates
             ):
-                stabilizer_op = self.get_stabilizer(
-                    stabilizer_location, deformed_axis=self._deformed_axis
-                )
+                stabilizer_op = self.get_stabilizer(stabilizer_location)
 
                 for qubit_location in stabilizer_op.keys():
                     if stabilizer_op[qubit_location] in ['X', 'Y']:
@@ -360,7 +369,7 @@ class StabilizerCode(metaclass=ABCMeta):
             Whether or not the error is in the codespace
         """
 
-        return bool(np.all(bcommute(self.stabilizer_matrix, error) == 0))
+        return bool(np.all(self.measure_syndrome(error) == 0))
 
     def logical_errors(self, error: np.ndarray) -> np.ndarray:
         """Return the logical errors, as an array of size 2k
@@ -404,6 +413,10 @@ class StabilizerCode(metaclass=ABCMeta):
         """
 
         return bool(np.any(self.logical_errors(error) != 0))
+
+    def is_success(self, total_error) -> bool:
+        return (self.in_codespace(total_error) and
+                not self.is_logical_error(total_error))
 
     def extract_x_syndrome(self, syndrome: np.ndarray) -> np.ndarray:
         """For CSS codes only. Returns the part of the syndrome that
@@ -523,9 +536,9 @@ class StabilizerCode(metaclass=ABCMeta):
             of stabilizers)
         """
 
-        return bcommute(self.stabilizer_matrix, error)
+        return bs_prod(self.stabilizer_matrix, error)
 
-    def is_stabilizer(self, location: Tuple, stab_type: str = None):
+    def is_stabilizer(self, location: Tuple, stab_type: Optional[str] = None):
         """Returns whether a given location in the coordinate system
         corresponds to a stabilizer or not
         """
@@ -602,9 +615,7 @@ class StabilizerCode(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def get_stabilizer(
-        self, location: Tuple, deformed_axis: str = None
-    ) -> Operator:
+    def get_stabilizer(self, location: Tuple) -> Operator:
         """ Returns a stabilizer, formatted as dictionary that assigns a Pauli
         operator ('X', 'Y' or 'Z') to each qubit location in the support of
         the stabilizer.
@@ -618,13 +629,6 @@ class StabilizerCode(metaclass=ABCMeta):
         ----------
         location: Tuple
             Location of the stabilizer in the coordinate system
-        deformed_axis: str, optional
-            If given, represents an axis ('x', 'y' or 'z') that we want to
-            Clifford-deform, by applying a Clifford transformation to all the
-            qubits oriented along the given axis
-            (e.g. `deformed_axis='x'` in the 2D toric code could give an
-            XZZX surface code, where the transformation Pauli X <-> Z
-            has been applied to all the vertical qubits of the code)
 
         Returns
         -------
@@ -660,6 +664,72 @@ class StabilizerCode(metaclass=ABCMeta):
             operator ('X', 'Y' or 'Z') to each qubit location in the support
             of the logical operator.
         """
+
+    def get_deformation(
+        self, location: Tuple, deformation_name: str, **kwargs
+    ):
+        return NotImplementedError("No deformation implemented for this code")
+
+    def deform(self, deformation_name, **kwargs):
+        self.__init__(*self.size)
+
+        self.is_deformed = True
+        self.deformation_name = deformation_name
+        self.deformation_kwargs = kwargs
+
+        if not hasattr(self, '_get_undeformed_stabilizer'):
+            self._get_undeformed_stabilizer = copy(
+                MethodType(self.get_stabilizer, self)
+            )
+
+        if not hasattr(self, '_get_undeformed_logicals_x'):
+            self._get_undeformed_logicals_x = copy(
+                MethodType(self.get_logicals_x, self)
+            )
+
+        if not hasattr(self, '_get_undeformed_logicals_z'):
+            self._get_undeformed_logicals_z = copy(
+                MethodType(self.get_logicals_z, self)
+            )
+
+        def get_stabilizer(self, location):
+            stab = self._get_undeformed_stabilizer(location)
+
+            for loc in stab.keys():
+                deformation = self.get_deformation(
+                    loc, deformation_name, **kwargs
+                )
+                stab[loc] = deformation[stab[loc]]
+
+            return stab
+
+        def get_logicals_x(self):
+            logicals = self._get_undeformed_logicals_x()
+
+            for logical in logicals:
+                for loc in logical.keys():
+                    deformation = self.get_deformation(
+                        loc, deformation_name, **kwargs
+                    )
+                    logical[loc] = deformation[logical[loc]]
+
+            return logicals
+
+        def get_logicals_z(self):
+            logicals = self._get_undeformed_logicals_z()
+
+            for logical in logicals:
+                for loc in logical.keys():
+                    deformation = self.get_deformation(
+                        loc, deformation_name, **kwargs
+                    )
+                    logical[loc] = deformation[logical[loc]]
+
+            return logicals
+
+        self.get_stabilizer = MethodType(get_stabilizer, self)
+        self.get_logicals_x = MethodType(get_logicals_x, self)
+        self.get_logicals_z = MethodType(get_logicals_z, self)
 
     def stabilizer_representation(self,
                                   location: Tuple,

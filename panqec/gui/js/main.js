@@ -9,11 +9,11 @@ var defaultCode = codeDimension == 2 ? 'Toric 2D' : "Haah's code";
 var defaultSize = codeDimension == 2 ? 6 : 4;
 
 const params = {
-    errorProbability: 0.3,
+    errorProbability: 0.1,
     L: defaultSize,
-    noise_deformation: 'None',
+    noiseDeformationName: 'None',
     decoder: 'BP-OSD',
-    max_bp_iter: 10,
+    max_bp_iter: 20,
     alpha: 0.4,
     beta: 0,
     channel_update: false,
@@ -21,7 +21,7 @@ const params = {
     codeName: defaultCode,
     rotated: false,
     coprime: false,
-    deformed_axis: 'None'
+    codeDeformationName: 'None'
 };
 
 let codeSize = {Lx: defaultSize, Ly: defaultSize, Lz: defaultSize};
@@ -37,7 +37,7 @@ const COLORS = {
 
 const KEY_CODE = {'d': 68, 'r': 82, 'backspace': 8, 'o': 79, 'x': 88, 'z': 90}
 
-let camera, controls, scene, renderer, effect, mouse, raycaster, intersects, gui;
+let camera, controls, scene, renderer, effect, mouse, raycaster, intersects, menu;
 let code;
 
 init();
@@ -53,7 +53,7 @@ function init() {
     else {
         buildScene3D();
     }
-    buildGUI();
+    buildMenu();
     buildCode();
 
     if (codeDimension == 3) {
@@ -164,7 +164,7 @@ async function buildCode() {
     }
 }
 
-function changeLatticeSize() {
+async function changeLatticeSize() {
     codeSize.Lx = parseInt(params.L);
     codeSize.Ly = parseInt(params.L);
     codeSize.Lz = parseInt(params.L);
@@ -186,6 +186,7 @@ function changeLatticeSize() {
         scene.remove(s);
     });
 
+    await updateMenu();
     buildCode();
 }
 
@@ -200,7 +201,7 @@ async function getCodeData() {
             'Ly': codeSize.Ly,
             'Lz': codeSize.Lz,
             'code_name': params.codeName,
-            'deformed_axis': params.deformed_axis,
+            'code_deformation_name': params.codeDeformationName,
             'rotated_picture': params.rotated
         })
     });
@@ -210,8 +211,8 @@ async function getCodeData() {
     return data;
 }
 
-async function getModelNames() {
-    let response = await fetch('/model-names', {
+async function getCodeNames() {
+    let response = await fetch('/code-names', {
         headers: {
             'Content-Type': 'application/json'
           },
@@ -224,37 +225,100 @@ async function getModelNames() {
     return data;
 }
 
-async function buildGUI() {
-    gui = new GUI({width: 300});
-    const codeFolder = gui.addFolder('Code')
+async function getDecoderNames() {
+    let response = await fetch('/decoder-names', {
+        headers: {
+            'Content-Type': 'application/json'
+          },
+        method: 'POST',
+        body: JSON.stringify({'code_name': params.codeName})
+    });
 
-    var models = await getModelNames();
-    var codes = models['codes'];
-    var decoders = models['decoders'];
+    let data  = await response.json();
+
+    return data;
+}
+
+async function getDeformationNames() {
+    let response = await fetch('/deformation-names', {
+        headers: {
+            'Content-Type': 'application/json'
+          },
+        method: 'POST',
+        body: JSON.stringify({'code_name': params.codeName})
+    });
+
+    let data  = await response.json();
+
+    return data;
+}
+
+async function buildMenu() {
+    menu = new GUI({width: 300});
+    const codeFolder = menu.addFolder('Code')
+
+    var codes = await getCodeNames();
 
     codeFolder.add(params, 'codeName', codes).name('Code type').onChange(changeLatticeSize);
     codeFolder.add(params, 'rotated').name('Rotated picture').onChange(changeLatticeSize);
     codeFolder.add(params, 'coprime').name('Coprime dimensions').onChange(changeLatticeSize);
-    codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8}).name('Lattice size').onChange(changeLatticeSize);
-
-    let deformedOptions = {'None': 'None', 'x axis': 'x', 'y axis': 'y'};
-    if (codeDimension == 3)
-        deformedOptions['z axis'] = 'z';
-
-    codeFolder.add(params, 'deformed_axis', deformedOptions).name('Deformation').onChange(changeLatticeSize);
+    codeFolder.add(params, 'L', {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8,
+                                 '8': 8, '9': 9, '10':10, '11':11, '12': 12}).name('Lattice size').onChange(changeLatticeSize);
     codeFolder.open();
 
-    const errorModelFolder = gui.addFolder('Error Model')
-    errorModelFolder.add(params, 'errorModel', {'Pure X': 'Pure X', 'Pure Y': 'Pure Y', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}).name('Model');
+    updateMenu();
+}
+
+async function updateMenu() {
+    // Clifford-deformation part
+    var deformationNames = await getDeformationNames();
+    deformationNames = ['None'].concat(deformationNames)
+
+    if (!deformationNames.includes(params.codeDeformationName)) {
+        params.codeDeformationName = 'None';
+    }
+    if (!deformationNames.includes(params.noiseDeformationName)) {
+        params.noiseDeformationName = 'None';
+    }
+
+    var codeFolder = menu.__folders['Code'];
+
+    codeFolder.__controllers.forEach(controller => {
+        if (controller.property == 'codeDeformationName') {
+            controller.remove();
+        }
+    });
+
+    codeFolder.add(params, 'codeDeformationName', deformationNames).name('Clifford deformation').onChange(changeLatticeSize);
+
+    if ('Error Model' in menu.__folders) {
+        menu.removeFolder(menu.__folders['Error Model']);
+    }
+
+    const errorModelFolder = menu.addFolder('Error Model')
+    errorModelFolder.add(params, 'errorModel',
+        {'Pure X': 'Pure X', 'Pure Y': 'Pure Y', 'Pure Z': 'Pure Z', 'Depolarizing': 'Depolarizing'}
+    ).name('Model');
     errorModelFolder.add(params, 'errorProbability', 0, 0.5).name('Probability');
-    errorModelFolder.add(params, 'noise_deformation', {'None': 'None', 'XZZX': 'XZZX', 'XY': 'XY', 'Rhombic': 'Rhombic'}).name('Deformation');
+    errorModelFolder.add(params, 'noiseDeformationName', deformationNames).name('Clifford deformation').onChange(changeLatticeSize);
     errorModelFolder.add(buttons, 'addErrors').name('▶ Add errors (r)');
     errorModelFolder.open();
 
-    const decoderFolder = gui.addFolder('Decoder')
+    // Decoder part
+    if ('Decoder' in menu.__folders) {
+        menu.removeFolder(menu.__folders['Decoder']);
+    }
+
+    var decoders = await getDecoderNames();
+
+    if (!decoders.includes(params.decoder)) {
+        params.decoder = decoders[0];
+    }
+
+    const decoderFolder = menu.addFolder('Decoder');
 
     decoderFolder.add(params, 'decoder', decoders).name('Decoder');
-    decoderFolder.add(params, 'max_bp_iter', 1, 100, 1).name('Max iterations (BP)');
+    decoderFolder.add(params, 'max_bp_iter', 1, 1000, 1).name('Max iterations (BP)');
     decoderFolder.add(params, 'channel_update').name('Channel update (BP)');
     decoderFolder.add(params, 'alpha', 0.01, 2, 0.01).name('Alpha (MBP)');
     decoderFolder.add(params, 'beta', 0, 2, 0.01).name('Beta (MBP)');
@@ -289,8 +353,8 @@ function buildInstructions() {
         instructions.innerHTML =
         "\
             <table style='border-spacing: 10px'>\
-            <tr><td><b>Ctrl-left click</b></td><td>X error</td></tr>\
-            <tr><td><b>Ctrl-right click</b></td><td>Z error</td></tr>\
+            <tr><td><b>Ctrl click</b></td><td>X error</td></tr>\
+            <tr><td><b>Shift click</b></td><td>Z error</td></tr>\
             <tr><td><b>Backspace</b></td><td>Remove errors</td></tr>\
             <tr><td><b>R</b></td><td>Random errors</td></tr>\
             <tr><td><b>D</b></td><td>Decode</td></tr>\
@@ -304,8 +368,8 @@ function buildInstructions() {
         instructions.innerHTML =
         "\
             <table style='border-spacing: 10px'>\
-            <tr><td><b>Left click</b></td><td>X error</td></tr>\
-            <tr><td><b>Right click</b></td><td>Z error</td></tr>\
+            <tr><td><b>Ctrl click</b></td><td>X error</td></tr>\
+            <tr><td><b>Shift click</b></td><td>Z error</td></tr>\
             <tr><td><b>Backspace</b></td><td>Remove errors</td></tr>\
             <tr><td><b>R</b></td><td>Random errors</td></tr>\
             <tr><td><b>D</b></td><td>Decode</td></tr>\
@@ -328,7 +392,7 @@ function buildReturnArrow() {
 }
 
 function onDocumentMouseDown(event) {
-    if (event.ctrlKey || event.shiftKey || codeDimension == 2) {
+    if (event.ctrlKey || event.shiftKey) {
         mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
         mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 
@@ -339,24 +403,19 @@ function onDocumentMouseDown(event) {
 
         let selectedQubit = intersects[0].object;
 
-        if (event.ctrlKey || codeDimension == 2) {
-            switch (event.button) {
-                case 0: // left click
-                    var x = selectedQubit.location[0]
-                    var y = selectedQubit.location[1]
-                    var z = selectedQubit.location[2]
-                    console.log('Selected qubit', selectedQubit.index, 'at', x, y, z);
-                    code.insertError(selectedQubit, 'X');
-                    break;
-                case 2:
-                    var x = selectedQubit.location[0]
-                    var y = selectedQubit.location[1]
-                    var z = selectedQubit.location[2]
-                    console.log('Selected qubit', selectedQubit.index, 'at', x, y, z);
-                    code.insertError(selectedQubit, 'Z');
-                    break;
+        if (event.button == 0) {
+            var x = selectedQubit.location[0]
+            var y = selectedQubit.location[1]
+            var z = selectedQubit.location[2]
+
+            if (event.ctrlKey) {
+                console.log('Selected qubit', selectedQubit.index, 'at', x, y, z);
+                code.insertError(selectedQubit, 'X');
             }
-        } else {
+            if (event.shiftKey) {
+                console.log('Selected qubit', selectedQubit.index, 'at', x, y, z);
+                code.insertError(selectedQubit, 'Z');
+            }
         }
     }
 }
@@ -377,11 +436,11 @@ async function getCorrection(syndrome) {
             'beta': params.beta,
             'channel_update': params.channel_update,
             'syndrome': syndrome,
-            'noise_deformation': params.noise_deformation,
+            'noise_deformation_name': params.noiseDeformationName,
             'decoder': params.decoder,
             'error_model': params.errorModel,
             'code_name': params.codeName,
-            'deformed_axis': params.deformed_axis
+            'code_deformation_name': params.codeDeformationName
         })
     });
 
@@ -401,10 +460,10 @@ async function getRandomErrors() {
             'Ly': codeSize.Ly,
             'Lz': codeSize.Lz,
             'p': params.errorProbability,
-            'noise_deformation': params.noise_deformation,
+            'noise_deformation_name': params.noiseDeformationName,
             'error_model': params.errorModel,
             'code_name': params.codeName,
-            'deformed_axis': params.deformed_axis
+            'code_deformation_name': params.codeDeformationName
         })
     });
 

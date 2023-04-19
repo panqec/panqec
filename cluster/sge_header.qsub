@@ -1,0 +1,13 @@
+#!/bin/bash -l
+# Request ten minutes of wallclock time (format hours:minutes:seconds).
+#$ -l h_rt=${TIME}
+#$ -l mem=${MEMORY}
+#$ -l tmpfs=10G
+#$ -t 1-${N_NODES}
+#$ -N ${NAME}
+#$ -pe smp ${N_CORES}
+#$ -wd ${WORKING_DIR}
+#Local2Scratch
+
+module purge
+source ~/.bashrc

@@ -172,8 +172,8 @@ class TopologicalCode {
             this.qubits[index] = qubit;
 
             maxQubitCoordinates['x'] = Math.max(qubit.position.x, maxQubitCoordinates['x']);
-            maxQubitCoordinates['y'] = Math.max(qubit.position.x, maxQubitCoordinates['y']);
-            maxQubitCoordinates['z'] = Math.max(qubit.position.x, maxQubitCoordinates['z']);
+            maxQubitCoordinates['y'] = Math.max(qubit.position.y, maxQubitCoordinates['y']);
+            maxQubitCoordinates['z'] = Math.max(qubit.position.z, maxQubitCoordinates['z']);
 
             scene.add(qubit);
         }
@@ -208,9 +208,9 @@ class TopologicalCode {
             scene.add(stabilizer);
         }
 
-        var maxCoordinates = {'x': Math.max(maxStabCoordinates['x'], maxQubitCoordinates['x']),
-                              'y': Math.max(maxStabCoordinates['y'], maxQubitCoordinates['y']),
-                              'z': Math.max(maxStabCoordinates['z'], maxQubitCoordinates['z'])};
+        var maxCoordinates = {'x': Math.max(maxStabCoordinates['x'], maxQubitCoordinates['x'])+1,
+                              'y': Math.max(maxStabCoordinates['y'], maxQubitCoordinates['y'])+1,
+                              'z': Math.max(maxStabCoordinates['z'], maxQubitCoordinates['z'])+1};
 
         var offset = {'x': maxCoordinates['x'] / 2,
                       'y': maxCoordinates['y'] / 2,
