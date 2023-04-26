@@ -27,6 +27,7 @@ class TopologicalCode {
         this.stabilizers = new Array(this.m);
 
         this.qubitMap = {};
+        this.stabilizerMap = {};
     }
 
     updateStabilizers() {
@@ -124,6 +125,10 @@ class TopologicalCode {
     }
 
     toggleStabilizer(stabilizer, activate) {
+        if (Array.isArray(stabilizer)) {
+            stabilizer = this.stabilizerMap[stabilizer];
+        }
+
         stabilizer.isActivated = activate;
         var activateStr = activate ? 'activated' : 'deactivated';
         var opacityLevel = this.opacityActivated ? 'min' : 'max'
@@ -222,6 +227,7 @@ class TopologicalCode {
             stabilizer.type = stabType;
 
             this.stabilizers[index] = stabilizer;
+            this.stabilizerMap[stabilizer.location] = stabilizer;
 
             ['x', 'y', 'z'].forEach(axis => {
                 maxStabCoordinates[axis] = Math.max(
@@ -238,8 +244,6 @@ class TopologicalCode {
         }
 
         var eps = 0.5;
-
-        console.log(maxStabCoordinates)
 
         var maxCoordinates = {'x': Math.max(maxStabCoordinates['x'], maxQubitCoordinates['x'])+eps,
                               'y': Math.max(maxStabCoordinates['y'], maxQubitCoordinates['y'])+eps,
