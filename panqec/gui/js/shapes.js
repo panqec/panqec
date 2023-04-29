@@ -47,9 +47,9 @@ function rectangle(location, params) {
     var theta = (norm_xz == 0) ? 0 : Math.acos(normal.x / norm_xz);
     var alpha = Math.acos(norm_xz / norm);
 
+    geometry.rotateX(params['angle']);
     geometry.rotateY(theta + Math.PI / 2);
-    geometry.rotateX(alpha);
-    geometry.rotateZ(params['angle']);
+    geometry.rotateZ(alpha);
 
     geometry.translate(x, y, z);
 
