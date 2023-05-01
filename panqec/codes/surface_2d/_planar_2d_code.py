@@ -159,8 +159,6 @@ class Planar2DCode(StabilizerCode):
 
         if rotated_picture:
             if x == 1 or x == 2*Lx - 1 or y == 0 or y == 2*Ly - 2:
-                rep['object'] = 'triangle'
-
                 if x == 1:
                     vertices = [[0, 1, 0], [1, 0, 0], [0, -1, 0]]
                 elif x == 2*Lx - 1:
@@ -170,6 +168,6 @@ class Planar2DCode(StabilizerCode):
                 elif y == 2*Ly - 2:
                     vertices = [[-1, 0, 0], [0, -1, 0], [1, 0, 0]]
 
-                rep['params'] = {'vertices': vertices}
+                rep['params']['vertices'] = vertices
 
         return rep
