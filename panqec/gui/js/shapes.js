@@ -110,6 +110,14 @@ function semicircle(location, params) {
                                                  side: THREE.DoubleSide});
     const semicircle = new THREE.Mesh(geometry, material);
 
+    var geo = new THREE.EdgesGeometry(semicircle.geometry);
+    var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1,
+                                           transparent: true});
+
+    var wireframe = new THREE.LineSegments(geo, mat);
+    wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
+    semicircle.add(wireframe);
+
     return semicircle
 }
 
