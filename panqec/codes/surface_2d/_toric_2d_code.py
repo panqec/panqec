@@ -7,6 +7,25 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class Toric2DCode(StabilizerCode):
+    """The original 2D toric code introduced by Kitaev.
+    The qubits live on the edges of a 2D periodic square lattice.
+    There are two types of stabilizer generators:
+    vertex operators on vertices, and face operators faces.
+
+    The coordinate system used is shown below.
+
+    .. image:: toric_2d_code.svg
+        :scale: 200 %
+        :align: center
+
+    Parameters
+    ----------
+    L_x : int
+        The size in the x direction.
+    L_y : Optional[int]
+        The size in the y direction.
+        If it is not given, it is assumed to be a square lattice with Lx=Ly.
+    """
     dimension = 2
     deformation_names = ['XZZX', 'XY']
 

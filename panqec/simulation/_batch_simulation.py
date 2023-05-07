@@ -3,9 +3,11 @@
 import os
 import json
 from json import JSONDecodeError
+import datetime
 import itertools
 from typing import List, Dict, Callable, Union, Any, Optional, Tuple, Iterable
 import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
 from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
@@ -146,8 +148,11 @@ class BatchSimulation():
         for simulation in self._simulations:
             simulation.load_results(self._output_file)
 
-    def on_update(self):
-        """Function that gets called on every update."""
+    def on_update(self, n_trials: int):
+        """Function that gets called on every update.
+        It uses the total number of runs, `n_trials`, to estimate
+        the remaining time
+        """
         pass
 
     def estimate_remaining_time(self, n_trials: int):
@@ -233,6 +238,9 @@ class BatchSimulation():
 
         # Create output directory if it does not exist yet
         output_dir = os.path.dirname(self._output_file)
+        if output_dir == '':
+            output_dir = os.getcwd()
+
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
@@ -327,6 +335,30 @@ class BatchSimulation():
             results_df = results_df.explode(['error_rates', 'p_est', 'p_se'])
 
         return results_df
+
+    def activate_live_update(self):
+        self.on_update = self._update_plot
+
+    def _update_plot(self, n_trials: int):
+        import IPython
+
+        plt.clf()
+
+        remaining_time = self.estimate_remaining_time(n_trials)
+
+        analysis = Analysis(self._output_file, verbose=False)
+        analysis.plot_thresholds(
+            include_threshold_estimate=False,
+            include_main_title=False,
+            include_sector_title=False
+        )
+        plt.title(
+            f'Time remaining '
+            f'{datetime.timedelta(seconds=int(remaining_time))}'
+        )
+
+        IPython.display.clear_output(wait=True)
+        IPython.display.display(plt.gcf())
 
 
 def _parse_parameters_range(parameters):

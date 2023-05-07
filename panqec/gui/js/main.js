@@ -11,7 +11,7 @@ const params = {
     Lz: defaultSize,
     noiseDeformationName: 'None',
     decoder: 'BP-OSD',
-    max_bp_iter: 10,
+    max_bp_iter: 20,
     alpha: 0.4,
     beta: 0,
     channel_update: false,

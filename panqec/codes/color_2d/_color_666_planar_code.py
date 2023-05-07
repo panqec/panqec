@@ -6,6 +6,29 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class Color666PlanarCode(StabilizerCode):
+    """2D color code on 6,6,6 lattice with open boundaries.
+
+    The overall shape of the lattice is roughly a triangle.
+
+    Parameters
+    ----------
+    L_x : int
+        Number of unit cells in x direction.
+    L_y : Optional[int]
+        Number of unit cells in y direction.
+
+    Notes
+    -----
+    The 6,6,6 lattice is a tessallation of red hexagons (6),
+    green hexagons (6) and blue hexagons (6).
+    Qubits live on the vertices.
+    For each colored shape, there are two stabilizer generators,
+    one of all X over the qubits on its corners,
+    and one of all Z over the qubits on its corners.
+
+    See `EC zoo article <https://errorcorrectionzoo.org/c/color>`_
+    for further reading.
+    """
     dimension = 2
 
     @property

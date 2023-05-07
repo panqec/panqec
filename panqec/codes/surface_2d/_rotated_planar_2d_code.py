@@ -7,6 +7,41 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class RotatedPlanar2DCode(StabilizerCode):
+    """Rotated 2D surface code with open boundaries.
+    These use roughly half the number of qubits but only encode 1 logical
+    qubit.
+
+    Parameters
+    ----------
+    L_x : int
+        Number of qubits in the x direction.
+    L_y : Optional[int]
+        Number of qubits in the y direction.
+        Assumed square if not given.
+
+    Notes
+    -----
+    One stabilizer of each type is shown in the figure below.
+    In this picture, the qubits live on the edges and there
+    are two types of stabilizers: vertex Z stabilizers and
+    face X stabilizers.
+    Note the weight-2 stabilizers on the boundaries.
+    The below lattice is of size 5 by 4.
+
+    .. image:: rotated_planar_2d_code.svg
+        :scale: 200 %
+        :align: center
+
+    Alternatively, we can consider the the same coordinates,
+    qubits and stabilizers but seen on a rotated lattice,
+    where the lattice live on vertices,
+    and the two types of stabilizers correspond to the color
+    of the checkerboard faces as shown below.
+
+    .. image:: rotated_planar_2d_code_2.svg
+        :scale: 200 %
+        :align: center
+    """
     dimension = 2
     deformation_names = ['XZZX', 'XY']
 

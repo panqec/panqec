@@ -12,9 +12,13 @@ To test that the installation worked, you can try starting the GUI locally:
 panqec start-gui
 ```
 
+Go to `localhost:5000` in your browser to view the web interface.
+
 If instead you would like to install PanQEC from source, clone the repository and then use `pip` to install:
 
 ```bash
 git clone https://github.com/panqec/panqec
 pip install -e ./panqec
 ```
+
+Refer to the tutorials section to get started using it.

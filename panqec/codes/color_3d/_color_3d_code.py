@@ -8,6 +8,23 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class Color3DCode(StabilizerCode):
+    """3D Color Code on periodic truncated octahedral lattice.
+
+    Parameters
+    ----------
+    L_x : int
+        Size in the x direction.
+    L_y : int
+        Size in the y direction.
+    L_z : int
+        Size in the z direction.
+
+    Notes
+    -----
+    See
+    `Bombin and Martin-Delgado 2007 <https://arxiv.org/abs/cond-mat/0607736>`_
+    for more information.
+    """
     dimension = 3
 
     @property

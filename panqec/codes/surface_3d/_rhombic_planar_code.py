@@ -8,6 +8,30 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class RhombicPlanarCode(StabilizerCode):
+    """Toric code on checkerboard lattice with open boundaries.
+
+    Similar to :class:`panqec.codes.surface_3d.RhombicToricCode`
+    but with smooth boundaries on planes orthogonal to the x and z directions
+    and rough boundaries on planes orthogonal to the y direction.
+
+    Parameters
+    ----------
+    L_x : int
+        Size of lattice along x direction,
+        which is actually the number of x-edges in the x direction.
+    L_y : Optional[int]
+        Size of lattice along y direction,
+        which is actually the number of x-edges in the y direction.
+    L_z : Optional[int]
+        Size of lattice along z direction,
+        which is actually the number of x-edges in the z direction.
+
+    Notes
+    -----
+    Note that it is the same qubit lattice as that of
+    :class:`panqec.codes.surface_3d.Planar3DCode`
+    but with very different stabilizer generators.
+    """
     dimension = 3
     deformation_names = ['Checkerboard XZZX']
 
