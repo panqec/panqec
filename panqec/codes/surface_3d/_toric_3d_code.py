@@ -212,8 +212,8 @@ class Toric3DCode(StabilizerCode):
         )
 
         x, y, z = location
-        a = 1
         if not rotated_picture and self.stabilizer_type(location) == 'face':
+            a = 0.75
             if z % 2 == 0:  # yz plane
                 representation['params']['vertices'] = [
                     [0, a, a], [0, -a, a], [0, -a, -a], [0, a, -a]
@@ -228,6 +228,7 @@ class Toric3DCode(StabilizerCode):
                 ]
 
         if rotated_picture and self.stabilizer_type(location) == 'face':
+            a = 1
             if z % 2 == 0:
                 representation['params']['vertices'] = [
                     [a, 0, 0], [0, a, 0], [-a, 0, 0], [0, -a, 0]
