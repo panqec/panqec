@@ -20,6 +20,7 @@ from . import (
     BaseSimulation, DirectSimulation, SplittingSimulation,
     ClusterStateSimulation
 )
+from panqec.analysis import Analysis
 
 
 def run_file(
@@ -211,11 +212,11 @@ class BatchSimulation():
                         simulation.run(1)
                 if i_trial > 0:
                     if i_trial % self.update_frequency == 0:
-                        self.on_update()
+                        self.on_update(n_trials)
                     if i_trial % self.save_frequency == 0:
                         self.save_results()
                 if i_trial == n_trials - 1:
-                    self.on_update()
+                    self.on_update(n_trials)
                     self.save_results()
 
                 self._log_progress(i_trial, n_trials)
