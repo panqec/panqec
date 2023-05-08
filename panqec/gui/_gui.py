@@ -12,7 +12,7 @@ from panqec.codes import (
     Toric2DCode, RotatedPlanar2DCode, Planar2DCode,
     Toric3DCode, RotatedPlanar3DCode, RhombicToricCode, RhombicPlanarCode,
     Planar3DCode, RotatedToric3DCode, XCubeCode,
-    HollowPlanar3DCode, HollowRhombicCode, BaconShorCode,
+    HollowPlanar3DCode, HollowRhombicCode,
     Color3DCode, Color666PlanarCode, Color666ToricCode, Color488Code
 )
 from panqec.decoders import (
@@ -40,7 +40,7 @@ codes = {
     'Hollow Planar 3D': HollowPlanar3DCode,
     'Hollow Rhombic Code': HollowRhombicCode,
     '3D Color Code': Color3DCode,
-    'Bacon-Shor Code': BaconShorCode
+    # 'Bacon-Shor Code': BaconShorCode
 }
 
 noise_directions = {'Pure X': (1, 0, 0),
