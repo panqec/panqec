@@ -3,6 +3,7 @@ import numpy as np
 from flask import (
     Flask, send_from_directory, request, json, render_template
 )
+from flask_cors import CORS
 from panqec.codes import (
     Toric2DCode, RotatedPlanar2DCode, Planar2DCode,
     Toric3DCode, RotatedPlanar3DCode, RhombicToricCode, RhombicPlanarCode,
@@ -55,7 +56,7 @@ class GUI():
 
     def __init__(self):
         self.app = Flask(__name__)
-
+        CORS(self.app)
         self.codes = codes
         self.decoders = decoders
         self._code_names = {}
