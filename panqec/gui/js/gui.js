@@ -31,7 +31,14 @@ const defaultColors = {
 };
 
 const defaultKeyCode = {
-    'd': 68, 'r': 82, 'backspace': 8, 'o': 79, 'x': 88, 'z': 90
+    'decode': 68, // 'd'
+    'random': 82, // 'r'
+    'remove': 8,  // 'backspace'
+    'opacity': 79, // 'o'
+    'x-logical': 88, // 'x'
+    'z-logical': 90, // 'z'
+    'x-error': 17, // 'ctrl'
+    'z-error': 16 // 'shift'
 };
 
 class Interface {
@@ -42,9 +49,9 @@ class Interface {
         url='',
         containerId=''
     ) {
-        this.params = defaultParams;
-        this.colors = defaultColors;
-        this.keycode = defaultKeyCode;
+        this.params = Object.assign({}, defaultParams);
+        this.colors = Object.assign({}, defaultColors);
+        this.keycode = Object.assign({}, defaultKeyCode);
 
         Object.entries(params).forEach(entry => {
             const [key, value] = entry;
@@ -433,37 +440,6 @@ class Interface {
         document.body.appendChild(returnArrow);
     }
 
-    onDocumentMouseDown(event) {
-        var canvasBound = this.renderer.getContext().canvas.getBoundingClientRect();
-
-        if (event.ctrlKey || event.shiftKey) {
-            this.mouse.x = ( (event.clientX  - canvasBound.left) / this.width ) * 2 - 1;
-            this.mouse.y = - ( (event.clientY - canvasBound.top) / this.height ) * 2 + 1;
-
-            this.raycaster.setFromCamera(this.mouse, this.camera);
-
-            this.intersects = this.raycaster.intersectObjects(this.code.qubits);
-            if (this.intersects.length == 0) return;
-
-            let selectedQubit = this.intersects[0].object;
-
-            if (event.button == 0) {
-                var x = selectedQubit.location[0];
-                var y = selectedQubit.location[1];
-                var z = selectedQubit.location[2];
-
-                if (event.ctrlKey) {
-                    console.log('Selected qubit', selectedQubit.index, 'at', x, y, z);
-                    this.code.insertError(selectedQubit, 'X');
-                }
-                if (event.shiftKey) {
-                    console.log('Selected qubit', selectedQubit.index, 'at', x, y, z);
-                    this.code.insertError(selectedQubit, 'Z');
-                }
-            }
-        }
-    }
-
     async getCorrection(syndrome) {
         let response = await fetch(this.url + '/decode', {
             headers: {
@@ -555,31 +531,69 @@ class Interface {
         });
     }
 
+    onDocumentMouseDown(event) {
+        var canvasBound = this.renderer.getContext().canvas.getBoundingClientRect();
+
+        this.mouse.x = ( (event.clientX  - canvasBound.left) / this.width ) * 2 - 1;
+        this.mouse.y = - ( (event.clientY - canvasBound.top) / this.height ) * 2 + 1;
+
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+
+        this.intersects = this.raycaster.intersectObjects(this.code.qubits);
+        if (this.intersects.length == 0) return;
+
+        let selectedQubit = this.intersects[0].object;
+
+        if (event.button == 0) {
+            var x = selectedQubit.location[0];
+            var y = selectedQubit.location[1];
+            var z = selectedQubit.location[2];
+
+            var correctMouseKey = function(keycode) {
+                return (
+                    ((keycode == 17) && event.ctrlKey) ||
+                    ((keycode == 16) && event.shiftKey) ||
+                    keycode == 0
+                )
+            }
+
+            if (correctMouseKey(this.keycode['x-error']))
+            {
+                console.log('Selected qubit', selectedQubit.index, 'at', x, y, z);
+                this.code.insertError(selectedQubit, 'X');
+            }
+            if (correctMouseKey(this.keycode['z-error'])) {
+                console.log('Selected qubit', selectedQubit.index, 'at', x, y, z);
+                this.code.insertError(selectedQubit, 'Z');
+            }
+        }
+    }
+
     onDocumentKeyDown(event) {
         var keyCode = event.which;
 
-        if (keyCode == this.keycode['d']) {
+        if (keyCode == this.keycode['decode']) {
             this.decode()
         }
 
-        else if (keyCode == this.keycode['r']) {
+        else if (keyCode == this.keycode['random']) {
             this.addRandomErrors();
         }
 
-        else if (keyCode == this.keycode['backspace']) {
+        else if (keyCode == this.keycode['remove']) {
             this.removeAllErrors();
         }
 
-        else if (keyCode == this.keycode['o']) {
+        else if (keyCode == this.keycode['opacity']) {
             this.code.changeOpacity();
         }
 
-        else if (keyCode == this.keycode['x']) {
+        else if (keyCode == this.keycode['x-logical']) {
             this.removeAllErrors();
             this.code.displayLogical(this.code.logical_x, 'X');
         }
 
-        else if (keyCode == this.keycode['z']) {
+        else if (keyCode == this.keycode['z-logical']) {
             this.removeAllErrors();
             this.code.displayLogical(this.code.logical_z, 'Z');
         }
