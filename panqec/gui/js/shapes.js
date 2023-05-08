@@ -47,9 +47,9 @@ function rectangle(location, params) {
     var theta = (norm_xz == 0) ? 0 : Math.acos(normal.x / norm_xz);
     var alpha = Math.acos(norm_xz / norm);
 
-    geometry.rotateX(params['angle']);
     geometry.rotateY(theta + Math.PI / 2);
-    geometry.rotateZ(alpha);
+    geometry.rotateX(alpha);
+    geometry.rotateZ(params['angle']);
 
     geometry.translate(x, y, z);
 
@@ -391,14 +391,22 @@ function polygon(location, params) {
 
     var vertices = params['vertices'];
 
+    if (vertices[0].length == 2) {
+        for (var i = 0; i < vertices.length; i++) {
+            vertices[i].append(0)
+        }
+    }
+
     // A polygon is defined by many triangles
     var verticesTriangle = [];
 
     for (var i = 0; i < vertices.length; i++) {
         verticesTriangle.push(
             0, 0, 0,
-            vertices[i][0], vertices[i][1], 0,
-            vertices[(i + 1) % vertices.length][0], vertices[(i + 1) % vertices.length][1], 0
+            vertices[i][0], vertices[i][1], vertices[i][2],
+            vertices[(i + 1) % vertices.length][0],
+            vertices[(i + 1) % vertices.length][1],
+            vertices[(i + 1) % vertices.length][2]
         )
     }
 

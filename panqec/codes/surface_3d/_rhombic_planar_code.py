@@ -216,23 +216,26 @@ class RhombicPlanarCode(StabilizerCode):
         if self.stabilizer_type(location) == 'cube':
             x, y, z = location
             if y == -1 or y == 2*Ly-1 or z == -1 or z == 2*Lz-1:
-                angle = np.pi/4 if rotated_picture else 0
-                representation['object'] = 'rectangle'
+                representation['object'] = 'polygon'
+                if not rotated_picture:
+                    a = 0.75
+                    vertices = [[a, 0, a], [a, 0, -a], [-a, 0, -a], [-a, 0, a]]
+                else:
+                    a = 1
+                    vertices = [[a, 0, 0], [0, 0, a], [-a, 0, 0], [0, 0, -a]]
+
                 representation['params'] = {
-                    "w": 1.5,
-                    "h": 1.5,
-                    "normal": [0, 1, 0],
-                    "angle": angle
+                    "vertices": vertices,
+                    "angle": 0,
+                    "normal": [0, 0, 1]
                 }
                 if y == -1:
                     representation['location'] = [x, y+0.9, z]
                 elif y == 2*Ly-1:
                     representation['location'] = [x, y-0.9, z]
                 elif z == -1:
-                    representation['params']['normal'] = [0, 0, 1]
                     representation['location'] = [x, y, z+0.9]
                 elif z == 2*Lz-1:
-                    representation['params']['normal'] = [0, 0, 1]
                     representation['location'] = [x, y, z-0.9]
 
         elif self.stabilizer_type(location) == 'triangle':

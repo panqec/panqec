@@ -248,10 +248,19 @@ class XCubeCode(StabilizerCode):
             axis, x, y, z = location
             representation['location'] = [x, y, z]
 
+            a = 0.75
             if axis == 0:
-                representation['params']['normal'] = [1, 0, 0]
-            if axis == 1:
-                representation['params']['normal'] = [0, 1, 0]
+                representation['params']['vertices'] = [
+                    [0, a, a], [0, -a, a], [0, -a, -a], [0, a, -a]
+                ]
+            elif axis == 1:
+                representation['params']['vertices'] = [
+                    [a, 0, a], [a, 0, -a], [-a, 0, -a], [-a, 0, a]
+                ]
+            else:
+                representation['params']['vertices'] = [
+                    [a, a, 0], [a, -a, 0], [-a, -a, 0], [-a, a, 0]
+                ]
 
         return representation
 

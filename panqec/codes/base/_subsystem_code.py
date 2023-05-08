@@ -906,7 +906,13 @@ class SubsystemCode(metaclass=ABCMeta):
             data = json.load(f)
 
         code_name = self.id
-        picture = 'rotated' if rotated_picture else 'kitaev'
+        picture = (
+            'rotated' if (
+                rotated_picture and
+                'rotated' in data[code_name]['stabilizers']
+            )
+            else 'kitaev'
+        )
 
         representation = data[code_name]['stabilizers'][picture][stab_type]
         representation['type'] = stab_type
@@ -953,7 +959,13 @@ class SubsystemCode(metaclass=ABCMeta):
 
         code_name = self.id
 
-        picture = 'rotated' if rotated_picture else 'kitaev'
+        picture = (
+            'rotated' if (
+                rotated_picture and
+                'rotated' in data[code_name]['qubits']
+            )
+            else 'kitaev'
+        )
 
         representation = data[code_name]['qubits'][picture]
 
