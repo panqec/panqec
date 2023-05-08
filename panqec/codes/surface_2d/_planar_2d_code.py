@@ -7,6 +7,32 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class Planar2DCode(StabilizerCode):
+    """2D surface code with open boundary conditions.
+    In this variant of the 2D surface code,
+    there are two types of boundaries: rough and smooth.
+
+    As in the Kitaev toric code,
+    the qubits live on edges of the lattice,
+    while stabilizers are defined on faces and vertices.
+    As such, on rough boundaries the edge-most qubits are on
+    edges orthogonal to the boundary forming a 'rough' look.
+    On smooth boundaries the edge-most qubits are on
+    edges parallel to the boundary forming a 'smooth' look.
+    The boundary conditions and coordinate system used are
+    shown below.
+
+    .. image:: planar_2d_code.svg
+        :scale: 200 %
+        :align: center
+
+    Parameters
+    ----------
+    L_x : int
+        The size in the x direction.
+    L_y : Optional[int]
+        The size in the y direction.
+        If it is not given, it is assumed to be a square lattice with Lx=Ly.
+    """
     dimension = 2
     deformation_names = ['XZZX', 'XY']
 
@@ -143,3 +169,31 @@ class Planar2DCode(StabilizerCode):
                              "does not exist")
 
         return deformation
+
+    def stabilizer_representation(
+        self,
+        location: Tuple,
+        rotated_picture=False,
+        json_file=None
+    ) -> Dict:
+        rep = super().stabilizer_representation(
+            location, rotated_picture, json_file
+        )
+
+        Lx, Ly = self.size
+        x, y = location
+
+        if rotated_picture:
+            if x == 1 or x == 2*Lx - 1 or y == 0 or y == 2*Ly - 2:
+                if x == 1:
+                    vertices = [[0, 1, 0], [1, 0, 0], [0, -1, 0]]
+                elif x == 2*Lx - 1:
+                    vertices = [[0, 1, 0], [-1, 0, 0], [0, -1, 0]]
+                elif y == 0:
+                    vertices = [[-1, 0, 0], [0, 1, 0], [1, 0, 0]]
+                elif y == 2*Ly - 2:
+                    vertices = [[-1, 0, 0], [0, -1, 0], [1, 0, 0]]
+
+                rep['params']['vertices'] = vertices
+
+        return rep

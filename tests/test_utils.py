@@ -4,7 +4,7 @@ import numpy as np
 from panqec.bsparse import from_array
 from panqec.utils import (
     sizeof_fmt, identity, NumpyEncoder, list_where_str, list_where, set_where,
-    format_polynomial, simple_print, find_nearest
+    format_polynomial, simple_print, find_nearest, get_label
 )
 
 
@@ -139,3 +139,17 @@ class TestFindNearest:
         array = [1, 2, 3, 4, 5, 6]
         value = 5.2
         assert find_nearest(array, value) == 5
+
+
+class TestGetLabel:
+
+    def test_integer_params_only(self):
+        label = get_label('Toric2DCode', {'L_x': 5, 'L_y': 6, 'L_z': 7})
+        assert label == 'Toric2DCode(L_x=5, L_y=6, L_z=7)'
+
+    def test_float_params_rounded_to_six_digits(self):
+        assert get_label('PauliErrorModel', {
+            'r_x': 0.33333333333333337,
+            'r_y': 0.33333333333333337,
+            'r_z': 0.3333333333333333
+        }) == 'PauliErrorModel(r_x=0.333333, r_y=0.333333, r_z=0.333333)'

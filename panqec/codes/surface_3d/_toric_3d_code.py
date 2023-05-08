@@ -6,6 +6,28 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class Toric3DCode(StabilizerCode):
+    """3D surface code on periodic cubic lattice with qubits on edges.
+
+    Parameters
+    ----------
+    L_x : int
+        Size in the x direction.
+    L_y : Optional[int]
+        Size in the y direction, assumed same as Lx if not given.
+    L_z : Optional[int]
+        Size in the z direction, assumed same as Lx if not given.
+
+    Notes
+    -----
+    The qubits live on the edges of the 3D lattice.
+    There are two types of stabilizer generators:
+    6-body vertex operators living on vertices,
+    and 4-body face operators living on faces.
+
+    In the coordinate system used in this implementation,
+    the origin (0, 0, 0) is a vertex,
+    and each unit cell is a cube of linear size 2.
+    """
     dimension = 3
     deformation_names = ['XZZX']
 
@@ -191,20 +213,34 @@ class Toric3DCode(StabilizerCode):
 
         x, y, z = location
         if not rotated_picture and self.stabilizer_type(location) == 'face':
-            if z % 2 == 0:  # xy plane
-                representation['params']['normal'] = [0, 0, 1]
-            elif x % 2 == 0:  # yz plane
-                representation['params']['normal'] = [1, 0, 0]
+            a = 0.75
+            if z % 2 == 0:  # yz plane
+                representation['params']['vertices'] = [
+                    [0, a, a], [0, -a, a], [0, -a, -a], [0, a, -a]
+                ]
+            elif x % 2 == 0:  # xy plane
+                representation['params']['vertices'] = [
+                    [a, a, 0], [a, -a, 0], [-a, -a, 0], [-a, a, 0]
+                ]
             else:  # xz plane
-                representation['params']['normal'] = [0, 1, 0]
+                representation['params']['vertices'] = [
+                    [a, 0, a], [a, 0, -a], [-a, 0, -a], [-a, 0, a]
+                ]
 
         if rotated_picture and self.stabilizer_type(location) == 'face':
+            a = 1
             if z % 2 == 0:
-                representation['params']['normal'] = [0, 0, 1]
+                representation['params']['vertices'] = [
+                    [a, 0, 0], [0, a, 0], [-a, 0, 0], [0, -a, 0]
+                ]
             elif x % 2 == 0:
-                representation['params']['normal'] = [1, 0, 0]
+                representation['params']['vertices'] = [
+                    [0, a, 0], [0, 0, a], [0, -a, 0], [0, 0, -a]
+                ]
             else:
-                representation['params']['normal'] = [0, 1, 0]
+                representation['params']['vertices'] = [
+                    [a, 0, 0], [0, 0, a], [-a, 0, 0], [0, 0, -a]
+                ]
 
         return representation
 

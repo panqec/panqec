@@ -7,6 +7,26 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class RotatedPlanar3DCode(StabilizerCode):
+    """3D surface code with open boundaries on lattice rotated about z axis.
+
+    Uses roughly half as many qubits as
+    :class:`panqec.codes.surface_3d.Planar3DCode`.
+
+    Parameters
+    ----------
+    L_x : int
+        Number of qubits in the x direction.
+    L_y : Optional[int
+        Number of qubits in the y direction.
+    L_z : Optional[int]
+        Number of qubits in the z direction.
+
+    Notes
+    -----
+    The lattice is stacked with lattices like those in
+    :class:`panqec.codes.surface_2d.RotatedPlanar2DCode`
+    glued with vertical qubits in between each layer.
+    """
     dimension = 3
     deformation_names = ['XZZX']
 
@@ -159,6 +179,7 @@ class RotatedPlanar3DCode(StabilizerCode):
 
         if self.qubit_axis(location) == 'z':
             representation['params']['length'] = 2
+            representation['params']['angle'] = 0
 
         if rotated_picture:
             x, y, z = representation['location']
@@ -174,30 +195,39 @@ class RotatedPlanar3DCode(StabilizerCode):
         )
 
         x, y, z = location
+        a = 1
+        b = a / np.sqrt(2)
         if not rotated_picture and self.stabilizer_type(location) == 'face':
             if z % 2 == 1:
-                representation['params']['normal'] = [0, 0, 1]
-                representation['params']['angle'] = np.pi/4
+                representation['params']['vertices'] = [
+                    [a, a, 0], [a, -a, 0], [-a, -a, 0], [-a, a, 0]
+                ]
             else:
-                representation['params']['w'] = 1.5
-                representation['params']['angle'] = 0
-
                 if (x + y) % 4 == 0:
-                    representation['params']['normal'] = [1, 1, 0]
+                    representation['params']['vertices'] = [
+                        [a, 0, b], [a, 0, -b], [-a, 0, -b], [-a, 0, b]
+                    ]
                 else:
-                    representation['params']['normal'] = [-1, 1, 0]
+                    representation['params']['vertices'] = [
+                        [0, a, b], [0, a, -b], [0, -a, -b], [0, -a, b]
+                    ]
 
         if rotated_picture and self.stabilizer_type(location) == 'face':
             if z % 2 == 1:
-                representation['params']['normal'] = [0, 0, 1]
-                representation['params']['angle'] = 0
+                representation['params']['vertices'] = [
+                    [a, a, 0], [a, -a, 0], [-a, -a, 0], [-a, a, 0]
+                ]
             else:
-                representation['params']['angle'] = np.pi/4
-
+                a = np.sqrt(2)
+                b = 1
                 if (x + y) % 4 == 0:
-                    representation['params']['normal'] = [1, 1, 0]
+                    representation['params']['vertices'] = [
+                        [0, 0, a], [b, b, 0], [0, 0, -a], [-b, -b, 0]
+                    ]
                 else:
-                    representation['params']['normal'] = [-1, 1, 0]
+                    representation['params']['vertices'] = [
+                        [0, 0, a], [-b, b, 0], [0, 0, -a], [b, -b, 0]
+                    ]
 
         if rotated_picture:
             x, y, z = representation['location']

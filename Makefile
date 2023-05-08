@@ -13,3 +13,5 @@ clean:
 	find panqec -type d -name '__pycache__' -delete
 	find tests -type f -name '*.py[co]' -delete
 	find tests -type d -name '__pycache__' -delete
+doc:
+	sphinx-build -b html docs/ docs/_build/html

@@ -36,7 +36,8 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx_rtd_theme',
     'nbsphinx',
-    'myst_parser'
+    'myst_parser',
+    'sphinx_click',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

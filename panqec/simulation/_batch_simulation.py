@@ -3,9 +3,11 @@
 import os
 import json
 from json import JSONDecodeError
+import datetime
 import itertools
 from typing import List, Dict, Callable, Union, Any, Optional, Tuple, Iterable
 import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
 from panqec.codes import StabilizerCode
 from panqec.decoders import BaseDecoder
@@ -15,61 +17,10 @@ from panqec.config import (
 )
 from panqec.utils import identity, load_json, save_json
 from . import (
-    BaseSimulation, DirectSimulation, SplittingSimulation
+    BaseSimulation, DirectSimulation, SplittingSimulation,
+    ClusterStateSimulation
 )
-
-
-def run_once(
-    code: StabilizerCode,
-    error_model: BaseErrorModel,
-    decoder: BaseDecoder,
-    error_rate: float,
-    rng=None
-) -> dict:
-    """Run a simulation once and return the results as a dictionary.
-
-    Parameters
-    ----------
-    code : StabilizerCode
-        The QEC code object to be run.
-    error_model : BaseErrorModel
-        The error model from which to sample errors from.
-    decoder : BaseDecoder
-        The decoder to use for correct the errors.
-    rng :
-        Numpy random number generator, used for deterministic seeding.
-
-    Returns
-    -------
-    results : idct
-        Results containing the following keys: error, syndrome, correction,
-        effective_error, success, codespace
-    """
-
-    if not (0 <= error_rate <= 1):
-        raise ValueError('Error rate must be in [0, 1].')
-
-    if rng is None:
-        rng = np.random.default_rng()
-
-    error = error_model.generate(code, error_rate=error_rate, rng=rng)
-    syndrome = code.measure_syndrome(error)
-    correction = decoder.decode(syndrome)
-    total_error = (correction + error) % 2
-    effective_error = code.logical_errors(total_error)
-    codespace = code.in_codespace(total_error)
-    success = bool(np.all(effective_error == 0)) and codespace
-
-    results = {
-        'error': error,
-        'syndrome': syndrome,
-        'correction': correction,
-        'effective_error': effective_error,
-        'success': success,
-        'codespace': codespace,
-    }
-
-    return results
+from panqec.analysis import Analysis
 
 
 def run_file(
@@ -198,8 +149,11 @@ class BatchSimulation():
         for simulation in self._simulations:
             simulation.load_results(self._output_file)
 
-    def on_update(self):
-        """Function that gets called on every update."""
+    def on_update(self, n_trials: int):
+        """Function that gets called on every update.
+        It uses the total number of runs, `n_trials`, to estimate
+        the remaining time
+        """
         pass
 
     def estimate_remaining_time(self, n_trials: int):
@@ -246,20 +200,26 @@ class BatchSimulation():
             simulation.n_results for simulation in self._simulations
         ])
 
-        for i_trial in progress(list(range(min_current_trial, n_trials))):
-            for simulation in self._simulations:
-                if simulation.n_results < n_trials:
-                    simulation.run(1)
-            if i_trial > 0:
-                if i_trial % self.update_frequency == 0:
-                    self.on_update()
-                if i_trial % self.save_frequency == 0:
-                    self.save_results()
-            if i_trial == n_trials - 1:
-                self.on_update()
-                self.save_results()
+        if self.method == 'cluster-state':
+            for simulation in progress(self._simulations):
+                simulation.run(n_trials)
+                self.save_file()
 
-            self._log_progress(i_trial, n_trials)
+        else:
+            for i_trial in progress(list(range(min_current_trial, n_trials))):
+                for simulation in self._simulations:
+                    if simulation.n_results < n_trials:
+                        simulation.run(1)
+                if i_trial > 0:
+                    if i_trial % self.update_frequency == 0:
+                        self.on_update(n_trials)
+                    if i_trial % self.save_frequency == 0:
+                        self.save_results()
+                if i_trial == n_trials - 1:
+                    self.on_update(n_trials)
+                    self.save_results()
+
+                self._log_progress(i_trial, n_trials)
 
         # for simulation in self._simulations:
         #     if self.verbose:
@@ -279,6 +239,9 @@ class BatchSimulation():
 
         # Create output directory if it does not exist yet
         output_dir = os.path.dirname(self._output_file)
+        if output_dir == '':
+            output_dir = os.getcwd()
+
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
@@ -343,7 +306,7 @@ class BatchSimulation():
 
             batch_result['noise_direction'] = sim.error_model.direction
 
-            if self.method == 'direct':
+            if self.method == 'direct' or self.method == 'cluster-state':
                 if len(sim.results['effective_error']) > 0:
                     batch_result['p_x'] = np.array(
                         sim.results['effective_error']
@@ -373,6 +336,30 @@ class BatchSimulation():
             results_df = results_df.explode(['error_rates', 'p_est', 'p_se'])
 
         return results_df
+
+    def activate_live_update(self):
+        self.on_update = self._update_plot
+
+    def _update_plot(self, n_trials: int):
+        import IPython
+
+        plt.clf()
+
+        remaining_time = self.estimate_remaining_time(n_trials)
+
+        analysis = Analysis(self._output_file, verbose=False)
+        analysis.plot_thresholds(
+            include_threshold_estimate=False,
+            include_main_title=False,
+            include_sector_title=False
+        )
+        plt.title(
+            f'Time remaining '
+            f'{datetime.timedelta(seconds=int(remaining_time))}'
+        )
+
+        IPython.display.clear_output(wait=True)
+        IPython.display.display(plt.gcf())
 
 
 def _parse_parameters_range(parameters):
@@ -456,6 +443,17 @@ def _parse_code_dict(code_dict: Dict[str, Any]) -> StabilizerCode:
     code_params: Union[list, dict] = []
     if 'parameters' in code_dict:
         code_params = code_dict['parameters']
+
+        if code_name == 'FoliatedCode':
+            base_code_class = CODES[code_params['base_code']]
+            base_code_params = code_params['base_code_params']
+            base_code = base_code_class(**base_code_params)
+
+            code_params = {
+                'base_code': base_code,
+                'n_layers': code_params['n_layers']
+            }
+
     code_class = CODES[code_name]
     if isinstance(code_params, dict):
         code = code_class(**code_params)  # type: ignore
@@ -602,6 +600,16 @@ def get_simulations(data: dict, verbose: bool = True) -> List[BaseSimulation]:
                 code, error_model, decoders, error_rates,
                 verbose=verbose, **method_params
             ))
+
+    if method == 'cluster-state':
+        for code, error_model, decoder_dict, error_rate in instances:
+            decoder = _parse_decoder_dict(decoder_dict, code.base_code,
+                                          error_model, error_rate)
+
+            sim = ClusterStateSimulation(code, error_model, decoder,
+                                         error_rate, verbose=verbose,
+                                         **method_params)
+            simulations.append(sim)
 
     return simulations
 

@@ -8,6 +8,23 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class Color3DCode(StabilizerCode):
+    """3D Color Code on periodic truncated octahedral lattice.
+
+    Parameters
+    ----------
+    L_x : int
+        Size in the x direction.
+    L_y : int
+        Size in the y direction.
+    L_z : int
+        Size in the z direction.
+
+    Notes
+    -----
+    See
+    `Bombin and Martin-Delgado 2007 <https://arxiv.org/abs/cond-mat/0607736>`_
+    for more information.
+    """
     dimension = 3
 
     @property
@@ -380,11 +397,12 @@ class Color3DCode(StabilizerCode):
 
         if self.stabilizer_type(location) == 'face-square':
             if x % 4 == z % 4:
-                rep['params']['normal'] = [0, 1, 0]
+                rep['params']['vertices'] = [[1, 0, 0], [0, 0, 1], [-1, 0, 0], [0, 0, -1]]
             elif y % 4 == z % 4:
-                rep['params']['normal'] = [1, 0, 0]
+                rep['params']['vertices'] = [[1, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0]]
             else:
-                rep['params']['normal'] = [0, 0, 1]
+                rep['params']['vertices'] = [[0, 1, 0], [0, 0, 1], [0, -1, 0], [0, 0, -1]]
+
         elif self.stabilizer_type(location) == 'face-hex':
             # No idea where the sqrt(2)/2 comes from, but it seems necessary
             if x % 4 == z % 4 and y % 4 == z % 4:

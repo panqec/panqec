@@ -7,6 +7,25 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class Toric2DCode(StabilizerCode):
+    """The original 2D toric code introduced by Kitaev.
+    The qubits live on the edges of a 2D periodic square lattice.
+    There are two types of stabilizer generators:
+    vertex operators on vertices, and face operators faces.
+
+    The coordinate system used is shown below.
+
+    .. image:: toric_2d_code.svg
+        :scale: 200 %
+        :align: center
+
+    Parameters
+    ----------
+    L_x : int
+        The size in the x direction.
+    L_y : Optional[int]
+        The size in the y direction.
+        If it is not given, it is assumed to be a square lattice with Lx=Ly.
+    """
     dimension = 2
     deformation_names = ['XZZX', 'XY']
 
@@ -158,3 +177,113 @@ class Toric2DCode(StabilizerCode):
                              "does not exist")
 
         return deformation
+
+    def qubit_representation(
+        self,
+        location: Tuple,
+        rotated_picture=False,
+        json_file=None
+    ) -> Dict:
+        rep = super().qubit_representation(
+            location, rotated_picture, json_file
+        )
+
+        Lx, Ly = self.size
+        x, y = location
+
+        if not rotated_picture:
+            boundary_params = rep['params'].copy()
+            boundary_params['length'] /= 2
+
+            if x == 2*Lx - 1:
+                rep['object'] = 'group'
+                rep['params'] = [
+                    {'object': 'cylinder', 'location': [x-0.5, y],
+                     'params': boundary_params},
+                    {'object': 'cylinder', 'location': [-0.5, y],
+                     'params': boundary_params}
+                ]
+
+            if y == 2*Ly - 1:
+                rep['object'] = 'group'
+                rep['params'] = [
+                    {'object': 'cylinder', 'location': [x, y-0.5],
+                     'params': boundary_params},
+                    {'object': 'cylinder', 'location': [x, -0.5],
+                     'params': boundary_params}
+                ]
+
+        return rep
+
+    def stabilizer_representation(
+        self,
+        location: Tuple,
+        rotated_picture=False,
+        json_file=None
+    ) -> Dict:
+        rep = super().stabilizer_representation(
+            location, rotated_picture, json_file
+        )
+
+        Lx, Ly = self.size
+        x, y = location
+
+        if rotated_picture:
+            if x == 0 or y == 2*Ly - 1:
+                rep['object'] = 'group'
+
+                if x == 0:
+                    vertices1 = [[0, 1, 0], [1, 0, 0], [0, -1, 0]]
+                    vertices2 = [[0, 1, 0], [-1, 0, 0], [0, -1, 0]]
+                    loc2 = [2*Lx, y]
+                elif y == 2*Ly - 1:
+                    vertices1 = [[-1, 0, 0], [0, -1, 0], [1, 0, 0]]
+                    vertices2 = [[-1, 0, 0], [0, 1, 0], [1, 0, 0]]
+                    loc2 = [x, -1]
+
+                rep['params'] = [
+                    {'object': 'triangle', 'location': [x, y],
+                     'params': {'vertices': vertices1}},
+                    {'object': 'triangle', 'location': loc2,
+                     'params': {'vertices': vertices2}},
+                ]
+        else:
+            if x == 2*Lx - 1:
+                boundary_params = rep['params'].copy()
+                boundary_params['w'] /= 2
+                rep['object'] = 'group'
+
+                if y == 2*Ly - 1:
+                    boundary_params['h'] /= 2
+
+                    rep['params'] = [
+                        {'object': 'rectangle', 'location': [x-0.4, y-0.4],
+                         'params': boundary_params},
+                        {'object': 'rectangle', 'location': [-0.6, -0.6],
+                         'params': boundary_params},
+                        {'object': 'rectangle', 'location': [x-0.4, -0.6],
+                         'params': boundary_params},
+                        {'object': 'rectangle', 'location': [-0.6, y-0.4],
+                         'params': boundary_params}
+                    ]
+                else:
+                    rep['params'] = [
+                        {'object': 'rectangle', 'location': [x-0.4, y],
+                         'params': boundary_params},
+                        {'object': 'rectangle', 'location': [-0.6, y],
+                         'params': boundary_params}
+                    ]
+
+            elif y == 2*Ly - 1:
+                boundary_params = rep['params'].copy()
+                boundary_params['h'] /= 2
+
+                rep['object'] = 'group'
+                rep['params'] = [
+                    {'object': 'rectangle', 'location': [x, y-0.4],
+                     'params': boundary_params},
+                    {'object': 'rectangle', 'location': [x, -0.6],
+                     'params': boundary_params}
+                ]
+
+        return rep

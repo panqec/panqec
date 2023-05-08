@@ -6,7 +6,8 @@
 #SBATCH --job-name=${NAME}
 #SBATCH --array=1-${N_NODES}
 #SBATCH --mem=${MEMORY}
-#SBATCH -p ${QUEUE}
+#SBATCH --partition=${QUEUE}
+#SBATCH --qos=${QOS}
 #SBATCH --output=${DATA_DIR}/%j.out
 
 module purge

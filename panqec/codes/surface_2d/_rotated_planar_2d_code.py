@@ -7,6 +7,41 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class RotatedPlanar2DCode(StabilizerCode):
+    """Rotated 2D surface code with open boundaries.
+    These use roughly half the number of qubits but only encode 1 logical
+    qubit.
+
+    Parameters
+    ----------
+    L_x : int
+        Number of qubits in the x direction.
+    L_y : Optional[int]
+        Number of qubits in the y direction.
+        Assumed square if not given.
+
+    Notes
+    -----
+    One stabilizer of each type is shown in the figure below.
+    In this picture, the qubits live on the edges and there
+    are two types of stabilizers: vertex Z stabilizers and
+    face X stabilizers.
+    Note the weight-2 stabilizers on the boundaries.
+    The below lattice is of size 5 by 4.
+
+    .. image:: rotated_planar_2d_code.svg
+        :scale: 200 %
+        :align: center
+
+    Alternatively, we can consider the the same coordinates,
+    qubits and stabilizers but seen on a rotated lattice,
+    where the lattice live on vertices,
+    and the two types of stabilizers correspond to the color
+    of the checkerboard faces as shown below.
+
+    .. image:: rotated_planar_2d_code_2.svg
+        :scale: 200 %
+        :align: center
+    """
     dimension = 2
     deformation_names = ['XZZX', 'XY']
 
@@ -138,3 +173,43 @@ class RotatedPlanar2DCode(StabilizerCode):
                              "does not exist")
 
         return deformation
+
+    def stabilizer_representation(
+        self,
+        location: Tuple,
+        rotated_picture=False,
+        json_file=None
+    ) -> Dict:
+        rep = super().stabilizer_representation(
+            location, rotated_picture, json_file
+        )
+
+        Lx, Ly = self.size
+        x, y = location
+
+        if rotated_picture:
+            if x == 0 or x == 2*Lx or y == 0 or y == 2*Ly:
+                rep['object'] = 'semicircle'
+
+                rep['params'] = {
+                    'radius': 1,
+                    'normal': [0, 0, 1],
+                    'angle': 0
+                }
+
+                if x == 0:
+                    rep['location'] = (x + 1, y)
+                    rep['params']['angle'] = np.pi / 2
+
+                if y == 0:
+                    rep['location'] = (x, y + 1)
+                    rep['params']['angle'] = np.pi
+
+                if x == 2*Lx:
+                    rep['location'] = (x - 1, y)
+                    rep['params']['angle'] = - np.pi / 2
+
+                if y == 2*Ly:
+                    rep['location'] = (x, y - 1)
+
+        return rep
