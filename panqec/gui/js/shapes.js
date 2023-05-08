@@ -393,7 +393,7 @@ function polygon(location, params) {
 
     if (vertices[0].length == 2) {
         for (var i = 0; i < vertices.length; i++) {
-            vertices[i].append(0)
+            vertices[i].push(0)
         }
     }
 
