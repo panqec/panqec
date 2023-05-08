@@ -25,6 +25,9 @@ class TopologicalCode {
         this.qubits = new Array(this.n);
         this.errors = nj.zeros(2*this.n);
         this.stabilizers = new Array(this.m);
+
+        this.qubitMap = {};
+        this.stabilizerMap = {};
     }
 
     updateStabilizers() {
@@ -34,6 +37,8 @@ class TopologicalCode {
             this.toggleStabilizer(this.stabilizers[iStab], syndrome[iStab]);
         }
     }
+
+    getQubitFromCoordinate
 
     getSyndrome() {
         let Hx = this.H.slice(null, [0, this.n]);
@@ -47,6 +52,11 @@ class TopologicalCode {
     }
 
     insertError(qubit, pauli) {
+        // 'qubit' can either be a three.js object or a list of coordinates
+
+        if (Array.isArray(qubit)) {
+            qubit = this.qubitMap[qubit];
+        }
         qubit.hasError[pauli] = !qubit.hasError[pauli];
 
         if (pauli == 'X' || pauli == 'Y') {
@@ -115,6 +125,10 @@ class TopologicalCode {
     }
 
     toggleStabilizer(stabilizer, activate) {
+        if (Array.isArray(stabilizer)) {
+            stabilizer = this.stabilizerMap[stabilizer];
+        }
+
         stabilizer.isActivated = activate;
         var activateStr = activate ? 'activated' : 'deactivated';
         var opacityLevel = this.opacityActivated ? 'min' : 'max'
@@ -135,9 +149,10 @@ class TopologicalCode {
     buildQubit(index) {
         var qubit = create_shape[this.qubitData[index]['object']](this.qubitData[index]['location'], this.qubitData[index]['params']);
 
-        qubit.index = index
-        qubit.color = this.qubitData[index]['color']
-        qubit.opacity = this.qubitData[index]['opacity']
+        qubit.geometry.computeBoundingBox();
+        qubit.index = index;
+        qubit.color = this.qubitData[index]['color'];
+        qubit.opacity = this.qubitData[index]['opacity'];
 
         return qubit
     }
@@ -146,17 +161,20 @@ class TopologicalCode {
         var stabilizer = create_shape[this.stabilizerData[index]['object']](this.stabilizerData[index]['location'],
                                                                      this.stabilizerData[index]['params']);
 
+        stabilizer.geometry.computeBoundingBox()
         stabilizer.index = index;
-        stabilizer.color = this.stabilizerData[index]['color']
-        stabilizer.opacity = this.stabilizerData[index]['opacity']
-        stabilizer.type = this.stabilizerData[index]['type']
+        stabilizer.color = this.stabilizerData[index]['color'];
+        stabilizer.opacity = this.stabilizerData[index]['opacity'];
+        stabilizer.type = this.stabilizerData[index]['type'];
 
         return stabilizer
     }
 
     build(scene) {
         let maxQubitCoordinates = {'x': 0, 'y': 0, 'z': 0};
+        let minQubitCoordinates = {'x': Infinity, 'y': Infinity, 'z': Infinity};
         let maxStabCoordinates = {'x': 0, 'y': 0, 'z': 0};
+        let minStabCoordinates = {'x': Infinity, 'y': Infinity, 'z': Infinity};
         var opacityLevel = this.opacityActivated ? 'min' : 'max'
 
         for (let index=0; index < this.n; index++) {
@@ -170,13 +188,22 @@ class TopologicalCode {
             qubit.index = index;
             qubit.location = this.qubitData[index]['location'];
             this.qubits[index] = qubit;
+            this.qubitMap[qubit.location] = qubit;
 
-            maxQubitCoordinates['x'] = Math.max(qubit.position.x, maxQubitCoordinates['x']);
-            maxQubitCoordinates['y'] = Math.max(qubit.position.y, maxQubitCoordinates['y']);
-            maxQubitCoordinates['z'] = Math.max(qubit.position.z, maxQubitCoordinates['z']);
+            ['x', 'y', 'z'].forEach(axis => {
+                maxQubitCoordinates[axis] = Math.max(
+                    qubit.geometry.boundingBox['max'][axis],
+                    maxQubitCoordinates[axis]
+                );
+                minQubitCoordinates[axis] = Math.min(
+                    qubit.geometry.boundingBox['min'][axis],
+                    minQubitCoordinates[axis]
+                );
+            });
 
             scene.add(qubit);
         }
+
         for (let index=0; index < this.m; index++) {
             let stabilizer = this.buildStabilizer(index);
 
@@ -200,21 +227,35 @@ class TopologicalCode {
             stabilizer.type = stabType;
 
             this.stabilizers[index] = stabilizer;
+            this.stabilizerMap[stabilizer.location] = stabilizer;
 
-            maxStabCoordinates['x'] = Math.max(stabilizer.position.x, maxStabCoordinates['x']);
-            maxStabCoordinates['y'] = Math.max(stabilizer.position.x, maxStabCoordinates['y']);
-            maxStabCoordinates['z'] = Math.max(stabilizer.position.x, maxStabCoordinates['z']);
+            ['x', 'y', 'z'].forEach(axis => {
+                maxStabCoordinates[axis] = Math.max(
+                    stabilizer.geometry.boundingBox['max'][axis],
+                    maxStabCoordinates[axis]
+                );
+                minStabCoordinates[axis] = Math.min(
+                    stabilizer.geometry.boundingBox['min'][axis],
+                    minStabCoordinates[axis]
+                );
+            });
 
             scene.add(stabilizer);
         }
 
-        var maxCoordinates = {'x': Math.max(maxStabCoordinates['x'], maxQubitCoordinates['x'])+1,
-                              'y': Math.max(maxStabCoordinates['y'], maxQubitCoordinates['y'])+1,
-                              'z': Math.max(maxStabCoordinates['z'], maxQubitCoordinates['z'])+1};
+        var eps = 0.5;
 
-        var offset = {'x': maxCoordinates['x'] / 2,
-                      'y': maxCoordinates['y'] / 2,
-                      'z': maxCoordinates['z'] / 2};
+        var maxCoordinates = {'x': Math.max(maxStabCoordinates['x'], maxQubitCoordinates['x'])+eps,
+                              'y': Math.max(maxStabCoordinates['y'], maxQubitCoordinates['y'])+eps,
+                              'z': Math.max(maxStabCoordinates['z'], maxQubitCoordinates['z'])+eps};
+
+        var minCoordinates = {'x': Math.min(minStabCoordinates['x'], minQubitCoordinates['x'])-eps,
+                              'y': Math.min(minStabCoordinates['y'], minQubitCoordinates['y'])-eps,
+                              'z': Math.min(minStabCoordinates['z'], minQubitCoordinates['z'])-eps};
+
+        var offset = {'x': (maxCoordinates['x'] + minCoordinates['x']) / 2,
+                      'y': (maxCoordinates['y'] + minCoordinates['y']) / 2,
+                      'z': (maxCoordinates['z'] + minCoordinates['z']) / 2};
 
         for (let qubit of this.qubits) {
             qubit.position.x -= offset['x'];

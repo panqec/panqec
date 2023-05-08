@@ -19,7 +19,31 @@ def on_defect_boundary(Lx, Ly, x, y):
 
 
 class RotatedToric3DCode(StabilizerCode):
-    """Rotated Toric Code for good subthreshold scaling."""
+    """Rotated Toric Code for good subthreshold scaling with certain Lx, Ly.
+
+    Parameters
+    ----------
+    L_x : int
+        Number of qubits in the x direction.
+    L_y : int
+        Number of qubits in the y direction.
+    L_z : int
+        Number of qubits in the z direction.
+
+    Notes
+    -----
+    Similar to :class:`panqec.codes.surface_2d.RotatedPlanar2DCode` but with
+    periodic boundaries in x and y direction on each layer,
+    connected with vertical (z) edge qubits in between each layer except for the
+    top and bottom where the are smooth boundaries on the boundary planes
+    orthogonal to z.
+
+    Subthreshold scaling is better in this code with certain values of Lx and
+    Ly in the x and y directions if there are only Z errors because the
+    smallest logical error made of Zs only is of very high weight.
+    See the `the paper <https://arxiv.org/abs/2211.02116>`_ for more details of
+    the exact conditions for Lx and Ly.
+    """
 
     dimension = 3
     deformation_names = ['XZZX']
@@ -287,6 +311,7 @@ class RotatedToric3DCode(StabilizerCode):
 
         if self.qubit_axis(location) == 'z':
             representation['params']['length'] = 2
+            representation['params']['angle'] = 0
 
         if rotated_picture:
             x, y, z = representation['location']
@@ -302,30 +327,39 @@ class RotatedToric3DCode(StabilizerCode):
         )
 
         x, y, z = location
+        a = 1
+        b = a / np.sqrt(2)
         if not rotated_picture and self.stabilizer_type(location) == 'face':
             if z % 2 == 1:
-                representation['params']['normal'] = [0, 0, 1]
-                representation['params']['angle'] = np.pi/4
+                representation['params']['vertices'] = [
+                    [a, a, 0], [a, -a, 0], [-a, -a, 0], [-a, a, 0]
+                ]
             else:
-                representation['params']['w'] = 1.5
-                representation['params']['angle'] = 0
-
                 if (x + y) % 4 == 0:
-                    representation['params']['normal'] = [1, 1, 0]
+                    representation['params']['vertices'] = [
+                        [a, 0, b], [a, 0, -b], [-a, 0, -b], [-a, 0, b]
+                    ]
                 else:
-                    representation['params']['normal'] = [-1, 1, 0]
+                    representation['params']['vertices'] = [
+                        [0, a, b], [0, a, -b], [0, -a, -b], [0, -a, b]
+                    ]
 
         if rotated_picture and self.stabilizer_type(location) == 'face':
             if z % 2 == 1:
-                representation['params']['normal'] = [0, 0, 1]
-                representation['params']['angle'] = 0
+                representation['params']['vertices'] = [
+                    [a, a, 0], [a, -a, 0], [-a, -a, 0], [-a, a, 0]
+                ]
             else:
-                representation['params']['angle'] = np.pi/4
-
+                a = np.sqrt(2)
+                b = 1
                 if (x + y) % 4 == 0:
-                    representation['params']['normal'] = [1, 1, 0]
+                    representation['params']['vertices'] = [
+                        [0, 0, a], [b, b, 0], [0, 0, -a], [-b, -b, 0]
+                    ]
                 else:
-                    representation['params']['normal'] = [-1, 1, 0]
+                    representation['params']['vertices'] = [
+                        [0, 0, a], [-b, b, 0], [0, 0, -a], [b, -b, 0]
+                    ]
 
         if rotated_picture:
             x, y, z = representation['location']

@@ -63,7 +63,7 @@
                         },
                         "deactivated": {
                             "min": 0.1,
-                            "max": 0.6
+                            "max": 1
                         }
                     },
                     "params": {"radius": 0.2}
@@ -85,8 +85,8 @@
                         }
                     },
                     "params": {
-                        "w": 1.5,
-                        "h": 1.5,
+                        "w": 1,
+                        "h": 1,
                         "normal": [0,0,1],
                         "angle": 0
                     }
@@ -94,7 +94,7 @@
             },
             "rotated": {
                 "vertex": {
-                    "object": "rectangle",
+                    "object": "polygon",
                     "color": {
                         "activated": "gold",
                         "deactivated": "light-yellow"
@@ -110,14 +110,13 @@
                         }
                     },
                     "params": {
-                        "w": 1.4142,
-                        "h": 1.4142,
+                        "vertices": [[0, 1], [1, 0], [0, -1], [-1, 0]],
                         "normal": [0,0,1],
-                        "angle": 0.7854
+                        "angle": 0
                     }
                 },
                 "face": {
-                    "object": "rectangle",
+                    "object": "polygon",
                     "color": {
                         "activated": "light-orange",
                         "deactivated": "salmon"
@@ -133,10 +132,9 @@
                         }
                     },
                     "params": {
-                        "w": 1.4142,
-                        "h": 1.4142,
+                        "vertices": [[0, 1], [1, 0], [0, -1], [-1, 0]],
                         "normal": [0,0,1],
-                        "angle": 0.7854
+                        "angle": 0
                     }
                 }
             }
@@ -238,7 +236,7 @@
             },
             "rotated": {
                 "vertex": {
-                    "object": "rectangle",
+                    "object": "polygon",
                     "color": {
                         "activated": "gold",
                         "deactivated": "light-yellow"
@@ -254,14 +252,13 @@
                         }
                     },
                     "params": {
-                        "w": 1.4142,
-                        "h": 1.4142,
-                        "normal": [0,0,1],
-                        "angle": 0.7854
+                        "vertices": [[0, 1, 0], [1, 0, 0], [0, -1, 0], [-1, 0, 0]],
+                        "normal": [0, 0, 1],
+                        "angle": 0
                     }
                 },
                 "face": {
-                    "object": "rectangle",
+                    "object": "polygon",
                     "color": {
                         "activated": "light-orange",
                         "deactivated": "salmon"
@@ -277,10 +274,9 @@
                         }
                     },
                     "params": {
-                        "w": 1.4142,
-                        "h": 1.4142,
-                        "normal": [0,0,1],
-                        "angle": 0.7854
+                        "vertices": [[0, 1, 0], [1, 0, 0], [0, -1, 0], [-1, 0, 0]],
+                        "normal": [0, 0, 1],
+                        "angle": 0
                     }
                 }
             }
@@ -382,7 +378,7 @@
             },
             "rotated": {
                 "vertex": {
-                    "object": "rectangle",
+                    "object": "polygon",
                     "color": {
                         "activated": "gold",
                         "deactivated": "light-yellow"
@@ -398,14 +394,13 @@
                         }
                     },
                     "params": {
-                        "w": 2,
-                        "h": 2,
+                        "vertices": [[1, 1], [1, -1], [-1, -1], [-1, 1]],
                         "normal": [0,0,1],
                         "angle": 0
                     }
                 },
                 "face": {
-                    "object": "rectangle",
+                    "object": "polygon",
                     "color": {
                         "activated": "light-orange",
                         "deactivated": "salmon"
@@ -421,8 +416,7 @@
                         }
                     },
                     "params": {
-                        "w": 2,
-                        "h": 2,
+                        "vertices": [[1, 1], [1, -1], [-1, -1], [-1, 1]],
                         "normal": [0,0,1],
                         "angle": 0
                     }
@@ -501,7 +495,7 @@
                     "params": {"radius": 0.2}
                 },
                 "face": {
-                    "object": "rectangle",
+                    "object": "polygon",
                     "color": {
                         "activated": "gold",
                         "deactivated": "blue"
@@ -517,8 +511,7 @@
                         }
                     },
                     "params": {
-                        "w": 1.5,
-                        "h": 1.5,
+                        "vertices": [[1, 1, 0], [1, -1, 0], [-1, -1, 0], [-1, 1, 0]],
                         "normal": [1, 0, 0],
                         "angle": 0
                     }
@@ -547,7 +540,7 @@
                     }
                 },
                 "face": {
-                    "object": "rectangle",
+                    "object": "polygon",
                     "color": {
                         "activated": "gold",
                         "deactivated": "gold"
@@ -563,10 +556,9 @@
                         }
                     },
                     "params": {
-                        "w": 1.4142,
-                        "h": 1.4142,
+                        "vertices": [],
                         "normal": [0,0,1],
-                        "angle": 0.7854
+                        "angle": 0
                     }
                 }
             }
@@ -643,7 +635,7 @@
                     "params": {"radius": 0.2}
                 },
                 "face": {
-                    "object": "rectangle",
+                    "object": "polygon",
                     "color": {
                         "activated": "gold",
                         "deactivated": "blue"
@@ -659,8 +651,7 @@
                         }
                     },
                     "params": {
-                        "w": 1.5,
-                        "h": 1.5,
+                        "vertices": [],
                         "normal": [0,0,1],
                         "angle": 0
                     }
@@ -689,7 +680,7 @@
                     }
                 },
                 "face": {
-                    "object": "rectangle",
+                    "object": "polygon",
                     "color": {
                         "activated": "gold",
                         "deactivated": "gold"
@@ -705,10 +696,9 @@
                         }
                     },
                     "params": {
-                        "w": 1.4142,
-                        "h": 1.4142,
+                        "vertices": [],
                         "normal": [0,0,1],
-                        "angle": 0.7854
+                        "angle": 0
                     }
                 }
             }
@@ -785,7 +775,7 @@
                     "params": {"radius": 0.2}
                 },
                 "face": {
-                    "object": "rectangle",
+                    "object": "polygon",
                     "color": {
                         "activated": "gold",
                         "deactivated": "blue"
@@ -801,8 +791,7 @@
                         }
                     },
                     "params": {
-                        "w": 2.1213,
-                        "h": 2.1213,
+                        "vertices": [],
                         "normal": [0,0,1],
                         "angle": 0.7854
                     }
@@ -831,7 +820,7 @@
                     }
                 },
                 "face": {
-                    "object": "rectangle",
+                    "object": "polygon",
                     "color": {
                         "activated": "gold",
                         "deactivated": "gold"
@@ -847,10 +836,9 @@
                         }
                     },
                     "params": {
-                        "w": 2,
-                        "h": 2,
+                        "vertices": [],
                         "normal": [0,0,1],
-                        "angle": 0.7854
+                        "angle": 0
                     }
                 }
             }
@@ -927,7 +915,7 @@
                     "params": {"radius": 0.2}
                 },
                 "face": {
-                    "object": "rectangle",
+                    "object": "polygon",
                     "color": {
                         "activated": "gold",
                         "deactivated": "blue"
@@ -943,8 +931,7 @@
                         }
                     },
                     "params": {
-                        "w": 1.5,
-                        "h": 1.5,
+                        "vertices": [],
                         "normal": [0,0,1],
                         "angle": 0
                     }
@@ -973,7 +960,7 @@
                     }
                 },
                 "face": {
-                    "object": "rectangle",
+                    "object": "polygon",
                     "color": {
                         "activated": "gold",
                         "deactivated": "gold"
@@ -989,10 +976,9 @@
                         }
                     },
                     "params": {
-                        "w": 1.4142,
-                        "h": 1.4142,
+                        "vertices": [],
                         "normal": [0,0,1],
-                        "angle": 0.7854
+                        "angle": 0
                     }
                 }
             }
@@ -1069,7 +1055,7 @@
                     "params": {"radius": 0.2}
                 },
                 "face": {
-                    "object": "rectangle",
+                    "object": "polygon",
                     "color": {
                         "activated": "gold",
                         "deactivated": "blue"
@@ -1085,8 +1071,7 @@
                         }
                     },
                     "params": {
-                        "w": 2.1213,
-                        "h": 2.1213,
+                        "vertices": [[0, 1], [1, 0], [0, -1], [-1, 0]],
                         "normal": [0,0,1],
                         "angle": 0.7854
                     }
@@ -1115,7 +1100,7 @@
                     }
                 },
                 "face": {
-                    "object": "rectangle",
+                    "object": "polygon",
                     "color": {
                         "activated": "gold",
                         "deactivated": "gold"
@@ -1131,10 +1116,9 @@
                         }
                     },
                     "params": {
-                        "w": 2,
-                        "h": 2,
+                        "vertices": [],
                         "normal": [0,0,1],
-                        "angle": 0.7854
+                        "angle": 0
                     }
                 }
             }
@@ -1227,6 +1211,7 @@
                         }
                     },
                     "params": {
+                        "wireframe": true,
                         "vertices": [[1, 0, 0],
                                      [0, 1, 0],
                                      [0, 0, 1]]
@@ -1269,6 +1254,7 @@
                         }
                     },
                     "params": {
+                        "wireframe": true,
                         "vertices": [[1, 0, 0],
                                      [0, 1, 0],
                                      [0, 0, 1]]
@@ -1364,6 +1350,7 @@
                         }
                     },
                     "params": {
+                        "wireframe": true,
                         "vertices": [[1, 0, 0],
                                      [0, 1, 0],
                                      [0, 0, 1]]
@@ -1406,6 +1393,7 @@
                         }
                     },
                     "params": {
+                        "wireframe": true,
                         "vertices": [[1, 0, 0],
                                      [0, 1, 0],
                                      [0, 0, 1]]
@@ -1501,6 +1489,7 @@
                         }
                     },
                     "params": {
+                        "wireframe": true,
                         "vertices": [[1, 0, 0],
                                      [0, 1, 0],
                                      [0, 0, 1]]
@@ -1543,6 +1532,7 @@
                         }
                     },
                     "params": {
+                        "wireframe": true,
                         "vertices": [[1, 0, 0],
                                      [0, 1, 0],
                                      [0, 0, 1]]
@@ -1577,30 +1567,6 @@
                     "radius": 0.1,
                     "angle": 0
                 }
-            },
-            "rotated": {
-                "object": "cylinder",
-                "color": {
-                    "I": "pink",
-                    "X": "red",
-                    "Y": "green",
-                    "Z": "blue"
-                },
-                "opacity": {
-                    "activated": {
-                        "min": 1,
-                        "max": 1
-                    },
-                    "deactivated": {
-                        "min": 0.1,
-                        "max": 0.6
-                    }
-                },
-                "params": {
-                    "length": 2,
-                    "radius": 0.1,
-                    "angle": 0
-                }
             }
         },
         "stabilizers": {
@@ -1624,7 +1590,7 @@
                     "params": {"length": 1.5}
                 },
                 "face": {
-                    "object": "rectangle",
+                    "object": "polygon",
                     "color": {
                         "activated": "orange",
                         "deactivated": "orange"
@@ -1640,51 +1606,7 @@
                         }
                     },
                     "params": {
-                        "w": 1.5,
-                        "h": 1.5,
-                        "normal": [0, 0, 1],
-                        "angle": 0
-                    }
-                }
-            },
-            "rotated": {
-                "cube": {
-                    "object": "cube",
-                    "color": {
-                        "activated": "gold",
-                        "deactivated": "gold"
-                    },
-                    "opacity": {
-                        "activated": {
-                            "min": 0.6,
-                            "max": 0.6
-                        },
-                        "deactivated": {
-                            "min": 0,
-                            "max": 0
-                        }
-                    },
-                    "params": {"length": 1.5}
-                },
-                "face": {
-                    "object": "rectangle",
-                    "color": {
-                        "activated": "orange",
-                        "deactivated": "orange"
-                    },
-                    "opacity": {
-                        "activated": {
-                            "min": 1,
-                            "max": 1
-                        },
-                        "deactivated": {
-                            "min": 0,
-                            "max": 0
-                        }
-                    },
-                    "params": {
-                        "w": 1.5,
-                        "h": 1.5,
+                        "vertices": [],
                         "normal": [0, 0, 1],
                         "angle": 0
                     }
@@ -1716,28 +1638,6 @@
                 "params": {
                     "radius": 0.2
                 }
-            },
-            "rotated": {
-                "object": "sphere",
-                "color": {
-                    "I": "white",
-                    "X": "red",
-                    "Y": "green",
-                    "Z": "blue"
-                },
-                "opacity": {
-                    "activated": {
-                        "min": 1,
-                        "max": 1
-                    },
-                    "deactivated": {
-                        "min": 0.1,
-                        "max": 0.7
-                    }
-                },
-                "params": {
-                    "radius": 0.2
-                }
             }
         },
         "stabilizers": {
@@ -1815,7 +1715,7 @@
                     "params": {}
                 },
                 "face-square": {
-                    "object": "rectangle",
+                    "object": "polygon",
                     "color": {
                         "activated": "pink",
                         "deactivated": "pink"
@@ -1831,129 +1731,9 @@
                         }
                     },
                     "params": {
-                        "w": 1.4142,
-                        "h": 1.4142,
+                        "vertices": [],
                         "normal": [1, 0, 0],
-                        "angle": 0.7854
-                    }
-                },
-                "face-hex": {
-                    "object": "hexagon",
-                    "color": {
-                        "activated": "pink",
-                        "deactivated": "pink"
-                    },
-                    "opacity": {
-                        "activated": {
-                            "min": 0.8,
-                            "max": 1
-                        },
-                        "deactivated": {
-                            "min": 0,
-                            "max": 0
-                        }
-                    },
-                    "params": {
-                        "radius": 1.4,
-                        "normal": [1, 0, 0],
-                        "angle": 0.5236
-                    }
-                }
-            },
-            "rotated": {
-                "cell-yellow": {
-                    "object": "truncated_octahedron",
-                    "color": {
-                        "activated": "gold",
-                        "deactivated": "gold"
-                    },
-                    "opacity": {
-                        "activated": {
-                            "min": 0.9,
-                            "max": 0.9
-                        },
-                        "deactivated": {
-                            "min": 0.1,
-                            "max": 0.7
-                        }
-                    },
-                    "params": {}
-                },
-                "cell-red": {
-                    "object": "truncated_octahedron",
-                    "color": {
-                        "activated": "red",
-                        "deactivated": "red"
-                    },
-                    "opacity": {
-                        "activated": {
-                            "min": 0.8,
-                            "max": 1
-                        },
-                        "deactivated": {
-                            "min": 0.1,
-                            "max": 0.7
-                        }
-                    },
-                    "params": {}
-                },
-                "cell-blue": {
-                    "object": "truncated_octahedron",
-                    "color": {
-                        "activated": "blue",
-                        "deactivated": "blue"
-                    },
-                    "opacity": {
-                        "activated": {
-                            "min": 0.9,
-                            "max": 1
-                        },
-                        "deactivated": {
-                            "min": 0.1,
-                            "max": 0.7
-                        }
-                    },
-                    "params": {}
-                },
-                "cell-green": {
-                    "object": "truncated_octahedron",
-                    "color": {
-                        "activated": "green",
-                        "deactivated": "green"
-                    },
-                    "opacity": {
-                        "activated": {
-                            "min": 0.8,
-                            "max": 1
-                        },
-                        "deactivated": {
-                            "min": 0.1,
-                            "max": 0.7
-                        }
-                    },
-                    "params": {}
-                },
-                "face-square": {
-                    "object": "rectangle",
-                    "color": {
-                        "activated": "pink",
-                        "deactivated": "pink"
-                    },
-                    "opacity": {
-                        "activated": {
-                            "min": 0.8,
-                            "max": 1
-                        },
-                        "deactivated": {
-                            "min": 0,
-                            "max": 0
-                        }
-                    },
-                    "params": {
-                        "w": 1.4142,
-                        "h": 1.4142,
-                        "normal": [1, 0, 0],
-                        "angle": 0.7854
+                        "angle": 0
                     }
                 },
                 "face-hex": {
@@ -2005,28 +1785,6 @@
                 "params": {
                     "radius": 0.3
                 }
-            },
-            "rotated": {
-                "object": "sphere",
-                "color": {
-                    "I": "white",
-                    "X": "red",
-                    "Y": "green",
-                    "Z": "blue"
-                },
-                "opacity": {
-                    "activated": {
-                        "min": 1,
-                        "max": 1
-                    },
-                    "deactivated": {
-                        "min": 0.1,
-                        "max": 0.7
-                    }
-                },
-                "params": {
-                    "radius": 0.2
-                }
             }
         },
         "stabilizers": {
@@ -2163,9 +1921,6 @@
                         "angle": 0
                     }
                 }
-            },
-            "rotated": {
-
             }
         }
     },
@@ -2193,28 +1948,6 @@
                 "params": {
                     "radius": 0.2
                 }
-            },
-            "rotated": {
-                "object": "sphere",
-                "color": {
-                    "I": "white",
-                    "X": "red",
-                    "Y": "green",
-                    "Z": "blue"
-                },
-                "opacity": {
-                    "activated": {
-                        "min": 1,
-                        "max": 1
-                    },
-                    "deactivated": {
-                        "min": 0.1,
-                        "max": 0.7
-                    }
-                },
-                "params": {
-                    "radius": 0.2
-                }
             }
         },
         "stabilizers": {
@@ -2351,9 +2084,6 @@
                         "angle": 0
                     }
                 }
-            },
-            "rotated": {
-
             }
         }
     },
@@ -2361,28 +2091,6 @@
     "Color488Code": {
         "qubits": {
             "kitaev": {
-                "object": "sphere",
-                "color": {
-                    "I": "white",
-                    "X": "red",
-                    "Y": "green",
-                    "Z": "blue"
-                },
-                "opacity": {
-                    "activated": {
-                        "min": 1,
-                        "max": 1
-                    },
-                    "deactivated": {
-                        "min": 0.1,
-                        "max": 0.7
-                    }
-                },
-                "params": {
-                    "radius": 0.2
-                }
-            },
-            "rotated": {
                 "object": "sphere",
                 "color": {
                     "I": "white",
@@ -2539,9 +2247,83 @@
                         "angle": 0
                     }
                 }
-            },
-            "rotated": {
+            }
+        }
+    },
 
+    "BaconShorCode": {
+        "qubits": {
+            "kitaev": {
+                "object": "sphere",
+                "color": {
+                    "I": "white",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "deactivated": {
+                        "min": 0.1,
+                        "max": 0.7
+                    }
+                },
+                "params": {
+                    "radius": 0.2
+                }
+            }
+        },
+        "stabilizers": {
+            "kitaev": {
+                "horizontal": {
+                    "object": "rectangle",
+                    "color": {
+                        "activated": "orange",
+                        "deactivated": "orange"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.8,
+                            "max": 0.8
+                        },
+                        "deactivated": {
+                            "min": 0.3,
+                            "max": 0.3
+                        }
+                    },
+                    "params": {
+                        "w": 1.5,
+                        "h": 1.5,
+                        "angle": 0,
+                        "normal": [0, 0, 1]
+                    }
+                },
+                "vertical": {
+                    "object": "rectangle",
+                    "color": {
+                        "activated": "blue",
+                        "deactivated": "blue"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.8,
+                            "max": 0.8
+                        },
+                        "deactivated": {
+                            "min": 0.3,
+                            "max": 0.3
+                        }
+                    },
+                    "params": {
+                        "w": 1.5,
+                        "h": 1.5,
+                        "angle": 0,
+                        "normal": [0, 0, 1]
+                    }
+                }
             }
         }
     }

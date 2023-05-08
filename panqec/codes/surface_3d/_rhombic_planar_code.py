@@ -8,6 +8,30 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class RhombicPlanarCode(StabilizerCode):
+    """Toric code on checkerboard lattice with open boundaries.
+
+    Similar to :class:`panqec.codes.surface_3d.RhombicToricCode`
+    but with smooth boundaries on planes orthogonal to the x and z directions
+    and rough boundaries on planes orthogonal to the y direction.
+
+    Parameters
+    ----------
+    L_x : int
+        Size of lattice along x direction,
+        which is actually the number of x-edges in the x direction.
+    L_y : Optional[int]
+        Size of lattice along y direction,
+        which is actually the number of x-edges in the y direction.
+    L_z : Optional[int]
+        Size of lattice along z direction,
+        which is actually the number of x-edges in the z direction.
+
+    Notes
+    -----
+    Note that it is the same qubit lattice as that of
+    :class:`panqec.codes.surface_3d.Planar3DCode`
+    but with very different stabilizer generators.
+    """
     dimension = 3
     deformation_names = ['Checkerboard XZZX']
 
@@ -192,23 +216,26 @@ class RhombicPlanarCode(StabilizerCode):
         if self.stabilizer_type(location) == 'cube':
             x, y, z = location
             if y == -1 or y == 2*Ly-1 or z == -1 or z == 2*Lz-1:
-                angle = np.pi/4 if rotated_picture else 0
-                representation['object'] = 'rectangle'
+                representation['object'] = 'polygon'
+                if not rotated_picture:
+                    a = 0.75
+                    vertices = [[a, 0, a], [a, 0, -a], [-a, 0, -a], [-a, 0, a]]
+                else:
+                    a = 1
+                    vertices = [[a, 0, 0], [0, 0, a], [-a, 0, 0], [0, 0, -a]]
+
                 representation['params'] = {
-                    "w": 1.5,
-                    "h": 1.5,
-                    "normal": [0, 1, 0],
-                    "angle": angle
+                    "vertices": vertices,
+                    "angle": 0,
+                    "normal": [0, 0, 1]
                 }
                 if y == -1:
                     representation['location'] = [x, y+0.9, z]
                 elif y == 2*Ly-1:
                     representation['location'] = [x, y-0.9, z]
                 elif z == -1:
-                    representation['params']['normal'] = [0, 0, 1]
                     representation['location'] = [x, y, z+0.9]
                 elif z == 2*Lz-1:
-                    representation['params']['normal'] = [0, 0, 1]
                     representation['location'] = [x, y, z-0.9]
 
         elif self.stabilizer_type(location) == 'triangle':

@@ -6,6 +6,27 @@ Coordinates = List[Tuple]  # List of locations
 
 
 class Color488Code(StabilizerCode):
+    """2D color code on periodic 4,8,8 lattice.
+
+    Parameters
+    ----------
+    L_x : int
+        Number of unit cells in x direction.
+    L_y : Optional[int]
+        Number of unit cells in y direction.
+
+    Notes
+    -----
+    The 4,8,8 lattice is a tessallation of red squares (4),
+    green octagons (8) and blue octagons (8).
+    Qubits live on the vertices.
+    For each colored shape, there are two stabilizer generators,
+    one of all X over the qubits on its corners,
+    and one of all Z over the qubits on its corners.
+
+    See `EC zoo article <https://errorcorrectionzoo.org/c/color>`_
+    for further reading.
+    """
     dimension = 2
     deformation_names = ['XXZZ']
 
@@ -33,8 +54,8 @@ class Color488Code(StabilizerCode):
         coordinates: Coordinates = []
         Lx, Ly = self.size
 
-        for x in range(0, 8*Lx+4, 4):
-            for y in range(0, 8*Ly+4, 4):
+        for x in range(0, 8*Lx, 4):
+            for y in range(0, 8*Ly, 4):
                 coordinates.append((x, y, 0))
                 coordinates.append((x, y, 1))
 
@@ -170,46 +191,94 @@ class Color488Code(StabilizerCode):
             a = 1
 
         if 'octahedron' in self.stabilizer_type(location):
-            if x == 0:
-                rep['params']['vertices'] = [[0, -3*a], [a, -3*a], [3*a, -a],
-                                             [3*a, a], [a, 3*a], [0, 3*a]]
-            elif x == 8*Lx:
-                rep['params']['vertices'] = [[0, -3*a], [0, 3*a], [-a, 3*a],
-                                             [-3*a, a], [-3*a, -a], [-a, -3*a]]
-            elif y == 0:
-                rep['params']['vertices'] = [[3*a, 0], [3*a, a], [a, 3*a],
-                                             [-a, 3*a], [-3*a, a], [-3*a, 0]]
-            elif y == 8*Ly:
-                rep['params']['vertices'] = [[a, -3*a], [3*a, -a], [3*a, 0],
-                                             [-3*a, 0], [-3*a, -a], [-a, -3*a]]
+            if x == 0 or y == 0:
+                rep['object'] = 'group'
+                loc1 = [x, y]
+
+                if x == 0:
+                    vertices1 = [[0, -3*a], [a, -3*a], [3*a, -a],
+                                 [3*a, a], [a, 3*a], [0, 3*a]]
+                    vertices2 = [[0, -3*a], [0, 3*a], [-a, 3*a],
+                                 [-3*a, a], [-3*a, -a], [-a, -3*a]]
+                    loc2 = [8*Lx, y]
+                if y == 0:
+                    vertices1 = [[3*a, 0], [3*a, a], [a, 3*a],
+                                 [-a, 3*a], [-3*a, a], [-3*a, 0]]
+                    vertices2 = [[a, -3*a], [3*a, -a], [3*a, 0],
+                                 [-3*a, 0], [-3*a, -a], [-a, -3*a]]
+                    loc2 = [x, 8*Ly]
+
+                params1 = {
+                    'vertices': vertices1,
+                    'normal': [0, 0, 1],
+                    'angle': 0
+                }
+                params2 = {
+                    'vertices': vertices2,
+                    'normal': [0, 0, 1],
+                    'angle': 0
+                }
+
+                rep['params'] = [
+                    {'object': 'polygon', 'location': loc1, 'params': params1},
+                    {'object': 'polygon', 'location': loc2, 'params': params2}
+                ]
         else:
             if x == 0:
+                rep['object'] = 'group'
                 if y == 0:
-                    rep['params']['vertices'] = [[0, 0], [a, 0],
-                                                 [a, a], [0, a]]
-                elif y == 8*Ly:
-                    rep['params']['vertices'] = [[0, 0], [a, 0],
-                                                 [a, -a], [0, -a]]
-                else:
-                    rep['params']['vertices'] = [[0, a], [a, a],
-                                                 [a, -a], [0, -a]]
-            elif x == 8*Lx:
-                if y == 0:
-                    rep['params']['vertices'] = [[0, 0], [0, a],
-                                                 [-a, a], [-a, 0]]
-                elif y == 8*Ly:
-                    rep['params']['vertices'] = [[0, 0], [0, -a],
-                                                 [-a, -a], [-a, 0]]
-                else:
-                    rep['params']['vertices'] = [[-a, a], [0, a],
-                                                 [0, -a], [-a, -a]]
-            elif y == 0:
-                rep['params']['vertices'] = [[-a, 0], [a, 0],
-                                             [a, a], [-a, a]]
+                    vertices = [[0, 0], [a, 0],
+                                [a, a], [0, a]]
+                    params = {
+                        'vertices': vertices,
+                        'normal': [0, 0, 1],
+                        'angle': 0
+                    }
 
-            elif y == 8*Ly:
-                rep['params']['vertices'] = [[-a, 0], [a, 0],
-                                             [a, -a], [-a, -a]]
+                    rep['params'] = [
+                        {'object': 'polygon', 'location': [x, y],
+                         'params': params},
+                        {'object': 'polygon', 'location': [8*Lx-1, y],
+                         'params': params},
+                        {'object': 'polygon', 'location': [x, 8*Ly-1],
+                         'params': params},
+                        {'object': 'polygon', 'location': [8*Lx-1, 8*Ly-1],
+                         'params': params},
+                    ]
+                else:
+                    vertices = [[0, a], [a, a],
+                                [a, -a], [0, -a]]
+                    params = {
+                        'vertices': vertices,
+                        'normal': [0, 0, 1],
+                        'angle': 0
+                    }
+
+                    rep['params'] = [
+                        {'object': 'polygon', 'location': [x, y],
+                         'params': params},
+                        {'object': 'polygon', 'location': [8*Lx-1, y],
+                         'params': params},
+                    ]
+
+            elif y == 0:
+                rep['object'] = 'group'
+
+                vertices = [[-a, 0], [a, 0],
+                            [a, a], [-a, a]]
+
+                params = {
+                        'vertices': vertices,
+                        'normal': [0, 0, 1],
+                        'angle': 0
+                    }
+
+                rep['params'] = [
+                    {'object': 'polygon', 'location': [x, y],
+                     'params': params},
+                    {'object': 'polygon', 'location': [x, 8*Ly-1],
+                     'params': params}
+                ]
 
         return rep
 

@@ -6,6 +6,7 @@ Many of these are copied from the internet.
 :Author:
     Eric Huang
 """
+from typing import Dict, Any
 import numpy as np
 import json
 import os
@@ -373,3 +374,35 @@ def save_json(data, file):
     else:
         with gzip.open(file, 'wb') as gz:
             gz.write(json.dumps(data, cls=NumpyEncoder).encode('utf-8'))
+
+
+def get_label(name: str, parameters: Dict[str, Any]) -> str:
+    """Get label filtering entries from class name and parameters.
+
+    Parameters
+    ----------
+    name : str
+        The name of the class.
+    parameters : Dict[str, Any]
+        The dictionary of parameters used to intialize an instance of that
+        class.
+
+    Returns
+    -------
+    label : str
+        The formatted label.
+
+    Examples
+    --------
+    >>> get_label('Toric2DCode', {'L_x': 5, 'L_y': 6, 'L_z': 7})
+    'Toric2DCode(L_x=5, L_y=6, L_z=7)'
+    """
+    label = ''
+    parameter_labels = []
+    for key, value in parameters.items():
+        formatted_value = repr(value)
+        if isinstance(value, float):
+            formatted_value = str(np.round(value, 6))
+        parameter_labels.append(f'{key}={formatted_value}')
+    label = name + '(' + ', '.join(parameter_labels) + ')'
+    return label

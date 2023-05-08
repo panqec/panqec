@@ -1,8 +1,13 @@
 import numpy as np
+from typing import Optional
+import webbrowser
+import argparse
 
 from flask import (
     Flask, send_from_directory, request, json, render_template
 )
+from flask_cors import CORS
+
 from panqec.codes import (
     Toric2DCode, RotatedPlanar2DCode, Planar2DCode,
     Toric3DCode, RotatedPlanar3DCode, RhombicToricCode, RhombicPlanarCode,
@@ -17,25 +22,26 @@ from panqec.decoders import (
 )
 from panqec.error_models import PauliErrorModel
 
-import webbrowser
-import argparse
 
-codes = {'Toric 2D': Toric2DCode,
-         'Planar 2D': Planar2DCode,
-         'Rotated Planar 2D': RotatedPlanar2DCode,
-         '6.6.6 Color Code (toric)': Color666ToricCode,
-         '6.6.6 Color Code (planar)': Color666PlanarCode,
-         '4.8.8 Color Code': Color488Code,
-         'Toric 3D': Toric3DCode,
-         'Planar 3D': Planar3DCode,
-         'Rotated Toric 3D': RotatedToric3DCode,
-         'Rotated Planar 3D': RotatedPlanar3DCode,
-         'Rhombic Toric 3D': RhombicToricCode,
-         'Rhombic Planar 3D': RhombicPlanarCode,
-         'XCube': XCubeCode,
-         'Hollow Planar 3D': HollowPlanar3DCode,
-         'Hollow Rhombic Code': HollowRhombicCode,
-         '3D Color Code': Color3DCode}
+codes = {
+    'Toric 2D': Toric2DCode,
+    'Planar 2D': Planar2DCode,
+    'Rotated Planar 2D': RotatedPlanar2DCode,
+    '6.6.6 Color Code (toric)': Color666ToricCode,
+    '6.6.6 Color Code (planar)': Color666PlanarCode,
+    '4.8.8 Color Code': Color488Code,
+    'Toric 3D': Toric3DCode,
+    'Planar 3D': Planar3DCode,
+    'Rotated Toric 3D': RotatedToric3DCode,
+    'Rotated Planar 3D': RotatedPlanar3DCode,
+    'Rhombic Toric 3D': RhombicToricCode,
+    'Rhombic Planar 3D': RhombicPlanarCode,
+    'XCube': XCubeCode,
+    'Hollow Planar 3D': HollowPlanar3DCode,
+    'Hollow Rhombic Code': HollowRhombicCode,
+    '3D Color Code': Color3DCode,
+    # 'Bacon-Shor Code': BaconShorCode
+}
 
 noise_directions = {'Pure X': (1, 0, 0),
                     'Pure Y': (0, 1, 0),
@@ -53,12 +59,14 @@ decoders = {'BP-OSD': BeliefPropagationOSDDecoder,
 class GUI():
     app = None
 
-    def __init__(self):
+    def __init__(self, json_file: Optional[str] = None):
         self.app = Flask(__name__)
+        CORS(self.app)
 
         self.codes = codes
         self.decoders = decoders
         self._code_names = {}
+        self.json_file = json_file
 
         self.add_all_routes()
 
@@ -135,11 +143,11 @@ class GUI():
         )
         self.app.add_url_rule(
             "/code-names", "code-names",
-            self.send_code_names, methods=['POST']
+            self.send_code_names, methods=['POST', 'GET']
         )
         self.app.add_url_rule(
             "/decoder-names", "decoder-names",
-            self.send_decoder_names, methods=['POST']
+            self.send_decoder_names, methods=['POST', 'GET']
         )
         self.app.add_url_rule(
             "/deformation-names", "deformation-names",
@@ -206,21 +214,29 @@ class GUI():
 
         code = self._instantiate_code(request.json)
 
-        qubits = [code.qubit_representation(location, rotated_picture)
-                  for location in code.qubit_coordinates]
-        stabilizers = [code.stabilizer_representation(location,
-                                                      rotated_picture)
-                       for location in code.stabilizer_coordinates]
+        qubits = [
+            code.qubit_representation(
+                location, rotated_picture, json_file=self.json_file
+            )
+            for location in code.qubit_coordinates
+        ]
+        stabilizers = [
+            code.stabilizer_representation(
+                location, rotated_picture, json_file=self.json_file
+            )
+            for location in code.stabilizer_coordinates
+        ]
 
         logical_z = code.logicals_z
         logical_x = code.logicals_x
 
-        return json.dumps({'H': code.stabilizer_matrix.toarray().tolist(),
-                           'qubits': qubits,
-                           'stabilizers': stabilizers,
-                           'logical_z': logical_z.tolist(),
-                           'logical_x': logical_x.tolist()
-                           })
+        return json.dumps({
+            'H': code.stabilizer_matrix.toarray().tolist(),
+            'qubits': qubits,
+            'stabilizers': stabilizers,
+            'logical_z': logical_z.tolist(),
+            'logical_x': logical_x.tolist()
+        })
 
     def send_correction(self):
         content = request.json
@@ -258,8 +274,10 @@ class GUI():
         correction_x = correction[:code.n]
         correction_z = correction[code.n:]
 
-        return json.dumps({'x': correction_x.tolist(),
-                           'z': correction_z.tolist()})
+        return json.dumps({
+            'x': correction_x.tolist(),
+            'z': correction_z.tolist()
+        })
 
     def send_random_errors(self):
         content = request.json
@@ -310,7 +328,7 @@ def run_gui():
 
     gui = GUI()
     # gui.add_all_endpoints()
-    gui.run(port=port)
+    gui.run(host='0.0.0.0', port=port)
 
 
 if __name__ == '__main__':
