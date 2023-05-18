@@ -8,12 +8,14 @@ from panqec.codes import (
     Toric3DCode, RotatedPlanar3DCode, RhombicToricCode, RhombicPlanarCode,
     Planar3DCode, RotatedToric3DCode, XCubeCode,
     HollowPlanar3DCode, HollowRhombicCode,
-    Color3DCode, Color666PlanarCode, Color666ToricCode, Color488Code
+    Color3DCode, Color666PlanarCode, Color666ToricCode, Color488Code,
+    FermionKagome, FermionSquare, Fermion3DCode
 )
 from panqec.decoders import (
     MatchingDecoder, RotatedSweepMatchDecoder,
     SweepMatchDecoder, BeliefPropagationOSDDecoder,
-    MemoryBeliefPropagationDecoder, XCubeMatchingDecoder
+    MemoryBeliefPropagationDecoder, XCubeMatchingDecoder,FermionSquareDecoder
+
 )
 from panqec.error_models import PauliErrorModel
 
@@ -35,7 +37,10 @@ codes = {'Toric 2D': Toric2DCode,
          'XCube': XCubeCode,
          'Hollow Planar 3D': HollowPlanar3DCode,
          'Hollow Rhombic Code': HollowRhombicCode,
-         '3D Color Code': Color3DCode}
+         '3D Color Code': Color3DCode,
+         'Fermion Square Lattice': FermionSquare,
+         'Fermion Kagome Lattice': FermionKagome,
+         'Fermion 3D Lattice': Fermion3DCode}
 
 noise_directions = {'Pure X': (1, 0, 0),
                     'Pure Y': (0, 1, 0),
@@ -47,7 +52,8 @@ decoders = {'BP-OSD': BeliefPropagationOSDDecoder,
             'SweepMatch': SweepMatchDecoder,
             'RotatedSweepMatch': RotatedSweepMatchDecoder,
             'Matching': MatchingDecoder,
-            'XCube Matching': XCubeMatchingDecoder}
+            'XCube Matching': XCubeMatchingDecoder,
+            'Fermion Square Lattice Decoder': FermionSquareDecoder}
 
 
 class GUI():

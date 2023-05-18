@@ -19,6 +19,9 @@ from .surface_3d._hollow_rhombic_code import HollowRhombicCode
 from .surface_3d._rotated_toric_3d_code import RotatedToric3DCode  # noqa
 from .fractons._xcube_code import XCubeCode  # noqa
 from .color_3d._color_3d_code import Color3DCode  # noqa
+from .fermion_2d._fermion_kagome import FermionKagome
+from .fermion_2d._fermion_square import FermionSquare
+from .fermion_3d._fermion_cube.py import Fermion3DCode
 
 
 __all__ = [
@@ -39,5 +42,8 @@ __all__ = [
     "HollowPlanar3DCode",
     "HollowRhombicCode",
     "XCubeCode",
-    "Color3DCode"
+    "Color3DCode",
+    "FermionKagome",
+    "Fermion3DCode",
+    "FermionSquare"
 ]
