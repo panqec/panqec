@@ -13,7 +13,7 @@ from .codes import (
     Color666PlanarCode, Color666ToricCode, Color488Code,
     Color3DCode, RhombicToricCode, RhombicPlanarCode,
     XCubeCode, HollowPlanar3DCode, HollowRhombicCode,
-    FoliatedCode, BaconShorCode
+    BaconShorCode
 )
 from .decoders import (
     SweepMatchDecoder, XCubeMatchingDecoder,
@@ -69,7 +69,6 @@ CODES = {
     'XCubeCode': XCubeCode,
     'HollowPlanar3DCode': HollowPlanar3DCode,
     'HollowRhombicCode': HollowRhombicCode,
-    'FoliatedCode': FoliatedCode,
     'BaconShorCode': BaconShorCode
 }
 ERROR_MODELS = {

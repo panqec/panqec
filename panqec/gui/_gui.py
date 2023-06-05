@@ -59,14 +59,13 @@ decoders = {'BP-OSD': BeliefPropagationOSDDecoder,
 class GUI():
     app = None
 
-    def __init__(self, json_file: Optional[str] = None):
+    def __init__(self):
         self.app = Flask(__name__)
         CORS(self.app)
 
         self.codes = codes
         self.decoders = decoders
         self._code_names = {}
-        self.json_file = json_file
 
         self.add_all_routes()
 
@@ -216,13 +215,13 @@ class GUI():
 
         qubits = [
             code.qubit_representation(
-                location, rotated_picture, json_file=self.json_file
+                location, rotated_picture
             )
             for location in code.qubit_coordinates
         ]
         stabilizers = [
             code.stabilizer_representation(
-                location, rotated_picture, json_file=self.json_file
+                location, rotated_picture
             )
             for location in code.stabilizer_coordinates
         ]

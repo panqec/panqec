@@ -17,8 +17,7 @@ from panqec.config import (
 )
 from panqec.utils import identity, load_json, save_json
 from . import (
-    BaseSimulation, DirectSimulation, SplittingSimulation,
-    ClusterStateSimulation
+    BaseSimulation, DirectSimulation, SplittingSimulation
 )
 from panqec.analysis import Analysis
 
@@ -444,16 +443,6 @@ def _parse_code_dict(code_dict: Dict[str, Any]) -> StabilizerCode:
     if 'parameters' in code_dict:
         code_params = code_dict['parameters']
 
-        if code_name == 'FoliatedCode':
-            base_code_class = CODES[code_params['base_code']]
-            base_code_params = code_params['base_code_params']
-            base_code = base_code_class(**base_code_params)
-
-            code_params = {
-                'base_code': base_code,
-                'n_layers': code_params['n_layers']
-            }
-
     code_class = CODES[code_name]
     if isinstance(code_params, dict):
         code = code_class(**code_params)  # type: ignore
@@ -601,15 +590,15 @@ def get_simulations(data: dict, verbose: bool = True) -> List[BaseSimulation]:
                 verbose=verbose, **method_params
             ))
 
-    if method == 'cluster-state':
-        for code, error_model, decoder_dict, error_rate in instances:
-            decoder = _parse_decoder_dict(decoder_dict, code.base_code,
-                                          error_model, error_rate)
+    # if method == 'cluster-state':
+    #     for code, error_model, decoder_dict, error_rate in instances:
+    #         decoder = _parse_decoder_dict(decoder_dict, code.base_code,
+    #                                       error_model, error_rate)
 
-            sim = ClusterStateSimulation(code, error_model, decoder,
-                                         error_rate, verbose=verbose,
-                                         **method_params)
-            simulations.append(sim)
+    #         sim = ClusterStateSimulation(code, error_model, decoder,
+    #                                      error_rate, verbose=verbose,
+    #                                      **method_params)
+    #         simulations.append(sim)
 
     return simulations
 
