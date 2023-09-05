@@ -2,6 +2,7 @@ import * as THREE from 'https://cdn.skypack.dev/three@v0.130.1';
 import { OrbitControls } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/controls/OrbitControls.js';
 import { OutlineEffect } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/effects/OutlineEffect.js';
 import { GUI } from 'https://cdn.skypack.dev/three@0.130.0/examples/jsm/libs/dat.gui.module';
+import nj from 'https://cdn.jsdelivr.net/npm/@d4c/numjs/build/module/numjs.min.js'
 
 import { TopologicalCode } from './topologicalCode.js';
 
@@ -38,7 +39,9 @@ const defaultKeyCode = {
     'x-logical': 88, // 'x'
     'z-logical': 90, // 'z'
     'x-error': 17, // 'ctrl'
-    'z-error': 16 // 'shift'
+    'z-error': 16, // 'shift'
+    'contract': 67, // 'c'
+    'check-logical-error': 76  // 'l'
 };
 
 class Interface {
@@ -469,6 +472,27 @@ class Interface {
         return data
     }
 
+    async checkLogicalError() {
+        let response = await fetch(this.url + '/check-logical-error', {
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            method: 'POST',
+            body: JSON.stringify({
+                'error': this.code.errors,
+                'Lx': this.params.Lx,
+                'Ly': this.params.Ly,
+                'Lz': this.params.Lz,
+                'code_name': this.params.codeName,
+                'code_deformation_name': this.params.codeDeformationName
+            })
+        });
+
+        let data  = await response.json();
+
+        return data
+    }
+
     async getRandomErrors() {
         let response = await fetch(this.url + '/new-errors', {
             headers: {
@@ -493,26 +517,68 @@ class Interface {
     }
 
     async addRandomErrors() {
-        let errors = await this.getRandomErrors()
-        let n = errors.length / 2;
+        let errors = new Array(2*this.code.n).fill(0);
+
+        if (this.params.noiseDeformationName == 'None') {
+            if (this.params.errorModel.includes('Pure')) {
+                for(var i=0; i < this.code.n; i++) {
+                    let err = +(Math.random() < this.params.errorProbability)
+                    if (this.params.errorModel.includes('X') || this.params.errorModel.includes('Y'))
+                        errors[i] = err
+                    if (this.params.errorModel.includes('Z') || this.params.errorModel.includes('Y'))
+                        errors[this.code.n+i] = err
+                }
+            }
+        }
+
+        if (errors.length == 0)
+            errors = await this.getRandomErrors()
+
+        let n = this.code.n;
         this.code.qubits.forEach((q, i) => {
             if (errors[i]) {
-                this.code.insertError(q, 'X');
+                this.code.insertError(q, 'X', false);
             }
             if (errors[n+i]) {
-                this.code.insertError(q, 'Z');
+                this.code.insertError(q, 'Z', false);
             }
         });
+        this.code.updateStabilizers();
     }
 
     removeAllErrors() {
         this.code.qubits.forEach(q => {
             ['X', 'Z'].forEach(errorType => {
                 if (q.hasError[errorType]) {
-                    this.code.insertError(q, errorType);
+                    this.code.insertError(q, errorType, false);
                 }
             })
         });
+        this.code.updateStabilizers();
+    }
+
+    contractError() {
+        for(var i=0; i < this.code.H.shape[0]; i++) {
+            var newError = nj.mod(this.code.errors.add(this.code.H.pick(i, null)), 2);
+            var doInsert = false;
+            if (newError.sum() < this.code.errors.sum())
+                doInsert = true;
+            if (newError.sum() == this.code.errors.sum())
+                doInsert = (Math.random() < 0.5);
+
+            if (doInsert) {
+                for(var j=0; j < 2*this.code.n; j++) {
+                    if (this.code.H.get(i, j) == 1) {
+                        if (j < this.code.n)
+                            this.code.insertError(this.code.qubits[j], 'X', false)
+                        else
+                            this.code.insertError(this.code.qubits[j-this.code.n], 'Z', false)
+                    }
+                }
+            }
+        }
+        console.log("New weight", this.code.errors.sum())
+        this.code.updateStabilizers();
     }
 
     async decode() {
@@ -521,14 +587,15 @@ class Interface {
 
         correction['x'].forEach((c,i) => {
             if(c) {
-                this.code.insertError(this.code.qubits[i], 'X')
+                this.code.insertError(this.code.qubits[i], 'X', false)
             }
         });
         correction['z'].forEach((c,i) => {
             if(c) {
-                this.code.insertError(this.code.qubits[i], 'Z')
+                this.code.insertError(this.code.qubits[i], 'Z', false)
             }
         });
+        this.code.updateStabilizers();
     }
 
     onDocumentMouseDown(event) {
@@ -560,11 +627,11 @@ class Interface {
             if (correctMouseKey(this.keycode['x-error']))
             {
                 console.log('Selected qubit', selectedQubit.index, 'at', x, y, z);
-                this.code.insertError(selectedQubit, 'X');
+                this.code.insertError(selectedQubit, 'X', true);
             }
             if (correctMouseKey(this.keycode['z-error'])) {
                 console.log('Selected qubit', selectedQubit.index, 'at', x, y, z);
-                this.code.insertError(selectedQubit, 'Z');
+                this.code.insertError(selectedQubit, 'Z', true);
             }
         }
     }
@@ -589,13 +656,19 @@ class Interface {
         }
 
         else if (keyCode == this.keycode['x-logical']) {
-            this.removeAllErrors();
+            // this.removeAllErrors();
             this.code.displayLogical(this.code.logical_x, 'X');
         }
 
         else if (keyCode == this.keycode['z-logical']) {
-            this.removeAllErrors();
+            // this.removeAllErrors();
             this.code.displayLogical(this.code.logical_z, 'Z');
+        }
+        else if (keyCode == this.keycode['contract']) {
+            this.contractError();
+        }
+        else if (keyCode == this.keycode['check-logical-error']) {
+            this.checkLogicalError();
         }
     };
 

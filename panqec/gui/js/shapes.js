@@ -126,22 +126,23 @@ function cylinder(location, params) {
     var y = location[1];
     var z = (location.length == 3) ? location[2] : 0;
 
+    // console.log(location)
+
     const geometry = new THREE.CylinderGeometry(params['radius'], params['radius'], params['length'], 32);
-
-    geometry.rotateZ(params['angle']);
-
-    if (params['axis'] == 'x') {
-        geometry.rotateZ(Math.PI / 2);
-    }
-else if (params['axis'] == 'z') {
-        geometry.rotateX(Math.PI / 2);
-    }
-
-    geometry.translate(x, y, z)
-
     const material = new THREE.MeshPhongMaterial({transparent: true});
 
     const cylinder = new THREE.Mesh(geometry, material);
+
+    const direction = new THREE.Vector3(
+        params['direction'][0], params['direction'][1], params['direction'][2]
+    ).normalize();
+    const up = new THREE.Vector3(0, 1, 0);
+    const quaternion = new THREE.Quaternion().setFromUnitVectors(up, direction);
+
+    cylinder.geometry.applyQuaternion(quaternion);
+
+    cylinder.geometry.translate(x, y, z);
+
 
     return cylinder;
 }
@@ -362,8 +363,8 @@ function group(location, params) {
     var material = null;
 
     params.forEach(p => {
+        console.log(p['params']);
         const shape = create_shape[p['object']](p['location'], p['params']);
-
         allGeometries.push(shape.geometry)
         material = shape.material
         children.push(shape.children)

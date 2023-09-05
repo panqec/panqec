@@ -177,9 +177,12 @@ class RotatedPlanar3DCode(StabilizerCode):
             location, rotated_picture, json_file
         )
 
+        direction = {'x': [1, -1, 0], 'y': [1, 1, 0], 'z': [0, 0, 1]}
+
+        representation['params']['direction'] = direction[self.qubit_axis(location)]
+
         if self.qubit_axis(location) == 'z':
             representation['params']['length'] = 2
-            representation['params']['angle'] = 0
 
         if rotated_picture:
             x, y, z = representation['location']

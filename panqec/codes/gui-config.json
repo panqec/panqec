@@ -22,7 +22,7 @@
                 "params": {
                     "length": 2,
                     "radius": 0.1,
-                    "angle": 0
+                    "direction": [1,0,0]
                 }
             },
             "rotated": {
@@ -164,7 +164,7 @@
                 "params": {
                     "length": 2,
                     "radius": 0.1,
-                    "angle": 0
+                    "direction": [1,0,0]
                 }
             },
             "rotated": {
@@ -306,7 +306,7 @@
                 "params": {
                     "length": 2.8284,
                     "radius": 0.14142,
-                    "angle": -0.7854
+                    "direction": [1,-1,0]
                 }
             },
             "rotated": {
@@ -448,7 +448,7 @@
                 "params": {
                     "length": 2,
                     "radius": 0.1,
-                    "angle": 0
+                    "direction": [1,0,0]
                 }
             },
             "rotated": {
@@ -588,7 +588,7 @@
                 "params": {
                     "length": 2,
                     "radius": 0.1,
-                    "angle": 0
+                    "direction": [1,0,0]
                 }
             },
             "rotated": {
@@ -728,7 +728,7 @@
                 "params": {
                     "length": 2.8284,
                     "radius": 0.1,
-                    "angle": -0.7854
+                    "direction": [1,-1,0]
                 }
             },
             "rotated": {
@@ -868,7 +868,7 @@
                 "params": {
                     "length": 2,
                     "radius": 0.1,
-                    "angle": 0
+                    "direction": [1,0,0]
                 }
             },
             "rotated": {
@@ -1008,7 +1008,7 @@
                 "params": {
                     "length": 2.8284,
                     "radius": 0.1,
-                    "angle": -0.7854
+                    "direction": [1,-1,0]
                 }
             },
             "rotated": {
@@ -1148,7 +1148,7 @@
                 "params": {
                     "length": 2,
                     "radius": 0.1,
-                    "angle": 0
+                    "direction": [1,0,0]
                 }
             },
             "rotated": {
@@ -1287,7 +1287,7 @@
                 "params": {
                     "length": 2,
                     "radius": 0.1,
-                    "angle": 0
+                    "direction": [1,0,0]
                 }
             },
             "rotated": {
@@ -1426,7 +1426,7 @@
                 "params": {
                     "length": 2,
                     "radius": 0.1,
-                    "angle": 0
+                    "direction": [1,0,0]
                 }
             },
             "rotated": {
@@ -1565,7 +1565,7 @@
                 "params": {
                     "length": 2,
                     "radius": 0.1,
-                    "angle": 0
+                    "direction": [1,0,0]
                 }
             }
         },

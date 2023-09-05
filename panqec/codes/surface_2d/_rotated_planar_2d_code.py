@@ -174,6 +174,26 @@ class RotatedPlanar2DCode(StabilizerCode):
 
         return deformation
 
+    def qubit_representation(
+        self,
+        location: Tuple,
+        rotated_picture=False,
+        json_file=None
+    ) -> Dict:
+        rep = super().qubit_representation(
+            location, rotated_picture, json_file
+        )
+
+        Lx, Ly = self.size
+        x, y = location
+
+        if self.qubit_axis(location) == 'x':
+            rep['params']['direction'] = [1, -1, 0]
+        else:
+            rep['params']['direction'] = [1, 1, 0]
+
+        return rep
+
     def stabilizer_representation(
         self,
         location: Tuple,

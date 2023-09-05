@@ -164,6 +164,10 @@ class GUI():
             "/new-errors", "new-errors",
             self.send_random_errors, methods=['POST']
         )
+        self.app.add_url_rule(
+            "/check-logical-error", "check-logical-error",
+            self.check_logical_error, methods=['POST']
+        )
 
     def send_index_2d(self):
         return render_template('gui.html')
@@ -277,6 +281,16 @@ class GUI():
             'x': correction_x.tolist(),
             'z': correction_z.tolist()
         })
+
+    def check_logical_error(self):
+        content = request.json
+        error = np.array(content['error'])
+
+        code = self._instantiate_code(content)
+
+        logical_errors = code.logical_errors(error)
+
+        print(logical_errors)
 
     def send_random_errors(self):
         content = request.json

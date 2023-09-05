@@ -38,8 +38,6 @@ class TopologicalCode {
         }
     }
 
-    getQubitFromCoordinate
-
     getSyndrome() {
         let Hx = this.H.slice(null, [0, this.n]);
         let Hz = this.H.slice(null, [this.n, 2*this.n]);
@@ -51,7 +49,7 @@ class TopologicalCode {
         return syndrome.tolist();
     }
 
-    insertError(qubit, pauli) {
+    insertError(qubit, pauli, updateStabilizers=true) {
         // 'qubit' can either be a three.js object or a list of coordinates
 
         if (Array.isArray(qubit)) {
@@ -85,7 +83,8 @@ class TopologicalCode {
             qubit.material.color.setHex(qubit.color['I']);
         }
 
-        this.updateStabilizers();
+        if (updateStabilizers)
+            this.updateStabilizers();
     }
 
     displayLogical(logical, pauli) {

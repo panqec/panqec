@@ -969,7 +969,11 @@ class SubsystemCode(metaclass=ABCMeta):
 
         representation = data[code_name]['qubits'][picture]
 
-        representation['params']['axis'] = self.qubit_axis(location)
+        direction = {'x': [1,  0, 0], 'y': [0, 1, 0], 'z': [0, 0, 1]}
+
+        if self.qubit_axis(location) in direction.keys():
+            representation['params']['direction'] = direction[self.qubit_axis(location)]
+
         representation['location'] = location
 
         for pauli in ['I', 'X', 'Y', 'Z']:
