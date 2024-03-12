@@ -1,5 +1,4 @@
 import numpy as np
-from typing import Optional
 import webbrowser
 import argparse
 
@@ -13,7 +12,8 @@ from panqec.codes import (
     Toric3DCode, RotatedPlanar3DCode, RhombicToricCode, RhombicPlanarCode,
     Planar3DCode, RotatedToric3DCode, XCubeCode,
     HollowPlanar3DCode, HollowRhombicCode,
-    Color3DCode, Color666PlanarCode, Color666ToricCode, Color488Code
+    Color3DCode, Color666PlanarCode, Color666ToricCode, Color488Code,
+    GaugeColor3DCode
 )
 from panqec.decoders import (
     MatchingDecoder, RotatedSweepMatchDecoder,
@@ -40,7 +40,7 @@ codes = {
     'Hollow Planar 3D': HollowPlanar3DCode,
     'Hollow Rhombic Code': HollowRhombicCode,
     '3D Color Code': Color3DCode,
-    # 'Bacon-Shor Code': BaconShorCode
+    'Gauge Color Code': GaugeColor3DCode
 }
 
 noise_directions = {'Pure X': (1, 0, 0),

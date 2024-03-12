@@ -83,6 +83,9 @@ class TopologicalCode {
             qubit.material.color.setHex(qubit.color['I']);
         }
 
+        // Prevents a weird glitch with opacity-0 objects
+        qubit.visible = (qubit.material.opacity != 0)
+
         if (updateStabilizers)
             this.updateStabilizers();
     }
@@ -115,11 +118,13 @@ class TopologicalCode {
         this.qubits.forEach(q => {
             let activatedStr = (q.hasError['X'] || q.hasError['Z']) ? 'activated' : 'deactivated';
             q.material.opacity = q.opacity[activatedStr][opacityLevel];
+            q.visible = (q.material.opacity != 0)
         });
 
         this.stabilizers.forEach(s => {
             let activatedStr = s.isActivated ? 'activated' : 'deactivated';
             s.material.opacity = s.opacity[activatedStr][opacityLevel];
+            s.visible = (s.material.opacity != 0)
         });
     }
 
@@ -186,6 +191,9 @@ class TopologicalCode {
 
             qubit.index = index;
             qubit.location = this.qubitData[index]['location'];
+            // Prevents a weird glitch with opacity-0 objects
+            qubit.visible = (qubit.material.opacity != 0)
+
             this.qubits[index] = qubit;
             this.qubitMap[qubit.location] = qubit;
 

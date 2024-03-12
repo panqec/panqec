@@ -2326,5 +2326,76 @@
                 }
             }
         }
+    },
+    "GaugeColor3DCode": {
+        "qubits": {
+            "kitaev": {
+                "object": "polyhedron",
+                "color": {
+                    "I": "white",
+                    "X": "red",
+                    "Y": "green",
+                    "Z": "blue"
+                },
+                "opacity": {
+                    "activated": {
+                        "min": 0.9,
+                        "max": 0.9
+                    },
+                    "deactivated": {
+                        "min": 0,
+                        "max": 0
+                    }
+                },
+                "params": {
+                }
+            }
+        },
+        "stabilizers": {
+            "kitaev": {
+                "vertex": {
+                    "object": "sphere",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "white"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.9,
+                            "max": 0.9
+                        },
+                        "deactivated": {
+                            "min": 0.3,
+                            "max": 0.9
+                        }
+                    },
+                    "params": {
+                        "radius": 0.2
+                    }
+                },
+                "edge": {
+                    "object": "cylinder",
+                    "color": {
+                        "activated": "gold",
+                        "deactivated": "white"
+                    },
+                    "opacity": {
+                        "activated": {
+                            "min": 0.8,
+                            "max": 0.8
+                        },
+                        "deactivated": {
+                            "min": 0.3,
+                            "max": 0.6
+                        }
+                    },
+                    "params": {
+                        "length": 2,
+                        "radius": 0.05,
+                        "direction": [1,0,0]
+                    }
+                }
+            }
+        }
     }
 }

@@ -16,7 +16,8 @@ var create_shape = {'sphere': sphere,
                     'hexagon': hexagon,
                     'polygon': polygon,
                     'cuboctahedron': cuboctahedron,
-                    'truncated_octahedron': truncated_octahedron}
+                    'truncated_octahedron': truncated_octahedron,
+                    'polyhedron': polyhedron}
 
 function sphere(location, params) {
     var x = location[0];
@@ -164,18 +165,45 @@ function octahedron(location, params) {
     return octahedron;
 }
 
-function cuboctahedron(location, params) {
+function polyhedron(location, params) {
     var x = location[0];
     var y = location[1];
     var z = location[2];
 
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(params.vertices, 3));
+    geometry.setIndex(params.triangles);
+    geometry.computeVertexNormals();
+
+    console.log(params.triangles)
+
+    const material = new THREE.MeshToonMaterial({transparent: true,
+                                                 side: THREE.DoubleSide});
+    const polyhedron = new THREE.Mesh(geometry, material);
+
+    var geo = new THREE.EdgesGeometry( polyhedron.geometry );
+    var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 2,
+                                           opacity: 0, transparent: true });
+    var wireframe = new THREE.LineSegments(geo, mat);
+    // wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
+
+    polyhedron.add(wireframe);
+
+    // polyhedron.position.x = x;
+    // polyhedron.position.y = y;
+    // polyhedron.position.z = z;
+
+    return polyhedron;
+}
+
+function cuboctahedron(location, params) {
     const vertices = [
         -1,0,-1,    0,-1,-1,   1,0,-1,     0,1,-1,
         -1,-1,0,   1,-1,0,   1,1,0,    -1,1,0,
         -1,0,1,    0,-1,1,   1,0,1,     0,1,1,
     ];
 
-    const faceIndices = [
+    const triangles = [
         0,1,2,    2,3,0,
         8,9,10,   10,11,8,
         0,7,8,    8,4,0,
@@ -188,30 +216,9 @@ function cuboctahedron(location, params) {
         5,9,10,   6,10,11
     ];
 
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-    geometry.setIndex(faceIndices);
-    geometry.computeVertexNormals();
+    polyParams = {'vertices': vertices, 'triangles': triangles}
 
-    const material = new THREE.MeshToonMaterial({transparent: true,
-                                                 side: THREE.DoubleSide});
-    const cuboctahedron = new THREE.Mesh(geometry, material);
-
-    var geo = new THREE.EdgesGeometry( cuboctahedron.geometry );
-    var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 2,
-                                           opacity: 0, transparent: true });
-    var wireframe = new THREE.LineSegments(geo, mat);
-    // wireframe.renderOrder = 1; // make sure wireframes are rendered 2nd
-
-    cuboctahedron.add(wireframe);
-
-    cuboctahedron.position.x = x;
-    cuboctahedron.position.y = y;
-    cuboctahedron.position.z = z;
-
-    // cuboctahedron.rotateZ(params['angle'])
-
-    return cuboctahedron;
+    return polyhedron(location, polyParams)
 }
 
 function box(location, params) {

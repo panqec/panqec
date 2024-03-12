@@ -1,6 +1,6 @@
 import { Interface } from './gui.js'
 
-var defaultCode = codeDimension == 2 ? 'Toric 2D' : 'Toric 3D';
+var defaultCode = codeDimension == 2 ? 'Toric 2D' : 'Gauge Color Code';
 var defaultSize = codeDimension == 2 ? 4 : 2;
 
 const params = {
