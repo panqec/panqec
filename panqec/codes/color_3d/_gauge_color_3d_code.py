@@ -75,7 +75,7 @@ class GaugeColor3DCode(StabilizerCode):
         for x_cube in range(1, 2*Lx, 2):
             for y_cube in range(1, 2*Ly, 2):
                 for z_cube in range(1, 2*Lz, 2):
-                    if (x_cube + y_cube + z_cube) % 4 == 3:
+                    if (x_cube + y_cube + z_cube) % 4 == 0:
                         tetrahedra = even_tetrahedra
                     else:
                         tetrahedra = odd_tetrahedra
@@ -90,7 +90,7 @@ class GaugeColor3DCode(StabilizerCode):
                             Tetra(vertices.tolist())
                         )
                         for v in vertices:
-                            v = np.mod(v, [2*Lx, 2*Ly, 2*Lz]).tolist()
+                            v = np.mod(v, size).tolist()
                             if tuple(v) in self.vertex_to_tetras:
                                 self.vertex_to_tetras[tuple(v)].append(tetra)
                             else:
@@ -101,10 +101,14 @@ class GaugeColor3DCode(StabilizerCode):
                             new_v2 = deepcopy(v2)
                             for axis in range(3):
                                 if v1[axis] == v2[axis] == size[axis]:
+                                    print('test')
                                     new_v1[axis] = 0
                                     new_v2[axis] = 0
 
                             e = tuple(sorted([tuple(new_v1.tolist()), tuple(new_v2.tolist())]))
+
+                            # e = (v1 + v2) // 2
+                            # e = tuple(np.mod(e, [2*Lx, 2*Ly, 2*Lz]))
 
                             if e in self.edge_to_tetras.keys():
                                 self.edge_to_tetras[e].append(tetra)
@@ -125,6 +129,12 @@ class GaugeColor3DCode(StabilizerCode):
         if not self.is_stabilizer(location):
             raise ValueError(f"Invalid coordinate {location} "
                              "for a stabilizer")
+
+        # x, y, z = location
+        # if x % 2 == y % 2 == z % 2 == 0:
+        #     return 'vertex'
+        # else:
+        #     return 'edge'
 
         if len(location) == 2:
             return 'edge'
