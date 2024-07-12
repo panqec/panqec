@@ -2,22 +2,22 @@
 Miscellaneous useful utilities.
 
 Many of these are copied from the internet.
-
-:Author:
-    Eric Huang
 """
-from typing import Dict, Any, Optional
-import numpy as np
-import json
-import os
 import gzip
 import hashlib
 from itertools import product
-from panqec.bsparse import is_sparse, to_array
-from typing import Callable
+import json
+import os
+from typing import Dict, Any, Optional, Callable
 
 from ldpc import bposd_decoder
 from ldpc.mod2 import rank, nullspace
+import networkx as nx
+import numpy as np
+from pyvis.network import Network
+from scipy.sparse import csr_array
+
+from panqec.bsparse import is_sparse, to_array
 
 
 def log(*args, verbose=False, **kwargs):
@@ -39,10 +39,10 @@ def get_all_logicals(Hx, Hz, k=None, reduce_iter=0, osd_order=6, verbose=False):
     min_z_logicals = np.array(min_z_logicals, dtype='uint8')
 
     for i in range(min_x_logicals.shape[0]):
-        min_x_logicals[i] = reduce_logical(Hx, min_x_logicals[i], reduce_iter)
+        min_x_logicals[i] = reduce_logical(Hx, min_x_logicals[i], reduce_iter, random=False)
 
     for i in range(min_z_logicals.shape[0]):
-        min_z_logicals[i] = reduce_logical(Hz, min_z_logicals[i], reduce_iter)
+        min_z_logicals[i] = reduce_logical(Hz, min_z_logicals[i], reduce_iter, random=False)
 
     return {'X': min_x_logicals, 'Z': min_z_logicals}
 
@@ -50,7 +50,7 @@ def get_all_logicals(Hx, Hz, k=None, reduce_iter=0, osd_order=6, verbose=False):
 def reduce_logical(H, logical, n_iter, random=False):
     current_weight = len(logical.nonzero()[0])
 
-    for _ in range(n_iter):
+    for i_iter in range(n_iter):
         for i in range(H.shape[0]):
             if random:
                 stab_i = np.random.randint(0, H.shape[0])
@@ -64,10 +64,13 @@ def reduce_logical(H, logical, n_iter, random=False):
             if new_weight < current_weight:
                 logical = new_logical
                 current_weight = new_weight
+                # print(f"New weight {current_weight} at iter {i_iter}")
 
             elif current_weight == new_weight:
                 if np.random.rand() < 0.5:
                     logical = new_logical
+
+    # print('end')
 
     return logical
 
@@ -80,10 +83,10 @@ def get_minimum_logicals(H, anti_logical_basis, osd_order=6, verbose=False):
 
     decoder = bposd_decoder(
         H_with_logical,
-        error_rate=0.1,
+        error_rate=0.01,
         max_iter=200,
         bp_method='msl',
-        osd_method="osd_cs",
+        osd_method="osd0",
         osd_order=osd_order
     )
 
@@ -145,7 +148,7 @@ def is_multiorthogonal(
     verbose: bool = False
 ):
     if levels is None:
-        levels = list(range(k+1))
+        levels = list(range(k))
 
     multiorthogonal = True
     multiorthogonal_logicals = dict()
@@ -159,7 +162,7 @@ def is_multiorthogonal(
             multiorthogonal_logicals[logical_indices] = True
 
         for i, index in enumerate(indices):
-            if i % 100 == 0:  # used to reduce the print rate (useful in notebooks)
+            if i % 2 == 0:  # used to reduce the print rate (useful in notebooks)
                 log(
                     f"{k}-orthogonality with {n_L} logicals: "
                     f"{round((i+1) / len(indices) * 100)}%",
@@ -179,22 +182,20 @@ def is_multiorthogonal(
 
             if np.sum(prod) % 2 != expected_value:
                 multiorthogonal_logicals[index[:n_L]] = False
-                # log(f"Not {k}-orthogonal when including {n_L} logicals", verbose=verbose)
-                # log(f"Logicals {index[:n_L]} and stabilizers {index[n_L:]} anticommute",
-                #     verbose=verbose)
+                log(f"Not {k}-orthogonal when including {n_L} logicals", verbose=verbose)
+                log(f"Logicals {index[:n_L]} and stabilizers {index[n_L:]} anticommute",
+                    verbose=verbose)
                 multiorthogonal = False
-            # else:
-                # log(f"Logicals {index[:n_L]} and stabilizers {index[n_L:]} commute",
-                #     verbose=verbose)
+            else:
+                log(f"Logicals {index[:n_L]} and stabilizers {index[n_L:]} commute",
+                    verbose=verbose)
 
-    logical_pairs = []
+    logical_triplets = []
     for logical_indices in multiorthogonal_logicals.keys():
-        if multiorthogonal_logicals[logical_indices] and logical_indices[0] != logical_indices[1]:
-            pair = tuple(sorted(logical_indices))
-            if pair not in logical_pairs:
-                logical_pairs.append(pair)
-
-    print(logical_pairs)
+        if multiorthogonal_logicals[logical_indices]:
+            triplet = tuple(sorted(logical_indices))
+            if triplet not in logical_triplets:
+                logical_triplets.append(triplet)
 
     return multiorthogonal
 
@@ -589,3 +590,42 @@ def get_label(name: str, parameters: Dict[str, Any]) -> str:
         parameter_labels.append(f'{key}={formatted_value}')
     label = name + '(' + ', '.join(parameter_labels) + ')'
     return label
+
+
+def draw_Tanner_graph(H: np.ndarray, notebook: bool = True):
+    """Draw the Tanner graph of a classical code using Pyvis.
+
+    To draw on a notebook, use notebook=True, store the output
+    in a variable `nt` and run `nt.show('nx.html')`
+    """
+
+    graph = nx.algorithms.bipartite.from_biadjacency_matrix(
+        csr_array(H)
+    )
+    node_type = [graph.nodes[i]['bipartite'] for i in range(len(graph.nodes))]
+
+    graph = nx.convert_node_labels_to_integers(graph)
+
+    nt = Network(notebook=notebook, cdn_resources='in_line')
+    nt.from_nx(graph)
+
+    n_checks = len(node_type) - sum(node_type)
+
+    for edge in nt.get_edges():
+        edge['width'] = 8
+
+    for node_id in nt.get_nodes():
+        node = nt.get_node(node_id)
+        if node_type[node_id] == 0:
+            node['label'] = str(node['id'])
+        else:
+            node['label'] = str(node['id'] - n_checks)
+        node['shape'] = ['box', 'circle'][node_type[node_id]]
+        if not node_type[node_id]:
+            node['color'] = 'orange'
+
+        node['font'] = {'size': 45}
+
+    nt.show('nx.html')
+
+    return nt
