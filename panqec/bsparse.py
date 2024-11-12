@@ -6,9 +6,9 @@ It is mostly a wrapper around scipy.sparse, making sure that everything is in
 the correct format and is done as efficiently as possible.
 """
 
+import numpy as np
 from scipy import sparse
 from scipy.sparse import csr_matrix
-import numpy as np
 
 
 def zero_row(n_cols: int):
