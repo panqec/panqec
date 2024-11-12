@@ -50,7 +50,7 @@ def is_empty(matrix):
 
 
 def is_sparse(matrix):
-    return type(matrix) == csr_matrix
+    return isinstance(matrix, csr_matrix)
 
 
 def is_one(index: int, row_matrix):
