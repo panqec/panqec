@@ -1,5 +1,5 @@
 import numpy as np
-from ldpc import bposd_decoder
+from ldpc import BpOsdDecoder
 from panqec.codes import StabilizerCode
 from panqec.error_models import BaseErrorModel
 from panqec.decoders import BaseDecoder
@@ -16,7 +16,7 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
                  max_bp_iter: int = 1000,
                  channel_update: bool = False,
                  osd_order: int = 10,
-                 bp_method: str = 'msl'):
+                 bp_method: str = 'minimum_sum'):
         super().__init__(code, error_model, error_rate)
         self._max_bp_iter = max_bp_iter
         self._channel_update = channel_update
@@ -81,33 +81,35 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
         is_css = self.code.is_css
 
         if is_css:
-            self.z_decoder = bposd_decoder(
+            self.z_decoder = BpOsdDecoder(
                 self.code.Hx,
                 error_rate=self.error_rate,
                 max_iter=self._max_bp_iter,
                 bp_method=self._bp_method,
-                ms_scaling_factor=0,
+                ms_scaling_factor=0.,
+                schedule="serial",
                 osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
                 osd_order=self._osd_order
             )
 
-            self.x_decoder = bposd_decoder(
+            self.x_decoder = BpOsdDecoder(
                 self.code.Hz,
                 error_rate=self.error_rate,
                 max_iter=self._max_bp_iter,
                 bp_method=self._bp_method,
-                ms_scaling_factor=0,
+                ms_scaling_factor=0.,
+                schedule="serial",
                 osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
                 osd_order=self._osd_order
             )
 
         else:
-            self.decoder = bposd_decoder(
+            self.decoder = BpOsdDecoder(
                 self.code.stabilizer_matrix,
                 error_rate=self.error_rate,
                 max_iter=self._max_bp_iter,
                 bp_method=self._bp_method,
-                ms_scaling_factor=0,
+                ms_scaling_factor=0.,
                 osd_method="osd_cs",  # Choose from: "osd_e", "osd_cs", "osd0"
                 osd_order=self._osd_order
             )
