@@ -158,7 +158,7 @@ def equal(a, b):
         if a == 0:
             return (b.nnz == 0)
         else:
-            return (len(b.data) == np.product(b.shape)) and np.all(b.data == a)
+            return (len(b.data) == np.prod(b.shape)) and np.all(b.data == a)
     else:
         raise TypeError("Equality not supported between"
                         f"{type(a)} and {type(b)}")
