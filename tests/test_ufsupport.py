@@ -55,7 +55,7 @@ class TestSupport:
         assert sp._num_qubit == 10
         assert np.array_equal(sp._H_to_grow.toarray(), Hz.toarray())
         Hz[0][0] = 0
-        assert not np.array_equal(sp._H_to_grow, Hz)
+        assert not np.array_equal(sp._H_to_grow, Hz.toarray())
         # check = {1: Clustering_Tree(1, sp), 3: Clustering_Tree(3, sp)}
         # for k, v in sp._cluster_forest.items():
         #     assert v == check[k]
