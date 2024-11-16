@@ -1,5 +1,5 @@
 """
-Micellaneous useful utilities.
+Miscellaneous useful utilities.
 
 Many of these are copied from the internet.
 
@@ -384,7 +384,7 @@ def get_label(name: str, parameters: Dict[str, Any]) -> str:
     name : str
         The name of the class.
     parameters : Dict[str, Any]
-        The dictionary of parameters used to intialize an instance of that
+        The dictionary of parameters used to initialize an instance of that
         class.
 
     Returns
