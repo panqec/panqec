@@ -9,16 +9,17 @@ from .sweepmatch._sweep_decoder_3d import SweepDecoder3D  # noqa
 from .sweepmatch._sweep_match_decoder import SweepMatchDecoder  # noqa
 from .sweepmatch._rotated_sweep_decoder import RotatedSweepDecoder3D  # noqa
 from .sweepmatch._rotated_sweep_match_decoder import RotatedSweepMatchDecoder  # noqa
+from .union_find.uf_decoder import UnionFindDecoder  # noqa
 
 __all__ = [
     "BaseDecoder",
     "BeliefPropagationOSDDecoder",
     "MemoryBeliefPropagationDecoder",
-
     "RotatedSweepDecoder3D",
     "RotatedSweepMatchDecoder",
     "SweepDecoder3D",
     "SweepMatchDecoder",
     "MatchingDecoder",
-    "XCubeMatchingDecoder"
+    "XCubeMatchingDecoder",
+    "UnionFindDecoder"
 ]
