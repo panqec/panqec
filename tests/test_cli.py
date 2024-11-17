@@ -62,7 +62,7 @@ def test_read_bias_ratios():
     assert len(bias_ratios) == len(expected_bias_ratios)
     for eta, expected_eta in zip(bias_ratios, expected_bias_ratios):
         assert eta == expected_eta
-        assert type(eta) == type(expected_eta)
+        assert isinstance(eta, type(expected_eta))
 
 
 @pytest.mark.parametrize('spec,expected_values', [
@@ -76,4 +76,4 @@ def test_read_range_input(spec, expected_values):
     assert len(values) == len(expected_values)
     for value, expected_value in zip(values, expected_values):
         assert value == expected_value
-        assert type(value) == type(expected_value)
+        assert isinstance(value, type(expected_value))

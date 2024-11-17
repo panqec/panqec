@@ -36,7 +36,7 @@ class TestToric3DCode(StabilizerCodeTest):
         )
 
         # Number of stabilizer generators should be number of vertices.
-        assert stabilizers.shape[0] == np.product(code.size)
+        assert stabilizers.shape[0] == np.prod(code.size)
 
         # Each bsf length should be 2*n.
         assert stabilizers.shape[1] == 2*n
@@ -60,7 +60,7 @@ class TestToric3DCode(StabilizerCodeTest):
         n, k, d = code.n, code.k, code.d
 
         # The number of qubits should be the number of edges 3*L_x*L_y*L_z.
-        assert n == 3*np.product(code.size)
+        assert n == 3*np.prod(code.size)
         assert k == 3
         assert d == min(code.size)
 
@@ -78,7 +78,7 @@ class TestToric3DCode(StabilizerCodeTest):
         assert stabilizers.dtype == 'uint8'
 
         # Number of stabilizer generators should be number of edges.
-        assert stabilizers.shape[0] == 3*np.product(code.size)
+        assert stabilizers.shape[0] == 3*np.prod(code.size)
 
         # The number of qubits should be the number of edges 3L^3.
         assert stabilizers.shape[1] == 2*n
@@ -101,7 +101,7 @@ class TestToric3DCode(StabilizerCodeTest):
         stabilizers = code.stabilizer_matrix
 
         # Total number of stabilizers.
-        assert stabilizers.shape[0] == 4*np.product(code.size)
+        assert stabilizers.shape[0] == 4*np.prod(code.size)
 
         # Z block of X stabilizers should be all 0.
         assert np.all(bsparse.to_array(stabilizers[:n_vertex, :n]) == 0)

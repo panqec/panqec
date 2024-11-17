@@ -8,7 +8,7 @@ git clone https://github.com/ehua7365/panqec.git
 cd panqec
 ```
 
-Within a Python 3.8+ environment, install the library and its dependencies for development mode.
+Within a Python 3.9+ environment, install the library and its dependencies for development mode.
 ```
 pip install -r requirements/dev.txt
 pip install -e .

@@ -284,7 +284,8 @@ class StabilizerCode(metaclass=ABCMeta):
                         else:
                             sparse_dict[(i_stab, i_qubit)] = 1
 
-            self._stabilizer_matrix._update(sparse_dict)
+            for key, value in sparse_dict.items():
+                self._stabilizer_matrix[key[0], key[1]] = value
             self._stabilizer_matrix = self._stabilizer_matrix.tocsr()
             self._stabilizer_matrix.data %= 2
 

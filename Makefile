@@ -1,6 +1,6 @@
 lint:
 	flake8 panqec tests
-	mypy panqec tests
+	mypy panqec tests --no-site-package
 coverage:
 	pytest --cov=panqec --cov-report=html
 	python -m http.server 8080 --directory ./htmlcov/
