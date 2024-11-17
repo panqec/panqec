@@ -26,6 +26,7 @@ PanQEC also currently offers the following decoders:
 * **MBP** (Belief Propagation with Memory effect), as described in [this paper](https://arxiv.org/abs/2104.13659). Works for all codes.
 * **MWPM** (Minimum-Weight Perfect Matching decoder) for 2D surface codes, using the library [PyMatching](https://pymatching.readthedocs.io) developed by Oscar Higgott.
 * **SweepMatch** for 3D surface codes (using our implementation of the [sweep decoder](https://arxiv.org/abs/2004.07247) for loop-syndrome decoding and PyMatching for point-syndrome decoding).
+* **Union-Find decoder** (see [paper](https://arxiv.org/abs/2103.08049)) for the 2D toric code, developped by Lynna Xie and Osama Alsaiari.
 
 # Installation and documentation
 
@@ -47,11 +48,10 @@ Check out the [development](https://panqec.readthedocs.io) section of the
 documentation for instructions of how to set up the development environment.
 
 # Paper
-An example of a paper which uses PanQEC is [here](https://arxiv.org/abs/2211.02116).
-
+PanQEC was developed in the context of [this paper](https://arxiv.org/abs/2211.02116).
 
 # The team
 
-PanQEC is currently developed and maintained by [Eric Huang](https://github.com/ehua7365) and [Arthur Pesah](http://arthurpesah.me/). The implementation of 3D toric and fracton codes was done under the supervision of Arpit Dua, Michael Vasmer and Christopher Chubb.
+PanQEC is currently developed and maintained by [Eric Huang](https://github.com/ehua7365) and [Arthur Pesah](http://arthurpesah.me/). The implementation of 3D toric and fracton codes was done under the supervision of Arpit Dua, Michael Vasmer and Christopher Chubb. The Union-Find decoder was implemented by Lynna Xie and Osama Alsaiari under the supervision of Arthur.
 
 Note: PanQEC was greatly inspired by [qecsim](https://qecsim.github.io/) at its inception, and we would like to thank its author David Tuckett for providing us with the first seed of this project.
