@@ -201,7 +201,7 @@ class TestDeformedXZZXErrorModel:
         assert decoder.matcher.error_model.direction == (0.1, 0.2, 0.7)
         matching = decoder.matcher.matcher_x
         distance_matrix = get_pymatching_distance_matrix(matching)
-        n_vertices = int(np.product(code.size))
+        n_vertices = int(np.prod(code.size))
         assert distance_matrix.shape == (n_vertices, n_vertices)
 
         # The index of the origin vertex.
@@ -246,7 +246,7 @@ class TestDeformedXZZXErrorModel:
         assert decoder.matcher.error_model.direction == (0.4, 0.2, 0.4)
         matching = decoder.matcher.matcher_x
         distance_matrix = get_pymatching_distance_matrix(matching)
-        n_vertices = int(np.product(code.size))
+        n_vertices = int(np.prod(code.size))
         assert distance_matrix.shape == (n_vertices, n_vertices)
 
         # Distances from the origin vertex.

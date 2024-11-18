@@ -6,9 +6,9 @@ It is mostly a wrapper around scipy.sparse, making sure that everything is in
 the correct format and is done as efficiently as possible.
 """
 
+import numpy as np
 from scipy import sparse
 from scipy.sparse import csr_matrix
-import numpy as np
 
 
 def zero_row(n_cols: int):
@@ -50,7 +50,7 @@ def is_empty(matrix):
 
 
 def is_sparse(matrix):
-    return type(matrix) == csr_matrix
+    return isinstance(matrix, csr_matrix)
 
 
 def is_one(index: int, row_matrix):
@@ -158,7 +158,7 @@ def equal(a, b):
         if a == 0:
             return (b.nnz == 0)
         else:
-            return (len(b.data) == np.product(b.shape)) and np.all(b.data == a)
+            return (len(b.data) == np.prod(b.shape)) and np.all(b.data == a)
     else:
         raise TypeError("Equality not supported between"
                         f"{type(a)} and {type(b)}")
