@@ -115,14 +115,14 @@ def get_arbitrary_logicals(Hx, Hz, pauli='X', k=None, verbose=False):
         H = [Hz, Hx]
 
     rank_H0 = rank(H[0])
-    augmented_H = nullspace(H[1])
+    augmented_H = nullspace(H[1]).todense()
 
     if k is None:
         k = Hx.shape[1] - rank_H0 - rank(H[1])
 
     logicals = []
     for i, s in enumerate(augmented_H):
-        log(f"{i} / {len(augmented_H)}", end="\r", verbose=verbose)
+        log(f"{i} / {augmented_H.shape[0]}", end="\r", verbose=verbose)
 
         new_H0 = np.vstack([H[0], s])
         if rank(new_H0) > rank_H0:
