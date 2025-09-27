@@ -79,8 +79,10 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
 
     def initialize_decoders(self):
         is_css = self.code.is_css
+        # is_css = False
 
         if is_css:
+            # print("is_css")
             self.z_decoder = BpOsdDecoder(
                 self.code.Hx,
                 error_rate=self.error_rate,
@@ -104,6 +106,7 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
             )
 
         else:
+            # print("non css decoder")
             self.decoder = BpOsdDecoder(
                 self.code.stabilizer_matrix,
                 error_rate=self.error_rate,
@@ -118,10 +121,11 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
     def decode(self, syndrome: np.ndarray, **kwargs) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
-        if not self._initialized:
-            self.initialize_decoders()
+        # if not self._initialized:
+        self.initialize_decoders()
 
         is_css = self.code.is_css
+        # is_css = False
         n_qubits = self.code.n
         syndrome = np.array(syndrome, dtype=int)
 
@@ -130,6 +134,7 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
             syndrome_x = self.code.extract_x_syndrome(syndrome)
 
         pi, px, py, pz = self.get_probabilities()
+        # print("py", py)
 
         probabilities_x = px + py
         probabilities_z = pz + py
@@ -143,19 +148,18 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
             self.z_decoder.update_channel_probs(probabilities_z)
 
             # Decode Z errors
-            self.z_decoder.decode(syndrome_x)
-            z_correction = self.z_decoder.osdw_decoding
+            z_correction = self.z_decoder.decode(syndrome_x)
 
             # Bayes update of the probability
             if self._channel_update:
                 new_x_probs = self.update_probabilities(
                     z_correction, px, py, pz, direction="z->x"
                 )
+                print("new x probs", new_x_probs)
                 self.x_decoder.update_channel_probs(new_x_probs)
 
             # Decode X errors
-            self.x_decoder.decode(syndrome_z)
-            x_correction = self.x_decoder.osdw_decoding
+            x_correction = self.x_decoder.decode(syndrome_z)
 
             correction = np.concatenate([x_correction, z_correction])
         else:
@@ -164,8 +168,7 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
             self.decoder.update_channel_probs(probabilities)
 
             # Decode all errors
-            self.decoder.decode(syndrome)
-            correction = self.decoder.osdw_decoding
+            correction = self.decoder.decode(syndrome)
             correction = np.concatenate(
                 [correction[n_qubits:], correction[:n_qubits]]
             )
