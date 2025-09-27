@@ -79,7 +79,6 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
 
     def initialize_decoders(self):
         is_css = self.code.is_css
-        # is_css = False
 
         if is_css:
             # print("is_css")
@@ -121,11 +120,10 @@ class BeliefPropagationOSDDecoder(BaseDecoder):
     def decode(self, syndrome: np.ndarray, **kwargs) -> np.ndarray:
         """Get X and Z corrections given code and measured syndrome."""
 
-        # if not self._initialized:
-        self.initialize_decoders()
+        if not self._initialized:
+            self.initialize_decoders()
 
         is_css = self.code.is_css
-        # is_css = False
         n_qubits = self.code.n
         syndrome = np.array(syndrome, dtype=int)
 
