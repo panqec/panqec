@@ -163,7 +163,7 @@ class MemoryBeliefPropagationDecoder(BaseDecoder):
                     ])
                     lambda_neighbor = np.array(lambda_neighbor)
 
-                    sign = (-1)**syndrome[m]
+                    sign = (-1)**int(syndrome[m])
                     delta_s2q[m, n] = sign * tanh_prod(lambda_neighbor)
 
                 # ----------------- Qubit to stabilizer update ---------------
