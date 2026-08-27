@@ -125,6 +125,9 @@ class TopologicalCode {
             let activatedStr = s.isActivated ? 'activated' : 'deactivated';
             s.material.opacity = s.opacity[activatedStr][opacityLevel];
             s.visible = (s.material.opacity != 0)
+            if (s.children.length > 0 && s.children[0].type == 'LineSegments') {
+                s.children[0].material.opacity = s.material.opacity;
+            }
         });
     }
 

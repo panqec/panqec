@@ -306,7 +306,9 @@ class SubsystemCode(metaclass=ABCMeta):
                         else:
                             sparse_dict[(i_gauge, i_qubit)] = 1
 
-            self._gauge_matrix._update(sparse_dict)
+            for coord, value in sparse_dict.items():
+                if value % 2:
+                    self._gauge_matrix[coord] = value % 2
             self._gauge_matrix = self._gauge_matrix.tocsr()
             self._gauge_matrix.data %= 2
 
@@ -332,8 +334,12 @@ class SubsystemCode(metaclass=ABCMeta):
                     i_gauge = self.gauge_index[gauge_loc]
                     sparse_dict[(i_stab, i_gauge)] = 1
 
-            self._stabilizer_gauge_matrix._update(sparse_dict)
-            self._stabilizer_gauge_matrix = self._stabilizer_gauge_matrix.tocsr()
+            for coord, value in sparse_dict.items():
+                if value % 2:
+                    self._stabilizer_gauge_matrix[coord] = value % 2
+            self._stabilizer_gauge_matrix = (
+                self._stabilizer_gauge_matrix.tocsr()
+            )
             self._stabilizer_gauge_matrix.data %= 2
 
         return self._stabilizer_gauge_matrix
@@ -350,6 +356,8 @@ class SubsystemCode(metaclass=ABCMeta):
                 self.stabilizer_gauge_matrix,
                 self.gauge_matrix
             )
+            self._stabilizer_matrix.data %= 2
+            self._stabilizer_matrix.eliminate_zeros()
 
         return self._stabilizer_matrix
 
@@ -972,7 +980,9 @@ class SubsystemCode(metaclass=ABCMeta):
         direction = {'x': [1,  0, 0], 'y': [0, 1, 0], 'z': [0, 0, 1]}
 
         if self.qubit_axis(location) in direction.keys():
-            representation['params']['direction'] = direction[self.qubit_axis(location)]
+            representation['params']['direction'] = direction[
+                self.qubit_axis(location)
+            ]
 
         representation['location'] = location
 

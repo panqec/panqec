@@ -221,7 +221,15 @@ class Interface {
         this.params.Ly = this.params.Lx;
         this.params.Lz = this.params.Lx;
 
-        if (this.params.coprime)
+        if (this.params.codeName == 'Tetrahedral Color Code') {
+            this.params.Lx = Math.max(3, this.params.Lx);
+            if (this.params.Lx % 2 == 0) {
+                this.params.Lx += 1;
+            }
+            this.params.Ly = this.params.Lx;
+            this.params.Lz = this.params.Lx;
+        }
+        else if (this.params.coprime)
             this.params.Lx += 1;
 
         this.code.qubits.forEach(q => {

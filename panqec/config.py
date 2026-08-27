@@ -13,7 +13,7 @@ from .codes import (
     Color666PlanarCode, Color666ToricCode, Color488Code,
     Color3DCode, RhombicToricCode, RhombicPlanarCode,
     XCubeCode, HollowPlanar3DCode, HollowRhombicCode,
-    BaconShorCode
+    BaconShorCode, TetrahedralColor3DCode
 )
 from .decoders import (
     SweepMatchDecoder, XCubeMatchingDecoder,
@@ -61,6 +61,7 @@ CODES = {
     'Color666ToricCode': Color666ToricCode,
     'Color488Code': Color488Code,
     'Color3DCode': Color3DCode,
+    'TetrahedralColor3DCode': TetrahedralColor3DCode,
     'Toric3DCode': Toric3DCode,
     'Planar3DCode': RotatedPlanar3DCode,
     'RotatedPlanar3DCode': RotatedPlanar3DCode,

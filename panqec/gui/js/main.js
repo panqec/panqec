@@ -1,14 +1,14 @@
 import { Interface } from './gui.js'
 
-var defaultCode = codeDimension == 2 ? 'Toric 2D' : 'Gauge Color Code';
-var defaultSize = codeDimension == 2 ? 4 : 2;
+var defaultCode = codeDimension == 2 ? 'Toric 2D' : 'Tetrahedral Color Code';
+var defaultSize = codeDimension == 2 ? 4 : 3;
 
 const params = {
     dimension: codeDimension,
     errorProbability: 0.05,
-    Lx: 2,
-    Ly: 2,
-    Lz: 2,
+    Lx: defaultSize,
+    Ly: defaultSize,
+    Lz: defaultSize,
     noiseDeformationName: 'None',
     decoder: 'BP-OSD',
     max_bp_iter: 20,

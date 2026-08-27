@@ -55,7 +55,8 @@ function rectangle(location, params) {
     geometry.translate(x, y, z);
 
     const material = new THREE.MeshToonMaterial({transparent: true,
-                                                 side: THREE.DoubleSide});
+                                                 side: THREE.DoubleSide,
+                                                 depthWrite: false});
     const face = new THREE.Mesh(geometry, material);
 
     return face
@@ -175,13 +176,11 @@ function polyhedron(location, params) {
     geometry.setIndex(params.triangles);
     geometry.computeVertexNormals();
 
-    console.log(params.triangles)
-
     const material = new THREE.MeshToonMaterial({transparent: true,
                                                  side: THREE.DoubleSide});
     const polyhedron = new THREE.Mesh(geometry, material);
 
-    var geo = new THREE.EdgesGeometry( polyhedron.geometry );
+    var geo = new THREE.EdgesGeometry(polyhedron.geometry);
     var mat = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 2,
                                            opacity: 0, transparent: true });
     var wireframe = new THREE.LineSegments(geo, mat);
